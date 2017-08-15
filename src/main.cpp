@@ -679,7 +679,7 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
               BOOST_FOREACH(const CTxOut& output, vout) {
                 int blockRotation = (nHeight+1 - 95 * float((nHeight+1)/95));
                 int64 reward = (int64)(0.95 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime)));
-                printf("CheckTransaction nHeight = %d block rotation = %d reward = %f nValue = %f \n", nHeight, blockRotation, reward, output.nValue);
+                printf("CheckTransaction nHeight = %d block rotation = %d reward = %d nValue = %d \n", nHeight, blockRotation, reward, output.nValue);
                 if (blockRotation >= 0 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {                    
                     found_1 = true;
                 }
@@ -6433,7 +6433,7 @@ void static SmartcashMiner(CWallet *pwallet)
     }
 }
 
-void GenerateBitcoins(bool fGenerate, CWallet* pwallet)
+/*void GenerateBitcoins(bool fGenerate, CWallet* pwallet)
 {
 
     static boost::thread_group* minerThreads = NULL;
@@ -6457,7 +6457,7 @@ void GenerateBitcoins(bool fGenerate, CWallet* pwallet)
         minerThreads->create_thread(boost::bind(&SmartcashMiner, pwallet));
 
 }
-
+*/
 
 
 // Amount compression:
