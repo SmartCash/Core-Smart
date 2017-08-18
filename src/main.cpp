@@ -696,10 +696,11 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
                 if (blockRotation >= 39 && blockRotation <= 94 && output.scriptPubKey == FOUNDER_5_SCRIPT && abs(output.nValue - reward) < 2 ) {
                     found_5 = true;
                 }
-                if (!(found_1 || found_2 || found_3 || found_4 || found_5)) {
-                return state.DoS(100, error("CTransaction::CheckTransaction() : One of the SmartHive rewards is missing"));
-                }
               }
+              if (!(found_1 || found_2 || found_3 || found_4 || found_5)) {
+              return state.DoS(100, error("CTransaction::CheckTransaction() : One of the SmartHive rewards is missing"));
+              }
+            }
         }
     }
     else
