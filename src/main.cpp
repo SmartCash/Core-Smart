@@ -654,7 +654,7 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
                 FOUNDER_4_SCRIPT.SetDestination(CBitcoinAddress("TUPAY3ziYY7znMLxRJJNuvfuFWS1snrjiM").Get());
                 FOUNDER_5_SCRIPT.SetDestination(CBitcoinAddress("TMtxkvmAMyL5siHX1n3zKAvAKnev8if8KA").Get());
             }
-            if ((nHeight > 0) && (nHeight < 70000)) {
+            if ((nHeight > 0) && (nHeight < 90000)) {
               BOOST_FOREACH(const CTxOut& output, vout) {
                 if (output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - (int64)(0.08 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime)))) < 2 ) {
                     found_1 = true;
@@ -676,7 +676,7 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
               return state.DoS(100, error("CTransaction::CheckTransaction() : One of the SmartHive rewards is missing"));
               }
             }
-            if ((nHeight >= 70000) && (nHeight <= 717499999)) {
+            if ((nHeight >= 90000) && (nHeight <= 717499999)) {
               BOOST_FOREACH(const CTxOut& output, vout) {
                 int blockRotation = (nHeight - 95 * (float(nHeight/95)));
                 int64 reward = (int64)(0.95 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime)));
@@ -5788,14 +5788,14 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
          }
 
          // And pay the budgets
-         if ((pindexBest->nHeight+1 > 0) && (pindexBest->nHeight+1 < 70000)) {
+         if ((pindexBest->nHeight+1 > 0) && (pindexBest->nHeight+1 < 90000)) {
             txNew.vout.push_back(CTxOut((int64)(0.08 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime))), CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
             txNew.vout.push_back(CTxOut((int64)(0.08 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime))), CScript(FOUNDER_2_SCRIPT.begin(), FOUNDER_2_SCRIPT.end())));
             txNew.vout.push_back(CTxOut((int64)(0.08 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime))), CScript(FOUNDER_3_SCRIPT.begin(), FOUNDER_3_SCRIPT.end())));
             txNew.vout.push_back(CTxOut((int64)(0.15 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime))), CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
             txNew.vout.push_back(CTxOut((int64)(0.56 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime))), CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
          }
-         if ((pindexBest->nHeight+1 >= 70000) && (pindexBest->nHeight+1 < 717499999)) {
+         if ((pindexBest->nHeight+1 >= 90000) && (pindexBest->nHeight+1 < 717499999)) {
             int blockRotation = (pindexBest->nHeight+1 - 95 * float((pindexBest->nHeight+1)/95));
             int64 reward = (int64)(0.95 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime)));
             if(blockRotation >= 0 && blockRotation <= 7){
