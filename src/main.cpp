@@ -678,7 +678,7 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
             }
             if ((nHeight >= 90000) && (nHeight <= 717499999)) {
               BOOST_FOREACH(const CTxOut& output, vout) {
-                int blockRotation = (nHeight - 95 * (float(nHeight/95)));
+                int blockRotation = nHeight - 95 * (nHeight/95);
                 int64 reward = (int64)(0.95 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime)));
 //                printf("CheckTransaction nHeight = %d block rotation = %d reward = %d nValue = %d \n", nHeight, blockRotation, reward, output.nValue);
                 if (blockRotation >= 0 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {                    
@@ -2352,8 +2352,8 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         int64                                PastSecondsMin                                = 110; //  110 Seconds or 2 Blocks
         int64                                PastSecondsMax                                = 60 * 60 * 12; // 12 Hours
 	}
-	uint32_t                                PastBlocksMin                                = PastSecondsMin / BlocksTargetSpacing; // 36 blocks
-        uint32_t                                PastBlocksMax                                = PastSecondsMax / BlocksTargetSpacing; // 1008 blocks
+	uint32_t                                PastBlocksMin                                = PastSecondsMin / BlocksTargetSpacing; // 2 blocks
+        uint32_t                                PastBlocksMax                                = PastSecondsMax / BlocksTargetSpacing; // 785 blocks
 
   	if ((pindexLast->nHeight+1) % nInterval != 0) // Retarget every nInterval blocks
     {
@@ -5796,7 +5796,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
             txNew.vout.push_back(CTxOut((int64)(0.56 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime))), CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
          }
          if ((pindexBest->nHeight+1 >= 90000) && (pindexBest->nHeight+1 < 717499999)) {
-            int blockRotation = (pindexBest->nHeight+1 - 95 * float((pindexBest->nHeight+1)/95));
+            int blockRotation = pindexBest->nHeight+1 - 95 * ((pindexBest->nHeight+1)/95);
             int64 reward = (int64)(0.95 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime)));
             if(blockRotation >= 0 && blockRotation <= 7){
                txNew.vout.push_back(CTxOut(reward, CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
