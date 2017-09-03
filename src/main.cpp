@@ -2344,10 +2344,8 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
 
    static const uint32_t        BlocksTargetSpacing                        = 55; // 55 Seconds
         unsigned int                TimeDaySeconds                                = 60 * 60 * 24; // 86400 Seconds
-    	if(pindexLast->nHeight + 1 < 90000){
         int64                                PastSecondsMin                                = TimeDaySeconds * .0005; // 43 Seconds
         int64                                PastSecondsMax                                = TimeDaySeconds * .007; // 10 minutes
-	}
 	if(pindexLast->nHeight + 1 >= 90000){
         int64                                PastSecondsMin                                = 110; //  110 Seconds or 2 Blocks
         int64                                PastSecondsMax                                = 60 * 60 * 12; // 12 Hours
