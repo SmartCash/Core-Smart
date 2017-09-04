@@ -208,9 +208,6 @@ static const CRPCCommand vRPCCommands[] =
     { "getaddednodeinfo",       &getaddednodeinfo,       true,      true,       false },
     { "getdifficulty",          &getdifficulty,          true,      false,      false },
     { "getnetworkhashps",       &getnetworkhashps,       true,      false,      false },
-    { "getgenerate",            &getgenerate,            true,      false,      false },
-//    { "setgenerate",            &setgenerate,            true,      false,      true },
-    { "gethashespersec",        &gethashespersec,        true,      false,      false },
     { "getinfo",                &getinfo,                true,      false,      false },
     { "getmininginfo",          &getmininginfo,          true,      false,      false },
     { "getnewaddress",          &getnewaddress,          true,      false,      true },
@@ -245,12 +242,10 @@ static const CRPCCommand vRPCCommands[] =
     { "signmessage",            &signmessage,            false,     false,      true },
     { "verifymessage",          &verifymessage,          true,     false,      false },
     { "getwork",                &getwork,                true,      false,      true },
-//    { "getworkaux",             &getworkaux,             true,      false,      true },
     { "getworkex",              &getworkex,              true,      false,      true },
     { "listaccounts",           &listaccounts,           false,     false,      true },
     { "settxfee",               &settxfee,               false,     false,      true },
     { "getblocktemplate",       &getblocktemplate,       true,      false,      false },
-//    { "getauxblock",            &getauxblock,            true,      false,      true },
     { "submitblock",            &submitblock,            false,     false,      false },
     { "setmininput",            &setmininput,            false,     false,      false },
     { "listsinceblock",         &listsinceblock,         false,     false,      true },
@@ -1159,8 +1154,6 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     //
     if (strMethod == "stop"                   && n > 0) ConvertTo<bool>(params[0]);
     if (strMethod == "getaddednodeinfo"       && n > 0) ConvertTo<bool>(params[0]);
-//    if (strMethod == "setgenerate"            && n > 0) ConvertTo<bool>(params[0]);
-//    if (strMethod == "setgenerate"            && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "getnetworkhashps"       && n > 0) ConvertTo<boost::int64_t>(params[0]);
     if (strMethod == "getnetworkhashps"       && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "sendtoaddress"          && n > 1) ConvertTo<double>(params[1]);
