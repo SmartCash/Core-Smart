@@ -2215,9 +2215,8 @@ int64 static GetBlockValue(int nHeight, int64 nFees, unsigned int nTime)
     if (nHeight > 717499999)
         return nFees;
 }
-static const int64 nTargetTimespan = 2 * 55; //1 minute 50 seconds between retargets
+static const int64 nTargetTimespan = 10 * 55; //1 minute 50 seconds between retargets
 static const int64 nTargetSpacing = 55; // 55 second blocks
-static const int64 nInterval = nTargetTimespan / nTargetSpacing; // retargets every 2 blocks
 
 //
 // minimum amount of work that could possibly be required nTime after
@@ -2320,16 +2319,17 @@ unsigned int static BorisRidiculouslyNamedDifficultyFunction(const CBlockIndex* 
     
       
 // debug print
-    printf("Difficulty Retarget - Boris's Ridiculously Named Difficulty Function\n");
-    printf("nHeight = %i\n", pindexLast->nHeight);
-    printf("nPastBlocks = %u\n", nPastBlocks);
-    printf("nBlockTimeRatio Target/Actual = %.4f\n", nBlockTimeRatio.to_float());
-    printf("Mean blocktime = %.1fs\n", TargetBlocksSpacingSeconds / nBlockTimeRatio.to_float());
-    printf("SlowBlocksLimit = %.4f\n", SlowBlocksLimit[nPastBlocks-1]);
-    printf("FastBlocksLimit = %.4f\n", FastBlocksLimit[nPastBlocks-1]);
-    printf("Before: %08x %.8f\n", BlockLastSolved->nBits, GetDifficultyHelper(BlockLastSolved->nBits));
-    printf("After: %08x %.8f\n", bnNew.GetCompact(), GetDifficultyHelper(bnNew.GetCompact()));
-    printf("Ratio After/Before: %.8f\n", GetDifficultyHelper(bnNew.GetCompact()) / GetDifficultyHelper(BlockLastSolved->nBits));
+    printf("Difficulty Retarget: nHeight=%i\n Diff=%.8f\n", pindexLast->nHeight, GetDifficultyHelper(bnNew.GetCompact()));
+    //printf("Difficulty Retarget - Boris's Ridiculously Named Difficulty Function\n");
+    //printf("nHeight = %i\n", pindexLast->nHeight);
+    //printf("nPastBlocks = %u\n", nPastBlocks);
+    //printf("nBlockTimeRatio Target/Actual = %.4f\n", nBlockTimeRatio.to_float());
+    //printf("Mean blocktime = %.1fs\n", TargetBlocksSpacingSeconds / nBlockTimeRatio.to_float());
+    //printf("SlowBlocksLimit = %.4f\n", SlowBlocksLimit[nPastBlocks-1]);
+    //printf("FastBlocksLimit = %.4f\n", FastBlocksLimit[nPastBlocks-1]);
+    //printf("Before: %08x %.8f\n", BlockLastSolved->nBits, GetDifficultyHelper(BlockLastSolved->nBits));
+    //printf("After: %08x %.8f\n", bnNew.GetCompact(), GetDifficultyHelper(bnNew.GetCompact()));
+    //printf("Ratio After/Before: %.8f\n", GetDifficultyHelper(bnNew.GetCompact()) / GetDifficultyHelper(BlockLastSolved->nBits));
 
     return bnNew.GetCompact();
 }
@@ -2346,9 +2346,11 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         unsigned int                TimeDaySeconds                                = 60 * 60 * 24; // 86400 Seconds
         int64                                PastSecondsMin                                = TimeDaySeconds * .0005; // 43 Seconds
         int64                                PastSecondsMax                                = TimeDaySeconds * .007; // 10 minutes
+		int64                                nInterval                                     = 2; // retargets every 2 blocks
 	if(pindexLast->nHeight + 1 >= 90000){
         int64                                PastSecondsMin                                = 110; //  110 Seconds or 2 Blocks
         int64                                PastSecondsMax                                = 60 * 60 * 12; // 12 Hours
+		int64                                nInterval                                     = 10; // retargets every 10 blocks
 	}
 	uint32_t                                PastBlocksMin                                = PastSecondsMin / BlocksTargetSpacing; // 2 blocks
         uint32_t                                PastBlocksMax                                = PastSecondsMax / BlocksTargetSpacing; // 785 blocks
