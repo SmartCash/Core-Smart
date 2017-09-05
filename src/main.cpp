@@ -2319,7 +2319,7 @@ unsigned int static BorisRidiculouslyNamedDifficultyFunction(const CBlockIndex* 
     
       
 // debug print
-    printf("Difficulty Retarget: nHeight=%i Diff=%.8f\n", pindexLast->nHeight, GetDifficultyHelper(bnNew.GetCompact()));
+    printf("Difficulty Retarget: Height=%i Diff=%.8f Mean=%.1fs\n", pindexLast->nHeight, GetDifficultyHelper(bnNew.GetCompact()), TargetBlocksSpacingSeconds / nBlockTimeRatio.to_float());
     //printf("Difficulty Retarget - Boris's Ridiculously Named Difficulty Function\n");
     //printf("nHeight = %i\n", pindexLast->nHeight);
     //printf("nPastBlocks = %u\n", nPastBlocks);
@@ -2342,18 +2342,21 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         return bnProofOfWorkLimit.GetCompact();
     }
 
-   static const uint32_t        BlocksTargetSpacing                        = 55; // 55 Seconds
-        unsigned int                TimeDaySeconds                                = 60 * 60 * 24; // 86400 Seconds
-        int64                                PastSecondsMin                                = TimeDaySeconds * .0005; // 43 Seconds
-        int64                                PastSecondsMax                                = TimeDaySeconds * .007; // 10 minutes
-		int64                                nInterval                                     = 2; // retargets every 2 blocks
-	if(pindexLast->nHeight + 1 >= 90000){
-        int64                                PastSecondsMin                                = 110; //  110 Seconds or 2 Blocks
-        int64                                PastSecondsMax                                = 60 * 60 * 12; // 12 Hours
-		int64                                nInterval                                     = 10; // retargets every 10 blocks
+    static const uint32_t BlocksTargetSpacing = 55; // 55 Seconds
+    unsigned int          TimeDaySeconds      = 60 * 60 * 24; // 86400 Seconds
+    int64                 PastSecondsMin      = TimeDaySeconds * .0005; // 43 Seconds
+    int64                 PastSecondsMax      = TimeDaySeconds * .007; // 10 minutes
+    int64                 nInterval           = 2; // retargets every 2 blocks
+						  
+	if(pindexLast->nHeight + 1 >= 90000)
+	{
+                          PastSecondsMin      = 110; //  110 Seconds or 2 Blocks
+                          PastSecondsMax      = 60 * 60 * 12; // 12 Hours
+                          nInterval           = 10; // retargets every 10 blocks
 	}
-	uint32_t                                PastBlocksMin                                = PastSecondsMin / BlocksTargetSpacing; // 2 blocks
-        uint32_t                                PastBlocksMax                                = PastSecondsMax / BlocksTargetSpacing; // 785 blocks
+	
+	uint32_t              PastBlocksMin       = PastSecondsMin / BlocksTargetSpacing; // 2 blocks
+    uint32_t              PastBlocksMax       = PastSecondsMax / BlocksTargetSpacing; // 785 blocks
 
   	if ((pindexLast->nHeight+1) % nInterval != 0) // Retarget every nInterval blocks
     {
