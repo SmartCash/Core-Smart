@@ -2319,7 +2319,7 @@ unsigned int static BorisRidiculouslyNamedDifficultyFunction(const CBlockIndex* 
     
       
 // debug print
-    printf("Difficulty Retarget: nHeight=%i\n Diff=%.8f\n", pindexLast->nHeight, GetDifficultyHelper(bnNew.GetCompact()));
+    printf("Difficulty Retarget: nHeight=%i Diff=%.8f\n", pindexLast->nHeight, GetDifficultyHelper(bnNew.GetCompact()));
     //printf("Difficulty Retarget - Boris's Ridiculously Named Difficulty Function\n");
     //printf("nHeight = %i\n", pindexLast->nHeight);
     //printf("nPastBlocks = %u\n", nPastBlocks);
