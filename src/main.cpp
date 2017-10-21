@@ -679,7 +679,7 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
             if ((nHeight >= 90000) && (nHeight <= 717499999)) {
               BOOST_FOREACH(const CTxOut& output, vout) {
                 int blockRotation = nHeight - 95 * (nHeight/95);
-                int64 reward = (int64)(0.95 * (GetBlockValue(pindexBest->nHeight+1, 0, pindexBest->nTime)));
+                int64 reward = (int64)(0.95 * (GetBlockValue(nHeight, 0, pindexBest->nTime)));
 //                printf("CheckTransaction nHeight = %d block rotation = %d reward = %d nValue = %d \n", nHeight, blockRotation, reward, output.nValue);
                 if (blockRotation >= 0 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {                    
                     found_1 = true;
