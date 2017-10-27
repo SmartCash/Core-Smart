@@ -103,7 +103,7 @@ extern std::set<CWallet*> setpwalletRegistered;
 extern unsigned char pchMessageStart[4];
 extern bool fImporting;
 extern bool fReindex;
-extern bool fDisableRenew;
+//extern bool fDisableRenew = true;
 extern bool fBenchmark;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;

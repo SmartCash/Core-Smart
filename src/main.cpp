@@ -58,7 +58,6 @@ bool fImporting = false;
 bool fReindex = false;
 bool fBenchmark = false;
 bool fTxIndex = false;
-bool fDisableRenew = GetBoolArg("-disablerenew");
 unsigned int nCoinCacheSize = 5000;
 
 /** Fees smaller than this (in ztoshi) are considered zero fee (for transaction creation) */
@@ -704,7 +703,7 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
             }
         }
     }
-    else if(!fDisableRenew)
+    else if(false)
     {
 
         BOOST_FOREACH(const CTxIn& txin, vin) {

@@ -856,7 +856,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     // ********************************************************* Step 7: load block chain
 
     fReindex = GetBoolArg("-reindex");
-    fDisableRenew = GetBoolArg("-disablerenew");
+    //fDisableRenew = GetBoolArg("-disablerenew");
     if (!filesystem::exists(GetDataDir() / "wallet.dat"))
     {
         fReindex = true;
@@ -1030,7 +1030,7 @@ bool AppInit2(boost::thread_group& threadGroup)
         bool fFirstRun = true;
         pwalletMain = new CWallet("wallet.dat");
 
-        if (filesystem::exists(GetDataDir() / "wallet.dat") && !fDisableRenew)
+        if (filesystem::exists(GetDataDir() / "wallet.dat") && false)
         {
             // Zerocoin reorg, calculate new height and id
             list<CZerocoinEntry> listPubCoin = list<CZerocoinEntry>();
