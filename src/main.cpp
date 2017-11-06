@@ -5849,7 +5849,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
     nBlockMinSize = std::min(nBlockMaxSize, nBlockMinSize);
 
     unsigned int COUNT_SPEND_ZC_TX = 0;
-    unsigned int MAX_SPEND_ZC_TX_PER_BLOCK = 1;
+//  Temporarily disable zerocoin transactions
+    unsigned int MAX_SPEND_ZC_TX_PER_BLOCK = 0;
+//    unsigned int MAX_SPEND_ZC_TX_PER_BLOCK = 1;
 
     // Collect memory pool transactions into the block
 //    nFees = 0;
