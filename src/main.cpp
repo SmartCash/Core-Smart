@@ -716,6 +716,10 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
         BOOST_FOREACH(const CTxOut txout, vout) {
             if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsZerocoinMint()) {
 
+// Temporarily disable Zerocoin spending
+if (nHeight > 174000){
+return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));}
+
 
                 vector<unsigned char> vchZeroMint;
                 vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + 6, txout.scriptPubKey.begin() + txout.scriptPubKey.size());
@@ -804,6 +808,11 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
         // (vin.size() == 1 && vin[0].prevout.IsNull() && (vin[0].scriptSig[0] == OP_ZEROCOINSPEND) );
         if (IsZerocoinSpend())
         {
+
+// Temporarily disable Zerocoin spending
+if (nHeight > 174000){
+return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));}
+
             // Check vOut
 
             // Only one loop, we checked on the format before enter this case
