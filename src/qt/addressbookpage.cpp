@@ -76,7 +76,8 @@ AddressBookPage::AddressBookPage(Mode mode, Tabs tab, QWidget *parent) :
         ui->zerocoinSpendButton->setVisible(false);
         break;
     case ZerocoinTab:
-        ui->labelExplanation->setText(tr("These are your private coins from the Renew SmartCash operation.  Select an amount to Renew and wait about 10 minutes before you select Reclaim.  You can increase anonymity waiting longer to reclaim and using more of the same amount."));
+//        ui->labelExplanation->setText(tr("These are your private coins from the Renew SmartCash operation.  Select an amount to Renew and wait about 10 minutes before you select Reclaim.  You can increase anonymity waiting longer to reclaim and using more of the same amount."));
+        ui->labelExplanation->setText(tr("Renew and Reclaim Features are temporarily disabled")
         ui->deleteAddress->setVisible(false);
         ui->signMessage->setVisible(false);
         ui->newAddress->setVisible(false);
