@@ -611,7 +611,7 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
     }
 
     if(nHeight < 0){
-        nHeight = nBestHeight;
+        nHeight = nBestHeight + 1;
     }
     //printf("CTransaction::CheckTransaction() :  height=%d ", nHeight);
 
