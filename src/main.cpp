@@ -3743,7 +3743,7 @@ bool ProcessBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDiskBl
         return state.Invalid(error("ProcessBlock() : already have block (orphan) %s", hash.ToString().c_str()));
 
     // Preliminary checks
-    if (!pblock->CheckBlock(state, nBestHeight, true, true, false))
+    if (!pblock->CheckBlock(state, -1, true, true, false))
         return error("ProcessBlock() : CheckBlock FAILED");
 
 
