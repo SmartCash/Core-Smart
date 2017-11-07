@@ -610,9 +610,9 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
             return state.DoS(100, error("CTransaction::CheckTransaction() : txout total out of range"));
     }
 
-    if(nHeight < 0){
-        nHeight = nBestHeight + 1;
-    }
+    // if(nHeight < 0){
+    //     nHeight = nBestHeight + 1;
+    // }
     //printf("CTransaction::CheckTransaction() :  height=%d ", nHeight);
 
     // Check for duplicate inputs
