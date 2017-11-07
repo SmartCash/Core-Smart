@@ -610,11 +610,8 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
             return state.DoS(100, error("CTransaction::CheckTransaction() : txout total out of range"));
     }
 
-    int nHeight = -1;
-    CCoinsViewCache &view = *pcoinsTip;
-    CCoins coins;
-    if (view.GetCoins(hashTx, coins))
-        nHeight = coins.nHeight;
+    int nHeight = nBestHeight;
+    //printf("CTransaction::CheckTransaction() :  height=%d ", nHeight);
 
     // Check for duplicate inputs
     set<COutPoint> vInOutPoints;
