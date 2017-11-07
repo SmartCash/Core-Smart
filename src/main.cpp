@@ -716,15 +716,16 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
                 return state.DoS(100, error("CTransaction::CheckTransaction() : prevout is null"));
             }
         }
-
+        bool enableZerocoin = false;
+        if(enableZerocoin){
         // Check Mint Zerocoin Transaction
-        BOOST_FOREACH(const CTxOut txout, vout) {
-            if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsZerocoinMint()) {
+            BOOST_FOREACH(const CTxOut txout, vout) {
+                if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsZerocoinMint()) {
 
-            // Temporarily disable Zerocoin spending
-            if (nHeight > 174000){
-                return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));
-            }
+                // Temporarily disable Zerocoin spending
+                if (nHeight > 174000){
+                    return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));
+                }
 
 
                 vector<unsigned char> vchZeroMint;
@@ -1701,11 +1702,8 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
                         return state.DoS(100, error("CTransaction::CheckTransaction() : Your spending txout value does not match"));
                     }
                 }
-
+                }
             }
-
-
-
         }
     }
 

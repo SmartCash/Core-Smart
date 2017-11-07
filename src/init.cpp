@@ -1029,7 +1029,8 @@ bool AppInit2(boost::thread_group& threadGroup)
         bool fFirstRun = true;
         pwalletMain = new CWallet("wallet.dat");
 
-        if (filesystem::exists(GetDataDir() / "wallet.dat"))
+        //temp disable zercoin
+        if (filesystem::exists(GetDataDir() / "wallet.dat") && false)
         {
             // Zerocoin reorg, calculate new height and id
             list<CZerocoinEntry> listPubCoin = list<CZerocoinEntry>();
