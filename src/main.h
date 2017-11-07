@@ -696,7 +696,7 @@ void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCach
     void UpdateCoins(CValidationState &state, CCoinsViewCache &view, CTxUndo &txundo, int nHeight, const uint256 &txhash) const;
 
     // Context-independent validity checks
-    bool CheckTransaction(CValidationState &state, uint256 hashTx, bool isVerifyDB, int nHeight = INT_MAX) const;
+    bool CheckTransaction(CValidationState &state, uint256 hashTx, bool isVerifyDB) const;
 
     // Try to accept this transaction into the memory pool
     bool AcceptToMemoryPool(CValidationState &state, bool fCheckInputs=true, bool fLimitFree = true, bool* pfMissingInputs=NULL, bool fRejectInsaneFee = false);

@@ -585,8 +585,9 @@ bool setParams = bnTrustedModulus.SetHexBool(ZEROCOIN_MODULUS);
 static libzerocoin::Params *ZCParams = new libzerocoin::Params(bnTrustedModulus);
 
 
-bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, bool isVerifyDB, int nHeight) const
+bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, bool isVerifyDB) const
 {
+    
     // Basic checks that don't depend on any context
     if (vin.empty())
         return state.DoS(10, error("CTransaction::CheckTransaction() : vin empty"));
@@ -609,6 +610,11 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
             return state.DoS(100, error("CTransaction::CheckTransaction() : txout total out of range"));
     }
 
+    int nHeight = -1;
+    CCoinsViewCache &view = *pcoinsTip;
+    CCoins coins;
+    if (view.GetCoins(hashTx, coins))
+        nHeight = coins.nHeight;
 
     // Check for duplicate inputs
     set<COutPoint> vInOutPoints;
@@ -716,9 +722,10 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
         BOOST_FOREACH(const CTxOut txout, vout) {
             if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsZerocoinMint()) {
 
-// Temporarily disable Zerocoin spending
-if (nHeight > 174000){
-return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));}
+            // Temporarily disable Zerocoin spending
+            if (nHeight > 174000){
+                return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));
+            }
 
 
                 vector<unsigned char> vchZeroMint;
@@ -809,9 +816,10 @@ return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disable
         if (IsZerocoinSpend())
         {
 
-// Temporarily disable Zerocoin spending
-if (nHeight > 174000){
-return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));}
+            // Temporarily disable Zerocoin spending
+            if (nHeight > 174000){
+                return state.DoS(100, error("CTransaction::CheckTransaction() : zerocoin disabled"));
+            }
 
             // Check vOut
 
@@ -1766,7 +1774,7 @@ bool CTxMemPool::accept(CValidationState &state, CTransaction &tx, bool fCheckIn
     if (pfMissingInputs)
         *pfMissingInputs = false;
 
-    if (!tx.CheckTransaction(state, tx.GetHash(), false, INT_MAX))
+    if (!tx.CheckTransaction(state, tx.GetHash(), false))
         return error("CTxMemPool::accept() : CheckTransaction failed");
 
     // Coinbase is only valid in a block, not as a loose transaction
@@ -3585,7 +3593,7 @@ bool CBlock::CheckBlock(CValidationState &state, int nHeight, bool fCheckPOW, bo
 
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, vtx){
-        if (!tx.CheckTransaction(state, tx.GetHash(), isVerifyDB, nHeight))
+        if (!tx.CheckTransaction(state, tx.GetHash(), isVerifyDB))
             return error("CheckBlock() : CheckTransaction failed");
     }
 
@@ -3736,7 +3744,7 @@ bool ProcessBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, CDiskBl
         return state.Invalid(error("ProcessBlock() : already have block (orphan) %s", hash.ToString().c_str()));
 
     // Preliminary checks
-    if (!pblock->CheckBlock(state, INT_MAX, true, true, false))
+    if (!pblock->CheckBlock(state, nBestHeight, true, true, false))
         return error("ProcessBlock() : CheckBlock FAILED");
 
 
