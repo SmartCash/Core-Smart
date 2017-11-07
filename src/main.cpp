@@ -585,7 +585,7 @@ bool setParams = bnTrustedModulus.SetHexBool(ZEROCOIN_MODULUS);
 static libzerocoin::Params *ZCParams = new libzerocoin::Params(bnTrustedModulus);
 
 
-bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, bool isVerifyDB) const
+bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, bool isVerifyDB, int nHeight) const
 {
     
     // Basic checks that don't depend on any context
@@ -610,7 +610,9 @@ bool CTransaction::CheckTransaction(CValidationState &state, uint256 hashTx, boo
             return state.DoS(100, error("CTransaction::CheckTransaction() : txout total out of range"));
     }
 
-    int nHeight = nBestHeight;
+    if(nHeight < 0){
+        nHeight = nBestHeight;
+    }
     //printf("CTransaction::CheckTransaction() :  height=%d ", nHeight);
 
     // Check for duplicate inputs
@@ -1771,7 +1773,7 @@ bool CTxMemPool::accept(CValidationState &state, CTransaction &tx, bool fCheckIn
     if (pfMissingInputs)
         *pfMissingInputs = false;
 
-    if (!tx.CheckTransaction(state, tx.GetHash(), false))
+    if (!tx.CheckTransaction(state, tx.GetHash(), false, -1))
         return error("CTxMemPool::accept() : CheckTransaction failed");
 
     // Coinbase is only valid in a block, not as a loose transaction
@@ -3590,7 +3592,7 @@ bool CBlock::CheckBlock(CValidationState &state, int nHeight, bool fCheckPOW, bo
 
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, vtx){
-        if (!tx.CheckTransaction(state, tx.GetHash(), isVerifyDB))
+        if (!tx.CheckTransaction(state, tx.GetHash(), isVerifyDB, nHeight))
             return error("CheckBlock() : CheckTransaction failed");
     }
 
