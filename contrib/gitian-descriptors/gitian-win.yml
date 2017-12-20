@@ -19,6 +19,7 @@ packages:
 - "g++-mingw-w64"
 - "nsis"
 - "zip"
+- "bsdmainutils"
 - "ca-certificates"
 - "python"
 remotes:
