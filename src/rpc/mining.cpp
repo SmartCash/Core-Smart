@@ -470,8 +470,8 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     if (vNodes.empty())
         throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Smartcash is not connected!");
 
-//    if (IsInitialBlockDownload())
-//        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Smartcash is downloading blocks...");
+    if (IsInitialBlockDownload())
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Smartcash is downloading blocks...");
 
     static unsigned int nTransactionsUpdatedLast;
 
