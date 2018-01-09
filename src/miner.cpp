@@ -133,7 +133,8 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
         return NULL;
     pblock = &pblocktemplate->block; // pointer for convenience
 
-    nHeight = pindexBestHeader->nHeight + 1;
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    nHeight = pindexPrev->nHeight + 1;
 
     CTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
@@ -144,7 +145,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
     if ((nHeight > 0) && (nHeight < 717499999)) {
     // Take out amounts for budgets.
-    coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime))));
+    coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
 
          CScript FOUNDER_1_SCRIPT;
          CScript FOUNDER_2_SCRIPT;
@@ -170,15 +171,15 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
          // And pay the budgets
          if ((nHeight > 0) && (nHeight < 90000)) {
-            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.08 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime))), CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
-            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.08 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime))), CScript(FOUNDER_2_SCRIPT.begin(), FOUNDER_2_SCRIPT.end())));
-            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.08 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime))), CScript(FOUNDER_3_SCRIPT.begin(), FOUNDER_3_SCRIPT.end())));
-            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.15 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime))), CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
-            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.56 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime))), CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
+            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.08 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
+            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.08 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_2_SCRIPT.begin(), FOUNDER_2_SCRIPT.end())));
+            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.08 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_3_SCRIPT.begin(), FOUNDER_3_SCRIPT.end())));
+            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.15 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
+            coinbaseTx.vout.push_back(CTxOut((int64_t)(0.56 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
          }
          if ((nHeight >= 90000) && (nHeight < 717499999)) {
-            int blockRotation = nHeight - 95 * ((pindexBestHeader->nHeight+1)/95);
-            int64_t reward = (int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
+            int blockRotation = nHeight - 95 * ((pindexPrev->nHeight+1)/95);
+            int64_t reward = (int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime)));
             if(blockRotation >= 0 && blockRotation <= 7){
                coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
             }
@@ -248,9 +249,9 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     {
         LOCK2(cs_main, mempool.cs);
         pblock->nTime = GetAdjustedTime();
-        const int64_t nMedianTimePast = pindexBestHeader->GetMedianTimePast();
+        const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
-        pblock->nVersion = 2;//ComputeBlockVersion(pindexBestHeader, chainparams.GetConsensus());
+        pblock->nVersion = 2;//ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
         // -regtest only: allow overriding block.nVersion with
         // -blockversion=N to test forking scenarios
         if (chainparams.MineBlocksOnDemand())
@@ -463,9 +464,9 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
         pblocktemplate->vTxFees[0] = -nFees;
 
         // Fill in header
-        pblock->hashPrevBlock  = pindexBestHeader->GetBlockHash();
-        UpdateTime(pblock, chainparams.GetConsensus(), pindexBestHeader);
-        pblock->nBits          = GetNextWorkRequired(pindexBestHeader, pblock, chainparams.GetConsensus());
+        pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
+        UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+        pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
         pblock->nNonce         = 0;
         pblock->vtx[0].vin[0].scriptSig = CScript() << OP_0 << OP_0;
         pblocktemplate->vTxSigOpsCost[0] = GetLegacySigOpCount(pblock->vtx[0]);
@@ -473,7 +474,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
         pblocktemplate->vTxFees[0] = -nFees;
 
         CValidationState state;
-        if (!TestBlockValidity(state, chainparams, *pblock, pindexBestHeader, false, false)) {
+        if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
             throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
         }
     }
