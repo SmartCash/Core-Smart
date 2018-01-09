@@ -1412,7 +1412,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
     } else {
         
         BOOST_FOREACH(const CTxIn &txin, tx.vin){
-            if (txin.prevout.IsNull() && !txin.scriptSig.IsZerocoinSpend()) {
+            if (txin.prevout.IsNull() && (!txin.scriptSig.IsZerocoinSpend() || nHeight != INT_MAX)) {
                 return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
             }
         }
@@ -4145,6 +4145,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (block.vtx[i].IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
+    nHeight = getNHeight(block);
+    if(nHeight < 267765)
+    {
+        nHeight = INT_MAX;
+    }
+	
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, block.vtx)
         if (!CheckTransaction(tx, state, tx.GetHash(), isVerifyDB, nHeight))
