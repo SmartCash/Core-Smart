@@ -13,8 +13,8 @@
 #include "txmempool.h"
 #include "walletmodel.h"
 #include "coincontrol.h"
-//#include "init.h"
-//#include "main.h" // For minRelayTxFee
+#include "init.h"
+#include "main.h"
 #include "wallet/wallet.h"
  
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
@@ -110,22 +110,46 @@ SmartrewardsList::~SmartrewardsList()
             sWalletLabel = tr("(no label)");
  
         ui->tableWidget->insertRow(nNewRow);
- 
+
         CAmount totalAmountSum = 0;
         CAmount eligibleSmartrewardsSum = 0;
         CAmount txAmount = 0;
+        QString inputAddress = "";
+        CTxDestination addressRetout;
+
         BOOST_FOREACH(const COutput& out, coins.second) {
 
+            CBitcoinAddress SMARTREWARDS_ADDRESS;
+            SMARTREWARDS_ADDRESS = CBitcoinAddress("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo");
+
+            CScript SMARTREWARDS_SCRIPT;
+            SMARTREWARDS_SCRIPT = GetScriptForDestination(SMARTREWARDS_ADDRESS.Get());
+
+            //extract tx input address
+            CTxIn vin = out.tx->vin[0];
+            CTransaction txPrev;
+            uint256 hash;
+            GetTransaction(vin.prevout.hash, txPrev, Params().GetConsensus(), hash, true);
+            CTxDestination source;
+            ExtractDestination(txPrev.vout[vin.prevout.n].scriptPubKey, source);
+            CBitcoinAddress addressSource(source);
+
+            //calc total tx amount
             totalAmountSum += out.tx->vout[out.i].nValue;
             txAmount = out.tx->vout[out.i].nValue;
 
-            //tx date
+            //get tx date
             int64_t nTimeTx = out.tx->GetTxTime();
             QDateTime txDateTime = QDateTime::fromTime_t((qint32)nTimeTx);
             QDateTime txDateTimeUtc = txDateTime.toUTC();
 
-            //check if the tx is after the snapshot date
+
             if(txDateTimeUtc < lastSmartrewardsSnapshotDateTimeUtc){
+                //the tx occurred before the snapshot
+                eligibleSmartrewardsSum += txAmount;
+            }
+            else if(addressSource == SMARTREWARDS_ADDRESS){
+                //the tx occurred after the snapshot but is from a smartrwards address
                 eligibleSmartrewardsSum += txAmount;
             }
 

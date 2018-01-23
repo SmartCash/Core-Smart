@@ -19,11 +19,6 @@
 #define SMARTREWARDS_UTC_HOUR                            07
 #define SMARTREWARDS_MINIMUM_AMOUNT                    1000
 
-//For testing
-//#define SMARTREWARDS_DAY                                 01
-//#define SMARTREWARDS_UTC_HOUR                            01
-//#define SMARTREWARDS_MINIMUM_AMOUNT                      20
-
 namespace Ui {
     class SmartrewardsList;
 }
