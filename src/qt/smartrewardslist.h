@@ -10,7 +10,6 @@
 #include "sync.h"
 #include "util.h"
 
-#include <QDialog>
 #include <QMenu>
 #include <QTimer>
 #include <QWidget>
@@ -48,17 +47,24 @@ public:
     void setModel(WalletModel *model);
 
 private:
-    Ui::SmartrewardsList *ui;
-    WalletModel *model;
     QMenu *contextMenu;
 
 public Q_SLOTS:
-    void contextualMenu(const QPoint &);
     void copyAddress();
     void copyLabel();
     void copyAmount();
     void copyEligibleAmount();
-    //void updateRewardsList();
+    void updateRewardsList();
 
+Q_SIGNALS:
+
+private:
+    QTimer *timer;
+    Ui::SmartrewardsList *ui;
+    WalletModel *model;
+
+private Q_SLOTS:
+    void contextualMenu(const QPoint &);
+    void on_updatePushButton_clicked();
 };
 #endif // SMARTREWARDSLIST_H

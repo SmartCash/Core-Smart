@@ -76,7 +76,7 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="updatePushButton">
          <property name="text">
           <string>Update Adresses</string>
          </property>
@@ -104,7 +104,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Next Payment:</string>
+          <string>Next Payout:</string>
          </property>
         </widget>
        </item>
