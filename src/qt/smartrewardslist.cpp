@@ -72,7 +72,11 @@ SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *
    connect(copyAmountAction, SIGNAL(triggered()), this, SLOT(copyAmount()));
    connect(copyAmountAction, SIGNAL(triggered()), this, SLOT(copyEligibleAmount()));
 
-   updateRewardsList();
+   timer = new QTimer(this);
+   connect(timer,SIGNAL(timeout()), this ,SLOT(timerHandler()));
+   timer->start(1000);
+
+  // updateRewardsList();
 }
  
 SmartrewardsList::~SmartrewardsList()
@@ -218,4 +222,18 @@ SmartrewardsList::~SmartrewardsList()
 void SmartrewardsList::on_updatePushButton_clicked()
 {
     updateRewardsList();
+}
+
+void SmartrewardsList::timerHandler()
+{
+    //Smartrewards snapshot date
+    QDateTime lastSmartrewardsSnapshotDateTimeUtc = QDateTime::currentDateTimeUtc();
+    int currentDay = lastSmartrewardsSnapshotDateTimeUtc.toString("dd").toInt();
+    if(currentDay < SMARTREWARDS_DAY){
+       lastSmartrewardsSnapshotDateTimeUtc = lastSmartrewardsSnapshotDateTimeUtc.addMonths(-1);
+    }
+    int snapshotMonth = lastSmartrewardsSnapshotDateTimeUtc.toString("MM").toInt();
+    int snapshotYear = lastSmartrewardsSnapshotDateTimeUtc.toString("yyyy").toInt();
+    lastSmartrewardsSnapshotDateTimeUtc = QDateTime(QDate(snapshotYear, snapshotMonth, SMARTREWARDS_DAY), QTime(SMARTREWARDS_UTC_HOUR, 0), Qt::UTC);
+    ui->countdownlabel->setText(lastSmartrewardsSnapshotDateTimeUtc.toString("yyyy-MM-dd hh:mm UTC"));
 }

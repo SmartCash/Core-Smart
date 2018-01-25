@@ -66,5 +66,6 @@ private:
 private Q_SLOTS:
     void contextualMenu(const QPoint &);
     void on_updatePushButton_clicked();
+    void timerHandler();
 };
 #endif // SMARTREWARDSLIST_H

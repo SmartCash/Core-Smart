@@ -104,12 +104,12 @@
           </font>
          </property>
          <property name="text">
-          <string>Next Payout:</string>
+          <string>Last Snapshot:</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_13">
+        <widget class="QLabel" name="countdownlabel">
          <property name="text">
           <string>TextLabel</string>
          </property>
