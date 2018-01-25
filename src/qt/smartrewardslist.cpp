@@ -76,7 +76,6 @@ SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *
    connect(timer,SIGNAL(timeout()), this ,SLOT(timerHandler()));
    timer->start(1000);
 
-  // updateRewardsList();
 }
  
 SmartrewardsList::~SmartrewardsList()
@@ -90,6 +89,8 @@ SmartrewardsList::~SmartrewardsList()
     if(!model) {
          return;
     }
+
+    updateRewardsList();
 }
 
  void SmartrewardsList::updateRewardsList()
