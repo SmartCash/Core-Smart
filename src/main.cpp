@@ -7936,11 +7936,11 @@ bool SendMessages(CNode* pto)
             {
                 pto->filterInventoryKnown.insert(inv.hash);
 
-                LogPrintf("SendMessages -- queued inv: %s  index=%d peer=%d\n", inv.ToString(), vInv.size(), pto->id);
+//                LogPrintf("SendMessages -- queued inv: %s  index=%d peer=%d\n", inv.ToString(), vInv.size(), pto->id);
                 vInv.push_back(inv);
                 if (vInv.size() >= 1000)
                 {
-                    LogPrintf("SendMessages -- pushing inv's: count=%d peer=%d\n", vInv.size(), pto->id);
+//                    LogPrintf("SendMessages -- pushing inv's: count=%d peer=%d\n", vInv.size(), pto->id);
                     pto->PushMessage(NetMsgType::INV, vInv);
                     vInv.clear();
                 }
