@@ -10,7 +10,6 @@
 #include "sync.h"
 #include "util.h"
 
-#include <QDialog>
 #include <QMenu>
 #include <QTimer>
 #include <QWidget>
@@ -18,11 +17,6 @@
 #define SMARTREWARDS_DAY                                 25
 #define SMARTREWARDS_UTC_HOUR                            07
 #define SMARTREWARDS_MINIMUM_AMOUNT                    1000
-
-//For testing
-//#define SMARTREWARDS_DAY                                 01
-//#define SMARTREWARDS_UTC_HOUR                            01
-//#define SMARTREWARDS_MINIMUM_AMOUNT                      20
 
 namespace Ui {
     class SmartrewardsList;
@@ -53,17 +47,25 @@ public:
     void setModel(WalletModel *model);
 
 private:
-    Ui::SmartrewardsList *ui;
-    WalletModel *model;
     QMenu *contextMenu;
 
 public Q_SLOTS:
-    void contextualMenu(const QPoint &);
     void copyAddress();
     void copyLabel();
     void copyAmount();
     void copyEligibleAmount();
-    //void updateRewardsList();
+    void updateRewardsList();
 
+Q_SIGNALS:
+
+private:
+    QTimer *timer;
+    Ui::SmartrewardsList *ui;
+    WalletModel *model;
+
+private Q_SLOTS:
+    void contextualMenu(const QPoint &);
+    void on_updatePushButton_clicked();
+    void timerHandler();
 };
 #endif // SMARTREWARDSLIST_H
