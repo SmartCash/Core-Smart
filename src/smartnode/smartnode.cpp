@@ -146,13 +146,13 @@ arith_uint256 CSmartnode::CalculateScore(const uint256 &blockHash) {
 
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     ss << blockHash;
-    arith_uint256 hash2 = UintToArith256(ss.GetHash());
+    arith_uint256 hash2 = UintToArith256(ss.GetHash()) << 16;
 
     CHashWriter ss2(SER_GETHASH, PROTOCOL_VERSION);
     ss2 << blockHash;
     ss2 << aux;
-    arith_uint256 hash3 = UintToArith256(ss2.GetHash());
-
+    arith_uint256 hash3 = UintToArith256(ss2.GetHash()) << 16;
+        
     return (hash3 > hash2 ? hash3 - hash2 : hash2 - hash3);
 }
 
