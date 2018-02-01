@@ -153,7 +153,7 @@ arith_uint256 CSmartnode::CalculateScore(const uint256 &blockHash) {
     ss2 << aux;
     arith_uint256 hash3 = UintToArith256(ss2.GetHash()) << 16;
         
-    LogPrint("BlockNode Hash Compare %d %d", hash2, hash3);
+    LogPrint("BlockNode Hash Compare %h %h", hash2, hash3);
         
     return (hash3 > hash2 ? hash3 - hash2 : hash2 - hash3);
 }
