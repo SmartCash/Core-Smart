@@ -31,7 +31,7 @@ static const int INSTANTSEND_CONFIRMATIONS_REQUIRED = 2; // Was 6
 // Multiple input mobile wallets are needed before this can work.
 static const int DEFAULT_INSTANTSEND_DEPTH          = 2; // Was 5
 
-static const int MIN_INSTANTSEND_PROTO_VERSION      = 90023;
+static const int MIN_INSTANTSEND_PROTO_VERSION      = 90026;
 
 // For how long we are going to accept votes/locks
 // after we saw the first one for a specific transaction
