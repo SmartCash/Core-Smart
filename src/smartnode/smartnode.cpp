@@ -162,7 +162,7 @@ void CSmartnode::Check(bool fForce) {
     if (!fForce && (GetTime() - nTimeLastChecked < SMARTNODE_CHECK_SECONDS)) return;
     nTimeLastChecked = GetTime();
 
-    LogPrint("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state\n", vin.prevout.ToStringShort(), GetStateString());
+    LogPrintf("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state\n", vin.prevout.ToStringShort(), GetStateString());
 
     //once spent, stop doing the checks
     if (IsOutpointSpent()) return;
