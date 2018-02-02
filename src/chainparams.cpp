@@ -118,6 +118,7 @@ public:
         //consensus.nBudgetPaymentsStartBlock = 328008; // actual historical value
         //consensus.nBudgetPaymentsCycleBlocks = 16616; // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
         //consensus.nBudgetPaymentsWindowBlocks = 100;
+        consensus.nSmartnodeMinimumConfirmations = 15;
         nMaxTipAge = 6 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
         nDelayGetHeadersTime = 24 * 60 * 60;
 
