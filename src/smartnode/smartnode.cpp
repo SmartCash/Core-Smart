@@ -65,6 +65,7 @@ CSmartnode::CSmartnode(const CSmartnode &other) :
         pubKeySmartnode(other.pubKeySmartnode),
         lastPing(other.lastPing),
         vchSig(other.vchSig),
+        nCollateralMinConfBlockHash(other.nCollateralMinConfBlockHash),
         sigTime(other.sigTime),
         nLastDsq(other.nLastDsq),
         nTimeLastChecked(other.nTimeLastChecked),
@@ -666,6 +667,8 @@ bool CSmartnodeBroadcast::CheckOutpoint(int &nDos) {
             mnodeman.mapSeenSmartnodeBroadcast.erase(GetHash());
             return false;
         }
+        // remember the hash of the block where masternode collateral had minimum required confirmations
+        nCollateralMinConfBlockHash = chainActive[coins.nHeight + Params().GetConsensus().nSmartnodeMinimumConfirmations - 1]->GetBlockHash();
     }
 
     LogPrint("smartnode", "CSmartnodeBroadcast::CheckOutpoint -- Smartnode UTXO verified\n");
