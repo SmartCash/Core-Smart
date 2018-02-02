@@ -141,21 +141,16 @@ bool CSmartnode::UpdateFromNewBroadcast(CSmartnodeBroadcast &mnb) {
 // the proof of work for that block. The further away they are the better, the furthest will win the election
 // and get paid this block
 //
-arith_uint256 CSmartnode::CalculateScore(const uint256 &blockHash) {
-    uint256 aux = ArithToUint256(UintToArith256(vin.prevout.hash) + vin.prevout.n);
+arith_uint256 CSmartnode::CalculateScore(const uint256& blockHash) {
 
+    // Deterministically calculate a "score" for a SmartNode based on any given (block)hash
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
-    ss << blockHash << 12;
-    arith_uint256 hash2 = UintToArith256(ss.GetHash());
+    ss << vin.prevout << nCollateralMinConfBlockHash << blockHash;
+    
+    LogPrint("Hashtest","SmartNode Score\n", ss.GetHash().ToString());
 
-    CHashWriter ss2(SER_GETHASH, PROTOCOL_VERSION);
-    ss2 << blockHash << 12;
-    ss2 << aux;
-    arith_uint256 hash3 = UintToArith256(ss2.GetHash());
+    return UintToArith256(ss.GetHash());
 
-    LogPrint("Hashtest","Block vs Vin Hash Compare\n %s %s\n", ss.GetHash().ToString(), ss2.GetHash().ToString());
-
-    return (hash3 > hash2 ? hash3 - hash2 : hash2 - hash3);
 }
 
 void CSmartnode::Check(bool fForce) {
