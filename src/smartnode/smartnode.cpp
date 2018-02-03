@@ -148,7 +148,7 @@ arith_uint256 CSmartnode::CalculateScore(const uint256& blockHash) {
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     ss << vin.prevout << nCollateralMinConfBlockHash << blockHash;
     
-    LogPrintf("Hashtest SmartNode Score %s\n", ss.GetHash().ToString());
+//    LogPrintf("Hashtest SmartNode Score %s\n", ss.GetHash().ToString());
 
     return UintToArith256(ss.GetHash());
 
