@@ -35,7 +35,12 @@ static const int64_t SPORK_3_INSTANTSEND_BLOCK_FILTERING_DEFAULT        = 0;    
 static const int64_t SPORK_5_INSTANTSEND_MAX_VALUE_DEFAULT              = 1;      // After testing increase
 static const int64_t SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT_DEFAULT      = 4070908800ULL; // OFF
 //static const int64_t SPORK_9_SUPERBLOCKS_ENABLED_DEFAULT                = 4070908800ULL;// OFF
-static const int64_t SPORK_10_SMARTNODE_PAY_UPDATED_NODES_DEFAULT       = 315000; // Activates on 310K
+//static const int64_t SPORK_10_SMARTNODE_PAY_UPDATED_NODES_DEFAULT       = 315000; // Activates on 310K
+//static const int64_t SPORK_10_SMARTNODE_PAY_UPDATED_NODES_DEFAULT       = 100; // Activates on 100
+static const int64_t SPORK_10_SMARTNODE_PAY_UPDATED_NODES_DEFAULT       =
+	if(!fTestNet){ 315000; }
+	if(fTestNet){ 100; }
+static const int64_t SPORK_10_SMARTNODE_PAY_UPDATED_NODES_DEFAULT       = 100; // Activates on 310K
 static const int64_t SPORK_12_RECONSIDER_BLOCKS_DEFAULT                 = 0;            // 0 BLOCKS
 //static const int64_t SPORK_13_OLD_SUPERBLOCK_FLAG_DEFAULT               = 4070908800ULL;// OFF
 static const int64_t SPORK_14_REQUIRE_SENTINEL_FLAG_DEFAULT             = 4070908800ULL;// OFF
