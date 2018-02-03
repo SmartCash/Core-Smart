@@ -1460,7 +1460,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                          "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
                   }
 
-                  if ((!fTestNet && (nHeight >= HF_SMARTNODE_HEIGHT + 7000)) || (fTestNet && nHeight >= 100 + 7000) && (!found_smartnode_payment || total_payment_tx > 1)) {
+                  if (((!fTestNet && (nHeight >= HF_SMARTNODE_HEIGHT + 7000)) || (fTestNet && nHeight >= 100 + 7000)) && (!found_smartnode_payment || total_payment_tx > 1)) {
                     return state.DoS(100, false, REJECT_INVALID_SMARTNODE_PAYMENT,
                                  "CTransaction::CheckTransaction() : SmartNode payment is invalid");
                   }
