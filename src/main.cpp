@@ -1378,7 +1378,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                 FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("TSziXCdaBcPk3Dt94BbTH9BZDH18K6sWsc").Get());
                 FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("TLn1PGAVccBBjF8JuhQmATCR8vxhmamJg8").Get());
             }
-            if ((nHeight > 0) && (nHeight < 90000)) {
+            if ((!fTestNet && (nHeight > 0) && (nHeight < 90000)) || (fTestNet && (nHeight > 0) && (nHeight < 100))) {
                 BOOST_FOREACH(const CTxOut &output, tx.vout) {
                     if (output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - (int64_t)(0.08 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
                         found_1 = true;
@@ -1401,7 +1401,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                      "CTransaction::CheckTransaction() : One of the SmartHive rewards is missing");
                 }
             }
-            if ((nHeight >= 90000) && (nHeight < HF_SMARTNODE_HEIGHT)) {
+            if (!fTestNet && (nHeight >= 90000) && (nHeight < HF_SMARTNODE_HEIGHT)) {
               BOOST_FOREACH(const CTxOut& output, tx.vout) {
                 int blockRotation = nHeight - 95 * (nHeight/95);
                 int64_t reward = (int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
@@ -1426,7 +1426,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                      "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
 	          }
             }
- 	        if ((nHeight >= HF_SMARTNODE_HEIGHT) && (nHeight <= 717499999)) {
+ 	        if ((!fTestNet && (nHeight >= HF_SMARTNODE_HEIGHT) && (nHeight <= 717499999)) || (fTestNet && (nHeight >= 100))) {
                 
                 BOOST_FOREACH(const CTxOut& output, tx.vout){
                     int blockRotation = nHeight - 85 * (nHeight/85);
@@ -1444,9 +1444,9 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                         found_4 = true;
                     }
                     if (blockRotation >= 39 && blockRotation <= 84 && output.scriptPubKey == FOUNDER_5_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_5 = true; 
+                        found_5 = true;
         	        }
-        	        
+
                     int64_t smartnodePayment = (int64_t)(0.1 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
 //         	        if (smartnodePayment == output.nValue) {
 			if (abs(output.nValue - smartnodePayment) < 2 ){
@@ -1460,18 +1460,13 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                          "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
                   }
 
-                  if ((nHeight >= HF_SMARTNODE_HEIGHT + 7000) && (!found_smartnode_payment || total_payment_tx > 1)) {
+                  if ((!fTestNet && (nHeight >= HF_SMARTNODE_HEIGHT + 7000)) || (fTestNet && nHeight >= 100 + 7000) && (!found_smartnode_payment || total_payment_tx > 1)) {
                     return state.DoS(100, false, REJECT_INVALID_SMARTNODE_PAYMENT,
                                  "CTransaction::CheckTransaction() : SmartNode payment is invalid");
                   }
-/*                  
-                  if (!found_smartnode_payment || total_payment_tx > 1) {
-                    return state.DoS(100, false, REJECT_INVALID_SMARTNODE_PAYMENT,
-                                 "CTransaction::CheckTransaction() : SmartNode payment is invalid");
-                  }
-*/            } 
+            }
         }
-        
+
     } else {
         
         BOOST_FOREACH(const CTxIn &txin, tx.vin){

@@ -169,7 +169,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
          }
 
 
-         if ((nHeight > 0) && (nHeight < 90000)) {
+         if ((!fTestNet && (nHeight > 0) && (nHeight < 90000))) || (fTestNet && (nHeight > 0) && (nHeight < 100)) {
             // Take out amounts for budgets
             coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets on each block
@@ -179,7 +179,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             coinbaseTx.vout.push_back(CTxOut((int64_t)(0.15 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
             coinbaseTx.vout.push_back(CTxOut((int64_t)(0.56 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
          }
-         if ((nHeight >= 90000) && (nHeight < HF_SMARTNODE_HEIGHT)) {
+         if (!fTestNet && (nHeight >= 90000) && (nHeight < HF_SMARTNODE_HEIGHT)) {
             // Take out amounts for budgets
             coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 95 block rotation
@@ -202,7 +202,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             }
          }
          
-         if ((nHeight >= HF_SMARTNODE_HEIGHT) && (nHeight < 717499999)) {
+         if ((!fTestNet && (nHeight >= HF_SMARTNODE_HEIGHT) && (nHeight < 717499999))) && (fTestNet && (nHeight >= 100)) {
             // Take out amounts for budgets.
             coinbaseTx.vout[0].nValue =-((int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 85 block rotation
