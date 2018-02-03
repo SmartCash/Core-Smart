@@ -694,6 +694,7 @@ int CSmartnodeMan::GetSmartnodeRank(const CTxIn& vin, int nBlockHeight, int nMin
             if(!mn.IsValidForPayment()) continue;
         }
         int64_t nScore = mn.CalculateScore(blockHash).GetCompact(false);
+        LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
 
         vecSmartnodeScores.push_back(std::make_pair(nScore, &mn));
     }
@@ -726,6 +727,7 @@ std::vector<std::pair<int, CSmartnode> > CSmartnodeMan::GetSmartnodeRanks(int nB
         if(mn.nProtocolVersion < nMinProtocol || !mn.IsEnabled()) continue;
 
         int64_t nScore = mn.CalculateScore(blockHash).GetCompact(false);
+        LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
 
         vecSmartnodeScores.push_back(std::make_pair(nScore, &mn));
     }
@@ -760,6 +762,7 @@ CSmartnode* CSmartnodeMan::GetSmartnodeByRank(int nRank, int nBlockHeight, int n
         if(fOnlyActive && !mn.IsEnabled()) continue;
 
         int64_t nScore = mn.CalculateScore(blockHash).GetCompact(false);
+        LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
 
         vecSmartnodeScores.push_back(std::make_pair(nScore, &mn));
     }
