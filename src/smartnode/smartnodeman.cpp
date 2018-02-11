@@ -581,7 +581,7 @@ CSmartnode* CSmartnodeMan::GetNextSmartnodeInQueueForPayment(int nBlockHeight, b
             continue;
         }
         //it's too new, wait for a cycle
-        if(fFilterSigTime && mn.sigTime + (nMnCount * 55) > GetAdjustedTime()){
+        if(fFilterSigTime && mn.sigTime + (nMnCount * 2.6 * 60) > GetAdjustedTime()){
             LogPrintf("it's too new, wait for a cycle!\n");
             continue;
         }
