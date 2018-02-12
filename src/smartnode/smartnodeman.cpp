@@ -534,6 +534,48 @@ bool CSmartnodeMan::Has(const CTxIn& vin)
     return (pMN != NULL);
 }
 
+char* CSmartnodeMan::GetNotQualifyReason(CSmartnode& mn, int nBlockHeight, bool fFilterSigTime, int nMnCount)
+{
+    if (!mn.IsValidForPayment()) {
+        char* reasonStr = new char[256];
+        sprintf(reasonStr, "false: 'not valid for payment'");
+        return reasonStr;
+    }
+    // //check protocol version
+    if (mn.nProtocolVersion < mnpayments.GetMinSmartnodePaymentsProto()) {
+        // LogPrintf("Invalid nProtocolVersion!\n");
+        // LogPrintf("mn.nProtocolVersion=%s!\n", mn.nProtocolVersion);
+        // LogPrintf("mnpayments.GetMinSmartnodePaymentsProto=%s!\n", mnpayments.GetMinSmartnodePaymentsProto());
+        char* reasonStr = new char[256];
+        sprintf(reasonStr, "false: 'Invalid nProtocolVersion', nProtocolVersion=%d", mn.nProtocolVersion);
+        return reasonStr;
+    }
+    //it's in the list (up to 8 entries ahead of current block to allow propagation) -- so let's skip it
+    if (mnpayments.IsScheduled(mn, nBlockHeight)) {
+        // LogPrintf("mnpayments.IsScheduled!\n");
+        char* reasonStr = new char[256];
+        sprintf(reasonStr, "false: 'is scheduled'");
+        return reasonStr;
+    }
+    //it's too new, wait for a cycle
+    if (fFilterSigTime && mn.sigTime + (nMnCount * 2.6 * 60) > GetAdjustedTime()) {
+        // LogPrintf("it's too new, wait for a cycle!\n");
+        char* reasonStr = new char[256];
+        sprintf(reasonStr, "false: 'too new', sigTime=%s, will be qualifed after=%s",
+                DateTimeStrFormat("%Y-%m-%d %H:%M UTC", mn.sigTime).c_str(), DateTimeStrFormat("%Y-%m-%d %H:%M UTC", mn.sigTime + (nMnCount * 2.6 * 60)).c_str());
+        return reasonStr;
+    }
+    //make sure it has at least as many confirmations as there are Smartnodes
+    if (mn.GetCollateralAge() < nMnCount) {
+        // LogPrintf("mn.GetCollateralAge()=%s!\n", mn.GetCollateralAge());
+        // LogPrintf("nMnCount=%s!\n", nMnCount);
+        char* reasonStr = new char[256];
+        sprintf(reasonStr, "false: 'collateralAge < snCount', collateralAge=%d, snCount=%d", mn.GetCollateralAge(), nMnCount);
+        return reasonStr;
+    }
+    return NULL;
+}
+
 //
 // Deterministically select the oldest/best smartnode to pay on the network
 //
@@ -549,7 +591,7 @@ CSmartnode* CSmartnodeMan::GetNextSmartnodeInQueueForPayment(bool fFilterSigTime
 CSmartnode* CSmartnodeMan::GetNextSmartnodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount)
 {
     // Need LOCK2 here to ensure consistent locking order because the GetBlockHash call below locks cs_main
-    LOCK2(cs_main,cs);
+       LOCK2(cs_main,cs);
 
     CSmartnode *pBestSmartnode = NULL;
     std::vector<std::pair<int, CSmartnode*> > vecSmartnodeLastPaid;
@@ -557,48 +599,61 @@ CSmartnode* CSmartnodeMan::GetNextSmartnodeInQueueForPayment(int nBlockHeight, b
     /*
         Make a vector with all of the last paid times
     */
-    LogPrintf("vSmartnodes.size()=%s\n", vSmartnodes.size());
     int nMnCount = CountEnabled();
     int index = 0;
     BOOST_FOREACH(CSmartnode &mn, vSmartnodes)
     {
         index += 1;
-        LogPrintf("index=%s, mn=%s\n", index, mn.ToString());
-        if(!mn.IsValidForPayment()) {
-            LogPrintf("Invalid payment!\n");
+        // LogPrintf("index=%s, mn=%s\n", index, mn.ToString());
+        /*if (!mn.IsValidForPayment()) {
+            LogPrint("Smartnodeman", "Smartnode, %s, addr(%s), not-qualified: 'not valid for payment'\n",
+                     mn.vin.prevout.ToStringShort(), CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString());
             continue;
         }
         // //check protocol version
-        if(mn.nProtocolVersion < mnpayments.GetMinSmartnodePaymentsProto()) {
-            LogPrintf("Invalid nProtocolVersion!\n");
-            LogPrintf("mn.nProtocolVersion=%s!\n", mn.nProtocolVersion);
-            LogPrintf("mnpayments.GetMinSmartnodePaymentsProto=%s!\n", mnpayments.GetMinSmartnodePaymentsProto());
+        if (mn.nProtocolVersion < mnpayments.GetMinSmartnodePaymentsProto()) {
+            // LogPrintf("Invalid nProtocolVersion!\n");
+            // LogPrintf("mn.nProtocolVersion=%s!\n", mn.nProtocolVersion);
+            // LogPrintf("mnpayments.GetMinSmartnodePaymentsProto=%s!\n", mnpayments.GetMinSmartnodePaymentsProto());
+            LogPrint("Smartnodeman", "Smartnode, %s, addr(%s), not-qualified: 'invalid nProtocolVersion'\n",
+                     mn.vin.prevout.ToStringShort(), CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString());
             continue;
         }
         //it's in the list (up to 8 entries ahead of current block to allow propagation) -- so let's skip it
-        if(mnpayments.IsScheduled(mn, nBlockHeight)){
-            LogPrintf("mnpayments.IsScheduled!\n");
+        if (mnpayments.IsScheduled(mn, nBlockHeight)) {
+            // LogPrintf("mnpayments.IsScheduled!\n");
+            LogPrint("Smartnodeman", "Smartnode, %s, addr(%s), not-qualified: 'IsScheduled'\n",
+                     mn.vin.prevout.ToStringShort(), CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString());
             continue;
         }
         //it's too new, wait for a cycle
-        if(fFilterSigTime && mn.sigTime + (nMnCount * 2.6 * 60) > GetAdjustedTime()){
-            LogPrintf("it's too new, wait for a cycle!\n");
+        if (fFilterSigTime && mn.sigTime + (nMnCount * 2.6 * 60) > GetAdjustedTime()) {
+            // LogPrintf("it's too new, wait for a cycle!\n");
+            LogPrint("Smartnodeman", "Smartnode, %s, addr(%s), not-qualified: 'it's too new, wait for a cycle!', sigTime=%s, will be qualifed after=%s\n",
+                     mn.vin.prevout.ToStringShort(), CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString(), DateTimeStrFormat("%Y-%m-%d %H:%M UTC", mn.sigTime).c_str(), DateTimeStrFormat("%Y-%m-%d %H:%M UTC", mn.sigTime + (nMnCount * 2.6 * 60)).c_str());
             continue;
         }
-        //make sure it has at least as many confirmations as there are smartnodes
-        if(mn.GetCollateralAge() < nMnCount) {
-            LogPrintf("mn.GetCollateralAge()=%s!\n", mn.GetCollateralAge());
-            LogPrintf("nMnCount=%s!\n", nMnCount);
+        //make sure it has at least as many confirmations as there are Smartnodes
+        if (mn.GetCollateralAge() < nMnCount) {
+            // LogPrintf("mn.GetCollateralAge()=%s!\n", mn.GetCollateralAge());
+            // LogPrintf("nMnCount=%s!\n", nMnCount);
+            LogPrint("Smartnodeman", "Smartnode, %s, addr(%s), not-qualified: 'mn.GetCollateralAge() < nMnCount', CollateralAge=%d, nMnCount=%d\n",
+                     mn.vin.prevout.ToStringShort(), CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString(), mn.GetCollateralAge(), nMnCount);
+            continue;
+        }*/
+        char* reasonStr = GetNotQualifyReason(mn, nBlockHeight, fFilterSigTime, nMnCount);
+        if (reasonStr != NULL) {
+            LogPrint("Smartnodeman", "Smartnode, %s, addr(%s), qualify %s\n",
+                     mn.vin.prevout.ToStringShort(), CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString(), reasonStr);
             continue;
         }
-
         vecSmartnodeLastPaid.push_back(std::make_pair(mn.GetLastPaidBlock(), &mn));
     }
     nCount = (int)vecSmartnodeLastPaid.size();
 
     //when the network is in the process of upgrading, don't penalize nodes that recently restarted
     if(fFilterSigTime && nCount < nMnCount / 3) {
-        LogPrintf("Need Return, nCount=%s, nMnCount/3=%s\n", nCount, nMnCount/3);
+        // LogPrintf("Need Return, nCount=%s, nMnCount/3=%s\n", nCount, nMnCount/3);
         return GetNextSmartnodeInQueueForPayment(nBlockHeight, false, nCount);
     }
 
@@ -619,8 +674,6 @@ CSmartnode* CSmartnodeMan::GetNextSmartnodeInQueueForPayment(int nBlockHeight, b
     arith_uint256 nHighest = 0;
     BOOST_FOREACH (PAIRTYPE(int, CSmartnode*)& s, vecSmartnodeLastPaid){
         arith_uint256 nScore = s.second->CalculateScore(blockHash);
-        LogPrintf("node=%s\n", s.second->addr.ToString());
-        LogPrintf("nScore=%s, nHighest=%s\n", nScore.ToString(), nHighest.ToString());
         if(nScore > nHighest){
             nHighest = nScore;
             pBestSmartnode = s.second;
@@ -694,7 +747,7 @@ int CSmartnodeMan::GetSmartnodeRank(const CTxIn& vin, int nBlockHeight, int nMin
             if(!mn.IsValidForPayment()) continue;
         }
         int64_t nScore = mn.CalculateScore(blockHash).GetCompact(false);
-        LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
+        //LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
 
         vecSmartnodeScores.push_back(std::make_pair(nScore, &mn));
     }
@@ -727,7 +780,7 @@ std::vector<std::pair<int, CSmartnode> > CSmartnodeMan::GetSmartnodeRanks(int nB
         if(mn.nProtocolVersion < nMinProtocol || !mn.IsEnabled()) continue;
 
         int64_t nScore = mn.CalculateScore(blockHash).GetCompact(false);
-        LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
+        //LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
 
         vecSmartnodeScores.push_back(std::make_pair(nScore, &mn));
     }
@@ -762,7 +815,7 @@ CSmartnode* CSmartnodeMan::GetSmartnodeByRank(int nRank, int nBlockHeight, int n
         if(fOnlyActive && !mn.IsEnabled()) continue;
 
         int64_t nScore = mn.CalculateScore(blockHash).GetCompact(false);
-        LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
+        //LogPrintf("Smartnode =%s score=%d\n",mn.vin.prevout.ToStringShort(), nScore);
 
         vecSmartnodeScores.push_back(std::make_pair(nScore, &mn));
     }
@@ -836,7 +889,7 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
 
         pfrom->setAskFor.erase(mnb.GetHash());
 
-        LogPrintf("MNANNOUNCE -- Smartnode announce, smartnode=%s\n", mnb.vin.prevout.ToStringShort());
+        //LogPrintf("MNANNOUNCE -- Smartnode announce, smartnode=%s\n", mnb.vin.prevout.ToStringShort());
 
         int nDos = 0;
 
@@ -1528,7 +1581,7 @@ void CSmartnodeMan::UpdateLastPaid()
         LogPrintf("CSmartnodeMan::UpdateLastPaid, pCurrentBlockIndex=NULL\n");
         return;
     }
-    LogPrintf("CSmartnodeMan::UpdateLastPaid,pCurrentBlockIndex->nHeight=%s\n", pCurrentBlockIndex->nHeight);
+    //LogPrintf("CSmartnodeMan::UpdateLastPaid,pCurrentBlockIndex->nHeight=%s\n", pCurrentBlockIndex->nHeight);
 
     static bool IsFirstRun = true;
     // Do full scan on first run or if we are not a smartnode

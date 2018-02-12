@@ -4704,6 +4704,8 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, C
     if (!ActivateBestChain(state, chainparams, pblock))
         return error("%s: ActivateBestChain failed", __func__);
 
+    smartnodeSync.IsBlockchainSynced(true);
+
     return true;
 }
 

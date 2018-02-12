@@ -284,6 +284,8 @@ public:
 
     smartnode_info_t GetSmartnodeInfo(const CPubKey& pubKeySmartnode);
 
+    char* GetNotQualifyReason(CSmartnode& mn, int nBlockHeight, bool fFilterSigTime, int nMnCount);
+
     /// Find an entry in the smartnode list that is next to be paid
     CSmartnode* GetNextSmartnodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount);
     /// Same as above but use current block height

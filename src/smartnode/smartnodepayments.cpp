@@ -483,7 +483,7 @@ bool CSmartnodePayments::IsScheduled(CSmartnode &mn, int nNotBlockHeight) {
 }
 
 bool CSmartnodePayments::AddPaymentVote(const CSmartnodePaymentVote &vote) {
-    LogPrintf("CSmartnodePayments::AddPaymentVote\n");
+//    LogPrintf("CSmartnodePayments::AddPaymentVote\n");
     uint256 blockHash = uint256();
     if (!GetBlockHash(blockHash, vote.nBlockHeight - 101)) return false;
 
@@ -732,7 +732,7 @@ bool CSmartnodePayments::ProcessBlock(int nBlockHeight) {
     // DETERMINE IF WE SHOULD BE VOTING FOR THE NEXT PAYEE
 
     if (fLiteMode || !fSmartNode) {
-        LogPrintf("LogPrintf fSmartnode failed here 1\n");
+        //LogPrintf("LogPrintf fSmartnode failed here 1\n");
         return false;
     }
 
@@ -740,7 +740,7 @@ bool CSmartnodePayments::ProcessBlock(int nBlockHeight) {
     // but we have no choice, so we'll try. However it doesn't make sense to even try to do so
     // if we have not enough data about smartnodes.
     if (!smartnodeSync.IsSmartnodeListSynced()) {
-        LogPrintf("smartnodeSync.IsSmartnodeListSynced failed");
+        //LogPrintf("smartnodeSync.IsSmartnodeListSynced failed");
         return false;
     }
 
@@ -803,7 +803,7 @@ bool CSmartnodePayments::ProcessBlock(int nBlockHeight) {
 void CSmartnodePaymentVote::Relay() {
     // do not relay until synced
     if (!smartnodeSync.IsWinnersListSynced()) {
-        LogPrintf("CSmartnodePaymentVote::Relay - smartnodeSync.IsWinnersListSynced() not sync\n");
+        //LogPrintf("CSmartnodePaymentVote::Relay - smartnodeSync.IsWinnersListSynced() not sync\n");
         return;
     }
     CInv inv(MSG_SMARTNODE_PAYMENT_VOTE, GetHash());

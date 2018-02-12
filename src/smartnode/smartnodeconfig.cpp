@@ -18,7 +18,7 @@ bool CSmartnodeConfig::read(std::string& strErr) {
     int linenumber = 1;
     boost::filesystem::path pathSmartnodeConfigFile = GetSmartnodeConfigFile();
     boost::filesystem::ifstream streamConfig(pathSmartnodeConfigFile);
-    LogPrintf("pathSmartnodeConfigFile=%s\n", pathSmartnodeConfigFile);
+    //LogPrintf("pathSmartnodeConfigFile=%s\n", pathSmartnodeConfigFile);
 
     if (!streamConfig.good()) {
         FILE* configFile = fopen(pathSmartnodeConfigFile.string().c_str(), "a");
@@ -35,7 +35,7 @@ bool CSmartnodeConfig::read(std::string& strErr) {
     for(std::string line; std::getline(streamConfig, line); linenumber++)
     {
         if(line.empty()) continue;
-        LogPrintf("Read line=%s\n", line);
+        //LogPrintf("Read line=%s\n", line);
         std::istringstream iss(line);
         std::string comment, alias, ip, privKey, txHash, outputIndex;
 

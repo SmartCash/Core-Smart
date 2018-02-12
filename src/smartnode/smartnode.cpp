@@ -65,7 +65,7 @@ CSmartnode::CSmartnode(const CSmartnode &other) :
         pubKeySmartnode(other.pubKeySmartnode),
         lastPing(other.lastPing),
         vchSig(other.vchSig),
-        nCollateralMinConfBlockHash(other.nCollateralMinConfBlockHash),
+//        nCollateralMinConfBlockHash(other.nCollateralMinConfBlockHash),
         sigTime(other.sigTime),
         nLastDsq(other.nLastDsq),
         nTimeLastChecked(other.nTimeLastChecked),
@@ -130,7 +130,7 @@ bool CSmartnode::UpdateFromNewBroadcast(CSmartnodeBroadcast &mnb) {
         } else {
             // ... otherwise we need to reactivate our node, do not add it to the list and do not relay
             // but also do not ban the node we get this message from
-            LogPrintf("CSmartnode::UpdateFromNewBroadcast -- wrong PROTOCOL_VERSION, re-activate your MN: message nProtocolVersion=%d  PROTOCOL_VERSION=%d\n", nProtocolVersion, PROTOCOL_VERSION);
+            //LogPrintf("CSmartnode::UpdateFromNewBroadcast -- wrong PROTOCOL_VERSION, re-activate your MN: message nProtocolVersion=%d  PROTOCOL_VERSION=%d\n", nProtocolVersion, PROTOCOL_VERSION);
             return false;
         }
     }
@@ -143,15 +143,18 @@ bool CSmartnode::UpdateFromNewBroadcast(CSmartnodeBroadcast &mnb) {
 // and get paid this block
 //
 arith_uint256 CSmartnode::CalculateScore(const uint256& blockHash) {
+    uint256 aux = ArithToUint256(UintToArith256(vin.prevout.hash) + vin.prevout.n);
 
-    // Deterministically calculate a "score" for a SmartNode based on any given (block)hash
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
-    ss << vin.prevout << nCollateralMinConfBlockHash << blockHash;
-    
-//    LogPrintf("Hashtest SmartNode Score %s\n", ss.GetHash().ToString());
+    ss << blockHash;
+    arith_uint256 hash2 = UintToArith256(ss.GetHash());
 
-    return UintToArith256(ss.GetHash());
+    CHashWriter ss2(SER_GETHASH, PROTOCOL_VERSION);
+    ss2 << blockHash;
+    ss2 << aux;
+    arith_uint256 hash3 = UintToArith256(ss2.GetHash());
 
+    return (hash3 > hash2 ? hash3 - hash2 : hash2 - hash3);
 }
 
 void CSmartnode::Check(bool fForce) {
@@ -162,7 +165,7 @@ void CSmartnode::Check(bool fForce) {
     if (!fForce && (GetTime() - nTimeLastChecked < SMARTNODE_CHECK_SECONDS)) return;
     nTimeLastChecked = GetTime();
 
-    LogPrintf("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state\n", vin.prevout.ToStringShort(), GetStateString());
+    //LogPrintf("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state\n", vin.prevout.ToStringShort(), GetStateString());
 
     //once spent, stop doing the checks
     if (IsOutpointSpent()) return;
@@ -189,13 +192,13 @@ void CSmartnode::Check(bool fForce) {
         // Otherwise give it a chance to proceed further to do all the usual checks and to change its state.
         // Smartnode still will be on the edge and can be banned back easily if it keeps ignoring mnverify
         // or connect attempts. Will require few mnverify messages to strengthen its position in mn list.
-        LogPrintf("CSmartnode::Check -- Smartnode %s is unbanned and back in list now\n", vin.prevout.ToStringShort());
+        //LogPrintf("CSmartnode::Check -- Smartnode %s is unbanned and back in list now\n", vin.prevout.ToStringShort());
         DecreasePoSeBanScore();
     } else if (nPoSeBanScore >= SMARTNODE_POSE_BAN_MAX_SCORE) {
         nActiveState = SMARTNODE_POSE_BAN;
         // ban for the whole payment cycle
         nPoSeBanHeight = nHeight + mnodeman.size();
-        LogPrintf("CSmartnode::Check -- Smartnode %s is banned till block %d now\n", vin.prevout.ToStringShort(), nPoSeBanHeight);
+        //LogPrintf("CSmartnode::Check -- Smartnode %s is banned till block %d now\n", vin.prevout.ToStringShort(), nPoSeBanHeight);
         return;
     }
 
@@ -210,7 +213,7 @@ void CSmartnode::Check(bool fForce) {
     if (fRequireUpdate) {
         nActiveState = SMARTNODE_UPDATE_REQUIRED;
         if (nActiveStatePrev != nActiveState) {
-            LogPrint("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state now\n", vin.prevout.ToStringShort(), GetStateString());
+            //LogPrint("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state now\n", vin.prevout.ToStringShort(), GetStateString());
         }
         return;
     }
@@ -389,7 +392,7 @@ int CSmartnode::GetCollateralAge() {
 
 void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanBack) {
     if (!pindex) {
-        LogPrintf("CSmartnode::UpdateLastPaid pindex is NULL\n");
+        //LogPrintf("CSmartnode::UpdateLastPaid pindex is NULL\n");
         return;
     }
 
@@ -405,11 +408,11 @@ void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanB
 //        LogPrintf("mnpayments.mapSmartnodeBlocks[BlockReading->nHeight].HasPayeeWithVotes(mnpayee, 2)=%s\n", mnpayments.mapSmartnodeBlocks[BlockReading->nHeight].HasPayeeWithVotes(mnpayee, 2));
         if (mnpayments.mapSmartnodeBlocks.count(BlockReading->nHeight) &&
             mnpayments.mapSmartnodeBlocks[BlockReading->nHeight].HasPayeeWithVotes(mnpayee, 2)) {
-            LogPrintf("i=%s, BlockReading->nHeight=%s\n", i, BlockReading->nHeight);
+            //LogPrintf("i=%s, BlockReading->nHeight=%s\n", i, BlockReading->nHeight);
             CBlock block;
             if (!ReadBlockFromDisk(block, BlockReading, Params().GetConsensus())) // shouldn't really happen
             {
-                LogPrintf("ReadBlockFromDisk failed\n");
+                //LogPrintf("ReadBlockFromDisk failed\n");
                 continue;
             }
 
@@ -437,7 +440,7 @@ void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanB
 }
 
 bool CSmartnodeBroadcast::Create(std::string strService, std::string strKeySmartnode, std::string strTxHash, std::string strOutputIndex, std::string &strErrorRet, CSmartnodeBroadcast &mnbRet, bool fOffline) {
-    LogPrintf("CSmartnodeBroadcast::Create\n");
+    //LogPrintf("CSmartnodeBroadcast::Create\n");
     CTxIn txin;
     CPubKey pubKeyCollateralAddressNew;
     CKey keyCollateralAddressNew;
@@ -446,14 +449,14 @@ bool CSmartnodeBroadcast::Create(std::string strService, std::string strKeySmart
     //need correct blocks to send ping
     if (!fOffline && !smartnodeSync.IsBlockchainSynced()) {
         strErrorRet = "Sync in progress. Must wait until sync is complete to start Smartnode";
-        LogPrintf("CSmartnodeBroadcast::Create -- %s\n", strErrorRet);
+        //LogPrintf("CSmartnodeBroadcast::Create -- %s\n", strErrorRet);
         return false;
     }
 
     //TODO
     if (!darkSendSigner.GetKeysFromSecret(strKeySmartnode, keySmartnodeNew, pubKeySmartnodeNew)) {
         strErrorRet = strprintf("Invalid smartnode key %s", strKeySmartnode);
-        LogPrintf("CSmartnodeBroadcast::Create -- %s\n", strErrorRet);
+        //LogPrintf("CSmartnodeBroadcast::Create -- %s\n", strErrorRet);
         return false;
     }
 
@@ -668,7 +671,7 @@ bool CSmartnodeBroadcast::CheckOutpoint(int &nDos) {
             return false;
         }
         // remember the hash of the block where masternode collateral had minimum required confirmations
-        nCollateralMinConfBlockHash = chainActive[coins.nHeight + Params().GetConsensus().nSmartnodeMinimumConfirmations - 1]->GetBlockHash();
+        //nCollateralMinConfBlockHash = chainActive[coins.nHeight + Params().GetConsensus().nSmartnodeMinimumConfirmations - 1]->GetBlockHash();
     }
 
     LogPrint("smartnode", "CSmartnodeBroadcast::CheckOutpoint -- Smartnode UTXO verified\n");
@@ -747,7 +750,7 @@ bool CSmartnodeBroadcast::CheckSignature(int &nDos) {
 }
 
 void CSmartnodeBroadcast::RelaySmartNode() {
-    LogPrintf("CSmartnodeBroadcast::RelaySmartNode\n");
+    //LogPrintf("CSmartnodeBroadcast::RelaySmartNode\n");
     CInv inv(MSG_SMARTNODE_ANNOUNCE, GetHash());
     RelayInv(inv);
 }

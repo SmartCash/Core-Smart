@@ -163,7 +163,7 @@ public:
     CPubKey pubKeySmartnode;
     CSmartnodePing lastPing;
     std::vector<unsigned char> vchSig;
-    uint256 nCollateralMinConfBlockHash{};
+//    uint256 nCollateralMinConfBlockHash{};
     int64_t sigTime; //mnb message time
     int64_t nLastDsq; //the dsq count from the last dsq broadcast of this node
     int64_t nTimeLastChecked;
@@ -203,7 +203,7 @@ public:
         READWRITE(nTimeLastPaid);
         READWRITE(nTimeLastWatchdogVote);
         READWRITE(nActiveState);
-        READWRITE(nCollateralMinConfBlockHash);
+//        READWRITE(nCollateralMinConfBlockHash);
         READWRITE(nCacheCollateralBlock);
         READWRITE(nBlockLastPaid);
         READWRITE(nProtocolVersion);
@@ -227,7 +227,7 @@ public:
         swap(first.pubKeySmartnode, second.pubKeySmartnode);
         swap(first.lastPing, second.lastPing);
         swap(first.vchSig, second.vchSig);
-        swap(first.nCollateralMinConfBlockHash, second.nCollateralMinConfBlockHash);
+//        swap(first.nCollateralMinConfBlockHash, second.nCollateralMinConfBlockHash);
         swap(first.sigTime, second.sigTime);
         swap(first.nLastDsq, second.nLastDsq);
         swap(first.nTimeLastChecked, second.nTimeLastChecked);

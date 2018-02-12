@@ -64,7 +64,7 @@ bool CSmartnodeSync::IsBlockchainSynced(bool fBlockAccepted) {
         // this should be only triggered while we are still syncing
         if (!IsSynced()) {
             // we are trying to download smth, reset blockchain sync status
-            LogPrintf("CSmartnodeSync::IsBlockchainSynced -- reset\n");
+            //LogPrintf("CSmartnodeSync::IsBlockchainSynced -- reset\n");
             fFirstBlockAccepted = true;
             fBlockchainSynced = false;
             nTimeLastProcess = GetTime();
@@ -92,8 +92,8 @@ bool CSmartnodeSync::IsBlockchainSynced(bool fBlockAccepted) {
     }
 
     std::vector < CNode * > vNodesCopy = CopyNodeVector();
-    LogPrintf("vNodesCopy.size() = %s\n", vNodesCopy.size());
-    LogPrintf("SMARTNODE_SYNC_ENOUGH_PEERS = %s\n", SMARTNODE_SYNC_ENOUGH_PEERS);
+    //LogPrintf("vNodesCopy.size() = %s\n", vNodesCopy.size());
+    //LogPrintf("SMARTNODE_SYNC_ENOUGH_PEERS = %s\n", SMARTNODE_SYNC_ENOUGH_PEERS);
     // We have enough peers and assume most of them are synced
     if (vNodesCopy.size() >= SMARTNODE_SYNC_ENOUGH_PEERS) {
         // Check to see how many of our peers are (almost) at the same height as we are
@@ -105,7 +105,7 @@ bool CSmartnodeSync::IsBlockchainSynced(bool fBlockAccepted) {
                 continue;
             }
             nNodesAtSameHeight++;
-            LogPrintf("nNodesAtSameHeight=%s\n", nNodesAtSameHeight);
+            //LogPrintf("nNodesAtSameHeight=%s\n", nNodesAtSameHeight);
             // if we have decent number of such peers, most likely we are synced now
             if (nNodesAtSameHeight >= SMARTNODE_SYNC_ENOUGH_PEERS) {
                 LogPrintf("CSmartnodeSync::IsBlockchainSynced -- found enough peers on the same height as we are, done\n");
@@ -261,6 +261,11 @@ void CSmartnodeSync::ProcessTick() {
 
     if (fDebug) LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nMnCount %d\n", nTick, nMnCount);
 
+    // INITIAL SYNC SETUP / LOG REPORTING
+    double nSyncProgress = double(nRequestedSmartnodeAttempt + (nRequestedSmartnodeAssets - 1) * 8) / (8 * 4);
+    //LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nRequestedSmartnodeAttempt %d nSyncProgress %f\n", nTick, nRequestedSmartnodeAssets, nRequestedSmartnodeAttempt, nSyncProgress);
+    uiInterface.NotifyAdditionalDataSyncProgressChanged(pCurrentBlockIndex->nHeight, nSyncProgress);
+
     // RESET SYNCING INCASE OF FAILURE
     {
         if (IsSynced()) {
@@ -286,11 +291,6 @@ void CSmartnodeSync::ProcessTick() {
             return;
         }
     }
-
-    // INITIAL SYNC SETUP / LOG REPORTING
-    double nSyncProgress = double(nRequestedSmartnodeAttempt + (nRequestedSmartnodeAssets - 1) * 8) / (8 * 4);
-    LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nRequestedSmartnodeAttempt %d nSyncProgress %f\n", nTick, nRequestedSmartnodeAssets, nRequestedSmartnodeAttempt, nSyncProgress);
-    uiInterface.NotifyAdditionalDataSyncProgressChanged(nSyncProgress);
 
 //    LogPrintf("sporks synced but blockchain is not, wait until we're almost at a recent block to continue\n");
     
