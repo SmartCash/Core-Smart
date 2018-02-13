@@ -37,7 +37,7 @@ public:
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);
     void StartAlias(std::string strAlias);
-//    void StartAll(std::string strCommand = "start-all");
+    void StartAll(std::string strCommand = "start-all");
 
 private:
     QMenu *contextMenu;
