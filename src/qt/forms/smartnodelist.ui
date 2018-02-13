@@ -124,7 +124,7 @@
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
              <property name="bottomMargin">
               <number>0</number>
              </property>
@@ -135,13 +135,13 @@
                </property>
               </widget>
              </item>
-<!--              <item>
+              <item>
               <widget class="QPushButton" name="startAllButton">
                <property name="text">
                 <string>Start &amp;all</string>
                </property>
               </widget>
-             </item> -->
+             </item>
              <item>
               <widget class="QPushButton" name="startMissingButton">
                <property name="text">
