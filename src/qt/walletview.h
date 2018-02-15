@@ -70,7 +70,7 @@ private:
     ZerocoinPage *zerocoinPage;
     TransactionView *transactionView;
     SmartnodeList *smartnodeListPage;
-    SmartrewardsList *smartrewardsListPage;
+    //SmartrewardsList *smartrewardsListPage;
 
     QProgressDialog *progressDialog;
     const PlatformStyle *platformStyle;
