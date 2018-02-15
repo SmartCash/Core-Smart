@@ -467,6 +467,8 @@ private:
     static uint64_t nMaxOutboundLimit;
     static uint64_t nMaxOutboundTimeframe;
 
+    CCriticalSection cs_nRefCount;
+
     CNode(const CNode&);
     void operator=(const CNode&);
 
@@ -480,6 +482,7 @@ public:
 
     int GetRefCount()
     {
+        LOCK(cs_nRefCount);
         assert(nRefCount >= 0);
         return nRefCount;
     }
@@ -506,12 +509,14 @@ public:
 
     CNode* AddRef()
     {
+        LOCK(cs_nRefCount);
         nRefCount++;
         return this;
     }
 
     void Release()
     {
+        LOCK(cs_nRefCount);
         nRefCount--;
     }
 
@@ -821,11 +826,9 @@ public:
     static uint64_t GetMaxOutboundTimeLeftInCycle();
 };
 
-
-
 class CTransaction;
 void RelayTransaction(const CTransaction& tx);
-void RelayInv(CInv &inv, const int minProtoVersion = MIN_PEER_PROTO_VERSION); 
+void RelayInv(CInv &inv, const int minProtoVersion = MIN_PEER_PROTO_VERSION);
 
 /** Access to the (IP) address database (peers.dat) */
 class CAddrDB
@@ -862,7 +865,7 @@ struct AddedNodeInfo
 };
 
 std::vector<AddedNodeInfo> GetAddedNodeInfo();
-std::vector<CNode*> CopyNodeVector(); 
+std::vector<CNode*> CopyNodeVector();
 void ReleaseNodeVector(const std::vector<CNode*>& vecNodes);
 
 #endif // BITCOIN_NET_H
