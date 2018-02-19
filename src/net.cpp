@@ -21,9 +21,6 @@
 #include "ui_interface.h"
 #include "utilstrencodings.h"
 
-#include "smartnode/instantx.h"
-#include "smartnode/smartnodesync.h"
-#include "smartnode/smartnodeman.h"
 
 #ifdef WIN32
 #include <string.h>
@@ -2273,37 +2270,12 @@ public:
 }
 instance_of_cnetcleanup;
 
-
-void RelayTransaction(const CTransaction& tx)
-{
-    uint256 hash = tx.GetHash();
-    int nInv = static_cast<bool>(instantsend.HasTxLockRequest(hash) ? MSG_TXLOCK_REQUEST : MSG_TX);
-    CInv inv(nInv, hash);
-//    {
-//        LOCK(cs_mapRelay);
-        // Expire old relay messages
-//        while (!vRelayExpiration.empty() && vRelayExpiration.front().first < GetTime())
-//        {
-//            mapRelay.erase(vRelayExpiration.front().second);
-//            vRelayExpiration.pop_front();
-//        }
-//
-        // Save original serialized message so newer versions are preserved
-//        mapRelay.insert(std::make_pair(inv, ss));
-//        vRelayExpiration.push_back(std::make_pair(GetTime() + 15 * 60, inv));
-//    }
+void RelayTransaction(const CTransaction &tx) {
+    CInv inv(MSG_TX, tx.GetHash());
     LOCK(cs_vNodes);
-    BOOST_FOREACH(CNode* pnode, vNodes)
+    BOOST_FOREACH(CNode * pnode, vNodes)
     {
-        if(!pnode->fRelayTxes)
-            continue;
-        LOCK(pnode->cs_filter);
-        if (pnode->pfilter)
-        {
-            if (pnode->pfilter->IsRelevantAndUpdate(tx))
-                pnode->PushInventory(inv);
-        } else
-            pnode->PushInventory(inv);
+        pnode->PushInventory(inv);
     }
 }
 
@@ -2314,7 +2286,7 @@ void RelayInv(CInv &inv, const int minProtoVersion) {
         if (pnode->nVersion >= minProtoVersion) 
             pnode->PushInventory(inv); 
     } 
-} 
+}
 
 void CNode::RecordBytesRecv(uint64_t bytes)
 {
