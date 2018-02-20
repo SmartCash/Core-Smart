@@ -31,12 +31,9 @@ SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *
     ui(new Ui::SmartrewardsList),
     model(0)
 {
-    ui->setupUi(this);
+   ui->setupUi(this);
  
-   //QMessageBox::information(this,"Hello","test");
-
    QTableWidget *smartRewardsTable = ui->tableWidget;
-   //QTableWidget *smartRewardsTable = new QTableWidget(this);
 
    smartRewardsTable->setAlternatingRowColors(true);
    smartRewardsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -96,6 +93,8 @@ SmartrewardsList::~SmartrewardsList()
  void SmartrewardsList::updateRewardsList()
  {
 
+     LogPrintf("Updating smartrewards tab\n");
+
      ui->tableWidget->setRowCount(0);
      int nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
 
@@ -138,15 +137,6 @@ SmartrewardsList::~SmartrewardsList()
              CScript SMARTREWARDS_SCRIPT;
              SMARTREWARDS_SCRIPT = GetScriptForDestination(SMARTREWARDS_ADDRESS.Get());
 
-             //extract tx input address
-             CTxIn vin = out.tx->vin[0];
-             CTransaction txPrev;
-             uint256 hash;
-             GetTransaction(vin.prevout.hash, txPrev, Params().GetConsensus(), hash, true);
-             CTxDestination source;
-             ExtractDestination(txPrev.vout[vin.prevout.n].scriptPubKey, source);
-             CBitcoinAddress addressSource(source);
-
              //calc total tx amount
              totalAmountSum += out.tx->vout[out.i].nValue;
              txAmount = out.tx->vout[out.i].nValue;
@@ -160,10 +150,26 @@ SmartrewardsList::~SmartrewardsList()
              if(txDateTimeUtc < lastSmartrewardsSnapshotDateTimeUtc){
                  //the tx occurred before the snapshot
                  eligibleSmartrewardsSum += txAmount;
-             }
-             else if(addressSource == SMARTREWARDS_ADDRESS){
-                 //the tx occurred after the snapshot but is from a smartrwards address
-                 eligibleSmartrewardsSum += txAmount;
+             }else if(txDateTimeUtc.date() == lastSmartrewardsSnapshotDateTimeUtc.date()){
+                 //the transaction occurred on the same day as the snapshot, maybe this is a smartrewards payment
+
+                 //extract tx input address to check if it is a smartrewards payment
+                 CTxIn vin = out.tx->vin[0];
+                 CTransaction txPrev;
+                 uint256 hash;
+                 GetTransaction(vin.prevout.hash, txPrev, Params().GetConsensus(), hash, true);
+
+                 if(txPrev.nLockTime > 0){
+                     CTxDestination source;
+                     CScript& txPrevScriptPubKey = txPrev.vout[vin.prevout.n].scriptPubKey;
+                         ExtractDestination(txPrevScriptPubKey, source);
+                         CBitcoinAddress addressSource(source);
+
+                         if(addressSource == SMARTREWARDS_ADDRESS){
+                            //the tx is a smartrwards payment
+                            eligibleSmartrewardsSum += txAmount;
+                         }
+                 }
              }
 
              ui->tableWidget->setItem(nNewRow, 0, new QTableWidgetItem(sWalletLabel));
@@ -181,6 +187,8 @@ SmartrewardsList::~SmartrewardsList()
          nNewRow++;
 
      }
+
+      LogPrintf("Smartrewards tab updated successfully\n");
 
 }
 
@@ -214,7 +222,6 @@ SmartrewardsList::~SmartrewardsList()
  {
      GUIUtil::copyEntryData(ui->tableWidget, 2);
  }
-
 
  void SmartrewardsList::copyEligibleAmount()
  {

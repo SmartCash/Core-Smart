@@ -487,7 +487,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(historyAction);
         //toolbar->addAction(zerocoinAction);
         toolbar->addAction(smartnodeAction);
-        //toolbar->addAction(smartrewardsAction);
+        toolbar->addAction(smartrewardsAction);
         overviewAction->setChecked(true);
     }
 }
