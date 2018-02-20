@@ -159,7 +159,7 @@ SmartrewardsList::~SmartrewardsList()
                  uint256 hash;
                  GetTransaction(vin.prevout.hash, txPrev, Params().GetConsensus(), hash, true);
 
-                 if(txPrev.nLockTime > 0){
+                 if(txPrev.vin.size() > 0){
                      CTxDestination source;
                      CScript& txPrevScriptPubKey = txPrev.vout[vin.prevout.n].scriptPubKey;
                          ExtractDestination(txPrevScriptPubKey, source);
