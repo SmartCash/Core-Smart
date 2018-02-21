@@ -78,7 +78,7 @@
        <item>
         <widget class="QPushButton" name="updatePushButton">
          <property name="text">
-          <string>Update Adresses</string>
+          <string>Update Addresses</string>
          </property>
         </widget>
        </item>
