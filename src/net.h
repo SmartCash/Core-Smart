@@ -467,6 +467,8 @@ private:
     static uint64_t nMaxOutboundLimit;
     static uint64_t nMaxOutboundTimeframe;
 
+    CCriticalSection cs_nRefCount;
+
     CNode(const CNode&);
     void operator=(const CNode&);
 
@@ -480,6 +482,7 @@ public:
 
     int GetRefCount()
     {
+        LOCK(cs_nRefCount);
         assert(nRefCount >= 0);
         return nRefCount;
     }
@@ -506,12 +509,14 @@ public:
 
     CNode* AddRef()
     {
+        LOCK(cs_nRefCount);
         nRefCount++;
         return this;
     }
 
     void Release()
     {
+        LOCK(cs_nRefCount);
         nRefCount--;
     }
 
