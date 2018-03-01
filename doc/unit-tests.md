@@ -15,4 +15,4 @@ implement new BOOST_AUTO_TEST_SUITE sections.
 To run the bitcoin-qt tests manually, launch `src/qt/test/test_bitcoin-qt`
 
 To add more bitcoin-qt tests, add them to the `src/qt/test/` directory and
-the `src/qt/test/test_main.cpp` file.
+the `src/qt/test/test_validation.cpp` file.
