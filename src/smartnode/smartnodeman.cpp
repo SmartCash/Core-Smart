@@ -68,9 +68,9 @@ CSmartnodeMan::CSmartnodeMan()
 bool CSmartnodeMan::Add(CSmartnode &mn)
 {
     LOCK(cs);
-
+    LogPrintf("Add start \n");
     if (Has(mn.vin.prevout)) return false;
-
+    LogPrintf("Add passou \n");
     LogPrint("smartnode", "CSmartnodeMan::Add -- Adding new Smartnode: addr=%s, %i now\n", mn.addr.ToString(), size() + 1);
     mapSmartnodes[mn.vin.prevout] = mn;
     fSmartnodesAdded = true;

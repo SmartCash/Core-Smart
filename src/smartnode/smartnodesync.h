@@ -22,9 +22,9 @@ static const int SMARTNODE_SYNC_GOVOBJ_VOTE     = 11;
 static const int SMARTNODE_SYNC_FINISHED        = 999;
 
 static const int SMARTNODE_SYNC_TICK_SECONDS    = 6;
-static const int SMARTNODE_SYNC_TIMEOUT_SECONDS = 30; // our blocks are 2.5 minutes so 30 seconds should be fine
+static const int SMARTNODE_SYNC_TIMEOUT_SECONDS = 25; // our blocks are 2.5 minutes so 30 seconds should be fine
 
-static const int SMARTNODE_SYNC_ENOUGH_PEERS    = 6;
+static const int SMARTNODE_SYNC_ENOUGH_PEERS    = 3;
 
 extern CSmartnodeSync smartnodeSync;
 
