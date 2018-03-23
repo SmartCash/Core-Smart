@@ -572,24 +572,20 @@ UniValue clearbanned(const UniValue& params, bool fHelp)
     return NullUniValue;
 }
 
-static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         okSafeMode
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "network",            "getconnectioncount",     &getconnectioncount,     true  },
-    { "network",            "ping",                   &ping,                   true  },
-    { "network",            "getpeerinfo",            &getpeerinfo,            true  },
-    { "network",            "addnode",                &addnode,                true  },
-    { "network",            "disconnectnode",         &disconnectnode,         true  },
-    { "network",            "getaddednodeinfo",       &getaddednodeinfo,       true  },
-    { "network",            "getnettotals",           &getnettotals,           true  },
-    { "network",            "getnetworkinfo",         &getnetworkinfo,         true  },
-    { "network",            "setban",                 &setban,                 true  },
-    { "network",            "listbanned",             &listbanned,             true  },
-    { "network",            "clearbanned",            &clearbanned,            true  },
-};
-
-void RegisterNetRPCCommands(CRPCTable &tableRPC)
+UniValue setnetworkactive(const UniValue& params, bool fHelp)
 {
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-        tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
+    if (fHelp || params.size() != 1) {
+        throw runtime_error(
+            "setnetworkactive true|false\n"
+            "Disable/enable all p2p network activity."
+        );
+    }
+
+    if (!g_connman) {
+        throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
+    }
+
+    g_connman->SetNetworkActive(params[0].get_bool());
+
+    return g_connman->GetNetworkActive();
 }
