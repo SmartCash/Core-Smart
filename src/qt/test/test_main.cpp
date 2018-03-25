@@ -1,14 +1,16 @@
 // Copyright (c) 2009-2015 The Bitcoin Core developers
+// Copyright (c) 2014-2017 The Dash Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
+#include "config/dash-config.h"
 #endif
 
 #include "util.h"
 #include "uritests.h"
 #include "compattests.h"
+#include "trafficgraphdatatests.h"
 
 #ifdef ENABLE_WALLET
 #include "paymentservertests.h"
@@ -37,7 +39,7 @@ int main(int argc, char *argv[])
     // Don't remove this, it's needed to access
     // QCoreApplication:: in the tests
     QCoreApplication app(argc, argv);
-    app.setApplicationName("Smartcash-Qt-test");
+    app.setApplicationName("Dash-Qt-test");
 
     SSL_library_init();
 
@@ -51,6 +53,10 @@ int main(int argc, char *argv[])
 #endif
     CompatTests test4;
     if (QTest::qExec(&test4) != 0)
+        fInvalid = true;
+
+    TrafficGraphDataTests test5;
+    if (QTest::qExec(&test5) != 0)
         fInvalid = true;
 
     return fInvalid;
