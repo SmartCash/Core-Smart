@@ -17,13 +17,15 @@
 #include "net.h"
 #include "pow.h"
 #include "rpc/server.h"
+#include "smartnode/spork.h"
 #include "txmempool.h"
 #include "util.h"
 #ifdef ENABLE_WALLET
-#include "smartnode/smartnodesync.h"
 #endif
 #include "utilstrencodings.h"
 #include "validationinterface.h"
+#include "smartnode/smartnodepayments.h
+#include "smartnode/smartnodesync.h"
 
 #include <stdint.h>
 
