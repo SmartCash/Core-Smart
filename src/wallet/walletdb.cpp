@@ -706,45 +706,45 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 return false;
             }
         }
-        // else if (strType == "hdchain")
-        // {
-        //     CHDChain chain;
-        //     ssValue >> chain;
-        //     if (!pwallet->SetHDChain(chain, true))
-        //     {
-        //         strErr = "Error reading wallet database: SetHDChain failed";
-        //         return false;
-        //     }
-        // }
-        // else if (strType == "chdchain")
-        // {
-        //     CHDChain chain;
-        //     ssValue >> chain;
-        //     if (!pwallet->SetCryptedHDChain(chain, true))
-        //     {
-        //         strErr = "Error reading wallet database: SetHDCryptedChain failed";
-        //         return false;
-        //     }
-        // }
-        // else if (strType == "hdpubkey")
-        // {
-        //     CPubKey vchPubKey;
-        //     ssKey >> vchPubKey;
+        else if (strType == "hdchain")
+        {
+            CHDChain chain;
+            ssValue >> chain;
+            if (!pwallet->SetHDChain(chain, true))
+            {
+                strErr = "Error reading wallet database: SetHDChain failed";
+                return false;
+            }
+        }
+        else if (strType == "chdchain")
+        {
+            CHDChain chain;
+            ssValue >> chain;
+            if (!pwallet->SetCryptedHDChain(chain, true))
+            {
+                strErr = "Error reading wallet database: SetHDCryptedChain failed";
+                return false;
+            }
+        }
+        else if (strType == "hdpubkey")
+        {
+            CPubKey vchPubKey;
+            ssKey >> vchPubKey;
 
-        //     CHDPubKey hdPubKey;
-        //     ssValue >> hdPubKey;
+            CHDPubKey hdPubKey;
+            ssValue >> hdPubKey;
 
-        //     if(vchPubKey != hdPubKey.extPubKey.pubkey)
-        //     {
-        //         strErr = "Error reading wallet database: CHDPubKey corrupt";
-        //         return false;
-        //     }
-        //     if (!pwallet->LoadHDPubKey(hdPubKey))
-        //     {
-        //         strErr = "Error reading wallet database: LoadHDPubKey failed";
-        //         return false;
-        //     }
-        // }
+            if(vchPubKey != hdPubKey.extPubKey.pubkey)
+            {
+                strErr = "Error reading wallet database: CHDPubKey corrupt";
+                return false;
+            }
+            if (!pwallet->LoadHDPubKey(hdPubKey))
+            {
+                strErr = "Error reading wallet database: LoadHDPubKey failed";
+                return false;
+            }
+        }
     } catch (...)
     {
         return false;
