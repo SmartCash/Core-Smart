@@ -40,23 +40,24 @@ class CSmartRewards
 {
     CSmartRewardsDB * pdb;
 
+    std::vector<CSmartRewardsBlock>blockEntries;
     std::vector<CSmartRewardEntry>updateEntries;
     std::vector<CSmartRewardEntry>removeEntries;
 
     mutable CCriticalSection csDb;
 
-    void GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry, bool &added);
     void MarkForUpdate(const CSmartRewardEntry entry);
     void MarkForRemove(const CSmartRewardEntry entry);
     void ResetMarkups();
-    bool SyncMarkups(const CSmartRewardsBlock &block);
+    bool SyncMarkups(const CSmartRewardsBlock &block, bool sync);
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb);
 
     bool GetLastBlock(CSmartRewardsBlock &block);
     bool Verify();
-    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock);
+    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock, bool sync);
+    void GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry, bool &added);
     bool CheckRewardRound();
 
 };

@@ -13,7 +13,7 @@
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
 //! -rewardsdbcache default (MiB)
-static const int64_t nRewardsDefaultDbCache = 300;
+static const int64_t nRewardsDefaultDbCache = 10;
 //! max. -rewardsdbcache (MiB)
 static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 
@@ -24,7 +24,7 @@ public:
     int nHeight;
     uint256 blockHash;
     int64_t blockTime;
-    CSmartRewardsBlock(){}
+    CSmartRewardsBlock(){nHeight = 0; blockHash = uint256(); blockTime = 0;}
     CSmartRewardsBlock(int height, uint256 &hash, int64_t t) : nHeight(height), blockHash(hash), blockTime(t) {}
 
     ADD_SERIALIZE_METHODS
@@ -97,8 +97,7 @@ public:
     bool WriteRewardEntry(const CSmartRewardEntry &entry);
     bool RemoveRewardEntry(const CSmartRewardEntry &entry);
 
-    bool SyncBlock(const CSmartRewardsBlock &block, const std::vector<CSmartRewardEntry> &update, const std::vector<CSmartRewardEntry> &remove);
-
+    bool Sync(const std::vector<CSmartRewardsBlock> &blocks, const std::vector<CSmartRewardEntry> &update, const std::vector<CSmartRewardEntry> &remove);
 };
 
 

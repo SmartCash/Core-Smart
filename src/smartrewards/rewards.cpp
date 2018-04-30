@@ -10,7 +10,7 @@ bool CSmartRewards::Verify()
 
 }
 
-bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock) {
+bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock, bool sync) {
 
     if(fLiteMode) return true; // disable SmartRewards sync in litemode
 
@@ -89,10 +89,10 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
     uint256 blockHash = block.GetHash();
     rewardBlock = CSmartRewardsBlock(pindexNew->nHeight, blockHash, block.GetBlockTime());
-    result = SyncMarkups(rewardBlock);
 
+    result = SyncMarkups(rewardBlock, sync);
 
-      return result;
+    return result;
 }
 
 bool CSmartRewards::CheckRewardRound()
@@ -204,14 +204,23 @@ void CSmartRewards::ResetMarkups()
 {
     updateEntries.clear();
     removeEntries.clear();
+    blockEntries.clear();
 }
 
 
-bool CSmartRewards::SyncMarkups(const CSmartRewardsBlock &block)
+bool CSmartRewards::SyncMarkups(const CSmartRewardsBlock &block, bool sync)
 {
-    bool res = pdb->SyncBlock(block,updateEntries,removeEntries);
-    ResetMarkups();
-    return res;
+    LOCK(csDb);
+
+    bool ret = true;
+    if(sync){
+        ret = pdb->Sync(blockEntries,updateEntries,removeEntries);
+        ResetMarkups();
+    }else{
+        blockEntries.push_back(block);
+    }
+
+    return ret;
 }
 
 CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb)
@@ -259,13 +268,15 @@ void ThreadSmartRewards()
     int64_t nTimeUpdateRewardsTotal = 0;
     int64_t nCountUpdateRewards = 0;
 
+    const int64_t nCacheBlocks = 50;
+
     while (true)
     {
-        if(ShutdownRequested()) return;
 
         int64_t nTime1 = GetTimeMicros();
         {
             LOCK(cs_main);
+            if(ShutdownRequested()) return;
             currentIndex = chainActive.Tip();
         }
         int64_t nTime2 = GetTimeMicros();
@@ -294,8 +305,7 @@ void ThreadSmartRewards()
 
         int64_t nTime3 = GetTimeMicros();
 
-        // Update smartrewards
-        if(!prewards->Update(nextIndex, chainparams, currentBlock)) throw runtime_error(std::string(__func__) + ": rewards update failed");
+        if(!prewards->Update(nextIndex, chainparams, currentBlock, !(currentBlock.nHeight % nCacheBlocks))) throw runtime_error(std::string(__func__) + ": rewards update failed");
 
         lastIndex = nextIndex;
 

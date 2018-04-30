@@ -63,7 +63,7 @@ bool CSmartRewardsDB::WriteRewardEntry(const CSmartRewardEntry &entry)
     return Write(make_pair(DB_REWARD_ENTRY, *(CScriptBase*)(&entry.pubKey)), entry);
 }
 
-bool CSmartRewardsDB::SyncBlock(const CSmartRewardsBlock &block, const std::vector<CSmartRewardEntry> &update, const std::vector<CSmartRewardEntry> &remove)
+bool CSmartRewardsDB::Sync(const std::vector<CSmartRewardsBlock> &blocks, const std::vector<CSmartRewardEntry> &update, const std::vector<CSmartRewardEntry> &remove)
 {
 
     CDBBatch batch(*this);
@@ -77,8 +77,15 @@ bool CSmartRewardsDB::SyncBlock(const CSmartRewardsBlock &block, const std::vect
         LogPrintf("Update reward entry %s", e.ToString());
     }
 
-    batch.Write(DB_BLOCK_LAST, block);
-    batch.Write(make_pair(DB_BLOCK_FLAG,block.nHeight), block);
+    CSmartRewardsBlock last;
+
+    BOOST_FOREACH(CSmartRewardsBlock b, blocks) {
+        batch.Write(make_pair(DB_BLOCK_FLAG,b.nHeight), b);
+
+        if(b.nHeight > last.nHeight) last = b;
+    }
+
+    batch.Write(DB_BLOCK_LAST, last);
 
     return WriteBatch(batch, true);
 }
