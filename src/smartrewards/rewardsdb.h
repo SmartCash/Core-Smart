@@ -13,7 +13,7 @@
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
 //! -rewardsdbcache default (MiB)
-static const int64_t nRewardsDefaultDbCache = 10;
+static const int64_t nRewardsDefaultDbCache = 50;
 //! max. -rewardsdbcache (MiB)
 static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 

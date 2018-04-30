@@ -173,6 +173,8 @@ void CSmartRewards::GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &ent
 {
     added = false;
 
+    // If the entry is already marked for to become updated
+    // return this one.
     BOOST_FOREACH(CSmartRewardEntry e, updateEntries) {
         if(e.pubKey == pubKey){
             entry = e;
@@ -180,6 +182,8 @@ void CSmartRewards::GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &ent
         }
     }
 
+    // If the entry is already marked for to become removed
+    // return this one.
     BOOST_FOREACH(CSmartRewardEntry e, removeEntries) {
         if(e.pubKey == pubKey){
             entry = e;
@@ -187,14 +191,16 @@ void CSmartRewards::GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &ent
         }
     }
 
+    // Otherwise use the one from the database.
     if( !pdb->ReadRewardEntry(pubKey, entry)){
 
+        //If it was not yet in the db create it
         entry.pubKey = pubKey;
         entry.balanceLastStart = 0;
         entry.balanceOnStart = 0;
         entry.balance = 0;
 
-        //If it was not yet in the db mark it!
+        // and mark it as added!
         added = true;
     }
 
@@ -213,6 +219,7 @@ bool CSmartRewards::SyncMarkups(const CSmartRewardsBlock &block, bool sync)
     LOCK(csDb);
 
     bool ret = true;
+
     if(sync){
         ret = pdb->Sync(blockEntries,updateEntries,removeEntries);
         ResetMarkups();
@@ -252,14 +259,21 @@ void ThreadSmartRewards()
 
     CSmartRewardsBlock currentBlock;
 
+    // Get the last written block of the
+    // rewards database.
     if(!prewards->GetLastBlock(currentBlock)){
-        currentBlock.nHeight = 0;
+        // If there is no one available yet
+        // Use -1 to get 0 as start below.
+        currentBlock.nHeight = -1;
         currentBlock.blockHash = uint256();
         currentBlock.blockTime = 0;
     }
 
+    // Used as last used index of the sync process.
     CBlockIndex *lastIndex = NULL;
+    // Used as next index of the sync process.
     CBlockIndex *nextIndex = NULL;
+    // Used for the highest block index
     CBlockIndex *currentIndex = NULL;
     CChainParams chainparams = Params();
 
@@ -268,6 +282,7 @@ void ThreadSmartRewards()
     int64_t nTimeUpdateRewardsTotal = 0;
     int64_t nCountUpdateRewards = 0;
 
+    // Cache n blocks before the sync (leveldb batch write).
     const int64_t nCacheBlocks = 50;
 
     while (true)
@@ -276,27 +291,49 @@ void ThreadSmartRewards()
         int64_t nTime1 = GetTimeMicros();
         {
             LOCK(cs_main);
+            // If the user want to close the wallet, step out.
             if(ShutdownRequested()) return;
+
+            // Get index of the last block in the chain.
             currentIndex = chainActive.Tip();
         }
         int64_t nTime2 = GetTimeMicros();
 
+        // If there is no block available. Should not happen!
         if(!currentIndex){
             MilliSleep(1000);
             continue;
         }
 
         if(!lastIndex){
+            // First run or on error below we use the current block height to find the
+            // start point of the sync.
             lastIndex = currentIndex;
-            while( lastIndex->nHeight != currentBlock.nHeight){
+
+             // If the rewards database is older then the chaindata
+            // break it. Happens if the chain gets deleted
+            // and the rewardsdb not.
+            if( currentBlock.nHeight + 1 > lastIndex->nHeight ){
+                MilliSleep(1000);
+                continue;
+            }
+
+            // Search the index of the next missing bock in the
+            // rewards database.
+            while( lastIndex->nHeight != currentBlock.nHeight + 1){
                 lastIndex = lastIndex->pprev;
             }
+
+            // Use it as next reward.
             nextIndex = lastIndex;
+
         }else{
             LOCK(cs_main);
             nextIndex = chainActive.Next(lastIndex);
         }
 
+        // If there is no next index available yet or the next detected has less
+        // than 10 confirmations, wait a bit..
         if( !nextIndex || (currentIndex->nHeight - nextIndex->nHeight) < 10 ){
             lastIndex = NULL;
             MilliSleep(1000);
@@ -305,8 +342,10 @@ void ThreadSmartRewards()
 
         int64_t nTime3 = GetTimeMicros();
 
+        // Process the block!
         if(!prewards->Update(nextIndex, chainparams, currentBlock, !(currentBlock.nHeight % nCacheBlocks))) throw runtime_error(std::string(__func__) + ": rewards update failed");
 
+        // Next round we use the current of this round as last.
         lastIndex = nextIndex;
 
         int64_t nTime4 = GetTimeMicros();
