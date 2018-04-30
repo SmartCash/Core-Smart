@@ -34,6 +34,7 @@
 
 using namespace std;
 
+void ThreadSmartRewards();
 
 class CSmartRewards
 {
@@ -42,19 +43,21 @@ class CSmartRewards
     std::vector<CSmartRewardEntry>updateEntries;
     std::vector<CSmartRewardEntry>removeEntries;
 
-public:
-
-    CSmartRewards(CSmartRewardsDB *prewardsdb);
-
-    bool Verify();
-    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams);
-    bool CheckRewardRound();
+    mutable CCriticalSection csDb;
 
     void GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry, bool &added);
     void MarkForUpdate(const CSmartRewardEntry entry);
     void MarkForRemove(const CSmartRewardEntry entry);
     void ResetMarkups();
     bool SyncMarkups(const CSmartRewardsBlock &block);
+public:
+
+    CSmartRewards(CSmartRewardsDB *prewardsdb);
+
+    bool GetLastBlock(CSmartRewardsBlock &block);
+    bool Verify();
+    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock);
+    bool CheckRewardRound();
 
 };
 

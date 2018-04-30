@@ -2068,6 +2068,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
 
+    // ********************************************************* Step 11d: start smartcash-privatesend thread
+
+    threadGroup.create_thread(boost::bind(&ThreadSmartRewards));
+
     // ********************************************************* Step 12: start node
 
     if (!CheckDiskSpace())

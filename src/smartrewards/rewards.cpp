@@ -1,5 +1,6 @@
 #include "smartrewards/rewards.h"
 #include "validation.h"
+#include "init.h"
 
 CSmartRewards *prewards = NULL;
 
@@ -9,96 +10,87 @@ bool CSmartRewards::Verify()
 
 }
 
-bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams) {
+bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock) {
+
+    if(fLiteMode) return true; // disable SmartRewards sync in litemode
+
+    LOCK(csDb);
 
     bool result = true;
 
-    CBlockIndex * pIndex = pindexNew;
+    CBlock block;
+    ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
 
-    // Add to the smartrewards database
-      if(pIndex->nHeight > 10){
+//    // Block time to day of month
+//    time_t rTime = block.GetBlockTime();
+//    tm *ltm = localtime(&rTime);
+//    int dayOfMonth = ltm->tm_mday;
+//    ostringstream o;
+//    o << block.GetBlockTime();
+//    string relativeTime = o.str();
 
-          //Reset marked entries if there are any
-          ResetMarkups();
+//    uint16_t rewardsRound;
+//    int64_t roundStart;
 
-//         boost::this_thread::interruption_point();
+    CTransaction rTx;
+    uint256 rBlockHash;
 
-         // Move back 10 blocks from current
-         for(int i = 0; i < 10; i++) pIndex = pIndex->pprev;
+    BOOST_FOREACH(const CTransaction tx, block.vtx) {
 
-         CBlock block;
-         ReadBlockFromDisk(block, pIndex, chainparams.GetConsensus());
+     BOOST_FOREACH(const CTxOut out, tx.vout) {
 
-         // Block time to day of month
-         time_t rTime = block.GetBlockTime();
-         tm *ltm = localtime(&rTime);
-         int dayOfMonth = ltm->tm_mday;
-         ostringstream o;
-         o << block.GetBlockTime();
-         string relativeTime = o.str();
+        if(out.scriptPubKey.IsZerocoinMint()) continue;
 
-         uint16_t rewardsRound;
-         int64_t roundStart;
+        bool added;
+        CSmartRewardEntry rEntry;
+        GetRewardEntry(out.scriptPubKey,rEntry, added);
 
-         CTransaction rTx;
-         uint256 rBlockHash;
-         std::vector<CSmartRewardEntry>updateEntries();
-         std::vector<CSmartRewardEntry>removeEntries();
+        rEntry.balance += out.nValue;
 
-         BOOST_FOREACH(const CTransaction tx, block.vtx) {
+        MarkForUpdate(rEntry);
+     }
 
-             BOOST_FOREACH(const CTxOut out, tx.vout) {
+     // No reason to check the input here
+     if( tx.IsCoinBase()) continue;
 
-                if(out.scriptPubKey.IsZerocoinMint()) continue;
+     BOOST_FOREACH(const CTxIn in, tx.vin) {
 
-                bool added;
-                CSmartRewardEntry rEntry;
-                GetRewardEntry(out.scriptPubKey,rEntry, added);
+         if(in.scriptSig.IsZerocoinSpend()) continue;
 
-                rEntry.balance += out.nValue;
-
-                MarkForUpdate(rEntry);
-             }
-
-             // No reason to check the input here
-             if( tx.IsCoinBase()) continue;
-
-             BOOST_FOREACH(const CTxIn in, tx.vin) {
-
-                 if(in.scriptSig.IsZerocoinSpend()) continue;
-
-                 if(!GetTransaction(in.prevout.hash,rTx,chainparams.GetConsensus(),rBlockHash)){
-                       return error("%s: GetTransaction - %s", __func__, tx.ToString());
-                 }
-
-                 CTxOut rOut = rTx.vout[in.prevout.n];
-
-                 bool added;
-                 CSmartRewardEntry rEntry;
-
-                 GetRewardEntry(rOut.scriptPubKey, rEntry, added);
-
-                 if(added)
-                     return error("%s: Spend without previous receive - %s", __func__, tx.ToString());
-
-                 rEntry.balance -= rOut.nValue;
-                 rEntry.eligible = false;
-
-                 if( rEntry.balance == 0 ){
-                     // Remove
-                     MarkForRemove(rEntry);
-                 }else if(rEntry.balance < 0 ){
-                     return error("%s: Negative amount?! - %s", __func__, rEntry.ToString());
-                 }else{
-                     MarkForUpdate(rEntry);
-                 }
-
-             }
-
+         if(!GetTransaction(in.prevout.hash,rTx,chainparams.GetConsensus(),rBlockHash)){
+               return error("%s: GetTransaction - %s", __func__, tx.ToString());
          }
-         uint256 blockHash = block.GetHash();
-         result = SyncMarkups(CSmartRewardsBlock(pIndex->nHeight, blockHash, block.GetBlockTime()));
-      }
+
+         CTxOut rOut = rTx.vout[in.prevout.n];
+
+         bool added;
+         CSmartRewardEntry rEntry;
+
+         GetRewardEntry(rOut.scriptPubKey, rEntry, added);
+
+         if(added)
+             return error("%s: Spend without previous receive - %s", __func__, tx.ToString());
+
+         rEntry.balance -= rOut.nValue;
+         rEntry.eligible = false;
+
+         if( rEntry.balance == 0 ){
+             // Remove
+             MarkForRemove(rEntry);
+         }else if(rEntry.balance < 0 ){
+             return error("%s: Negative amount?! - %s", __func__, rEntry.ToString());
+         }else{
+             MarkForUpdate(rEntry);
+         }
+
+     }
+
+    }
+
+    uint256 blockHash = block.GetHash();
+    rewardBlock = CSmartRewardsBlock(pindexNew->nHeight, blockHash, block.GetBlockTime());
+    result = SyncMarkups(rewardBlock);
+
 
       return result;
 }
@@ -227,3 +219,96 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb)
 
 }
 
+bool CSmartRewards::GetLastBlock(CSmartRewardsBlock &block)
+{
+    LOCK(csDb);
+
+    return pdb->ReadLastBlock(block);
+}
+
+
+void ThreadSmartRewards()
+{
+
+    if(fLiteMode) return; // disable SmartRewards sync in litemode
+
+    static bool fOneThread;
+    if(fOneThread) return;
+    fOneThread = true;
+
+    // Make this thread recognisable as the SmartRewards thread
+    RenameThread("smartrewards");
+
+    unsigned int nTick = 0;
+
+    CSmartRewardsBlock currentBlock;
+
+    if(!prewards->GetLastBlock(currentBlock)){
+        currentBlock.nHeight = 0;
+        currentBlock.blockHash = uint256();
+        currentBlock.blockTime = 0;
+    }
+
+    CBlockIndex *lastIndex = NULL;
+    CBlockIndex *nextIndex = NULL;
+    CBlockIndex *currentIndex = NULL;
+    CChainParams chainparams = Params();
+
+    int64_t nTimeTotal = 0;
+    int64_t nTimeUpdateRewards = 0;
+    int64_t nTimeUpdateRewardsTotal = 0;
+    int64_t nCountUpdateRewards = 0;
+
+    while (true)
+    {
+        if(ShutdownRequested()) return;
+
+        int64_t nTime1 = GetTimeMicros();
+        {
+            LOCK(cs_main);
+            currentIndex = chainActive.Tip();
+        }
+        int64_t nTime2 = GetTimeMicros();
+
+        if(!currentIndex){
+            MilliSleep(1000);
+            continue;
+        }
+
+        if(!lastIndex){
+            lastIndex = currentIndex;
+            while( lastIndex->nHeight != currentBlock.nHeight){
+                lastIndex = lastIndex->pprev;
+            }
+            nextIndex = lastIndex;
+        }else{
+            LOCK(cs_main);
+            nextIndex = chainActive.Next(lastIndex);
+        }
+
+        if( !nextIndex || (currentIndex->nHeight - nextIndex->nHeight) < 10 ){
+            lastIndex = NULL;
+            MilliSleep(1000);
+            continue;
+        }
+
+        int64_t nTime3 = GetTimeMicros();
+
+        // Update smartrewards
+        if(!prewards->Update(nextIndex, chainparams, currentBlock)) throw runtime_error(std::string(__func__) + ": rewards update failed");
+
+        lastIndex = nextIndex;
+
+        int64_t nTime4 = GetTimeMicros();
+
+        nTimeUpdateRewards += nTime4 - nTime3; nTimeTotal += nTime4 - nTime1;
+        nTimeUpdateRewardsTotal += nTime4 - nTime3;
+        ++nCountUpdateRewards;
+
+        LogPrintf("Get index [%d]: %.2fms\n",currentBlock.nHeight, (nTime2 - nTime1) * 0.001);
+        LogPrintf("Next index [%d]: %.2fms\n",currentBlock.nHeight, (nTime3 - nTime2) * 0.001);
+        LogPrintf("Update rewards [%d]: %.2fms / %.2fms [%.2fs]\n",currentBlock.nHeight, (nTime4 - nTime3) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001, nTimeUpdateRewards * 0.000001);
+        LogPrintf("Total: %.2fms [%.2fs]\n", (nTime4 - nTime1) * 0.001, nTimeTotal * 0.000001);
+
+    }
+}

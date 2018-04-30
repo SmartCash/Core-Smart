@@ -3647,9 +3647,6 @@ static int64_t nTimeConnectTotal = 0;
 static int64_t nTimeFlush = 0;
 static int64_t nTimeChainState = 0;
 static int64_t nTimePostConnect = 0;
-static int64_t nTimeUpdateRewards = 0;
-static int64_t nTimeUpdateRewardsTotal = 0;
-static int64_t nCountUpdateRewards = 0;
 
 /**
  * Connect a new block to chainActive. pblock is either NULL or a pointer to a CBlock
@@ -3708,16 +3705,6 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5;
     LogPrint("bench", "  - Connect postprocess: %.2fms [%.2fs]\n", (nTime6 - nTime5) * 0.001, nTimePostConnect * 0.000001);
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimePostConnect * 0.000001);
-
-    // Update smartrewards
-    if(!prewards->Update(pindexNew, chainparams)) throw runtime_error(std::string(__func__) + ": rewards update failed");
-
-    int64_t nTime7 = GetTimeMicros(); nTimeUpdateRewards += nTime7 - nTime6; nTimeTotal += nTime7 - nTime1;
-    nTimeUpdateRewardsTotal += nTime7 - nTime6;
-    ++nCountUpdateRewards;
-    LogPrintf("Update rewards: %.2fms / %.2fms [%.2fs]\n", (nTime7 - nTime6) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001, nTimeUpdateRewards * 0.000001);
-    LogPrintf("Total: %.2fms [%.2fs]\n", (nTime7 - nTime1) * 0.001, nTimeTotal * 0.000001);
-
 
     return true;
 }
