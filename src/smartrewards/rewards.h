@@ -34,7 +34,17 @@
 
 using namespace std;
 
+static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
+
 void ThreadSmartRewards();
+
+struct CSmartRewardsUpdateResult
+{
+    int64_t disqualifiedEntries;
+    int64_t disqualifiedSmart;
+    CSmartRewardsBlock block;
+    CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0),block() {}
+};
 
 class CSmartRewards
 {
@@ -55,14 +65,28 @@ public:
     CSmartRewards(CSmartRewardsDB *prewardsdb);
 
     bool GetLastBlock(CSmartRewardsBlock &block);
+
+    bool GetRound(const int number, CSmartRewardsRound &round);
+    bool GetCurrentRound(CSmartRewardsRound &round);
+    bool GetRewardRounds(std::vector<CSmartRewardsRound> &vect);
+
     bool Verify();
-    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock, bool sync);
+
+    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync);
+    bool UpdateCurrentRound(const CSmartRewardsRound &round);
+    bool UpdateRound(const CSmartRewardsRound &round);
+
     void GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry, bool &added);
-    bool CheckRewardRound();
+    bool EvaluateCurrentRound(CSmartRewardsRound &next);
 
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
 extern CSmartRewards *prewards;
+
+CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end)
+{
+
+}
 
 #endif // REWARDS_H

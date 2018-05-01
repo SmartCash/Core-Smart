@@ -5,6 +5,8 @@
 #include "smartrewardslist.h"
 #include "ui_smartrewardslist.h"
 
+#include "smartrewards/rewards.h"
+
 #include "addresstablemodel.h"
 #include "bitcoinunits.h"
 #include "guiutil.h"
@@ -24,6 +26,8 @@
 #include <QSortFilterProxyModel>
 #include <QTableWidget>
 #include <QTime>
+
+typedef PAIRTYPE(QString,CSmartRewardEntry) rewardEntry_p;
 
 SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
@@ -85,65 +89,66 @@ SmartrewardsList::~SmartrewardsList()
        return;
     }
 
+    ui->stackedWidget->setCurrentIndex(1);
+
     int nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
  
     std::map<QString, std::vector<COutput> > mapCoins;
     model->listCoins(mapCoins);
- 
-    int nNewRow = 0;
 
-    //Smartrewards snapshot date
-    QDateTime lastSmartrewardsSnapshotDateTimeUtc = QDateTime::currentDateTimeUtc();
-    int currentDay = lastSmartrewardsSnapshotDateTimeUtc.toString("dd").toInt();
-    if(currentDay < SMARTREWARDS_DAY){
-       lastSmartrewardsSnapshotDateTimeUtc = lastSmartrewardsSnapshotDateTimeUtc.addMonths(-1);
-    }
-    int snapshotMonth = lastSmartrewardsSnapshotDateTimeUtc.toString("MM").toInt();
-    int snapshotYear = lastSmartrewardsSnapshotDateTimeUtc.toString("yyyy").toInt();
-    lastSmartrewardsSnapshotDateTimeUtc = QDateTime(QDate(snapshotYear, snapshotMonth, SMARTREWARDS_DAY), QTime(SMARTREWARDS_UTC_HOUR, 0), Qt::UTC);
+//    //Smartrewards snapshot date
+//    QDateTime lastSmartrewardsSnapshotDateTimeUtc = QDateTime::currentDateTimeUtc();
+//    int currentDay = lastSmartrewardsSnapshotDateTimeUtc.toString("dd").toInt();
+//    if(currentDay < SMARTREWARDS_DAY){
+//       lastSmartrewardsSnapshotDateTimeUtc = lastSmartrewardsSnapshotDateTimeUtc.addMonths(-1);
+//    }
+//    int snapshotMonth = lastSmartrewardsSnapshotDateTimeUtc.toString("MM").toInt();
+//    int snapshotYear = lastSmartrewardsSnapshotDateTimeUtc.toString("yyyy").toInt();
+//    lastSmartrewardsSnapshotDateTimeUtc = QDateTime(QDate(snapshotYear, snapshotMonth, SMARTREWARDS_DAY), QTime(SMARTREWARDS_UTC_HOUR, 0), Qt::UTC);
 
+    std::map<const CScript, rewardEntry_p> rewardList;
 
     BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
+
         QString sWalletAddress = coins.first;
-        QString sWalletLabel = model->getAddressTableModel()->labelForAddress(sWalletAddress);
-        if (sWalletLabel.isEmpty())
-            sWalletLabel = tr("(no label)");
  
-        ui->tableWidget->insertRow(nNewRow);
- 
-        CAmount totalAmountSum = 0;
-        CAmount eligibleSmartrewardsSum = 0;
-        CAmount txAmount = 0;
+        bool added;
+
         BOOST_FOREACH(const COutput& out, coins.second) {
 
-            totalAmountSum += out.tx->vout[out.i].nValue;
-            txAmount = out.tx->vout[out.i].nValue;
+            CScript pub = out.tx->vout[out.i].scriptPubKey;
 
-            //tx date
-            int64_t nTimeTx = out.tx->GetTxTime();
-            QDateTime txDateTime = QDateTime::fromTime_t((qint32)nTimeTx);
-            QDateTime txDateTimeUtc = txDateTime.toUTC();
-
-            //check if the tx is after the snapshot date
-            if(txDateTimeUtc < lastSmartrewardsSnapshotDateTimeUtc){
-                eligibleSmartrewardsSum += txAmount;
+            if( rewardList.find(pub) == rewardList.end() ){
+                CSmartRewardEntry entry;
+                prewards->GetRewardEntry(pub, entry, added);
+                rewardEntry_p pairEntry = make_pair(sWalletAddress, entry);
+                rewardList.insert(make_pair(pub,pairEntry));
             }
+        }
+    }
 
-            ui->tableWidget->setItem(nNewRow, 0, new QTableWidgetItem(sWalletLabel));
-            ui->tableWidget->setItem(nNewRow, 1, new QTableWidgetItem(sWalletAddress));
-            ui->tableWidget->setItem(nNewRow, 2, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, totalAmountSum)));
+    int nRow = 0;
 
-            //check min eligible amount to rewards
-            if(totalAmountSum >= SMARTREWARDS_MINIMUM_AMOUNT * COIN){
-                 ui->tableWidget->setItem(nNewRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, eligibleSmartrewardsSum)));
+    BOOST_FOREACH(const PAIRTYPE(const CScript, rewardEntry_p)& reward, rewardList) {
+
+            ui->tableWidget->insertRow(nRow);
+            QString sWalletLabel = model->getAddressTableModel()->labelForAddress(reward.second.first);
+            if (sWalletLabel.isEmpty())
+                sWalletLabel = tr("(no label)");
+
+            ui->tableWidget->setItem(nRow, 0, new QTableWidgetItem(sWalletLabel));
+            ui->tableWidget->setItem(nRow, 1, new QTableWidgetItem(reward.second.first));
+            ui->tableWidget->setItem(nRow, 2, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.second.balance)));
+
+            if( reward.second.second.eligible ){
+                 ui->tableWidget->setItem(nRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.second.balanceOnStart)));
             }else{
-                 ui->tableWidget->setItem(nNewRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, 0)));
+                ui->tableWidget->setItem(nRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, 0)));
             }
+
+            nRow++;
 
         }
-        nNewRow++;
- 
-    }
 
 }
  

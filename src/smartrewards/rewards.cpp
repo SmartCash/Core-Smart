@@ -8,140 +8,124 @@ CSmartRewards *prewards = NULL;
 bool CSmartRewards::Verify()
 {
     LOCK(csDb);
-
-    bool ret = true;
-
-    CSmartRewardsBlock last;
-    CSmartRewardsBlock verify;
-
-    if(!pdb->ReadLastBlock(last)){
-        LogPrintf("CSmartRewards::Verify() No block here yet\n");
-        return true;
-    }
-
-    LogPrintf("CSmartRewards::Verify() Verify blocks 0 - %d\n", last.nHeight);
-
-    int nHeight = 0;
-    while(true){
-
-        if(!pdb->ReadBlock(nHeight++, verify)){
-            LogPrintf("CSmartRewards::Verify() block %d missing\n",nHeight);
-            return false;
-        }
-
-        LogPrintf("CSmartRewards::Verify() %s\n", verify.ToString());
-
-        if(verify == last){
-            return true;
-        }
-
-    }
-
-    return true;
+    return pdb->Verify();
 }
 
-bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock, bool sync) {
+bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync) {
 
     if(fLiteMode) return true; // disable SmartRewards sync in litemode
 
     LOCK(csDb);
 
-    bool result = true;
+    bool ret = true;
 
     CBlock block;
     ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
-
-//    // Block time to day of month
-//    time_t rTime = block.GetBlockTime();
-//    tm *ltm = localtime(&rTime);
-//    int dayOfMonth = ltm->tm_mday;
-//    ostringstream o;
-//    o << block.GetBlockTime();
-//    string relativeTime = o.str();
-
-//    uint16_t rewardsRound;
-//    int64_t roundStart;
 
     CTransaction rTx;
     uint256 rBlockHash;
 
     BOOST_FOREACH(const CTransaction tx, block.vtx) {
 
-     BOOST_FOREACH(const CTxOut out, tx.vout) {
+         BOOST_FOREACH(const CTxOut out, tx.vout) {
 
-        if(out.scriptPubKey.IsZerocoinMint()) continue;
+            if(out.scriptPubKey.IsZerocoinMint()) continue;
 
-        bool added;
-        CSmartRewardEntry rEntry;
-        GetRewardEntry(out.scriptPubKey,rEntry, added);
+            bool added;
+            CSmartRewardEntry rEntry;
+            GetRewardEntry(out.scriptPubKey,rEntry, added);
 
-        rEntry.balance += out.nValue;
+            rEntry.balance += out.nValue;
 
-        MarkForUpdate(rEntry);
-     }
-
-     // No reason to check the input here
-     if( tx.IsCoinBase()) continue;
-
-     BOOST_FOREACH(const CTxIn in, tx.vin) {
-
-         if(in.scriptSig.IsZerocoinSpend()) continue;
-
-         if(!GetTransaction(in.prevout.hash,rTx,chainparams.GetConsensus(),rBlockHash)){
-               return error("%s: GetTransaction - %s", __func__, tx.ToString());
+            MarkForUpdate(rEntry);
          }
 
-         CTxOut rOut = rTx.vout[in.prevout.n];
+         // No reason to check the input here
+         if( tx.IsCoinBase()) continue;
 
-         bool added;
-         CSmartRewardEntry rEntry;
+         BOOST_FOREACH(const CTxIn in, tx.vin) {
 
-         GetRewardEntry(rOut.scriptPubKey, rEntry, added);
+             if(in.scriptSig.IsZerocoinSpend()) continue;
 
-         if(added)
-             return error("%s: Spend without previous receive - %s", __func__, tx.ToString());
+             if(!GetTransaction(in.prevout.hash,rTx,chainparams.GetConsensus(),rBlockHash)){
+                   return error("%s: GetTransaction - %s", __func__, tx.ToString());
+             }
 
-         rEntry.balance -= rOut.nValue;
-         rEntry.eligible = false;
+             CTxOut rOut = rTx.vout[in.prevout.n];
 
-         if( rEntry.balance == 0 ){
-             // Remove
-             MarkForRemove(rEntry);
-         }else if(rEntry.balance < 0 ){
-             return error("%s: Negative amount?! - %s", __func__, rEntry.ToString());
-         }else{
-             MarkForUpdate(rEntry);
+             bool added;
+             CSmartRewardEntry rEntry;
+
+             GetRewardEntry(rOut.scriptPubKey, rEntry, added);
+
+             if(added)
+                 return error("%s: Spend without previous receive - %s", __func__, tx.ToString());
+
+             rEntry.balance -= rOut.nValue;
+
+             if(rEntry.eligible ){
+                 rEntry.eligible = false;
+                 result.disqualifiedEntries++;
+                 result.disqualifiedSmart -= rEntry.balanceOnStart;
+             }
+
+             if( rEntry.balance == 0 ){
+                 // Remove
+                 MarkForRemove(rEntry);
+             }else if(rEntry.balance < 0 ){
+                 return error("%s: Negative amount?! - %s", __func__, rEntry.ToString());
+             }else{
+                 MarkForUpdate(rEntry);
+             }
+
          }
-
-     }
 
     }
 
     uint256 blockHash = block.GetHash();
-    rewardBlock = CSmartRewardsBlock(pindexNew->nHeight, blockHash, block.GetBlockTime());
+    result.block = CSmartRewardsBlock(pindexNew->nHeight, blockHash, block.GetBlockTime());
 
-    result = SyncMarkups(rewardBlock, sync);
+    ret = SyncMarkups(result.block, sync);
 
-    return result;
+    return ret;
 }
 
-bool CSmartRewards::CheckRewardRound()
+bool CSmartRewards::EvaluateCurrentRound(CSmartRewardsRound &next)
 {
+    LOCK(csDb);
 
-    //         if(!pdb->ReadRewardsRound(&rewardsRound)){
-    //             pdb->WriteRewardsRound(1);
-    //             rewardsRound = 1;
-    //         }
+    CSmartRewardsRound current;
+    bool firstRound = !pdb->ReadCurrentRound(current);
 
-    //         if(!pdb->ReadRoundStart(rewardsRound, &roundStart)){
-    //             pdb->WriteRoundStart(rewardsRound, block.GetBlockTime());
-    //             roundStart = block.GetBlockTime();
-    //         }
+    std::vector<CSmartRewardEntry> entries;
+    std::vector<CSmartRewardPayout> payouts;
 
-    //         // If its the 25th of the month save next rewards round
-    //         if(dayOfMonth == 25 && stod(relativeTime) > stod(roundStart)+(86400)){
-    //         }
+    if( !pdb->ReadRewardEntries(entries) ) throw runtime_error("Could not read all reward entries!");
 
+    BOOST_FOREACH(CSmartRewardEntry &e, entries) {
+
+        if( e.eligible && !firstRound ) payouts.push_back(CSmartRewardPayout(e, current));
+
+        e.balanceLastStart = e.balanceOnStart;
+        e.balanceOnStart = e.balance;
+
+        if( e.balanceOnStart >= SMART_REWARDS_MIN_BALANCE ){
+
+            e.eligible = true;
+
+            ++next.eligibleEntries;
+            next.eligibleSmart += e.balanceOnStart;
+        }else{
+            e.eligible = false;
+        }
+
+    }
+
+    if( !pdb->WriteRewardEntries(entries) ) throw runtime_error("Could not write all reward entries!");
+
+    if( !pdb->WriteRewardPayouts(current.number, payouts) ) throw runtime_error("Could not write all reward entries!");
+
+    return true;
 }
 
 void CSmartRewards::MarkForUpdate(CSmartRewardEntry entry)
@@ -277,6 +261,34 @@ bool CSmartRewards::GetLastBlock(CSmartRewardsBlock &block)
     return pdb->ReadLastBlock(block);
 }
 
+bool CSmartRewards::GetRound(const int number, CSmartRewardsRound &round)
+{
+
+}
+
+bool CSmartRewards::GetCurrentRound(CSmartRewardsRound &round)
+{
+    LOCK(csDb);
+    return pdb->ReadCurrentRound(round);
+}
+
+bool CSmartRewards::GetRewardRounds(std::vector<CSmartRewardsRound> &vect)
+{
+    LOCK(csDb);
+    return pdb->ReadRewardRounds(vect);
+}
+
+bool CSmartRewards::UpdateRound(const CSmartRewardsRound &round)
+{
+    LOCK(csDb);
+    return pdb->WriteRound(round);
+}
+
+bool CSmartRewards::UpdateCurrentRound(const CSmartRewardsRound &round)
+{
+    LOCK(csDb);
+    return pdb->WriteCurrentRound(round);
+}
 
 void ThreadSmartRewards()
 {
@@ -290,7 +302,19 @@ void ThreadSmartRewards()
     // Make this thread recognisable as the SmartRewards thread
     RenameThread("smartrewards");
 
-    unsigned int nTick = 0;
+    std::vector<CSmartRewardsRound> rounds;
+    CSmartRewardsRound currentRound;
+    prewards->GetRewardRounds(rounds);
+
+    if( prewards->GetCurrentRound(currentRound)){
+        LogPrintf("Current Round: %s\n",currentRound.ToString());
+    }
+
+    LogPrintf("Finished rounds:");
+
+    BOOST_FOREACH(CSmartRewardsRound r, rounds) {
+        LogPrintf("%s\n",r.ToString());
+    }
 
     CSmartRewardsBlock currentBlock;
 
@@ -379,23 +403,120 @@ void ThreadSmartRewards()
 
         int64_t nTime3 = GetTimeMicros();
 
+        CSmartRewardsUpdateResult result;
         // Process the block!
         bool sync= currentBlock.nHeight > 0 && !(currentBlock.nHeight % nCacheBlocks);
-        if(!prewards->Update(nextIndex, chainparams, currentBlock, sync)) throw runtime_error(std::string(__func__) + ": rewards update failed");
+        if(!prewards->Update(nextIndex, chainparams, result, sync)) throw runtime_error(std::string(__func__) + ": rewards update failed");
 
+        // Update the current block to the processed one
+        currentBlock = result.block;
         // Next round we use the current of this round as last.
         lastIndex = nextIndex;
 
         int64_t nTime4 = GetTimeMicros();
 
-        nTimeUpdateRewards += nTime4 - nTime3; nTimeTotal += nTime4 - nTime1;
+        nTimeUpdateRewards += nTime4 - nTime3;
         nTimeUpdateRewardsTotal += nTime4 - nTime3;
         ++nCountUpdateRewards;
+
+        CSmartRewardsRound round;
+
+        if( !prewards->GetCurrentRound(round) ){
+
+            if( lastIndex->GetBlockTime() > 1500966000){
+                // Create the very first smartrewards round.
+                CSmartRewardsRound next(1,lastIndex->nHeight + 1);
+
+                // Evaluate the start of smartrewards and update the next rounds parameter.
+                prewards->EvaluateCurrentRound(next);
+
+                next.endBlockTime = 1503644400;
+
+                prewards->UpdateCurrentRound(next);
+            }
+
+            continue;
+
+        }else{
+
+            bool updateRound = false;
+
+            // If we created the new round in the last loop set the parameter for the next round
+            if( !round.startBlockTime ){
+
+                round.startBlockTime = lastIndex->GetBlockTime();
+
+                struct tm * ptm;
+                time_t start = (time_t)round.startBlockTime;
+                // Calculate the ending timestamp for the next round
+                ptm = gmtime( &start );
+
+                if( ++ptm->tm_mon > 11 ){
+                    ptm->tm_mon = 0;
+                    ptm->tm_year += 1;
+                }
+
+                ptm->tm_mday = 25;
+                ptm->tm_hour = 7;
+                ptm->tm_min = 0;
+                ptm->tm_sec = 0;
+
+                setenv("TZ", "UTC", 1);
+
+                round.endBlockTime = mktime(ptm);
+                // Estimate the block, gets updated on the end of the round to the real one.
+                round.endBlockHeight = (round.endBlockTime - round.startBlockTime) / 55;
+
+                updateRound = true;
+            }
+
+            // If there were disqualification during the last block processing
+            // update the current round stats.
+            if( result.disqualifiedEntries || result.disqualifiedSmart ){
+                round.eligibleEntries -= result.disqualifiedEntries;
+                round.eligibleSmart -= result.disqualifiedSmart;
+                updateRound = true;
+            }
+
+            if( updateRound ) prewards->UpdateCurrentRound(round);
+
+        }
+
+        // If just hit the next round threshold
+        if(lastIndex->GetBlockTime() > round.endBlockTime){
+
+            // Create the next round.
+            CSmartRewardsRound next(round.number + 1,lastIndex->nHeight + 1);
+            // Evaluate the round and update the next rounds parameter.
+            prewards->EvaluateCurrentRound(next);
+            // Write the round to the history
+            round.endBlockHeight = lastIndex->nHeight;
+            round.endBlockTime = lastIndex->GetBlockTime();
+            prewards->UpdateRound(round);
+            // Write it to the db.
+            prewards->UpdateCurrentRound(next);
+        }
+
+        int64_t nTime5 = GetTimeMicros();
+
+        // Check if the reward list is synced
+        if(1){
+            //If yes we notify the UI on each new block.
+
+        }else{
+            // If notify the UI every 100 blocks to let it update the
+            // loading screen.
+
+        }
+
+        int64_t nTime6 = GetTimeMicros(); nTimeTotal += nTime6 - nTime1;
 
         LogPrintf("Get index [%d]: %.2fms\n",currentBlock.nHeight, (nTime2 - nTime1) * 0.001);
         LogPrintf("Next index [%d]: %.2fms\n",currentBlock.nHeight, (nTime3 - nTime2) * 0.001);
         LogPrintf("Update rewards [%d]: %.2fms / %.2fms [%.2fs]\n",currentBlock.nHeight, (nTime4 - nTime3) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001, nTimeUpdateRewards * 0.000001);
-        LogPrintf("Total: %.2fms [%.2fs]\n", (nTime4 - nTime1) * 0.001, nTimeTotal * 0.000001);
+        LogPrintf("Evaluate round [%d]: %.2fms\n",currentBlock.nHeight, (nTime5 - nTime4) * 0.001);
+        LogPrintf("Notify UI [%d]: %.2fms\n",currentBlock.nHeight, (nTime6 - nTime5) * 0.001);
+        LogPrintf("Total: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
 
     }
 }
