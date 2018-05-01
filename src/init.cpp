@@ -1622,6 +1622,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 CSmartRewardsDB * prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fReindexRewards);
                 prewards = new CSmartRewards(prewardsdb);
 
+                if( !(fLoaded = prewards->Verify())) break;
+
                 if (fReindexRewards) prewardsdb->WriteReindexing(true);
 
                 if (fRequestShutdown) break;

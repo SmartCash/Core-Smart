@@ -13,7 +13,7 @@
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
 //! -rewardsdbcache default (MiB)
-static const int64_t nRewardsDefaultDbCache = 50;
+static const int64_t nRewardsDefaultDbCache = 5;
 //! max. -rewardsdbcache (MiB)
 static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 
@@ -35,6 +35,17 @@ public:
         READWRITE(blockHash);
         READWRITE(blockTime);
     }
+
+    friend bool operator==(const CSmartRewardsBlock& a, const CSmartRewardsBlock& b)
+    {
+        return (a.nHeight == b.nHeight);
+    }
+
+    friend bool operator!=(const CSmartRewardsBlock& a, const CSmartRewardsBlock& b)
+    {
+        return !(a == b);
+    }
+
     std::string ToString() const;
 };
 
@@ -62,6 +73,17 @@ public:
 
     CSmartRewardEntry() {}
 
+    friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
+    {
+        return (a.pubKey == b.pubKey);
+    }
+
+    friend bool operator!=(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
+    {
+        return !(a == b);
+    }
+
+    std::string GetAddress() const;
     void setNull();
     std::string ToString() const;
 };
@@ -91,6 +113,7 @@ public:
     bool WriteReindexing(bool fReindex);
     bool ReadReindexing(bool &fReindex);
 
+    bool ReadBlock(const int nHeight, CSmartRewardsBlock &block);
     bool ReadLastBlock(CSmartRewardsBlock &block);
 
     bool ReadRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry);

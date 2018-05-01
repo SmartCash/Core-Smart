@@ -48,6 +48,11 @@ bool CSmartRewardsDB::ReadReindexing(bool &fReindexing) {
     return true;
 }
 
+bool CSmartRewardsDB::ReadBlock(const int nHeight, CSmartRewardsBlock &block)
+{
+    return Read(make_pair(DB_BLOCK_FLAG,nHeight), block);
+}
+
 bool CSmartRewardsDB::ReadLastBlock(CSmartRewardsBlock &block)
 {
     return Read(DB_BLOCK_LAST, block);
@@ -148,6 +153,11 @@ bool CSmartRewardsDB::Sync(const std::vector<CSmartRewardsBlock> &blocks, const 
 
 //    return true;
 //}
+
+string CSmartRewardEntry::GetAddress() const
+{
+
+}
 
 void CSmartRewardEntry::setNull()
 {

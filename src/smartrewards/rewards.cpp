@@ -7,7 +7,37 @@ CSmartRewards *prewards = NULL;
 
 bool CSmartRewards::Verify()
 {
+    LOCK(csDb);
 
+    bool ret = true;
+
+    CSmartRewardsBlock last;
+    CSmartRewardsBlock verify;
+
+    if(!pdb->ReadLastBlock(last)){
+        LogPrintf("CSmartRewards::Verify() No block here yet\n");
+        return true;
+    }
+
+    LogPrintf("CSmartRewards::Verify() Verify blocks 0 - %d\n", last.nHeight);
+
+    int nHeight = 0;
+    while(true){
+
+        if(!pdb->ReadBlock(nHeight++, verify)){
+            LogPrintf("CSmartRewards::Verify() block %d missing\n",nHeight);
+            return false;
+        }
+
+        LogPrintf("CSmartRewards::Verify() %s\n", verify.ToString());
+
+        if(verify == last){
+            return true;
+        }
+
+    }
+
+    return true;
 }
 
 bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsBlock &rewardBlock, bool sync) {
@@ -119,7 +149,7 @@ void CSmartRewards::MarkForUpdate(CSmartRewardEntry entry)
 
     for (auto i = removeEntries.begin(); i != removeEntries.end(); ) {
 
-      if (i->pubKey == entry.pubKey) {
+      if (*i == entry) {
         i = removeEntries.erase(i);
         break;
       } else {
@@ -130,7 +160,7 @@ void CSmartRewards::MarkForUpdate(CSmartRewardEntry entry)
 
     for (auto i = updateEntries.begin(); i != updateEntries.end(); ) {
 
-      if (i->pubKey == entry.pubKey) {
+      if (*i == entry) {
         i = updateEntries.erase(i);
         break;
       } else {
@@ -144,9 +174,11 @@ void CSmartRewards::MarkForUpdate(CSmartRewardEntry entry)
 
 void CSmartRewards::MarkForRemove(CSmartRewardEntry entry)
 {
+    // If the entry is already marked for to become removed
+    // return remove it from the list.
     for (auto i = removeEntries.begin(); i != removeEntries.end(); ) {
 
-      if (i->pubKey == entry.pubKey) {
+      if (*i == entry) {
         i = removeEntries.erase(i);
         break;
       } else {
@@ -154,10 +186,11 @@ void CSmartRewards::MarkForRemove(CSmartRewardEntry entry)
       }
 
     }
-
+    // If the entry is already marked for to become updated
+    // return remove it from the list.
     for (auto i = updateEntries.begin(); i != updateEntries.end(); ) {
 
-      if (i->pubKey == entry.pubKey) {
+      if (*i == entry) {
         i = updateEntries.erase(i);
         break;
       } else {
@@ -166,6 +199,7 @@ void CSmartRewards::MarkForRemove(CSmartRewardEntry entry)
 
     }
 
+    // And add the new one.
     removeEntries.push_back(entry);
 }
 
@@ -220,11 +254,12 @@ bool CSmartRewards::SyncMarkups(const CSmartRewardsBlock &block, bool sync)
 
     bool ret = true;
 
+    blockEntries.push_back(block);
+
     if(sync){
+        // Write to the database.
         ret = pdb->Sync(blockEntries,updateEntries,removeEntries);
         ResetMarkups();
-    }else{
-        blockEntries.push_back(block);
     }
 
     return ret;
@@ -238,7 +273,7 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb)
 bool CSmartRewards::GetLastBlock(CSmartRewardsBlock &block)
 {
     LOCK(csDb);
-
+    // Read the last block stored in the rewards database.
     return pdb->ReadLastBlock(block);
 }
 
@@ -301,6 +336,7 @@ void ThreadSmartRewards()
 
         // If there is no block available. Should not happen!
         if(!currentIndex){
+            lastIndex = NULL;
             MilliSleep(1000);
             continue;
         }
@@ -314,6 +350,7 @@ void ThreadSmartRewards()
             // break it. Happens if the chain gets deleted
             // and the rewardsdb not.
             if( currentBlock.nHeight + 1 > lastIndex->nHeight ){
+                lastIndex = NULL;
                 MilliSleep(1000);
                 continue;
             }
@@ -343,7 +380,8 @@ void ThreadSmartRewards()
         int64_t nTime3 = GetTimeMicros();
 
         // Process the block!
-        if(!prewards->Update(nextIndex, chainparams, currentBlock, !(currentBlock.nHeight % nCacheBlocks))) throw runtime_error(std::string(__func__) + ": rewards update failed");
+        bool sync= currentBlock.nHeight > 0 && !(currentBlock.nHeight % nCacheBlocks);
+        if(!prewards->Update(nextIndex, chainparams, currentBlock, sync)) throw runtime_error(std::string(__func__) + ": rewards update failed");
 
         // Next round we use the current of this round as last.
         lastIndex = nextIndex;
