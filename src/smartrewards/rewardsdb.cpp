@@ -19,11 +19,11 @@ static const char DB_ROUND = 'r';
 static const char DB_ROUND_PAID = 'p';
 
 static const char DB_REWARD_ENTRY = 'E';
-static const char DB_BLOCK_FLAG = 'B';
+static const char DB_BLOCK = 'B';
 static const char DB_BLOCK_LAST = 'b';
 
-static const char DB_FLAG = 'F';
-static const char DB_REINDEX_FLAG = 'f';
+static const char DB_VERSION = 'V';
+static const char DB_REINDEX = 'f';
 
 
 CSmartRewardsDB::CSmartRewardsDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "rewards", nCacheSize, fMemory, fWipe) {
@@ -51,12 +51,12 @@ bool CSmartRewardsDB::Verify()
 
     std::vector<CSmartRewardsBlock> testBlocks;
 
-    pcursor->Seek(make_pair(DB_BLOCK_FLAG,0));
+    pcursor->Seek(make_pair(DB_BLOCK,0));
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
         std::pair<char,int> key;
-        if (pcursor->GetKey(key) && key.first == DB_BLOCK_FLAG) {
+        if (pcursor->GetKey(key) && key.first == DB_BLOCK) {
             CSmartRewardsBlock nValue;
             if (pcursor->GetValue(nValue)) {
                 if( nValue.nHeight != key.second ) return error("Block value %d contains wrong height: %s",key.second, nValue.ToString());
@@ -66,7 +66,7 @@ bool CSmartRewardsDB::Verify()
                 return error("failed to get block entry %d", key.second);
             }
         } else {
-            if( testBlocks.size() < last.nHeight ) return error("Odd block count %d <> %d", nHeight, last.nHeight);
+            if( testBlocks.size() < size_t(last.nHeight) ) return error("Odd block count %d <> %d", nHeight, last.nHeight);
             break;
         }
     }
@@ -82,19 +82,19 @@ bool CSmartRewardsDB::Verify()
 
 bool CSmartRewardsDB::WriteReindexing(bool fReindexing) {
     if (fReindexing)
-        return Write(DB_REINDEX_FLAG, '1');
+        return Write(DB_REINDEX, '1');
     else
-        return Erase(DB_REINDEX_FLAG);
+        return Erase(DB_REINDEX);
 }
 
 bool CSmartRewardsDB::ReadReindexing(bool &fReindexing) {
-    fReindexing = Exists(DB_REINDEX_FLAG);
+    fReindexing = Exists(DB_REINDEX);
     return true;
 }
 
 bool CSmartRewardsDB::ReadBlock(const int nHeight, CSmartRewardsBlock &block)
 {
-    return Read(make_pair(DB_BLOCK_FLAG,nHeight), block);
+    return Read(make_pair(DB_BLOCK,nHeight), block);
 }
 
 bool CSmartRewardsDB::ReadLastBlock(CSmartRewardsBlock &block)
@@ -174,7 +174,7 @@ bool CSmartRewardsDB::Sync(const std::vector<CSmartRewardsBlock> &blocks, const 
     CSmartRewardsBlock last;
 
     BOOST_FOREACH(CSmartRewardsBlock b, blocks) {
-        batch.Write(make_pair(DB_BLOCK_FLAG,b.nHeight), b);
+        batch.Write(make_pair(DB_BLOCK,b.nHeight), b);
 
         if(b.nHeight > last.nHeight) last = b;
     }

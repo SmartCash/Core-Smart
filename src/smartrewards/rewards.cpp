@@ -1,9 +1,9 @@
 #include "smartrewards/rewards.h"
 #include "validation.h"
 #include "init.h"
+#include <boost/range/irange.hpp>
 
 CSmartRewards *prewards = NULL;
-
 
 bool CSmartRewards::Verify()
 {
@@ -128,6 +128,12 @@ bool CSmartRewards::EvaluateCurrentRound(CSmartRewardsRound &next)
     return true;
 }
 
+bool CSmartRewards::GetRewardPayouts(const int64_t round, std::vector<CSmartRewardPayout> &vect)
+{
+    LOCK(csDb);
+    return pdb->ReadRewardPayouts(round, vect);
+}
+
 void CSmartRewards::MarkForUpdate(CSmartRewardEntry entry)
 {
 
@@ -187,8 +193,17 @@ void CSmartRewards::MarkForRemove(CSmartRewardEntry entry)
     removeEntries.push_back(entry);
 }
 
+bool CSmartRewards::GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry)
+{
+    bool added;
+    GetRewardEntry(pubKey, entry, added);
+    return !added;
+}
+
 void CSmartRewards::GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry, bool &added)
 {
+    LOCK(csDb);
+
     added = false;
 
     // If the entry is already marked for to become updated
@@ -314,6 +329,15 @@ void ThreadSmartRewards()
 
     BOOST_FOREACH(CSmartRewardsRound r, rounds) {
         LogPrintf("%s\n",r.ToString());
+
+        if( r.percent == 0 ){
+
+            int64_t start = r.number != 1 ? r.startBlockHeight : 1;
+
+            CAmount reward = CalculateRewardsForBlockRange(start, r.endBlockHeight);
+            r.percent = double(reward) / r.eligibleSmart;
+        }
+
     }
 
     CSmartRewardsBlock currentBlock;
@@ -519,4 +543,14 @@ void ThreadSmartRewards()
         LogPrintf("Total: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
 
     }
+}
+
+CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end)
+{
+    double rewards = 0;
+    int64_t time = GetTime();
+
+    while( start <= end) rewards += GetBlockValue(start++,0,time) * 0.15;
+
+    return (CAmount)rewards;
 }

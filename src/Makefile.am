@@ -217,6 +217,7 @@ libbitcoin_server_a_SOURCES = \
   rpc/rawtransaction.cpp \
   rpc/server.cpp \
   rpc/rpcsmartnode.cpp \
+  rpc/rpcsmartrewards.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
   sendalert.cpp \

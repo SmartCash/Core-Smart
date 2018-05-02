@@ -11,6 +11,9 @@
 #include "coins.h"
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
+static constexpr int REWARDS_DB_VERSIONN = 1;
+
+//! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
 //! -rewardsdbcache default (MiB)
 static const int64_t nRewardsDefaultDbCache = 5;
@@ -64,6 +67,7 @@ struct CSmartRewardsRound
 
     int64_t eligibleEntries;
     int64_t eligibleSmart;
+//    CAmount rewards;
     double percent;
 
     CSmartRewardsRound() {
@@ -74,8 +78,10 @@ struct CSmartRewardsRound
         endBlockTime = 0;
         eligibleEntries = 0;
         eligibleSmart = 0;
+//        rewards = 0;
         percent = 0;
     }
+
     CSmartRewardsRound(const int64_t number, const int64_t startBlock) : CSmartRewardsRound() {
         this->number = number;
         startBlockHeight = startBlock;
@@ -159,6 +165,7 @@ public:
     CAmount reward;
 
     CSmartRewardPayout(){}
+
     CSmartRewardPayout(const CSmartRewardEntry &entry, const CSmartRewardsRound &round) {
         pubKey = entry.pubKey;
         balance = entry.balanceOnStart;

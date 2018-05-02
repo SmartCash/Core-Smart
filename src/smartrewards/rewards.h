@@ -76,17 +76,16 @@ public:
     bool UpdateCurrentRound(const CSmartRewardsRound &round);
     bool UpdateRound(const CSmartRewardsRound &round);
 
+    bool GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry);
     void GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry, bool &added);
     bool EvaluateCurrentRound(CSmartRewardsRound &next);
 
+    bool GetRewardPayouts(const int64_t round, std::vector<CSmartRewardPayout> &vect);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
 extern CSmartRewards *prewards;
 
-CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end)
-{
-
-}
+CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
 #endif // REWARDS_H

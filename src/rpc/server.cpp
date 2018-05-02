@@ -367,6 +367,7 @@ static const CRPCCommand vRPCCommands[] =
     { "smartcash",               "spork",                  &spork,                  true  },
     //{ "smartcash",               "getpoolinfo",            &getpoolinfo,            true  },
     { "smartcash",               "sentinelping",           &sentinelping,           true  },
+    { "smartcash",               "smartrewards",           &smartrewards,             true  },
 #ifdef ENABLE_WALLET
     //{ "smartcash",               "privatesend",            &privatesend,            false },
 
