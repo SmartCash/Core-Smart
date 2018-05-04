@@ -35,14 +35,23 @@
 using namespace std;
 
 static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
+// Cache n blocks before the sync (leveldb batch write).
+const int64_t nCacheBlocks = 50;
+
+// Timestamps of the first round's start and end
+const int64_t firstRoundStartTime = 1500966000;
+const int64_t firstRoundEndTime = 1503644400;
+const int64_t firstRoundStartBlock = 1;
+const int64_t firstRoundEndBlock = 60001;
 
 void ThreadSmartRewards();
+CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
 struct CSmartRewardsUpdateResult
 {
     int64_t disqualifiedEntries;
     int64_t disqualifiedSmart;
-    CSmartRewardsBlock block;
+    CSmartRewardBlock block;
     CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0),block() {}
 };
 
@@ -50,42 +59,44 @@ class CSmartRewards
 {
     CSmartRewardsDB * pdb;
 
-    std::vector<CSmartRewardsBlock>blockEntries;
+    std::vector<CSmartRewardBlock>blockEntries;
     std::vector<CSmartRewardEntry>updateEntries;
     std::vector<CSmartRewardEntry>removeEntries;
 
     mutable CCriticalSection csDb;
 
-    void MarkForUpdate(const CSmartRewardEntry entry);
-    void MarkForRemove(const CSmartRewardEntry entry);
-    void ResetMarkups();
-    bool SyncMarkups(const CSmartRewardsBlock &block, bool sync);
+    void PrepareForUpdate(const CSmartRewardEntry &entry);
+    void PrepareForRemove(const CSmartRewardEntry &entry);
+    void ResetPrepared();
+    bool AddBlock(const CSmartRewardBlock &block, bool sync);
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb);
 
-    bool GetLastBlock(CSmartRewardsBlock &block);
+    bool GetLastBlock(CSmartRewardBlock &block);
 
-    bool GetRound(const int number, CSmartRewardsRound &round);
-    bool GetCurrentRound(CSmartRewardsRound &round);
-    bool GetRewardRounds(std::vector<CSmartRewardsRound> &vect);
+    bool GetRound(const int number, CSmartRewardRound &round);
+    bool GetCurrentRound(CSmartRewardRound &round);
+    bool GetRewardRounds(std::vector<CSmartRewardRound> &vect);
 
     bool Verify();
+    bool SyncPrepared();
 
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync);
-    bool UpdateCurrentRound(const CSmartRewardsRound &round);
-    bool UpdateRound(const CSmartRewardsRound &round);
+    bool UpdateCurrentRound(const CSmartRewardRound &round);
+    bool UpdateRound(const CSmartRewardRound &round);
 
-    bool GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry);
-    void GetRewardEntry(const CScript &pubKey, CSmartRewardEntry &entry, bool &added);
-    bool EvaluateCurrentRound(CSmartRewardsRound &next);
+    bool GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry);
+    void GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry, bool &added);
+    bool GetRewardEntries(CSmartRewardEntryList &entries);
+    void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardPayoutList &payouts);
+    bool FinalizeRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardPayoutList &payouts);
 
-    bool GetRewardPayouts(const int64_t round, std::vector<CSmartRewardPayout> &vect);
+    bool GetRewardPayouts(const int16_t round, CSmartRewardPayoutList &payouts);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
 extern CSmartRewards *prewards;
-
-CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
 #endif // REWARDS_H

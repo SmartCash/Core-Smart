@@ -20,7 +20,6 @@
 #include "timedata.h"
 #include "chainparams.h"
 #include "txmempool.h"
-#include "smartrewards/rewards.h"
 
 #include <algorithm>
 #include <exception>

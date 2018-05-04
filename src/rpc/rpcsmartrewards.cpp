@@ -44,7 +44,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         UniValue obj(UniValue::VOBJ);
 
-        CSmartRewardsRound current;
+        CSmartRewardRound current;
         if( !prewards->GetCurrentRound(current) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
 
@@ -64,12 +64,12 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         UniValue obj(UniValue::VARR);
 
-        std::vector<CSmartRewardsRound> history;
+        CSmartRewardRoundList history;
 
         if( !prewards->GetRewardRounds(history))
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
 
-        BOOST_FOREACH(CSmartRewardsRound round, history) {
+        BOOST_FOREACH(CSmartRewardRound round, history) {
 
             UniValue roundObj(UniValue::VOBJ);
 
@@ -90,7 +90,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if(strCommand == "payouts")
     {
-        CSmartRewardsRound current;
+        CSmartRewardRound current;
         if( !prewards->GetCurrentRound(current) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
 
@@ -113,34 +113,21 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         if(round < 1 || round >= current.number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
-        std::vector<CSmartRewardPayout> vect;
+        CSmartRewardPayoutList payouts;
 
-        if( !prewards->GetRewardPayouts(round,vect) )
+        if( !prewards->GetRewardPayouts(round,payouts) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't fetch the list from the database.");
 
-        UniValue obj(UniValue::VOBJ);
+        UniValue obj(UniValue::VARR);
 
-        BOOST_FOREACH(CSmartRewardPayout payout, vect) {
-
-            txnouttype type;
-            vector<CTxDestination> addresses;
-            int nRequired;
-
-            ExtractDestinations(payout.pubKey,type,addresses,nRequired);
-
-            std::string addrString = "";
-            BOOST_FOREACH(CTxDestination address, addresses) {
-                if( addrString != "" ) addrString += ",";
-                addrString += CBitcoinAddress(address).ToString();
-            }
+        BOOST_FOREACH(CSmartRewardPayout payout, payouts) {
 
             UniValue addrObj(UniValue::VOBJ);
-
+            addrObj.push_back(Pair("address", payout.id.ToString()));
             addrObj.push_back(Pair("balance", payout.balance));
             addrObj.push_back(Pair("reward", payout.reward));
 
-            obj.push_back(Pair(addrString, addrObj));
-
+            obj.push_back(addrObj);
         }
 
         return obj;
@@ -149,14 +136,13 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     if (strCommand == "check")
     {
         std::string addressString = params[1].get_str();
-        CBitcoinAddress address = CBitcoinAddress(addressString);
+        CSmartRewardId id = CSmartRewardId(addressString);
 
-        if( !address.IsValid() ) throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Invalid SMART address provided: %s",addressString));
+        if( !id.IsValid() ) throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Invalid SMART address provided: %s",addressString));
 
-        CScript pubKeyScript = GetScriptForDestination(address.Get());
         CSmartRewardEntry entry;
 
-        if( !prewards->GetRewardEntry(pubKeyScript, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SMART address in the databse!");
+        if( !prewards->GetRewardEntry(id, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SMART address in the databse!");
 
         UniValue obj(UniValue::VOBJ);
 
@@ -164,7 +150,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
             return a / COIN + ( double(a % COIN) / COIN );
         };
 
-        obj.push_back(Pair("address",addressString));
+        obj.push_back(Pair("address",id.ToString()));
         obj.push_back(Pair("balance",format(entry.balance)));
         obj.push_back(Pair("balance_eligible", format(entry.eligible ? entry.balanceOnStart : 0)));
 

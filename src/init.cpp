@@ -64,6 +64,8 @@
 // #include "privatesend-server.h"
 #include "smartnode/spork.h"
 
+#include "smartrewards/rewards.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <memory>
@@ -277,6 +279,8 @@ void PrepareShutdown()
         delete pcoinsdbview;
         pcoinsdbview = NULL;
         delete pblocktree;
+        pblocktree = NULL;
+        delete prewards;
         pblocktree = NULL;
     }
 #ifdef ENABLE_WALLET
@@ -885,7 +889,7 @@ void InitLogging()
     fLogThreadNames = GetBoolArg("-logthreadnames", DEFAULT_LOGTHREADNAMES);
     fLogIPs = GetBoolArg("-logips", DEFAULT_LOGIPS);
 
-    LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    LogPrintf("\n\n\n\n");
     LogPrintf("Smartcash version %s\n", FormatFullVersion());
 }
 
@@ -1605,83 +1609,38 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
 
 
-    bool fReindexRewards = GetBoolArg("-reindex-rewards", false);
+    bool fResetRewards = GetBoolArg("-reset-rewards", false);
     fLoaded = false;
     while (!fLoaded && !fRequestShutdown) {
-        bool fResetRewards = fReindexRewards;
+
         std::string strLoadError;
 
-        uiInterface.InitMessage(_("Loading SmartRewards..."));
+        uiInterface.InitMessage(_("Verifying SmartRewards..."));
 
         nStart = GetTimeMillis();
         do {
             try {
-//                UnloadBlockIndex();
+
                 delete prewards;
 
-                CSmartRewardsDB * prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fReindexRewards);
+                CSmartRewardsDB * prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fResetRewards);
                 prewards = new CSmartRewards(prewardsdb);
 
-                if( !(fLoaded = prewards->Verify())) break;
-
-                if (fReindexRewards) prewardsdb->WriteReindexing(true);
+                if( !(fLoaded = prewards->Verify())) throw std::runtime_error(_("Error verfying rewards database"));
 
                 if (fRequestShutdown) break;
 
-//                if (!LoadBlockIndex()) {
-//                    strLoadError = _("Error loading rewards database");
-//                    break;
-//                }
-
-//                // If the loaded chain has a wrong genesis, bail out immediately
-//                // (we're likely using a testnet datadir, or the other way around).
-//                if (!mapBlockIndex.empty() && mapBlockIndex.count(chainparams.GetConsensus().hashGenesisBlock) == 0)
-//                    return InitError(_("Incorrect or no genesis block found. Wrong datadir for network?"));
-
-//                // Initialize the block index (no-op if non-empty database was already loaded)
-//                if (!InitBlockIndex(chainparams)) {
-//                    strLoadError = _("Error initializing block database");
-//                    break;
-//                }
-
-//                // Check for changed -txindex state
-//                if (fTxIndex != GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
-//                    strLoadError = _("You need to rebuild the database using -reindex-chainstate to change -txindex");
-//                    break;
-//                }
-
-//                // Check for changed -prune state.  What we are concerned about is a user who has pruned blocks
-//                // in the past, but is now trying to run unpruned.
-//                if (fHavePruned && !fPruneMode) {
-//                    strLoadError = _("You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain");
-//                    break;
-//                }
-
-//                uiInterface.InitMessage(_("Verifying blocks..."));
-//                if (fHavePruned && GetArg("-checkblocks", DEFAULT_CHECKBLOCKS) > MIN_BLOCKS_TO_KEEP) {
-//                    LogPrintf("Prune: pruned datadir may not have more than %d blocks; -checkblocks=%d may fail\n",
-//                        MIN_BLOCKS_TO_KEEP, GetArg("-checkblocks", DEFAULT_CHECKBLOCKS));
-//                }
-
-//                {
-//                    LOCK(cs_main);
-//                    CBlockIndex* tip = chainActive.Tip();
-//                    if (tip && tip->nTime > GetAdjustedTime() + 2 * 60 * 60) {
-//                        strLoadError = _("The block database contains a block which appears to be from the future. "
-//                                "This may be due to your computer's date and time being set incorrectly. "
-//                                "Only rebuild the block database if you are sure that your computer's date and time are correct");
-//                        break;
-//                    }
-//                }
-
-//                if (!CVerifyDB().VerifyDB(chainparams, pcoinsdbview, GetArg("-checklevel", DEFAULT_CHECKLEVEL),
-//                              GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {
-//                    strLoadError = _("Corrupted block database detected");
-//                    break;
-//                }
-            } catch (const std::exception& e) {
+            } catch (const std::runtime_error &e) {
+                if (fDebug) LogPrintf("%s\n", e.what());
+                strLoadError = e.what();
+                break;
+            } catch (const std::exception &e) {
                 if (fDebug) LogPrintf("%s\n", e.what());
                 strLoadError = _("Error opening rewards database");
+                break;
+            } catch ( ... ){
+                if (fDebug) LogPrintf("Unexpected exception\n");
+                strLoadError = _("Unexpected error with the rewards database");
                 break;
             }
 
@@ -1689,17 +1648,17 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         } while(false);
 
         if (!fLoaded && !fRequestShutdown) {
-            // first suggest a reindex
+            // first suggest a reset
             if (!fResetRewards) {
                 bool fRet = uiInterface.ThreadSafeQuestion(
                     strLoadError + ".\n\n" + _("Do you want to rebuild the rewards database now?"),
-                    strLoadError + ".\nPlease restart with -reindex-rewards to recover.",
+                    strLoadError + ".\nPlease restart with -reset-rewards.",
                     "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
                 if (fRet) {
-                    fReindexRewards = true;
+                    fResetRewards = true;
                     fRequestShutdown = false;
                 } else {
-                    LogPrintf("Aborted block database rebuild. Exiting.\n");
+                    LogPrintf("Aborted rewards database rebuild. Exiting.\n");
                     return false;
                 }
             } else {

@@ -106,7 +106,7 @@ SmartrewardsList::~SmartrewardsList()
 //    int snapshotYear = lastSmartrewardsSnapshotDateTimeUtc.toString("yyyy").toInt();
 //    lastSmartrewardsSnapshotDateTimeUtc = QDateTime(QDate(snapshotYear, snapshotMonth, SMARTREWARDS_DAY), QTime(SMARTREWARDS_UTC_HOUR, 0), Qt::UTC);
 
-    std::map<const CScript, rewardEntry_p> rewardList;
+    std::vector<const rewardEntry_p> rewardList;
 
     BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
 
@@ -114,34 +114,27 @@ SmartrewardsList::~SmartrewardsList()
  
         bool added;
 
-        BOOST_FOREACH(const COutput& out, coins.second) {
-
-            CScript pub = out.tx->vout[out.i].scriptPubKey;
-
-            if( rewardList.find(pub) == rewardList.end() ){
-                CSmartRewardEntry entry;
-                prewards->GetRewardEntry(pub, entry, added);
-                rewardEntry_p pairEntry = make_pair(sWalletAddress, entry);
-                rewardList.insert(make_pair(pub,pairEntry));
-            }
-        }
+        CSmartRewardId id(coins.first.toStdString());
+        CSmartRewardEntry entry;
+        prewards->GetRewardEntry(id, entry, added);
+        rewardList.push_back(make_pair(sWalletAddress, entry));
     }
 
     int nRow = 0;
 
-    BOOST_FOREACH(const PAIRTYPE(const CScript, rewardEntry_p)& reward, rewardList) {
+    BOOST_FOREACH(const rewardEntry_p& reward, rewardList) {
 
             ui->tableWidget->insertRow(nRow);
-            QString sWalletLabel = model->getAddressTableModel()->labelForAddress(reward.second.first);
+            QString sWalletLabel = model->getAddressTableModel()->labelForAddress(reward.first);
             if (sWalletLabel.isEmpty())
                 sWalletLabel = tr("(no label)");
 
             ui->tableWidget->setItem(nRow, 0, new QTableWidgetItem(sWalletLabel));
-            ui->tableWidget->setItem(nRow, 1, new QTableWidgetItem(reward.second.first));
-            ui->tableWidget->setItem(nRow, 2, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.second.balance)));
+            ui->tableWidget->setItem(nRow, 1, new QTableWidgetItem(reward.first));
+            ui->tableWidget->setItem(nRow, 2, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.balance)));
 
-            if( reward.second.second.eligible ){
-                 ui->tableWidget->setItem(nRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.second.balanceOnStart)));
+            if( reward.second.eligible ){
+                 ui->tableWidget->setItem(nRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.balanceOnStart)));
             }else{
                 ui->tableWidget->setItem(nRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, 0)));
             }
