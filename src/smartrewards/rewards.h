@@ -47,6 +47,14 @@ const int64_t firstRoundEndBlock = 60001;
 void ThreadSmartRewards();
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
+static std::vector<CSmartRewardId> rewardBlacklist = {
+    CSmartRewardId("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b"), // Community treasure
+    CSmartRewardId("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x"), // Support hive
+    CSmartRewardId("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF"), // Development hive
+    CSmartRewardId("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M"), // Outreach hive
+    CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo") // Legacy smartrewards"
+};
+
 struct CSmartRewardsUpdateResult
 {
     int64_t disqualifiedEntries;
@@ -59,28 +67,29 @@ class CSmartRewards
 {
     CSmartRewardsDB * pdb;
 
-    std::vector<CSmartRewardBlock>blockEntries;
-    std::vector<CSmartRewardEntry>updateEntries;
-    std::vector<CSmartRewardEntry>removeEntries;
+    CSmartRewardBlockList blockEntries;
+    CSmartRewardTransactionList transactionEntries;
+    CSmartRewardEntryList updateEntries;
+    CSmartRewardEntryList removeEntries;
 
     mutable CCriticalSection csDb;
 
     void PrepareForUpdate(const CSmartRewardEntry &entry);
     void PrepareForRemove(const CSmartRewardEntry &entry);
-    void ResetPrepared();
     bool AddBlock(const CSmartRewardBlock &block, bool sync);
+    void AddTransaction(const CSmartRewardTransaction &transaction);
 public:
 
-    CSmartRewards(CSmartRewardsDB *prewardsdb);
+    CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb) {}
 
     bool GetLastBlock(CSmartRewardBlock &block);
-
-    bool GetRound(const int number, CSmartRewardRound &round);
+    bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
     bool GetCurrentRound(CSmartRewardRound &round);
     bool GetRewardRounds(std::vector<CSmartRewardRound> &vect);
 
     bool Verify();
     bool SyncPrepared();
+    bool IsSynced();
 
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync);
     bool UpdateCurrentRound(const CSmartRewardRound &round);

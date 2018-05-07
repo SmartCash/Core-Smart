@@ -20,6 +20,10 @@
 
 UniValue smartrewards(const UniValue& params, bool fHelp)
 {
+    std::function<double (CAmount)> format = [](CAmount a) {
+        return a / COIN + ( double(a % COIN) / COIN );
+    };
+
     std::string strCommand;
     if (params.size() >= 1) {
         strCommand = params[0].get_str();
@@ -53,8 +57,11 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         obj.push_back(Pair("start_blocktime",current.startBlockTime));
         obj.push_back(Pair("end_blockheight",current.endBlockHeight));
         obj.push_back(Pair("end_blocktime",current.endBlockTime));
-        obj.push_back(Pair("eligible_addresses",current.eligibleEntries));
-        obj.push_back(Pair("eligible_smart",current.eligibleSmart));
+        obj.push_back(Pair("eligible_addresses",current.eligibleEntries - current.disqualifiedEntries));
+        obj.push_back(Pair("eligible_smart",format(current.eligibleSmart - current.disqualifiedSmart)));
+        obj.push_back(Pair("disqualified_addresses",current.disqualifiedEntries));
+        obj.push_back(Pair("disqualified_smart",format(current.disqualifiedSmart)));
+        obj.push_back(Pair("estimated_rewards",format(current.rewards)));
         obj.push_back(Pair("estimated_percent",current.percent));
 
         return obj;
@@ -78,8 +85,11 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
             roundObj.push_back(Pair("start_blocktime",round.startBlockTime));
             roundObj.push_back(Pair("end_blockheight",round.endBlockHeight));
             roundObj.push_back(Pair("end_blocktime",round.endBlockTime));
-            roundObj.push_back(Pair("eligible_addresses",round.eligibleEntries));
-            roundObj.push_back(Pair("eligible_smart",round.eligibleSmart));
+            roundObj.push_back(Pair("eligible_addresses",round.eligibleEntries - round.disqualifiedEntries));
+            roundObj.push_back(Pair("eligible_smart",format(round.eligibleSmart - round.disqualifiedSmart)));
+            roundObj.push_back(Pair("disqualified_addresses",round.disqualifiedEntries));
+            roundObj.push_back(Pair("disqualified_smart",format(round.disqualifiedSmart)));
+            roundObj.push_back(Pair("rewards",format(round.rewards)));
             roundObj.push_back(Pair("percent",round.percent));
 
             obj.push_back(roundObj);
@@ -124,8 +134,8 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
             UniValue addrObj(UniValue::VOBJ);
             addrObj.push_back(Pair("address", payout.id.ToString()));
-            addrObj.push_back(Pair("balance", payout.balance));
-            addrObj.push_back(Pair("reward", payout.reward));
+            addrObj.push_back(Pair("balance", format(payout.balance)));
+            addrObj.push_back(Pair("reward", format(payout.reward)));
 
             obj.push_back(addrObj);
         }
@@ -145,10 +155,6 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         if( !prewards->GetRewardEntry(id, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SMART address in the databse!");
 
         UniValue obj(UniValue::VOBJ);
-
-        std::function<double (CAmount)> format = [](CAmount a) {
-            return a / COIN + ( double(a % COIN) / COIN );
-        };
 
         obj.push_back(Pair("address",id.ToString()));
         obj.push_back(Pair("balance",format(entry.balance)));

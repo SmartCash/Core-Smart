@@ -22,6 +22,7 @@ static const char DB_ROUND_PAID = 'p';
 static const char DB_REWARD_ENTRY = 'E';
 static const char DB_BLOCK = 'B';
 static const char DB_BLOCK_LAST = 'b';
+static const char DB_TX_HASH = 't';
 
 static const char DB_VERSION = 'V';
 static const char DB_REINDEX = 'f';
@@ -51,7 +52,7 @@ bool CSmartRewardsDB::Verify()
 
     std::vector<CSmartRewardBlock> testBlocks;
 
-    pcursor->Seek(make_pair(DB_BLOCK,1));
+    pcursor->Seek(DB_BLOCK);
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
@@ -102,6 +103,11 @@ bool CSmartRewardsDB::ReadLastBlock(CSmartRewardBlock &block)
     return Read(DB_BLOCK_LAST, block);
 }
 
+bool CSmartRewardsDB::ReadTransaction(const uint256 hash, CSmartRewardTransaction &transaction)
+{
+    return Read(make_pair(DB_TX_HASH,hash), transaction);
+}
+
 bool CSmartRewardsDB::ReadRound(const int number, CSmartRewardRound &round)
 {
     return Read(make_pair(DB_ROUND,number), round);
@@ -109,7 +115,7 @@ bool CSmartRewardsDB::ReadRound(const int number, CSmartRewardRound &round)
 
 bool CSmartRewardsDB::WriteRound(const CSmartRewardRound &round)
 {
-    return Write(make_pair(DB_ROUND,round.number), round);
+    return Write(make_pair(DB_ROUND,round.number), round,true);
 }
 
 bool CSmartRewardsDB::ReadRewardRounds(std::vector<CSmartRewardRound> &vect)
@@ -144,7 +150,7 @@ bool CSmartRewardsDB::ReadCurrentRound(CSmartRewardRound &round)
 
 bool CSmartRewardsDB::WriteCurrentRound(const CSmartRewardRound &round)
 {
-    return Write(DB_ROUND_CURRENT, round);
+    return Write(DB_ROUND_CURRENT, round, true);
 }
 
 bool CSmartRewardsDB::ReadRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry)
@@ -154,21 +160,24 @@ bool CSmartRewardsDB::ReadRewardEntry(const CSmartRewardId &id, CSmartRewardEntr
 
 bool CSmartRewardsDB::WriteRewardEntry(const CSmartRewardEntry &entry)
 {
-    return Write(make_pair(DB_REWARD_ENTRY, entry.id), entry);
+    return Write(make_pair(DB_REWARD_ENTRY, entry.id), entry, true);
 }
 
-bool CSmartRewardsDB::SyncBlocks(const std::vector<CSmartRewardBlock> &blocks, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove)
+bool CSmartRewardsDB::SyncBlocks(const std::vector<CSmartRewardBlock> &blocks, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions)
 {
 
     CDBBatch batch(*this);
 
     BOOST_FOREACH(CSmartRewardEntry e, remove) {
         batch.Erase(make_pair(DB_REWARD_ENTRY,e.id));
-        //LogPrintf("Erase reward entry %s", e.ToString());
     }
+
     BOOST_FOREACH(CSmartRewardEntry e, update) {
         batch.Write(make_pair(DB_REWARD_ENTRY,e.id), e);
-        //LogPrintf("Update reward entry %s", e.ToString());
+    }
+
+    BOOST_FOREACH(CSmartRewardTransaction t, transactions) {
+        batch.Write(make_pair(DB_TX_HASH,t.hash), t);
     }
 
     CSmartRewardBlock last;
@@ -258,6 +267,9 @@ bool CSmartRewardsDB::ReadRewardPayouts(const int16_t round, CSmartRewardPayoutL
         boost::this_thread::interruption_point();
         std::pair<char,std::pair<int16_t, CSmartRewardId>> key;
         if (pcursor->GetKey(key) && key.first == DB_ROUND_PAID) {
+
+            if( key.second.first != round ) break;
+
             CSmartRewardPayout nValue;
             if (pcursor->GetValue(nValue)) {
                 vect.push_back(nValue);
@@ -335,5 +347,14 @@ string CSmartRewardPayout::ToString() const
         GetAddress(),
         balance,
         reward);
+    return s.str();
+}
+
+string CSmartRewardTransaction::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CSmartRewardTransaction(hash=%s, blockHeight=%d\n",
+        hash.ToString(),
+        blockHeight);
     return s.str();
 }

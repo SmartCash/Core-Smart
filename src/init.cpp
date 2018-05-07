@@ -281,7 +281,7 @@ void PrepareShutdown()
         delete pblocktree;
         pblocktree = NULL;
         delete prewards;
-        pblocktree = NULL;
+        prewards = NULL;
     }
 #ifdef ENABLE_WALLET
     if (pwalletMain)
