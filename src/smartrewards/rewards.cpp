@@ -605,7 +605,7 @@ void ThreadSmartRewards()
         }
 
         // If just hit the next round threshold
-        if(lastIndex->GetBlockTime() > round.endBlockTime){
+        if(round.number && lastIndex->GetBlockTime() > round.endBlockTime){
 
             snapshot = true;
 
