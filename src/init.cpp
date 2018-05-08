@@ -1798,7 +1798,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
 
         // Warn user every time he starts non-encrypted HD wallet
-        if (GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET) && !pwalletMain->IsLocked()) {
+        if (!GetBoolArg("-smartnode", false) && GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET) && !pwalletMain->IsLocked()) {
             InitWarning(_("Make sure to encrypt your wallet and delete all non-encrypted backups after you verified that wallet works!"));
         }
 
