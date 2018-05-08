@@ -1,34 +1,11 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2015 The Bitcoin Core developers
+// Copyright (c) 2018 dustinface - SmartCash Developer
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef REWARDS_H
 #define REWARDS_H
 
-#include "amount.h"
-#include "chain.h"
-#include "coins.h"
-#include "net.h"
-#include "script/script_error.h"
 #include "sync.h"
-#include "versionbits.h"
-#include "timedata.h"
-#include "chainparams.h"
-#include "txmempool.h"
-#include "smartrewards/rewards.h"
-
-#include <algorithm>
-#include <exception>
-#include <map>
-#include <set>
-#include <stdint.h>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include <boost/unordered_map.hpp>
-#include <boost/filesystem/path.hpp>
 
 #include <smartrewards/rewardsdb.h>
 
@@ -46,14 +23,6 @@ const int64_t firstRoundEndBlock = 60001;
 
 void ThreadSmartRewards();
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
-
-static std::vector<CSmartRewardId> rewardBlacklist = {
-    CSmartRewardId("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b"), // Community treasure
-    CSmartRewardId("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x"), // Support hive
-    CSmartRewardId("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF"), // Development hive
-    CSmartRewardId("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M"), // Outreach hive
-    CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo") // Legacy smartrewards"
-};
 
 struct CSmartRewardsUpdateResult
 {
@@ -85,7 +54,7 @@ public:
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
     bool GetCurrentRound(CSmartRewardRound &round);
-    bool GetRewardRounds(std::vector<CSmartRewardRound> &vect);
+    bool GetRewardRounds(CSmartRewardRoundList &vect);
 
     bool Verify();
     bool SyncPrepared();

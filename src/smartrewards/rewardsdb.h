@@ -1,4 +1,4 @@
-// Copyright (c) 2018 dustinface
+// Copyright (c) 2018 dustinface - SmartCash Developer
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,8 +11,7 @@
 #include "coins.h"
 #include "base58.h"
 
-//! Compensate for extra memory peak (x1.5-x1.9) at flush time.
-static constexpr int REWARDS_DB_VERSIONN = 1;
+static constexpr uint8_t REWARDS_DB_VERSION = 0x01;
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
@@ -256,17 +255,16 @@ public:
 
     bool Verify();
 
-    bool WriteReindexing(bool fReindex);
-    bool ReadReindexing(bool &fReindex);
+    bool ResetToRound(const int16_t round);
 
     bool ReadBlock(const int nHeight, CSmartRewardBlock &block);
     bool ReadLastBlock(CSmartRewardBlock &block);
 
     bool ReadTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
 
-    bool ReadRound(const int number, CSmartRewardRound &round);
+    bool ReadRound(const int16_t number, CSmartRewardRound &round);
     bool WriteRound(const CSmartRewardRound &round);
-    bool ReadRewardRounds(CSmartRewardRoundList &vect);
+    bool ReadRounds(CSmartRewardRoundList &vect);
 
     bool ReadCurrentRound(CSmartRewardRound &round);
     bool WriteCurrentRound(const CSmartRewardRound &round);

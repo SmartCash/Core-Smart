@@ -1,3 +1,6 @@
+// Copyright (c) 2018 dustinface - SmartCash Developer
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "smartrewards/rewardsdb.h"
 
@@ -12,6 +15,7 @@
 #include <stdint.h>
 
 #include <boost/thread.hpp>
+#include "leveldb/include/leveldb/db.h"
 
 using namespace std;
 
@@ -25,16 +29,12 @@ static const char DB_BLOCK_LAST = 'b';
 static const char DB_TX_HASH = 't';
 
 static const char DB_VERSION = 'V';
-static const char DB_REINDEX = 'f';
-
 
 CSmartRewardsDB::CSmartRewardsDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "rewards", nCacheSize, fMemory, fWipe) {
 
-    CSmartRewardBlock block;
-    if(ReadLastBlock(block))
-        LogPrintf("CSmartRewardsDB(last block = %s", block.ToString());
-    else
-        LogPrintf("CSmartRewardsDB(no block available)");
+    if( !Exists(DB_VERSION) ){
+        Write(DB_VERSION, REWARDS_DB_VERSION);
+    }
 
 }
 
@@ -42,6 +42,17 @@ bool CSmartRewardsDB::Verify()
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
     CSmartRewardBlock last;
+    uint8_t dbVersion;
+
+    if( !Read(DB_VERSION, dbVersion) ){
+        LogPrintf("CSmartRewards::Verify() Could't read DB_VERSION\n");
+        return false;
+    }
+
+    if( dbVersion < REWARDS_DB_VERSION ){
+        LogPrintf("CSmartRewards::Verify() DB_VERSION too old.\n");
+        return false;
+    }
 
     if(!ReadLastBlock(last)){
         LogPrintf("CSmartRewards::Verify() No block here yet\n");
@@ -81,16 +92,9 @@ bool CSmartRewardsDB::Verify()
     return true;
 }
 
-bool CSmartRewardsDB::WriteReindexing(bool fReindexing) {
-    if (fReindexing)
-        return Write(DB_REINDEX, '1');
-    else
-        return Erase(DB_REINDEX);
-}
+bool CSmartRewardsDB::ResetToRound(const int16_t round)
+{
 
-bool CSmartRewardsDB::ReadReindexing(bool &fReindexing) {
-    fReindexing = Exists(DB_REINDEX);
-    return true;
 }
 
 bool CSmartRewardsDB::ReadBlock(const int nHeight, CSmartRewardBlock &block)
@@ -108,7 +112,7 @@ bool CSmartRewardsDB::ReadTransaction(const uint256 hash, CSmartRewardTransactio
     return Read(make_pair(DB_TX_HASH,hash), transaction);
 }
 
-bool CSmartRewardsDB::ReadRound(const int number, CSmartRewardRound &round)
+bool CSmartRewardsDB::ReadRound(const int16_t number, CSmartRewardRound &round)
 {
     return Read(make_pair(DB_ROUND,number), round);
 }
@@ -118,7 +122,7 @@ bool CSmartRewardsDB::WriteRound(const CSmartRewardRound &round)
     return Write(make_pair(DB_ROUND,round.number), round,true);
 }
 
-bool CSmartRewardsDB::ReadRewardRounds(std::vector<CSmartRewardRound> &vect)
+bool CSmartRewardsDB::ReadRounds(CSmartRewardRoundList &vect)
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -224,7 +228,7 @@ bool CSmartRewardsDB::FinalizeRound(const CSmartRewardRound &current, const CSma
     return WriteBatch(batch, true);
 }
 
-bool CSmartRewardsDB::ReadRewardEntries(std::vector<CSmartRewardEntry> &entries) {
+bool CSmartRewardsDB::ReadRewardEntries(CSmartRewardEntryList &entries) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -249,9 +253,9 @@ bool CSmartRewardsDB::ReadRewardEntries(std::vector<CSmartRewardEntry> &entries)
     return true;
 }
 
-bool CSmartRewardsDB::WriteRewardEntries(const std::vector<CSmartRewardEntry>&vect) {
+bool CSmartRewardsDB::WriteRewardEntries(const CSmartRewardEntryList &vect) {
     CDBBatch batch(*this);
-    for (std::vector<CSmartRewardEntry>::const_iterator it=vect.begin(); it!=vect.end(); it++)
+    for (CSmartRewardEntryList::const_iterator it=vect.begin(); it!=vect.end(); it++)
         batch.Write(make_pair(DB_REWARD_ENTRY, it->id), *it);
     return WriteBatch(batch, true);
 }

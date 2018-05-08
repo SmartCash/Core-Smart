@@ -1,3 +1,7 @@
+// Copyright (c) 2018 dustinface - SmartCash Developer
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include "smartrewards/rewards.h"
 #include "validation.h"
 #include "init.h"
@@ -5,14 +9,24 @@
 
 CSmartRewards *prewards = NULL;
 
+// Exclude the following addresses form SmartRewards.
+static std::vector<CSmartRewardId> blacklist = {
+    CSmartRewardId("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b"), // Community treasure
+    CSmartRewardId("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x"), // Support hive
+    CSmartRewardId("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF"), // Development hive
+    CSmartRewardId("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M"), // Outreach hive
+    CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo") // Legacy smartrewards"
+};
 
 bool isBlacklisted(const CSmartRewardId &id)
 {
-    BOOST_FOREACH(const CSmartRewardId &b, rewardBlacklist)
+
+    BOOST_FOREACH(const CSmartRewardId &b, blacklist)
         if( id == b ) return true;
 
     return false;
 }
+
 int ParseScript(const CScript &script, std::vector<CSmartRewardId> &ids){
 
     std::vector<CTxDestination> addresses;
@@ -61,10 +75,13 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
         CSmartRewardTransaction testTx;
 
+        // First check if the transaction hash did already come up in the past.
         if( GetTransaction(tx.GetHash(),testTx)){
-            LogPrintf("Double spended? First occurred in %s - Now in %d",testTx.ToString(), pindexNew->nHeight);
+            // If yes we want to ignore it!
+            LogPrintf("[%s] Double appearance! First in %d - Now in %d\n",testTx.hash.ToString(), testTx.blockHeight, pindexNew->nHeight);
             continue;
         }else{
+            // If not save add it to the database.
             CSmartRewardTransaction saveTx(pindexNew->nHeight, tx.GetHash());
             AddTransaction(saveTx);
         }
@@ -115,7 +132,6 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                  }
 
                 if( rEntry.balance == 0 ){
-                    // Remove
                     PrepareForRemove(rEntry);
                 }else{
                     PrepareForUpdate(rEntry);
@@ -376,7 +392,7 @@ bool CSmartRewards::GetCurrentRound(CSmartRewardRound &round)
 bool CSmartRewards::GetRewardRounds(CSmartRewardRoundList &vect)
 {
     LOCK(csDb);
-    return pdb->ReadRewardRounds(vect);
+    return pdb->ReadRounds(vect);
 }
 
 bool CSmartRewards::UpdateRound(const CSmartRewardRound &round)
@@ -405,8 +421,7 @@ void ThreadSmartRewards()
 
     CSmartRewardBlock currentBlock;
 
-    // Get the last written block of the
-    // rewards database.
+    // Get the last written block of the rewards database.
     if(!prewards->GetLastBlock(currentBlock)){
         // If there is no one available yet
         // Use 0 to get 1 as start below.

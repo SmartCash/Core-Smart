@@ -1608,7 +1608,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
 
-
+    CSmartRewardsDB * prewardsdb = nullptr;
     bool fResetRewards = GetBoolArg("-reset-rewards", false);
     fLoaded = false;
     while (!fLoaded && !fRequestShutdown) {
@@ -1622,6 +1622,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             try {
 
                 delete prewards;
+                delete prewardsdb;
 
                 CSmartRewardsDB * prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fResetRewards);
                 prewards = new CSmartRewards(prewardsdb);
@@ -1645,6 +1646,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             }
 
             fLoaded = true;
+
         } while(false);
 
         if (!fLoaded && !fRequestShutdown) {
