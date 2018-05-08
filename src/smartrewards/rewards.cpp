@@ -432,6 +432,13 @@ void ThreadSmartRewards()
     // Make this thread recognisable as the SmartRewards thread
     RenameThread("smartrewards");
 
+    // Estimate or return the current block height.
+    std::function<int (const CBlockIndex*)> getBlockHeight = [](const CBlockIndex *index) {
+        int64_t syncDiff = std::time(0) - index->GetBlockTime();
+        int64_t genesisDiff = std::time(0) - nFirstTxTimestamp; // Diff from the first transaction till now.
+        return syncDiff > 1200 ? genesisDiff / 55 : index->nHeight;
+    };
+
     CSmartRewardBlock currentBlock;
 
     // Get the last written block of the rewards database.
@@ -464,7 +471,9 @@ void ThreadSmartRewards()
         LOCK(cs_main);
         currentIndex = chainActive.Tip();
     }
-    prewards->UpdateHeights(currentIndex->nHeight, currentBlock.nHeight);
+
+    int chainHeight = getBlockHeight(currentIndex);
+    prewards->UpdateHeights(chainHeight, currentBlock.nHeight);
     uiInterface.NotifySmartRewardUpdate();
 
     while (true)
@@ -582,8 +591,6 @@ void ThreadSmartRewards()
                 if( !prewards->FinalizeRound(next, entries) ) throw runtime_error("Could't finalize round!");
             }
 
-            continue;
-
         }else if( result.disqualifiedEntries || result.disqualifiedSmart ){
 
             // If there were disqualification during the last block processing
@@ -653,7 +660,7 @@ void ThreadSmartRewards()
             if( !prewards->FinalizeRound(round, next, entries, payouts) ) throw runtime_error("Could't finalize round!");
         }
 
-        prewards->UpdateHeights(currentIndex->nHeight, lastIndex->nHeight);
+        prewards->UpdateHeights(getBlockHeight(currentIndex), lastIndex->nHeight);
 
         int64_t nTime5 = GetTimeMicros();
 

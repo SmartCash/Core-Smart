@@ -267,7 +267,7 @@ void SmartrewardsList::updateUI()
         if( ui->stackedWidget->currentIndex() != 2) ui->stackedWidget->setCurrentIndex(2);
 
     }else{
-        int progress = prewards->GetProgress() * ui->loadingProgress->maximum();
+        double progress = prewards->GetProgress() * ui->loadingProgress->maximum();
         ui->loadingProgress->setValue(progress);
 
         // If not show the loading view.
