@@ -1,7 +1,7 @@
 #if defined(HAVE_CONFIG_H)
 #include "config/bitcoin-config.h"
 #endif
- 
+
 #include "smartrewardslist.h"
 #include "ui_smartrewardslist.h"
 
@@ -15,12 +15,14 @@
 #include "txmempool.h"
 #include "walletmodel.h"
 #include "coincontrol.h"
+#include "smartrewardslist.h"
 //#include "init.h"
 //#include "validation.h" // For minRelayTxFee
 #include "wallet/wallet.h"
- 
+#include "clientmodel.h"
+
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
- 
+
 #include <QMenu>
 #include <QMessageBox>
 #include <QSortFilterProxyModel>
@@ -35,148 +37,241 @@ SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *
     model(0)
 {
     ui->setupUi(this);
- 
-   //QMessageBox::information(this,"Hello","test");
 
-   QTableWidget *smartRewardsTable = ui->tableWidget;
-   //QTableWidget *smartRewardsTable = new QTableWidget(this);
+    QTableWidget *smartRewardsTable = ui->tableWidget;
 
-   smartRewardsTable->setAlternatingRowColors(true);
-   smartRewardsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-   smartRewardsTable->setSelectionMode(QAbstractItemView::SingleSelection);
-   smartRewardsTable->setSortingEnabled(true);
-   smartRewardsTable->setColumnCount(4);
-   smartRewardsTable->setShowGrid(false);
-   smartRewardsTable->verticalHeader()->hide();
+    smartRewardsTable->setAlternatingRowColors(true);
+    smartRewardsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    smartRewardsTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    smartRewardsTable->setSortingEnabled(true);
+    smartRewardsTable->setShowGrid(false);
+    smartRewardsTable->verticalHeader()->hide();
 
-   smartRewardsTable->setColumnWidth(0, 200);
-   smartRewardsTable->setColumnWidth(1, 250);
-   smartRewardsTable->setColumnWidth(2, 160);
-   smartRewardsTable->setColumnWidth(3, 200);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 
-   // Actions
-   smartRewardsTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    WaitingSpinnerWidget * spinner = ui->spinnerWidget;
 
-   QAction *copyAddressAction = new QAction(tr("Copy address"), this);
-   QAction *copyLabelAction = new QAction(tr("Copy label"), this);
-   QAction *copyAmountAction = new QAction(tr("Copy amount"), this);
-   QAction *copyEligibleAmountAction = new QAction(tr("Copy eligible amount"), this);
+    spinner->setRoundness(70.0);
+    spinner->setMinimumTrailOpacity(15.0);
+    spinner->setTrailFadePercentage(70.0);
+    spinner->setNumberOfLines(14);
+    spinner->setLineLength(14);
+    spinner->setLineWidth(6);
+    spinner->setInnerRadius(20);
+    spinner->setRevolutionsPerSecond(1);
+    spinner->setColor(QColor(254, 198, 13));
 
-   contextMenu = new QMenu(this);
-   contextMenu->addAction(copyLabelAction);
-   contextMenu->addAction(copyAddressAction);
-   contextMenu->addAction(copyAmountAction);
-   contextMenu->addAction(copyEligibleAmountAction);
+    spinner->start();
 
-   // Connect actions
-   connect(smartRewardsTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextualMenu(QPoint)));
-   connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(copyAddress()));
-   connect(copyLabelAction, SIGNAL(triggered()), this, SLOT(copyLabel()));
-   connect(copyAmountAction, SIGNAL(triggered()), this, SLOT(copyAmount()));
-   connect(copyAmountAction, SIGNAL(triggered()), this, SLOT(copyEligibleAmount()));
+    // Actions
+    smartRewardsTable->setContextMenuPolicy(Qt::CustomContextMenu);
 
+    QAction *copyAddressAction = new QAction(tr("Copy address"), this);
+    QAction *copyLabelAction = new QAction(tr("Copy label"), this);
+    QAction *copyAmountAction = new QAction(tr("Copy amount"), this);
+    QAction *copyEligibleAmountAction = new QAction(tr("Copy eligible amount"), this);
+    QAction *copyRewardAction = new QAction(tr("Copy expected reward"), this);
+
+    contextMenu = new QMenu(this);
+    contextMenu->addAction(copyLabelAction);
+    contextMenu->addAction(copyAddressAction);
+    contextMenu->addAction(copyAmountAction);
+    contextMenu->addAction(copyEligibleAmountAction);
+    contextMenu->addAction(copyRewardAction);
+
+    // Connect actions
+    connect(smartRewardsTable, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextualMenu(QPoint)));
+    connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(copyAddress()));
+    connect(copyLabelAction, SIGNAL(triggered()), this, SLOT(copyLabel()));
+    connect(copyAmountAction, SIGNAL(triggered()), this, SLOT(copyAmount()));
+    connect(copyEligibleAmountAction, SIGNAL(triggered()), this, SLOT(copyEligibleAmount()));
+    connect(copyRewardAction, SIGNAL(triggered()), this, SLOT(copyReward()));
+
+    ui->stackedWidget->setCurrentIndex(0);
 }
- 
+
 SmartrewardsList::~SmartrewardsList()
 {
     delete ui;
 }
- 
- void SmartrewardsList::setModel(WalletModel *model)
+
+void SmartrewardsList::setModel(WalletModel *model)
 {
     this->model = model;
+}
+
+void SmartrewardsList::setClientModel(ClientModel *model)
+{
+    this->clientModel = model;
+
+    if( clientModel )
+        connect(clientModel, SIGNAL(SmartRewardsUpdated()), this, SLOT(updateUI()));
+
+}
+
+void SmartrewardsList::contextualMenu(const QPoint &point)
+{
+    QModelIndex index =  ui->tableWidget->indexAt(point);
+    QModelIndexList selection =  ui->tableWidget->selectionModel()->selectedRows(0);
+    if (selection.empty())
+        return;
+
+    if(index.isValid())
+    {
+        contextMenu->exec(QCursor::pos());
+    }
+}
+
+void SmartrewardsList::copyLabel()
+{
+    GUIUtil::copyEntryData(ui->tableWidget, 0);
+}
+
+
+void SmartrewardsList::copyAddress()
+{
+    GUIUtil::copyEntryData(ui->tableWidget, 1);
+}
+
+
+void SmartrewardsList::copyAmount()
+{
+    GUIUtil::copyEntryData(ui->tableWidget, 2);
+}
+
+void SmartrewardsList::copyEligibleAmount()
+{
+    GUIUtil::copyEntryData(ui->tableWidget, 3);
+}
+
+void SmartrewardsList::copyReward()
+{
+    GUIUtil::copyEntryData(ui->tableWidget, 4);
+}
+
+void SmartrewardsList::updateUI()
+{
+    // If the wallet model hasn't been set yet we cant update the UI.
     if(!model) {
-       return;
+        return;
     }
 
-    ui->stackedWidget->setCurrentIndex(1);
+    ui->spinnerWidget->stop();
 
-    int nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
- 
-    std::map<QString, std::vector<COutput> > mapCoins;
-    model->listCoins(mapCoins);
+    // If the rewardlist is synced show the actual SmartRewards view.
+    if( prewards->IsSynced() ){
 
-//    //Smartrewards snapshot date
-//    QDateTime lastSmartrewardsSnapshotDateTimeUtc = QDateTime::currentDateTimeUtc();
-//    int currentDay = lastSmartrewardsSnapshotDateTimeUtc.toString("dd").toInt();
-//    if(currentDay < SMARTREWARDS_DAY){
-//       lastSmartrewardsSnapshotDateTimeUtc = lastSmartrewardsSnapshotDateTimeUtc.addMonths(-1);
-//    }
-//    int snapshotMonth = lastSmartrewardsSnapshotDateTimeUtc.toString("MM").toInt();
-//    int snapshotYear = lastSmartrewardsSnapshotDateTimeUtc.toString("yyyy").toInt();
-//    lastSmartrewardsSnapshotDateTimeUtc = QDateTime(QDate(snapshotYear, snapshotMonth, SMARTREWARDS_DAY), QTime(SMARTREWARDS_UTC_HOUR, 0), Qt::UTC);
+        CSmartRewardRound current;
 
-    std::vector<const rewardEntry_p> rewardList;
+        if( !prewards->GetCurrentRound(current) ) return;
 
-    BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
+        QString percentText;
+        percentText.sprintf("%.2f%%", current.percent * 100);
+        ui->percentLabel->setText(percentText);
 
-        QString sWalletAddress = coins.first;
- 
-        bool added;
+        ui->roundLabel->setText(QString::number(current.number));
 
-        CSmartRewardId id(coins.first.toStdString());
-        CSmartRewardEntry entry;
-        prewards->GetRewardEntry(id, entry, added);
-        rewardList.push_back(make_pair(sWalletAddress, entry));
-    }
+        uint64_t currentTime = QDateTime::currentSecsSinceEpoch();
+        QDateTime roundEnd;
+        roundEnd.setTime_t(current.endBlockTime);
+        QString roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
 
-    int nRow = 0;
+        if( (uint64_t)current.endBlockTime < currentTime ) {
+            roundEndText += " ( Now )";
+        }else{
+            uint64_t minutesLeft = ( (uint64_t)current.endBlockTime - currentTime ) / 60;
+            uint64_t days = minutesLeft / 1440;
+            uint64_t hours = (minutesLeft % 1440) / 60;
+            uint64_t minutes = (minutesLeft % 1440) % 60;
 
-    BOOST_FOREACH(const rewardEntry_p& reward, rewardList) {
+            roundEndText += " ( ";
+            if( days ){
+                roundEndText += QString("%1day%2").arg(days).arg(days > 1 ? "s":"");
+            }
+
+            if( hours ){
+                if( days ) roundEndText += ", ";
+                roundEndText += QString("%1hour%2").arg(hours).arg(hours > 1 ? "s":"");
+            }
+
+            if( !days && minutes ){
+                if( !hours ) roundEndText += ", ";
+                roundEndText += QString("%1minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
+            }
+
+            roundEndText += " )";
+        }
+
+        ui->nextRoundLabel->setText(roundEndText);
+
+        int nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
+
+        std::map<QString, std::vector<COutput> > mapCoins;
+        model->listCoins(mapCoins);
+
+        std::vector<const rewardEntry_p> rewardList;
+
+        BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
+
+            QString sWalletAddress = coins.first;
+
+            bool added;
+
+            CSmartRewardId id(coins.first.toStdString());
+            CSmartRewardEntry entry;
+            prewards->GetRewardEntry(id, entry, added);
+            rewardList.push_back(make_pair(sWalletAddress, entry));
+        }
+
+        int nRow = 0;
+
+        CAmount rewardSum = 0;
+
+        ui->tableWidget->clearContents();
+        ui->tableWidget->setRowCount(0);
+
+        std::function<QTableWidgetItem * (QString)> createItem = [](QString title) {
+            QTableWidgetItem * item = new QTableWidgetItem(title);
+            item->setTextAlignment(Qt::AlignCenter);
+            return item;
+        };
+
+        BOOST_FOREACH(const rewardEntry_p& reward, rewardList) {
 
             ui->tableWidget->insertRow(nRow);
             QString sWalletLabel = model->getAddressTableModel()->labelForAddress(reward.first);
             if (sWalletLabel.isEmpty())
                 sWalletLabel = tr("(no label)");
 
-            ui->tableWidget->setItem(nRow, 0, new QTableWidgetItem(sWalletLabel));
-            ui->tableWidget->setItem(nRow, 1, new QTableWidgetItem(reward.first));
-            ui->tableWidget->setItem(nRow, 2, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.balance)));
+            ui->tableWidget->setItem(nRow, 0, createItem(sWalletLabel));
+            ui->tableWidget->setItem(nRow, 1, createItem(reward.first));
+            ui->tableWidget->setItem(nRow, 2, createItem(BitcoinUnits::format(nDisplayUnit, reward.second.balance) + " " +  BitcoinUnits::name(nDisplayUnit)));
 
-            if( reward.second.eligible ){
-                 ui->tableWidget->setItem(nRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, reward.second.balanceOnStart)));
-            }else{
-                ui->tableWidget->setItem(nRow, 3, new QTableWidgetItem(BitcoinUnits::format(nDisplayUnit, 0)));
-            }
+            CAmount amount = reward.second.eligible ? reward.second.balanceOnStart : 0;
+            CAmount expectedReward = amount * current.percent;
+            rewardSum += expectedReward;
+
+            ui->tableWidget->setItem(nRow, 3, createItem(BitcoinUnits::format(nDisplayUnit, amount) + " " +  BitcoinUnits::name(nDisplayUnit)));
+            ui->tableWidget->setItem(nRow, 4, createItem(BitcoinUnits::format(nDisplayUnit, expectedReward) + " " +  BitcoinUnits::name(nDisplayUnit)));
 
             nRow++;
 
         }
 
+        ui->sumLabel->setText(BitcoinUnits::format(nDisplayUnit, rewardSum) + " " +  BitcoinUnits::name(nDisplayUnit));
+
+        if( ui->stackedWidget->currentIndex() != 2) ui->stackedWidget->setCurrentIndex(2);
+
+    }else{
+        int progress = prewards->GetProgress() * ui->loadingProgress->maximum();
+        ui->loadingProgress->setValue(progress);
+
+        // If not show the loading view.
+        if( ui->stackedWidget->currentIndex() != 1) ui->stackedWidget->setCurrentIndex(1);
+    }
+
 }
- 
- void SmartrewardsList::contextualMenu(const QPoint &point)
- {
-     QModelIndex index =  ui->tableWidget->indexAt(point);
-     QModelIndexList selection =  ui->tableWidget->selectionModel()->selectedRows(0);
-     if (selection.empty())
-         return;
-
-     if(index.isValid())
-     {
-         contextMenu->exec(QCursor::pos());
-     }
- }
-
- void SmartrewardsList::copyLabel()
- {
-     GUIUtil::copyEntryData(ui->tableWidget, 0);
- }
-
-
- void SmartrewardsList::copyAddress()
- {
-     GUIUtil::copyEntryData(ui->tableWidget, 1);
- }
-
-
- void SmartrewardsList::copyAmount()
- {
-     GUIUtil::copyEntryData(ui->tableWidget, 2);
- }
-
-
- void SmartrewardsList::copyEligibleAmount()
- {
-     GUIUtil::copyEntryData(ui->tableWidget, 3);
- }

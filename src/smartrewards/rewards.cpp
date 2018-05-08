@@ -5,6 +5,7 @@
 #include "smartrewards/rewards.h"
 #include "validation.h"
 #include "init.h"
+#include "ui_interface.h"
 #include <boost/range/irange.hpp>
 
 CSmartRewards *prewards = NULL;
@@ -341,7 +342,13 @@ bool CSmartRewards::SyncPrepared()
 
 bool CSmartRewards::IsSynced()
 {
+    return (chainHeight - rewardHeight) <= nRewardsSyncDistance;
+}
 
+double CSmartRewards::GetProgress()
+{
+    double progress = chainHeight > nRewardsSyncDistance ? double(rewardHeight) / double(chainHeight - nRewardsSyncDistance) : 0.0;
+    return progress > 1 ? 1 : progress;
 }
 
 bool CSmartRewards::AddBlock(const CSmartRewardBlock &block, bool sync)
@@ -395,6 +402,12 @@ bool CSmartRewards::GetRewardRounds(CSmartRewardRoundList &vect)
     return pdb->ReadRounds(vect);
 }
 
+void CSmartRewards::UpdateHeights(const int nHeight, const int nRewardHeight)
+{
+    chainHeight = nHeight;
+    rewardHeight = nRewardHeight;
+}
+
 bool CSmartRewards::UpdateRound(const CSmartRewardRound &round)
 {
     LOCK(csDb);
@@ -438,14 +451,24 @@ void ThreadSmartRewards()
     CBlockIndex *currentIndex = NULL;
     CChainParams chainparams = Params();
 
+    // Used to determine the time of the next SmartRewards UI update.
+    int64_t lastUIUpdate = 0;
+
     int64_t nTimeTotal = 0;
     int64_t nTimeUpdateRewards = 0;
     int64_t nTimeUpdateRewardsTotal = 0;
     int64_t nCountUpdateRewards = 0;
 
+    // Initialize the UI
+    {
+        LOCK(cs_main);
+        currentIndex = chainActive.Tip();
+    }
+    prewards->UpdateHeights(currentIndex->nHeight, currentBlock.nHeight);
+    uiInterface.NotifySmartRewardUpdate();
+
     while (true)
     {
-
         int64_t nTime1 = GetTimeMicros();
 
         {
@@ -630,16 +653,16 @@ void ThreadSmartRewards()
             if( !prewards->FinalizeRound(round, next, entries, payouts) ) throw runtime_error("Could't finalize round!");
         }
 
+        prewards->UpdateHeights(currentIndex->nHeight, lastIndex->nHeight);
+
         int64_t nTime5 = GetTimeMicros();
 
-        // Check if the reward list is synced
-        if(1){
-            //If yes we notify the UI on each new block.
-
-        }else{
-            // If not notify the UI every 100 blocks to let it update the
-            // loading screen.
-
+        // If we are synced notify the UI on each new block.
+        // If not notify the UI every nRewardsUISyncUpdateRate blocks to let it update the
+        // loading screen.
+        if( prewards->IsSynced() || !lastUIUpdate || lastIndex->nHeight - lastUIUpdate > nRewardsUISyncUpdateRate ){
+            lastUIUpdate = lastIndex->nHeight;
+            uiInterface.NotifySmartRewardUpdate();
         }
 
         int64_t nTime6 = GetTimeMicros(); nTimeTotal += nTime6 - nTime1;

@@ -14,6 +14,11 @@ using namespace std;
 static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
 // Cache n blocks before the sync (leveldb batch write).
 const int64_t nCacheBlocks = 50;
+// Minimum distance of the last processed block compared to the current chain
+// height to assume the rewards are synced.
+const int nRewardsSyncDistance = 30;
+// Number of blocks we update the SmartRewards UI when we are in the sync process
+const int nRewardsUISyncUpdateRate = 100;
 
 // Timestamps of the first round's start and end
 const int64_t firstRoundStartTime = 1500966000;
@@ -35,6 +40,8 @@ struct CSmartRewardsUpdateResult
 class CSmartRewards
 {
     CSmartRewardsDB * pdb;
+    int chainHeight;
+    int rewardHeight;
 
     CSmartRewardBlockList blockEntries;
     CSmartRewardTransactionList transactionEntries;
@@ -56,9 +63,11 @@ public:
     bool GetCurrentRound(CSmartRewardRound &round);
     bool GetRewardRounds(CSmartRewardRoundList &vect);
 
+    void UpdateHeights(const int nHeight, const int nRewardHeight);
     bool Verify();
     bool SyncPrepared();
     bool IsSynced();
+    double GetProgress();
 
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync);
     bool UpdateCurrentRound(const CSmartRewardRound &round);

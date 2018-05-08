@@ -120,6 +120,9 @@ public:
 
     /** Banlist did change. */
     boost::signals2::signal<void (void)> BannedListChanged;
+
+    /** Best header has changed */
+    boost::signals2::signal<void (void)> NotifySmartRewardUpdate;
 };
 
 // /** Show warning message **/
