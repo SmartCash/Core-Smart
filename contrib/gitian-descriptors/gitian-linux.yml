@@ -1,5 +1,5 @@
 ---
-name: "smartcash-linux-1.0"
+name: "smartcash-linux-1.2"
 enable_cache: true
 suites:
 - "trusty"
@@ -28,8 +28,8 @@ packages:
 - "ca-certificates"
 - "python"
 remotes:
-- "url": "https://github.com/smartcash/smartcash.git"
-  "dir": "smartcash"
+- "url": "https://github.com/smartcash/core-smart.git"
+  "dir": "core-smart"
 files: []
 script: |
 

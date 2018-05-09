@@ -152,6 +152,9 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
          CScript FOUNDER_3_SCRIPT;
          CScript FOUNDER_4_SCRIPT;
          CScript FOUNDER_5_SCRIPT;
+         CScript FOUNDER_6_SCRIPT;
+         CScript FOUNDER_7_SCRIPT;
+         CScript FOUNDER_8_SCRIPT;
 
          if(!fTestNet && (GetAdjustedTime() > nStartRewardTime)){
                 FOUNDER_1_SCRIPT = GetScriptForDestination(CBitcoinAddress("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M").Get());
@@ -159,6 +162,9 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
                 FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF").Get());
                 FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo").Get());
                 FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b").Get());
+                FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay").Get());
+                FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sgq5c4Rznibagv1aopAfPA81jac392scvm").Get());
+                FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8").Get());
          }else if(!fTestNet && (GetAdjustedTime() <= nStartRewardTime)){
              throw std::runtime_error("CreateNewBlock() : Create new block too early");
          }else{
@@ -167,8 +173,10 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
                 FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("TDJVZE5oCYYbJQyizU4FgB2KpnKVdebnxg").Get());
                 FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("TSziXCdaBcPk3Dt94BbTH9BZDH18K6sWsc").Get());
                 FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("TLn1PGAVccBBjF8JuhQmATCR8vxhmamJg8").Get());
+                FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("TCi1wcVbkmpUiTcG277o5Y3VeD3zgtsHRD").Get());
+                FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB").Get());
+                FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
          }
-
 
          if ((nHeight > 0) && (nHeight < 90000)) {
             // Take out amounts for budgets
@@ -203,7 +211,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             }
          }
          
-         if ((nHeight >= HF_SMARTNODE_HEIGHT) && (nHeight < 717499999)) {
+         if ((nHeight >= HF_SMARTNODE_HEIGHT) && (nHeight < 550000)) {
             // Take out amounts for budgets.
             coinbaseTx.vout[0].nValue =-((int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 85 block rotation
@@ -223,6 +231,42 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             }
             if(blockRotation >= 39 && blockRotation <= 84){
                   coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
+            }
+            CAmount smartnodePayment = (int64_t)(0.1 * (GetBlockValue(nHeight, 0, pindexPrev->nTime)));
+            // Take out amounts for SmartNode payments.
+            coinbaseTx.vout[0].nValue -= smartnodePayment;
+            // And pay the next SmartNode in line
+            FillBlockPayments(coinbaseTx, nHeight, smartnodePayment, pblock->txoutSmartnode, pblock->voutSuperblock);
+        }
+         if ((nHeight >= 550000) && (nHeight < 717499999)) {
+            // Take out amounts for budgets.
+            coinbaseTx.vout[0].nValue =-((int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
+            // And pay the budgets over 85 block rotation
+            int blockRotation = nHeight - 85 * ((pindexPrev->nHeight+1)/85);
+            int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime)));
+            if(blockRotation >= 0 && blockRotation <= 3){
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
+            }
+            if(blockRotation >= 4 && blockRotation <= 7){
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_2_SCRIPT.begin(), FOUNDER_2_SCRIPT.end())));
+            }
+            if(blockRotation >= 8 && blockRotation <= 11){
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_3_SCRIPT.begin(), FOUNDER_3_SCRIPT.end())));
+            }
+            if(blockRotation >= 12 && blockRotation <= 15){
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_6_SCRIPT.begin(), FOUNDER_6_SCRIPT.end())));
+            }
+            if(blockRotation >= 16 && blockRotation <= 19){
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_7_SCRIPT.begin(), FOUNDER_7_SCRIPT.end())));
+            }
+            if(blockRotation >= 20 && blockRotation <= 23){
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_8_SCRIPT.begin(), FOUNDER_8_SCRIPT.end())));
+            }
+            if(blockRotation >= 24 && blockRotation <= 38){
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
+            }
+            if(blockRotation >= 39 && blockRotation <= 84){
+                  coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())$
             }
             CAmount smartnodePayment = (int64_t)(0.1 * (GetBlockValue(nHeight, 0, pindexPrev->nTime)));
             // Take out amounts for SmartNode payments.
