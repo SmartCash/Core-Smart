@@ -450,7 +450,6 @@ void ThreadSmartRewards()
     int64_t lastUIUpdate = 0;
 
     int64_t nTimeTotal = 0;
-    int64_t nTimeUpdateRewards = 0;
     int64_t nTimeUpdateRewardsTotal = 0;
     int64_t nCountUpdateRewards = 0;
 
@@ -541,7 +540,6 @@ void ThreadSmartRewards()
 
         int64_t nTime4 = GetTimeMicros();
 
-        nTimeUpdateRewards += nTime4 - nTime3;
         nTimeUpdateRewardsTotal += nTime4 - nTime3;
         ++nCountUpdateRewards;
 
@@ -662,13 +660,14 @@ void ThreadSmartRewards()
 
         int64_t nTime6 = GetTimeMicros(); nTimeTotal += nTime6 - nTime1;
 
-        if(!(currentBlock.nHeight % 1000) || snapshot){
-            LogPrintf("[%d] Get index [%d]: %.2fms\n",round.number, currentBlock.nHeight, (nTime2 - nTime1) * 0.001);
-            LogPrintf("[%d] Next index [%d]: %.2fms\n",round.number,currentBlock.nHeight, (nTime3 - nTime2) * 0.001);
-            LogPrintf("[%d] Update rewards [%d]: %.2fms / %.2fms [%.2fs]\n",round.number,currentBlock.nHeight, (nTime4 - nTime3) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001, nTimeUpdateRewards * 0.000001);
-            LogPrintf("[%d] Evaluate round [%d]: %.2fms\n",round.number,currentBlock.nHeight, (nTime5 - nTime4) * 0.001);
-            LogPrintf("[%d] Notify UI [%d]: %.2fms\n",round.number,currentBlock.nHeight, (nTime6 - nTime5) * 0.001);
-            LogPrintf("[%d] Total: %.2fms [%.2fs]\n", round.number, (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
+        if(!(currentBlock.nHeight % 10000) || snapshot){
+            LogPrintf("Round %d - Block: %d - Progress %d%%\n",round.number, currentBlock.nHeight, int(prewards->GetProgress() * 100));
+            LogPrintf("  Get index : %.2fms\n", (nTime2 - nTime1) * 0.001);
+            LogPrintf("  Next index: %.2fms\n", (nTime3 - nTime2) * 0.001);
+            LogPrintf("  Update rewards: %.2fms [%.2fms]\n", (nTime4 - nTime3) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001);
+            LogPrintf("  Evaluate round: %.2fms\n", (nTime5 - nTime4) * 0.001);
+            LogPrintf("  Notify UI: %.2fms\n", (nTime6 - nTime5) * 0.001);
+            LogPrintf("  Total: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
         }
     }
 }
