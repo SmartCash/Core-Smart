@@ -19,15 +19,6 @@ static std::vector<CSmartRewardId> blacklist = {
     CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo") // Legacy smartrewards"
 };
 
-bool isBlacklisted(const CSmartRewardId &id)
-{
-
-    BOOST_FOREACH(const CSmartRewardId &b, blacklist)
-        if( id == b ) return true;
-
-    return false;
-}
-
 int ParseScript(const CScript &script, std::vector<CSmartRewardId> &ids){
 
     std::vector<CTxDestination> addresses;
@@ -168,74 +159,93 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
     return AddBlock(result.block, sync);
 }
 
-void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardPayoutList &payouts)
+void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots)
 {
     LOCK(csDb);
-    payouts.clear();
+    snapshots.clear();
 
-    BOOST_FOREACH(CSmartRewardEntry &e, entries) {
+    BOOST_FOREACH(CSmartRewardEntry &entry, entries) {
 
-        if( e.eligible ) payouts.push_back(CSmartRewardPayout(e, current));
+        if( current.number ) snapshots.push_back(CSmartRewardSnapshot(entry, current));
 
-        e.balanceOnStart = e.balance;
+        auto blacklisted = std::find(blacklist.begin(), blacklist.end(), entry.id);
 
-        if( e.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !isBlacklisted(e.id) ){
+        entry.balanceOnStart = entry.balance;
+        entry.eligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && blacklisted == blacklist.end();
 
-            e.eligible = true;
-
+        if( entry.eligible ){
             ++next.eligibleEntries;
-            next.eligibleSmart += e.balanceOnStart;
-        }else{
-            e.eligible = false;
+            next.eligibleSmart += entry.balanceOnStart;
         }
 
     }
 
 }
 
-bool CSmartRewards::FinalizeRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries)
+bool CSmartRewards::StartFirstRound(const CSmartRewardRound &first, const CSmartRewardEntryList &entries)
 {
     LOCK(csDb);
-    return pdb->FinalizeRound(next,entries);
+    return pdb->StartFirstRound(first,entries);
 }
 
-bool CSmartRewards::FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardPayoutList &payouts)
+bool CSmartRewards::FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshots)
 {
     LOCK(csDb);
-    return pdb->FinalizeRound(current, next, entries, payouts);
+    return pdb->FinalizeRound(current, next, entries, snapshots);
 }
 
-bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardPayoutList &payouts)
+bool CSmartRewards::GetRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots)
+{
+    LOCK(csDb);
+    return pdb->ReadRewardSnapshots(round, snapshots);
+}
+
+bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts)
 {
     LOCK(csDb);
     return pdb->ReadRewardPayouts(round, payouts);
+}
+
+
+// --- TBD ---
+bool CSmartRewards::RestoreSnapshot(const int16_t round)
+{
+//    LOCK(csDb);
+
+//    CSmartRewardRound restore;
+//    CSmartRewardEntryList entries;
+
+//    if( !pdb->ReadRound(round, restore) ) return false;
+//    if( !pdb->ReadRewardSnapshots(round, entries) ) return false;
+//    if( history.number != round) return false;
+
+//    restore.disqualifiedEntries = 0;
+//    restore.disqualifiedSmart = 0;
+//    restore.rewards = 0;
+//    restore.percent = 0;
+
+//    CalculateRewardRatio(restore);
+
+//    return pdb->ResetToRound(round, restore, entries);
+    return false;
+}
+
+void CSmartRewards::RemovePrepared(const CSmartRewardEntry &entry)
+{
+    // Remove the entries if its marked to become removed.
+    auto checkRemove = std::find(removeEntries.begin(), removeEntries.end(), entry);
+    if( checkRemove != removeEntries.end() ) removeEntries.erase(checkRemove);
+    // Remove the entries if its marked to become updated.
+    auto checkUpdate = std::find(updateEntries.begin(), updateEntries.end(), entry);
+    if( checkUpdate != updateEntries.end() ) updateEntries.erase(checkUpdate);
 }
 
 void CSmartRewards::PrepareForUpdate(const CSmartRewardEntry &entry)
 {
     LOCK(csDb);
 
-    for (auto i = removeEntries.begin(); i != removeEntries.end(); ) {
-
-        if (*i == entry) {
-            i = removeEntries.erase(i);
-            break;
-        } else {
-            ++i;
-        }
-
-    }
-
-    for (auto i = updateEntries.begin(); i != updateEntries.end(); ) {
-
-        if (*i == entry) {
-            i = updateEntries.erase(i);
-            break;
-        } else {
-            ++i;
-        }
-
-    }
+    // If it is prepared for update/remove delete it first.
+    RemovePrepared(entry);
 
     updateEntries.push_back(entry);
 }
@@ -243,30 +253,9 @@ void CSmartRewards::PrepareForUpdate(const CSmartRewardEntry &entry)
 void CSmartRewards::PrepareForRemove(const CSmartRewardEntry &entry)
 {
     LOCK(csDb);
-    // If the entry is already marked for to become removed
-    // return remove it from the list.
-    for (auto i = removeEntries.begin(); i != removeEntries.end(); ) {
 
-        if (*i == entry) {
-            i = removeEntries.erase(i);
-            break;
-        } else {
-            ++i;
-        }
-
-    }
-    // If the entry is already marked for to become updated
-    // return remove it from the list.
-    for (auto i = updateEntries.begin(); i != updateEntries.end(); ) {
-
-        if (*i == entry) {
-            i = updateEntries.erase(i);
-            break;
-        } else {
-            ++i;
-        }
-
-    }
+    // If it is prepared for update/remove delete it first.
+    RemovePrepared(entry);
 
     // And add the new one.
     removeEntries.push_back(entry);
@@ -285,22 +274,24 @@ void CSmartRewards::GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &
 
     added = false;
 
-    // If the entry is already marked for to become updated
-    // return this one.
-    BOOST_FOREACH(CSmartRewardEntry e, updateEntries) {
-        if(e.id == id){
-            entry = e;
-            return;
-        }
+    auto checkEntry = [id](const CSmartRewardEntry &e) -> bool {
+                                return e.id == id;
+                           };
+
+    // Return the entry prepared for update if it exists.
+    auto checkRemove = std::find_if(removeEntries.begin(), removeEntries.end(), checkEntry);
+
+    if( checkRemove != removeEntries.end() ){
+        entry = *checkRemove;
+        return;
     }
 
-    // If the entry is already marked for to become removed
-    // return this one.
-    BOOST_FOREACH(CSmartRewardEntry e, removeEntries) {
-        if(e.id == id){
-            entry = e;
-            return;
-        }
+    // Return the entry prepared for remove if it exists.
+    auto checkUpdate = std::find_if(updateEntries.begin(), updateEntries.end(), checkEntry);
+
+    if( checkUpdate != updateEntries.end() ){
+        entry = *checkUpdate;
+        return;
     }
 
     // Otherwise use the one from the database.
@@ -407,11 +398,6 @@ void CSmartRewards::UpdateHeights(const int nHeight, const int nRewardHeight)
     rewardHeight = nRewardHeight;
 }
 
-bool CSmartRewards::UpdateRound(const CSmartRewardRound &round)
-{
-    LOCK(csDb);
-    return pdb->WriteRound(round);
-}
 
 bool CSmartRewards::UpdateCurrentRound(const CSmartRewardRound &round)
 {
@@ -568,26 +554,26 @@ void ThreadSmartRewards()
                 if( !prewards->SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
 
                 // Create the very first smartrewards round.
-                CSmartRewardRound next;
-                next.number = 1;
-                next.startBlockTime = lastIndex->GetBlockTime();
-                next.startBlockHeight = firstRoundStartBlock;
-                next.endBlockTime = firstRoundEndTime;
+                CSmartRewardRound first;
+                first.number = 1;
+                first.startBlockTime = lastIndex->GetBlockTime();
+                first.startBlockHeight = firstRoundStartBlock;
+                first.endBlockTime = firstRoundEndTime;
                 // Estimate the block, gets updated on the end of the round to the real one.
-                next.endBlockHeight = firstRoundEndBlock;
+                first.endBlockHeight = firstRoundEndBlock;
 
                 CSmartRewardEntryList entries;
-                CSmartRewardPayoutList payouts;
+                CSmartRewardSnapshotList snapshots;
 
                 // Get the current entries
                 if( !prewards->GetRewardEntries(entries) ) throw runtime_error("Could't read all reward entries!");
 
                 // Evaluate the round and update the next rounds parameter.
-                prewards->EvaluateRound(round, next, entries, payouts );
+                prewards->EvaluateRound(round, first, entries, snapshots );
 
-                CalculateRewardRatio(next);
+                CalculateRewardRatio(first);
 
-                if( !prewards->FinalizeRound(next, entries) ) throw runtime_error("Could't finalize round!");
+                if( !prewards->StartFirstRound(first, entries) ) throw runtime_error("Could't finalize round!");
             }
 
         }else if( result.disqualifiedEntries || result.disqualifiedSmart ){
@@ -615,7 +601,7 @@ void ThreadSmartRewards()
             round.endBlockTime = lastIndex->GetBlockTime();
 
             CSmartRewardEntryList entries;
-            CSmartRewardPayoutList payouts;
+            CSmartRewardSnapshotList snapshots;
 
             // Create the next round.
             CSmartRewardRound next;
@@ -652,11 +638,11 @@ void ThreadSmartRewards()
             CalculateRewardRatio(round);
 
             // Evaluate the round and update the next rounds parameter.
-            prewards->EvaluateRound(round, next, entries, payouts );
+            prewards->EvaluateRound(round, next, entries, snapshots);
 
             CalculateRewardRatio(next);
 
-            if( !prewards->FinalizeRound(round, next, entries, payouts) ) throw runtime_error("Could't finalize round!");
+            if( !prewards->FinalizeRound(round, next, entries, snapshots) ) throw runtime_error("Could't finalize round!");
         }
 
         prewards->UpdateHeights(getBlockHeight(currentIndex), lastIndex->nHeight);

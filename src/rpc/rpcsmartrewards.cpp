@@ -31,7 +31,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if (fHelp  ||
         (
-         strCommand != "current" && strCommand != "history" && strCommand != "check" && strCommand != "payouts"))
+         strCommand != "current" && strCommand != "snapshot" && strCommand != "history" && strCommand != "check" && strCommand != "payouts"))
             throw std::runtime_error(
                 "smartrewards \"command\"...\n"
                 "Set of commands to execute smartreward related actions\n"
@@ -41,8 +41,12 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
                 "  current      - Print information about the current SmartReward cycle.\n"
                 "  history      - Print the results of all past SmartReward cycles.\n"
                 "  payouts      - Print a list of all paid rewards in a past cycle.\n"
+                "  snapshot     - Print a list of all addresses with their balances from the end of a past cycle.\n"
                 "  check        - Check a SmartCash address for eligibility in the current rewards cycle.\n"
                 );
+
+    if( !fDebug && !prewards->IsSynced() )
+        throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Rewards database is not up to date. Current progress %d%%",int(prewards->GetProgress() * 100)));
 
     if (strCommand == "current")
     {
@@ -123,19 +127,62 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         if(round < 1 || round >= current.number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
-        CSmartRewardPayoutList payouts;
+        CSmartRewardSnapshotList payouts;
 
         if( !prewards->GetRewardPayouts(round,payouts) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't fetch the list from the database.");
 
         UniValue obj(UniValue::VARR);
 
-        BOOST_FOREACH(CSmartRewardPayout payout, payouts) {
+        BOOST_FOREACH(CSmartRewardSnapshot payout, payouts) {
 
             UniValue addrObj(UniValue::VOBJ);
             addrObj.push_back(Pair("address", payout.id.ToString()));
-            addrObj.push_back(Pair("balance", format(payout.balance)));
             addrObj.push_back(Pair("reward", format(payout.reward)));
+
+            obj.push_back(addrObj);
+        }
+
+        return obj;
+    }
+
+    if(strCommand == "snapshot")
+    {
+        CSmartRewardRound current;
+        if( !prewards->GetCurrentRound(current) )
+            throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
+
+        int round = 0;
+        std::string err = strprintf("Past SmartReward round required: 1 - %d ",current.number - 1 );
+
+        if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
+
+        try {
+             int n = std::stoi(params[1].get_str());
+             round = n;
+        }
+        catch (const std::invalid_argument& ia) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, err);
+        }
+        catch (const std::out_of_range& oor) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, err);
+        }
+        catch (...) {}
+
+        if(round < 1 || round >= current.number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
+
+        CSmartRewardSnapshotList snapshot;
+
+        if( !prewards->GetRewardSnapshots(round,snapshot) )
+            throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't fetch the list from the database.");
+
+        UniValue obj(UniValue::VARR);
+
+        BOOST_FOREACH(CSmartRewardSnapshot s, snapshot) {
+
+            UniValue addrObj(UniValue::VOBJ);
+            addrObj.push_back(Pair("address", s.id.ToString()));
+            addrObj.push_back(Pair("balance", format(s.balance)));
 
             obj.push_back(addrObj);
         }

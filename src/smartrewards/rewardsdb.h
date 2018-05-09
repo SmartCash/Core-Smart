@@ -23,13 +23,13 @@ static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 class CSmartRewardBlock;
 class CSmartRewardEntry;
 class CSmartRewardRound;
-class CSmartRewardPayout;
+class CSmartRewardSnapshot;
 class CSmartRewardTransaction;
 
 typedef std::vector<CSmartRewardBlock> CSmartRewardBlockList;
 typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
-typedef std::vector<CSmartRewardPayout> CSmartRewardPayoutList;
+typedef std::vector<CSmartRewardSnapshot> CSmartRewardSnapshotList;
 typedef std::vector<CSmartRewardTransaction> CSmartRewardTransactionList;
 
 class CSmartRewardTransaction
@@ -182,11 +182,12 @@ public:
     CSmartRewardId id;
     CAmount balance;
     CAmount balanceOnStart;
+    CAmount reward;
     bool eligible;
 
     CSmartRewardEntry() : id(CSmartRewardId()),
                           balance(0), balanceOnStart(0),
-                          eligible(false) {}
+                          reward(0), eligible(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -203,7 +204,7 @@ public:
     std::string ToString() const;
 };
 
-class CSmartRewardPayout
+class CSmartRewardSnapshot
 {
 
 public:
@@ -221,20 +222,20 @@ public:
         READWRITE(reward);
     }
 
-    CSmartRewardPayout(){}
+    CSmartRewardSnapshot(){}
 
-    CSmartRewardPayout(const CSmartRewardEntry &entry, const CSmartRewardRound &round) {
+    CSmartRewardSnapshot(const CSmartRewardEntry &entry, const CSmartRewardRound &round) {
         id = entry.id;
-        balance = entry.balanceOnStart;
-        reward = CAmount(balance * round.percent);
+        balance = entry.balance;
+        reward = entry.eligible ? CAmount(entry.balanceOnStart * round.percent) : 0;
     }
 
-    friend bool operator==(const CSmartRewardPayout& a, const CSmartRewardPayout& b)
+    friend bool operator==(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
     {
         return (a.id == b.id);
     }
 
-    friend bool operator!=(const CSmartRewardPayout& a, const CSmartRewardPayout& b)
+    friend bool operator!=(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
     {
         return !(a == b);
     }
@@ -242,6 +243,7 @@ public:
     std::string GetAddress() const;
     std::string ToString() const;
 };
+
 
 /** Access to the rewards database (rewards/) */
 class CSmartRewardsDB : public CDBWrapper
@@ -255,7 +257,7 @@ public:
 
     bool Verify();
 
-    bool ResetToRound(const int16_t round);
+    bool ResetToRound(const int16_t number, const CSmartRewardRound &round, const CSmartRewardEntryList &entries);
 
     bool ReadBlock(const int nHeight, CSmartRewardBlock &block);
     bool ReadLastBlock(CSmartRewardBlock &block);
@@ -263,25 +265,20 @@ public:
     bool ReadTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
 
     bool ReadRound(const int16_t number, CSmartRewardRound &round);
-    bool WriteRound(const CSmartRewardRound &round);
     bool ReadRounds(CSmartRewardRoundList &vect);
 
     bool ReadCurrentRound(CSmartRewardRound &round);
     bool WriteCurrentRound(const CSmartRewardRound &round);
 
     bool ReadRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry);
-    bool WriteRewardEntry(const CSmartRewardEntry &entry);
-    bool RemoveRewardEntry(const CSmartRewardEntry &entry);
-
     bool ReadRewardEntries(CSmartRewardEntryList &vect);
-    bool WriteRewardEntries(const CSmartRewardEntryList &vect);
 
-    bool ReadRewardPayouts(const int16_t round, CSmartRewardPayoutList &payouts);
-    bool WriteRewardPayouts(const int16_t round, const CSmartRewardPayoutList &payouts);
+    bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
 
     bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions);
-    bool FinalizeRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
-    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardPayoutList &payouts);
+    bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshot);
 
 };
 

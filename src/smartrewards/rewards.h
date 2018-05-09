@@ -54,6 +54,7 @@ class CSmartRewards
 
     void PrepareForUpdate(const CSmartRewardEntry &entry);
     void PrepareForRemove(const CSmartRewardEntry &entry);
+    void RemovePrepared(const CSmartRewardEntry &entry);
     bool AddBlock(const CSmartRewardBlock &block, bool sync);
     void AddTransaction(const CSmartRewardTransaction &transaction);
 public:
@@ -78,11 +79,15 @@ public:
     bool GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry);
     void GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry, bool &added);
     bool GetRewardEntries(CSmartRewardEntryList &entries);
-    void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardPayoutList &payouts);
-    bool FinalizeRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
-    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardPayoutList &payouts);
 
-    bool GetRewardPayouts(const int16_t round, CSmartRewardPayoutList &payouts);
+    void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots);
+    bool StartFirstRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshots);
+
+    bool GetRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
+    bool GetRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
+
+    bool RestoreSnapshot(const int16_t round);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
