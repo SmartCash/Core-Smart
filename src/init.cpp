@@ -64,6 +64,8 @@
 // #include "privatesend-server.h"
 #include "smartnode/spork.h"
 
+#include "smartrewards/rewards.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <memory>
@@ -278,6 +280,8 @@ void PrepareShutdown()
         pcoinsdbview = NULL;
         delete pblocktree;
         pblocktree = NULL;
+        delete prewards;
+        prewards = NULL;
     }
 #ifdef ENABLE_WALLET
     if (pwalletMain)
@@ -885,7 +889,7 @@ void InitLogging()
     fLogThreadNames = GetBoolArg("-logthreadnames", DEFAULT_LOGTHREADNAMES);
     fLogIPs = GetBoolArg("-logips", DEFAULT_LOGIPS);
 
-    LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    LogPrintf("\n\n\n\n");
     LogPrintf("Smartcash version %s\n", FormatFullVersion());
 }
 
@@ -1475,6 +1479,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     LogPrintf("* Using %.1fMiB for chain state database\n", nCoinDBCache * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1fMiB for in-memory UTXO set (plus up to %.1fMiB of unused mempool space)\n", nCoinCacheUsage * (1.0 / 1024 / 1024), nMempoolSizeMax * (1.0 / 1024 / 1024));
 
+
+    int64_t nRewardsCache = (GetArg("-rewardsdbcache", nRewardsDefaultDbCache) << 20);
+    LogPrintf("* Using %.1fMiB for smart rewards database\n", nRewardsCache * (1.0 / 1024 / 1024));
+
     bool fLoaded = false;
     while (!fLoaded && !fRequestShutdown) {
         bool fReset = fReindex;
@@ -1600,6 +1608,78 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
 
+    CSmartRewardsDB * prewardsdb = nullptr;
+    bool fResetRewards = GetBoolArg("-reset-rewards", false);
+    fLoaded = false;
+    while (!fLoaded && !fRequestShutdown) {
+
+        std::string strLoadError;
+
+        uiInterface.InitMessage(_("Verifying SmartRewards..."));
+
+        nStart = GetTimeMillis();
+        do {
+            try {
+
+                delete prewards;
+                delete prewardsdb;
+
+                CSmartRewardsDB * prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fResetRewards);
+                prewards = new CSmartRewards(prewardsdb);
+
+                if( !(fLoaded = prewards->Verify())) throw std::runtime_error(_("Error verfying rewards database"));
+
+                if (fRequestShutdown) break;
+
+            } catch (const std::runtime_error &e) {
+                if (fDebug) LogPrintf("%s\n", e.what());
+                strLoadError = e.what();
+                break;
+            } catch (const std::exception &e) {
+                if (fDebug) LogPrintf("%s\n", e.what());
+                strLoadError = _("Error opening rewards database");
+                break;
+            } catch ( ... ){
+                if (fDebug) LogPrintf("Unexpected exception\n");
+                strLoadError = _("Unexpected error with the rewards database");
+                break;
+            }
+
+            fLoaded = true;
+
+        } while(false);
+
+        if (!fLoaded && !fRequestShutdown) {
+            // first suggest a reset
+            if (!fResetRewards) {
+                bool fRet = uiInterface.ThreadSafeQuestion(
+                    strLoadError + ".\n\n" + _("Do you want to rebuild the rewards database now?"),
+                    strLoadError + ".\nPlease restart with -reset-rewards.",
+                    "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
+                if (fRet) {
+                    fResetRewards = true;
+                    fRequestShutdown = false;
+                } else {
+                    LogPrintf("Aborted rewards database rebuild. Exiting.\n");
+                    return false;
+                }
+            } else {
+                return InitError(strLoadError);
+            }
+        }
+    }
+
+    // As LoadBlockIndex can take several minutes, it's possible the user
+    // requested to kill the GUI during the last operation. If so, exit.
+    // As the program has not fully started yet, Shutdown() is possibly overkill.
+    if (fRequestShutdown)
+    {
+        LogPrintf("Shutdown requested. Exiting.\n");
+        return false;
+    }
+    LogPrintf(" rewards %15dms\n", GetTimeMillis() - nStart);
+
+
     boost::filesystem::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
     CAutoFile est_filein(fopen(est_path.string().c_str(), "rb"), SER_DISK, CLIENT_VERSION);
     // Allowed to fail as this file IS missing on first startup.
@@ -1718,7 +1798,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
 
         // Warn user every time he starts non-encrypted HD wallet
-        if (GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET) && !pwalletMain->IsLocked()) {
+        if (!GetBoolArg("-smartnode", false) && GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET) && !pwalletMain->IsLocked()) {
             InitWarning(_("Make sure to encrypt your wallet and delete all non-encrypted backups after you verified that wallet works!"));
         }
 
@@ -1950,6 +2030,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 11d: start smartcash-privatesend thread
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
+
+    // ********************************************************* Step 11d: start smartcash-privatesend thread
+
+    threadGroup.create_thread(boost::bind(&ThreadSmartRewards));
 
     // ********************************************************* Step 12: start node
 

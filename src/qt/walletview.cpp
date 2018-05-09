@@ -133,7 +133,7 @@ void WalletView::setClientModel(ClientModel *clientModel)
     overviewPage->setClientModel(clientModel);
     sendCoinsPage->setClientModel(clientModel);
     smartnodeListPage->setClientModel(clientModel);
-    //smartrewardsListPage->setClientModel(clientModel);
+    smartrewardsListPage->setClientModel(clientModel);
 }
 
 void WalletView::setWalletModel(WalletModel *walletModel)

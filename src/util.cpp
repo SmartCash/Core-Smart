@@ -571,19 +571,35 @@ boost::filesystem::path GetConfigFile()
     return pathConfigFile;
 }
 
-boost::filesystem::path GetSmartnodeConfigFile() 
-{ 
-    boost::filesystem::path pathConfigFile(GetArg("-mnconf", "smartnode.conf")); 
-    if (!pathConfigFile.is_complete()) pathConfigFile = GetDataDir() / pathConfigFile; 
-    return pathConfigFile; 
-} 
+boost::filesystem::path GetSmartnodeConfigFile()
+{
+    boost::filesystem::path pathConfigFile(GetArg("-mnconf", "smartnode.conf"));
+    if (!pathConfigFile.is_complete())
+        pathConfigFile = GetDataDir() / pathConfigFile;
+
+    return pathConfigFile;
+}
 
 void ReadConfigFile(map<string, string>& mapSettingsRet,
                     map<string, vector<string> >& mapMultiSettingsRet)
 {
     boost::filesystem::ifstream streamConfig(GetConfigFile());
-    if (!streamConfig.good())
-        return; // No bitcoin.conf file is OK
+    boost::filesystem::path pathConfigFile = GetConfigFile();
+
+    if (!streamConfig.good()){
+        // No smartcash.conf file is, create it with some comments and return!
+
+        FILE* configFile = fopen(pathConfigFile.string().c_str(), "w");
+        if (configFile != NULL) {
+            std::string strHeader = "# SmartCash wallet config file\n\n"
+                                    "# Remove the foregoing # in the next line if "
+                                    "you plan to maintain smartnodes with your wallet.\n"
+                                    "#txindex=1\n";
+            fwrite(strHeader.c_str(), std::strlen(strHeader.c_str()), 1, configFile);
+            fclose(configFile);
+        }
+        return;
+    }
 
     set<string> setOptions;
     setOptions.insert("*");

@@ -353,6 +353,12 @@ static void NotifyAdditionalDataSyncProgressChanged(ClientModel *clientmodel, do
                               Q_ARG(double, nSyncProgress));
 }
 
+static void NotifySmartRewardsUI(ClientModel *clientmodel)
+{
+    //pass a async signal to the UI thread
+    QMetaObject::invokeMethod(clientmodel, "SmartRewardsUpdated", Qt::QueuedConnection);
+}
+
 void ClientModel::subscribeToCoreSignals()
 {
     // Connect signals to client
@@ -364,6 +370,7 @@ void ClientModel::subscribeToCoreSignals()
     uiInterface.NotifyBlockTip.connect(boost::bind(BlockTipChanged, this, _1, _2, false));
     uiInterface.NotifyHeaderTip.connect(boost::bind(BlockTipChanged, this, _1, _2, true));
     uiInterface.NotifyAdditionalDataSyncProgressChanged.connect(boost::bind(NotifyAdditionalDataSyncProgressChanged, this, _1));
+    uiInterface.NotifySmartRewardUpdate.connect(boost::bind(NotifySmartRewardsUI, this));
 }
 
 void ClientModel::unsubscribeFromCoreSignals()
@@ -377,4 +384,5 @@ void ClientModel::unsubscribeFromCoreSignals()
     uiInterface.NotifyBlockTip.disconnect(boost::bind(BlockTipChanged, this, _1, _2, false));
     uiInterface.NotifyHeaderTip.disconnect(boost::bind(BlockTipChanged, this, _1, _2, true));
     uiInterface.NotifyAdditionalDataSyncProgressChanged.disconnect(boost::bind(NotifyAdditionalDataSyncProgressChanged, this, _1));
+    uiInterface.NotifySmartRewardUpdate.disconnect(boost::bind(NotifySmartRewardsUI, this));
 }
