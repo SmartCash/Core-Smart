@@ -23,7 +23,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="page">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -319,6 +319,8 @@ QProgressBar::chunk {
                 <property name="font">
                  <font>
                   <pointsize>21</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
                  </font>
                 </property>
                 <property name="text">
@@ -460,7 +462,7 @@ QProgressBar::chunk {
          </column>
          <column>
           <property name="text">
-           <string>Expectable SmartReward</string>
+           <string>Expected SmartReward</string>
           </property>
          </column>
         </widget>
@@ -497,7 +499,7 @@ QProgressBar::chunk {
                </font>
               </property>
               <property name="text">
-               <string>Expectable SmartRewards</string>
+               <string>Expected SmartRewards</string>
               </property>
              </widget>
             </item>

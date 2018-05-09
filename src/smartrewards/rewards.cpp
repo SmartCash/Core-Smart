@@ -160,7 +160,6 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 PrepareForUpdate(rEntry);
             }
         }
-
     }
 
     uint256 blockHash = block.GetHash();

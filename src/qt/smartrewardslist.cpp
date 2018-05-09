@@ -29,7 +29,17 @@
 #include <QTableWidget>
 #include <QTime>
 
-typedef PAIRTYPE(QString,CSmartRewardEntry) rewardEntry_p;
+struct QSmartRewardField
+{
+    QString label;
+    QString address;
+    CAmount balance;
+    CAmount eligible;
+    CAmount reward;
+
+    QSmartRewardField() : label(QString()), address(QString()),
+                          balance(0), eligible(0),reward(0){}
+};
 
 SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
@@ -213,18 +223,74 @@ void SmartrewardsList::updateUI()
         std::map<QString, std::vector<COutput> > mapCoins;
         model->listCoins(mapCoins);
 
-        std::vector<const rewardEntry_p> rewardList;
+        std::vector<const QSmartRewardField> rewardList;
 
         BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
 
             QString sWalletAddress = coins.first;
+            QString sWalletLabel = model->getAddressTableModel()->labelForAddress(sWalletAddress);
 
-            bool added;
+            if (sWalletLabel.isEmpty())
+                sWalletLabel = tr("(no label)");
 
-            CSmartRewardId id(coins.first.toStdString());
-            CSmartRewardEntry entry;
-            prewards->GetRewardEntry(id, entry, added);
-            rewardList.push_back(make_pair(sWalletAddress, entry));
+            QSmartRewardField rewardField;
+
+            rewardField.address = sWalletAddress;
+            rewardField.label = sWalletLabel;
+
+            BOOST_FOREACH(const COutput& out, coins.second) {
+
+                CTxDestination outputAddress;
+                QString sAddress;
+
+                if(ExtractDestination(out.tx->vout[out.i].scriptPubKey, outputAddress)){
+
+                    sAddress = QString::fromStdString(CBitcoinAddress(outputAddress).ToString());
+
+                    if (!(sAddress == sWalletAddress)){ // change address
+
+                        QSmartRewardField change;
+                        CSmartRewardEntry reward;
+
+                        change.address = sAddress;
+                        change.label = tr("(change)");
+                        change.balance = out.tx->vout[out.i].nValue;
+
+                        if( prewards->GetRewardEntry(CSmartRewardId(sAddress.toStdString()),reward) ){
+
+                            change.eligible = reward.eligible ? reward.balanceOnStart : 0;
+                            change.reward = current.percent * change.eligible;
+                        }
+
+                        if( change.balance ) rewardList.push_back(change);
+
+                        continue;
+
+                    }else{
+
+                        rewardField.label = model->getAddressTableModel()->labelForAddress(rewardField.address);
+
+                        if (rewardField.label.isEmpty())
+                            rewardField.label = tr("(no label)");
+                    }
+
+                }
+
+                rewardField.balance += out.tx->vout[out.i].nValue;
+            }
+
+            if( !rewardField.address.isEmpty() ){
+
+                CSmartRewardEntry reward;
+
+                if( prewards->GetRewardEntry(CSmartRewardId(rewardField.address.toStdString()),reward) ){
+
+                    rewardField.eligible = reward.eligible ? reward.balanceOnStart : 0;
+                    rewardField.reward = current.percent * rewardField.eligible;
+                }
+
+                if( rewardField.balance ) rewardList.push_back(rewardField);
+            }
         }
 
         int nRow = 0;
@@ -240,26 +306,18 @@ void SmartrewardsList::updateUI()
             return item;
         };
 
-        BOOST_FOREACH(const rewardEntry_p& reward, rewardList) {
+        BOOST_FOREACH(const QSmartRewardField& field, rewardList) {
 
             ui->tableWidget->insertRow(nRow);
-            QString sWalletLabel = model->getAddressTableModel()->labelForAddress(reward.first);
-            if (sWalletLabel.isEmpty())
-                sWalletLabel = tr("(no label)");
 
-            ui->tableWidget->setItem(nRow, 0, createItem(sWalletLabel));
-            ui->tableWidget->setItem(nRow, 1, createItem(reward.first));
-            ui->tableWidget->setItem(nRow, 2, createItem(BitcoinUnits::format(nDisplayUnit, reward.second.balance) + " " +  BitcoinUnits::name(nDisplayUnit)));
-
-            CAmount amount = reward.second.eligible ? reward.second.balanceOnStart : 0;
-            CAmount expectedReward = amount * current.percent;
-            rewardSum += expectedReward;
-
-            ui->tableWidget->setItem(nRow, 3, createItem(BitcoinUnits::format(nDisplayUnit, amount) + " " +  BitcoinUnits::name(nDisplayUnit)));
-            ui->tableWidget->setItem(nRow, 4, createItem(BitcoinUnits::format(nDisplayUnit, expectedReward) + " " +  BitcoinUnits::name(nDisplayUnit)));
+            ui->tableWidget->setItem(nRow, 0, createItem(field.label));
+            ui->tableWidget->setItem(nRow, 1, createItem(field.address));
+            ui->tableWidget->setItem(nRow, 2, createItem(BitcoinUnits::format(nDisplayUnit, field.balance) + " " +  BitcoinUnits::name(nDisplayUnit)));
+            ui->tableWidget->setItem(nRow, 3, createItem(BitcoinUnits::format(nDisplayUnit, field.eligible) + " " +  BitcoinUnits::name(nDisplayUnit)));
+            ui->tableWidget->setItem(nRow, 4, createItem(BitcoinUnits::format(nDisplayUnit, field.reward) + " " +  BitcoinUnits::name(nDisplayUnit)));
 
             nRow++;
-
+            rewardSum += field.reward;
         }
 
         ui->sumLabel->setText(BitcoinUnits::format(nDisplayUnit, rewardSum) + " " +  BitcoinUnits::name(nDisplayUnit));
