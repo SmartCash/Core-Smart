@@ -27,7 +27,7 @@
 #include <QMessageBox>
 #include <QSortFilterProxyModel>
 #include <QTableWidget>
-#include <QTime>
+#include <QDateTime>
 
 struct QSmartRewardField
 {
@@ -185,7 +185,7 @@ void SmartrewardsList::updateUI()
 
         ui->roundLabel->setText(QString::number(current.number));
 
-        uint64_t currentTime = QDateTime::currentSecsSinceEpoch();
+        uint64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
         QDateTime roundEnd;
         roundEnd.setTime_t(current.endBlockTime);
         QString roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
@@ -223,7 +223,7 @@ void SmartrewardsList::updateUI()
         std::map<QString, std::vector<COutput> > mapCoins;
         model->listCoins(mapCoins);
 
-        std::vector<const QSmartRewardField> rewardList;
+        std::vector<QSmartRewardField> rewardList;
 
         BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
 
