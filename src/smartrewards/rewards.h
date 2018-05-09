@@ -20,7 +20,7 @@ const int nRewardsSyncDistance = 30;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int nRewardsUISyncUpdateRate = 100;
 // Timestamp of the first real transaction in the chain
-const int nFirstTxTimestamp = 1499790268;
+const int64_t nFirstTxTimestamp = 1499790268;
 
 // Timestamps of the first round's start and end
 const int64_t firstRoundStartTime = 1500966000;

@@ -16,7 +16,10 @@ static std::vector<CSmartRewardId> blacklist = {
     CSmartRewardId("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x"), // Support hive
     CSmartRewardId("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF"), // Development hive
     CSmartRewardId("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M"), // Outreach hive
-    CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo") // Legacy smartrewards"
+    CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo"), // Legacy smartrewards
+    CSmartRewardId("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay"), // New hive 1
+    CSmartRewardId("Sgq5c4Rznibagv1aopAfPA81jac392scvm"), // New hive 2
+    CSmartRewardId("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8") // New hive 3
 };
 
 int ParseScript(const CScript &script, std::vector<CSmartRewardId> &ids){
