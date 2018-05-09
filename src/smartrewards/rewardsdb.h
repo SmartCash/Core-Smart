@@ -162,6 +162,7 @@ struct CSmartRewardId : public CBitcoinAddress
     CSmartRewardId() : CBitcoinAddress() {}
     CSmartRewardId(const std::string &address) : CBitcoinAddress(address) {}
     CSmartRewardId(const CTxDestination &destination) : CBitcoinAddress(destination) {}
+    CSmartRewardId(const char* pszAddress) : CBitcoinAddress(pszAddress) {}
 };
 
 class CSmartRewardEntry
