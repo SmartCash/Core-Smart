@@ -1317,6 +1317,9 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
             bool found_3 = false;
             bool found_4 = false;
             bool found_5 = false;
+            bool found_6 = false;
+            bool found_7 = false;
+            bool found_8 = false;
             int total_payment_tx = 0;
             bool found_smartnode_payment = false; // no more than 1 output for payment
             CScript FOUNDER_1_SCRIPT;
@@ -1401,7 +1404,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                 BOOST_FOREACH(const CTxOut& output, tx.vout){
                     int blockRotation = nHeight - 85 * (nHeight/85);
                     int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
-                    if (blockRotation >= 0 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {                    
+                    if (blockRotation >= 0 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {
                         found_1 = true;
                     }
                     if (blockRotation >= 8 && blockRotation <= 15 && output.scriptPubKey == FOUNDER_2_SCRIPT && abs(output.nValue - reward) < 2 ) {
@@ -1438,7 +1441,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                 BOOST_FOREACH(const CTxOut& output, tx.vout){
                     int blockRotation = nHeight - 85 * (nHeight/85);
                     int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
-                    if (blockRotation >= 0 && blockRotation <= 3 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {            $
+                    if (blockRotation >= 0 && blockRotation <= 3 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {
                         found_1 = true;
                     }
                     if (blockRotation >= 4 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_2_SCRIPT && abs(output.nValue - reward) < 2 ) {
@@ -1448,13 +1451,13 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                         found_3 = true;
                     }
                     if (blockRotation >= 12 && blockRotation <= 15 && output.scriptPubKey == FOUNDER_6_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_4 = true;
+                        found_6 = true;
                     }
                     if (blockRotation >= 16 && blockRotation <= 19 && output.scriptPubKey == FOUNDER_7_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_5 = true;
+                        found_7 = true;
                     }
                     if (blockRotation >= 20 && blockRotation <= 23 && output.scriptPubKey == FOUNDER_8_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_3 = true;
+                        found_8 = true;
                     }
                     if (blockRotation >= 24 && blockRotation <= 38 && output.scriptPubKey == FOUNDER_4_SCRIPT && abs(output.nValue - reward) < 2 ) {
                         found_4 = true;
@@ -1470,7 +1473,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                     }
                 }
 
-                if (!(found_1 || found_2 || found_3 || found_4 || found_5 || found_6 || found_7 || found_8))) {
+                if (!(found_1 || found_2 || found_3 || found_4 || found_5 || found_6 || found_7 || found_8)) {
                     return state.DoS(100, false, REJECT_FOUNDER_REWARD_MISSING,
                                          "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
                 }

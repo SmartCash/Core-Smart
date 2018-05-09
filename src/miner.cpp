@@ -266,7 +266,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
                coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
             }
             if(blockRotation >= 39 && blockRotation <= 84){
-                  coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())$
+               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
             }
             CAmount smartnodePayment = (int64_t)(0.1 * (GetBlockValue(nHeight, 0, pindexPrev->nTime)));
             // Take out amounts for SmartNode payments.
