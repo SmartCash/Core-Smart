@@ -591,10 +591,7 @@ void ReadConfigFile(map<string, string>& mapSettingsRet,
 
         FILE* configFile = fopen(pathConfigFile.string().c_str(), "w");
         if (configFile != NULL) {
-            std::string strHeader = "# SmartCash wallet config file\n\n"
-                                    "# Remove the foregoing # in the next line if "
-                                    "you plan to maintain smartnodes with your wallet.\n"
-                                    "#txindex=1\n";
+            std::string strHeader = "# SmartCash wallet config file\n\n";
             fwrite(strHeader.c_str(), std::strlen(strHeader.c_str()), 1, configFile);
             fclose(configFile);
         }
