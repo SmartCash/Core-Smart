@@ -1352,7 +1352,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                 FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB").Get());
                 FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
             }
-            if ((nHeight > 0) && (nHeight < 90000)) {
+            if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000))) {
                 BOOST_FOREACH(const CTxOut &output, tx.vout) {
                     if (output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - (int64_t)(0.08 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
                         found_1 = true;
@@ -1437,7 +1437,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                  "CTransaction::CheckTransaction() : SmartNode payment is invalid");
                 }
             }
-            if ((nHeight >= 550000) && (nHeight <= 717499999)) {
+            if (((!fTestNet && (nHeight >= 550000)) || (fTestNet && (nHeight >= 1000))) && (nHeight <= 717499999)) {
                 BOOST_FOREACH(const CTxOut& output, tx.vout){
                     int blockRotation = nHeight - 85 * (nHeight/85);
                     int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
@@ -1459,6 +1459,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                     if (blockRotation >= 20 && blockRotation <= 23 && output.scriptPubKey == FOUNDER_8_SCRIPT && abs(output.nValue - reward) < 2 ) {
                         found_8 = true;
                     }
+//Legacy SmartRewards
                     if (blockRotation >= 24 && blockRotation <= 38 && output.scriptPubKey == FOUNDER_4_SCRIPT && abs(output.nValue - reward) < 2 ) {
                         found_4 = true;
                     }
@@ -3299,7 +3300,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     // Adjust miner blockReward for block time deviation
     float blockTimeDeviation = 100;
-    if (pindex->nHeight > 350000) {
+    if (((!fTestNet && (pindex->nHeight > 550000)) || (fTestNet && (pindex->nHeight >500))) {
         int64_t lastBlockTime = pindex->pprev->GetBlockTime();
         int64_t currentBlockTime = std::max(pindex->GetMedianTimePast()+1, GetAdjustedTime());
         blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);
