@@ -178,7 +178,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
                 FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
          }
 
-         if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000))) {
+         if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000)))) {
             // Take out amounts for budgets
             coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets on each block

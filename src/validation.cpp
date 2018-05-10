@@ -1352,7 +1352,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                 FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB").Get());
                 FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
             }
-            if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000))) {
+            if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000)))) {
                 BOOST_FOREACH(const CTxOut &output, tx.vout) {
                     if (output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - (int64_t)(0.08 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
                         found_1 = true;
@@ -3299,13 +3299,14 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime3 - nTime2), 0.001 * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * 0.000001);
 
     // Adjust miner blockReward for block time deviation
+    bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
     float blockTimeDeviation = 100;
-    if (((!fTestNet && (pindex->nHeight > 550000)) || (fTestNet && (pindex->nHeight >500))) {
+    if ((!fTestNet && (pindex->nHeight > 550000)) || (fTestNet && (pindex->nHeight >500))) {
         int64_t lastBlockTime = pindex->pprev->GetBlockTime();
         int64_t currentBlockTime = std::max(pindex->GetMedianTimePast()+1, GetAdjustedTime());
         blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);
     }
-	
+
     // SMARTCASH : MODIFIED TO CHECK MASTERNODE PAYMENTS AND SUPERBLOCKS
 
     // It's possible that we simply don't have enough data and this could fail
