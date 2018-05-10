@@ -4,8 +4,7 @@ Smartcash Core
 https://SmartCash.CC
 
  Copyright (c) 2009 - 2016 Bitcoin Developers
- Copyright (c) 2015 - 2017 Zcoin Developers
- Copyright (c) 2017 - 2017 SmartCash Developers
+ Copyright (c) 2017 - 2018 SmartCash Developers
 
 What is Smartcash?
 ----------------
