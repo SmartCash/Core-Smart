@@ -178,7 +178,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
                 FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
          }
 
-         if ((nHeight > 0) && (nHeight < 90000)) {
+         if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000))) {
             // Take out amounts for budgets
             coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets on each block
@@ -238,7 +238,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             // And pay the next SmartNode in line
             FillBlockPayments(coinbaseTx, nHeight, smartnodePayment, pblock->txoutSmartnode, pblock->voutSuperblock);
         }
-         if ((nHeight >= 550000) && (nHeight < 717499999)) {
+         if (((!fTestNet && (nHeight >= 550000)) || (fTestNet && (nHeight >=1000))) && (nHeight < 717499999)) {
             // Take out amounts for budgets.
             coinbaseTx.vout[0].nValue =-((int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 85 block rotation
@@ -262,6 +262,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             if(blockRotation >= 20 && blockRotation <= 23){
                coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_8_SCRIPT.begin(), FOUNDER_8_SCRIPT.end())));
             }
+//Legacy SmartReward Address
             if(blockRotation >= 24 && blockRotation <= 38){
                coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
             }
@@ -543,7 +544,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
         // Adjust miner reward for block time deviation
         float blockTimeDeviation = 100;
-        if (nHeight > 350000) {
+        if ((!fTestNet && (nHeight > 550000)) || (fTestNet && (nHeight > 500))) {
             int64_t lastBlockTime = pblock->nTime;
             int64_t currentBlockTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
             blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);
