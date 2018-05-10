@@ -295,6 +295,7 @@ extern UniValue smartnodebroadcast(const UniValue& params, bool fHelp);
 // extern UniValue getsuperblockbudget(const UniValue& params, bool fHelp);
 // extern UniValue voteraw(const UniValue& params, bool fHelp);
 extern UniValue snsync(const UniValue& params, bool fHelp);
+extern UniValue smartrewards(const UniValue& params, bool fHelp);
 
 extern UniValue getblockcount(const UniValue& params, bool fHelp); // in rpc/blockchain.cpp
 extern UniValue getbestblockhash(const UniValue& params, bool fHelp);

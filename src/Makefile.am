@@ -145,6 +145,8 @@ BITCOIN_CORE_H = \
   smartnode/smartnodeman.h \
   smartnode/smartnodepayments.h \
   smartnode/smartnodesync.h \
+  smartrewards/rewardsdb.h \
+  smartrewards/rewards.h \
   spentindex.h \
   streams.h \
   support/allocators/secure.h \
@@ -215,6 +217,7 @@ libbitcoin_server_a_SOURCES = \
   rpc/rawtransaction.cpp \
   rpc/server.cpp \
   rpc/rpcsmartnode.cpp \
+  rpc/rpcsmartrewards.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
   sendalert.cpp \
@@ -226,6 +229,8 @@ libbitcoin_server_a_SOURCES = \
   smartnode/smartnodeman.cpp \
   smartnode/smartnodepayments.cpp \
   smartnode/smartnodesync.cpp \
+  smartrewards/rewardsdb.cpp \
+  smartrewards/rewards.cpp \
   smartnode/spork.cpp \
   timedata.cpp \
   torcontrol.cpp \
@@ -259,6 +264,8 @@ libbitcoin_wallet_a_SOURCES = \
   smartnode/smartnodeman.cpp \
   smartnode/smartnodepayments.cpp \
   smartnode/smartnodesync.cpp \
+  smartrewards/rewardsdb.cpp \
+  smartrewards/rewards.cpp \
   smartnode/spork.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
@@ -479,7 +486,7 @@ smartcash_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-smartcash_tx_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) 
+smartcash_tx_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS)
 #
 
 # smartcashconsensus library #
