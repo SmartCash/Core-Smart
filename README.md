@@ -1,4 +1,4 @@
-Smartcash Core
+SmartCash Core
 =====================================
 
 https://SmartCash.CC
@@ -6,13 +6,13 @@ https://SmartCash.CC
  Copyright (c) 2009 - 2016 Bitcoin Developers
  Copyright (c) 2017 - 2018 SmartCash Developers
 
-What is Smartcash?
+What is SmartCash?
 ----------------
 
-Smartcash is an experimental digital currency that enables instant payments to
+SmartCash is an experimental digital currency that enables instant payments to
 anyone, anywhere in the world. Smartcash uses peer-to-peer technology to operate
 with no central authority: managing transactions and issuing money are carried
-out collectively by the network. Smartcash Core is the name of open source
+out collectively by the network. SmartCash Core is the name of open source
 software which enables the use of this currency.
 
 For more information, as well as an immediately useable, binary version of
@@ -27,8 +27,8 @@ information or see https://opensource.org/licenses/MIT.
 Development Process
 -------------------
 
-The `master` branch is regularly built and tested, but is not guaranteed to be
-completely stable. [Tags](https://github.com/smartcash/smartcash/tags) are created
-regularly to indicate new official, stable release versions of Bitcoin Core.
+The default branch is regularly built and tested, but is not guaranteed to be
+completely stable. [Tags](https://github.com/smartcash/core-smart/tags) are created
+regularly to indicate new official, stable release versions of SmartCash Core.
 
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
