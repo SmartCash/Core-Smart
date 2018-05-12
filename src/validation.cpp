@@ -1263,10 +1263,10 @@ int64_t GetBlockValue(int nHeight, int64_t nFees, unsigned int nTime)
     if (nHeight > 0 && nHeight <= 143499)
         value = 5000 * COIN + nFees;
     // Block rewards taper off after block 143500
-    if (nHeight > 143499 && nHeight <= SC_CHAIN_MAX_HEIGHT)
+    if (nHeight > 143499 && nHeight <= HF_CHAIN_REWARD_END_HEIGHT)
         value = floor(0.5+((double)(5000 * 143500)/(nHeight +1))) * COIN + nFees;
     // Stop rewards when blocks size is less than 1.
-    if (nHeight > SC_CHAIN_MAX_HEIGHT)
+    if (nHeight > HF_CHAIN_REWARD_END_HEIGHT)
         value = nFees;
 
     return value;
@@ -1310,7 +1310,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-length");
         // Check for SmartHive Funds
-        if ((nHeight > 0) && (nHeight <= SC_CHAIN_MAX_HEIGHT)) {
+        if ((nHeight > 0) && (nHeight <= HF_CHAIN_REWARD_END_HEIGHT)) {
 
             bool found_1 = false;
             bool found_2 = false;
@@ -1375,7 +1375,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                      "CTransaction::CheckTransaction() : One of the SmartHive rewards is missing");
                 }
             }
-            if ((nHeight >= 90000) && (nHeight < SC_SMARTNODE_HEIGHT)) {
+            if ((nHeight >= 90000) && (nHeight < HF_V1_1_SMARTNODE_HEIGHT)) {
                 BOOST_FOREACH(const CTxOut& output, tx.vout) {
                     int blockRotation = nHeight - 95 * (nHeight/95);
                     int64_t reward = (int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
@@ -1400,7 +1400,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                      "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
 	        }
             }
-        if ((nHeight >= SC_SMARTNODE_HEIGHT) && (nHeight < SC_V1_2_PAYMENTS_START)) {
+        if ((nHeight >= HF_V1_1_SMARTNODE_HEIGHT) && (nHeight < HF_V1_2_PAYMENTS_HEIGHT)) {
                 BOOST_FOREACH(const CTxOut& output, tx.vout){
                     int blockRotation = nHeight - 85 * (nHeight/85);
                     int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
@@ -1432,12 +1432,12 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                                          "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
                 }
 
-                if ((nHeight >= SC_SMARTNODE_HEIGHT + 7000) && (!found_smartnode_payment || total_payment_tx > 1)) {
+                if ((nHeight >= HF_V1_1_SMARTNODE_HEIGHT + 7000) && (!found_smartnode_payment || total_payment_tx > 1)) {
                     return state.DoS(100, false, REJECT_INVALID_SMARTNODE_PAYMENT,
                                  "CTransaction::CheckTransaction() : SmartNode payment is invalid");
                 }
             }
-            if (((!fTestNet && (nHeight >= SC_V1_2_PAYMENTS_START)) || (fTestNet && (nHeight >= 1000))) && (nHeight <= SC_CHAIN_MAX_HEIGHT)) {
+            if (((!fTestNet && (nHeight >= HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight >= 1000))) && (nHeight <= HF_CHAIN_REWARD_END_HEIGHT)) {
                 BOOST_FOREACH(const CTxOut& output, tx.vout){
                     int blockRotation = nHeight - 85 * (nHeight/85);
                     int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
@@ -2330,7 +2330,7 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     if (nHeight == 0)
         return 0;
 
-    if (nHeight > 143499 && nHeight <= SC_CHAIN_MAX_HEIGHT)
+    if (nHeight > 143499 && nHeight <= HF_CHAIN_REWARD_END_HEIGHT)
         return floor(0.5+((double)(5000 * 143500)/(nHeight +1))) * COIN;
 
     CAmount nSubsidy = 5000 * COIN;
@@ -3301,7 +3301,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // Adjust miner blockReward for block time deviation
     bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
     float blockTimeDeviation = 100;
-    if ((!fTestNet && (pindex->nHeight > SC_V1_2_PAYMENTS_START)) || (fTestNet && (pindex->nHeight >500))) {
+    if ((!fTestNet && (pindex->nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (pindex->nHeight >500))) {
         int64_t lastBlockTime = pindex->pprev->GetBlockTime();
         int64_t currentBlockTime = std::max(pindex->GetMedianTimePast()+1, GetAdjustedTime());
         blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);

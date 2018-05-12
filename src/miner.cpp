@@ -145,7 +145,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[0].nValue = 0;
 
-    if ((nHeight > 0) && (nHeight < SC_CHAIN_MAX_HEIGHT)) {
+    if ((nHeight > 0) && (nHeight < HF_CHAIN_REWARD_END_HEIGHT)) {
 
          CScript FOUNDER_1_SCRIPT;
          CScript FOUNDER_2_SCRIPT;
@@ -188,7 +188,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             coinbaseTx.vout.push_back(CTxOut((int64_t)(0.15 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
             coinbaseTx.vout.push_back(CTxOut((int64_t)(0.56 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
          }
-         if ((nHeight >= 90000) && (nHeight < SC_SMARTNODE_HEIGHT)) {
+         if ((nHeight >= 90000) && (nHeight < HF_V1_1_SMARTNODE_HEIGHT)) {
             // Take out amounts for budgets
             coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 95 block rotation
@@ -211,7 +211,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             }
          }
          
-         if ((nHeight >= SC_SMARTNODE_HEIGHT) && (nHeight < SC_V1_2_PAYMENTS_START)) {
+         if ((nHeight >= HF_V1_1_SMARTNODE_HEIGHT) && (nHeight < HF_V1_2_PAYMENTS_HEIGHT)) {
             // Take out amounts for budgets.
             coinbaseTx.vout[0].nValue =-((int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 85 block rotation
@@ -238,7 +238,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             // And pay the next SmartNode in line
             FillBlockPayments(coinbaseTx, nHeight, smartnodePayment, pblock->txoutSmartnode, pblock->voutSuperblock);
         }
-         if (((!fTestNet && (nHeight >= SC_V1_2_PAYMENTS_START)) || (fTestNet && (nHeight >=1000))) && (nHeight < SC_CHAIN_MAX_HEIGHT)) {
+         if (((!fTestNet && (nHeight >= HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight >=1000))) && (nHeight < HF_CHAIN_REWARD_END_HEIGHT)) {
             // Take out amounts for budgets.
             coinbaseTx.vout[0].nValue =-((int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 85 block rotation
@@ -544,7 +544,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
         // Adjust miner reward for block time deviation
         float blockTimeDeviation = 100;
-        if ((!fTestNet && (nHeight > SC_V1_2_PAYMENTS_START)) || (fTestNet && (nHeight > 500))) {
+        if ((!fTestNet && (nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight > 500))) {
             int64_t lastBlockTime = pblock->nTime;
             int64_t currentBlockTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
             blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);

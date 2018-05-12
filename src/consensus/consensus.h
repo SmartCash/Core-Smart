@@ -19,11 +19,11 @@ static const int64_t MAX_BLOCK_SIGOPS_COST = 160000;
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
 static const int COINBASE_MATURITY = 100;
 /** Smartnode start block*/
-static const int SC_SMARTNODE_HEIGHT = 300000;
+static const int HF_V1_1_SMARTNODE_HEIGHT = 300000;
 /** SmartRewards automation start block*/
-static const int SC_V1_2_PAYMENTS_START = 550000;
-/** SmartCash max chain heightblock*/
-static const int SC_CHAIN_MAX_HEIGHT = 717499999;
+static const int HF_V1_2_PAYMENTS_HEIGHT = 550000;
+/** SmartCash max reward block */
+static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 
 inline unsigned int MaxBlockSigOps()
 {
