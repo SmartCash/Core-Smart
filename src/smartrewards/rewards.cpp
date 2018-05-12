@@ -6,7 +6,9 @@
 #include "validation.h"
 #include "init.h"
 #include "ui_interface.h"
+#include <boost/thread.hpp>
 #include <boost/range/irange.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
 
 CSmartRewards *prewards = NULL;
 
@@ -180,9 +182,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
             ++next.eligibleEntries;
             next.eligibleSmart += entry.balanceOnStart;
         }
-
     }
-
 }
 
 bool CSmartRewards::StartFirstRound(const CSmartRewardRound &first, const CSmartRewardEntryList &entries)
@@ -318,7 +318,6 @@ bool CSmartRewards::GetRewardEntries(CSmartRewardEntryList &entries)
     return pdb->ReadRewardEntries(entries);
 }
 
-
 bool CSmartRewards::SyncPrepared()
 {
     LOCK(csDb);
@@ -419,6 +418,9 @@ void ThreadSmartRewards()
 
     // Make this thread recognisable as the SmartRewards thread
     RenameThread("smartrewards");
+
+    // Used for time conversions.
+    boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 
     // Estimate or return the current block height.
     std::function<int (const CBlockIndex*)> getBlockHeight = [](const CBlockIndex *index) {
@@ -610,24 +612,14 @@ void ThreadSmartRewards()
             next.startBlockTime = round.endBlockTime;
             next.startBlockHeight = round.endBlockHeight + 1;
 
-            struct tm * ptm;
-            time_t start = (time_t)next.startBlockTime;
-            // Calculate the ending timestamp for the next round
-            ptm = gmtime( &start );
+            time_t startTime = (time_t)next.startBlockTime;
 
-            if( ++ptm->tm_mon > 11 ){
-                ptm->tm_mon = 0;
-                ptm->tm_year += 1;
-            }
+            boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date()
+                                               + boost::gregorian::months(1);
 
-            ptm->tm_mday = 25;
-            ptm->tm_hour = 7;
-            ptm->tm_min = 0;
-            ptm->tm_sec = 0;
+            // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
+            next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
 
-            setenv("TZ", "UTC", 1);
-
-            next.endBlockTime = mktime(ptm);
             // Estimate the block, gets updated on the end of the round to the real one.
             next.endBlockHeight = next.startBlockHeight + (next.endBlockTime - next.startBlockTime) / 55;
 
