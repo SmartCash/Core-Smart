@@ -32,7 +32,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="page">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -53,7 +53,7 @@
         <widget class="QLabel" name="label_3">
          <property name="font">
           <font>
-           <pointsize>34</pointsize>
+           <pointsize>29</pointsize>
            <weight>75</weight>
            <bold>true</bold>
           </font>
@@ -161,7 +161,7 @@
         <widget class="QLabel" name="label_2">
          <property name="font">
           <font>
-           <pointsize>34</pointsize>
+           <pointsize>29</pointsize>
            <weight>75</weight>
            <bold>true</bold>
           </font>
@@ -309,7 +309,7 @@ QProgressBar::chunk {
                <widget class="QLabel" name="label_17">
                 <property name="font">
                  <font>
-                  <pointsize>21</pointsize>
+                  <pointsize>19</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -327,7 +327,7 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>21</pointsize>
+                  <pointsize>19</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -351,7 +351,7 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>15</pointsize>
+                  <pointsize>13</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -369,7 +369,7 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>15</pointsize>
+                  <pointsize>13</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -389,7 +389,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="label_21">
               <property name="font">
                <font>
-                <pointsize>21</pointsize>
+                <pointsize>19</pointsize>
                </font>
               </property>
               <property name="text">
@@ -401,7 +401,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="percentLabel">
               <property name="font">
                <font>
-                <pointsize>21</pointsize>
+                <pointsize>19</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -485,6 +485,12 @@ QProgressBar::chunk {
           </size>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
            <spacer name="horizontalSpacer_3">
             <property name="orientation">
@@ -504,7 +510,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="label">
               <property name="font">
                <font>
-                <pointsize>22</pointsize>
+                <pointsize>20</pointsize>
                </font>
               </property>
               <property name="text">
@@ -516,7 +522,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="sumLabel">
               <property name="font">
                <font>
-                <pointsize>22</pointsize>
+                <pointsize>20</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
