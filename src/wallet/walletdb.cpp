@@ -756,7 +756,7 @@ static bool IsKeyType(string strType)
 {
     return (strType== "key" || strType == "wkey" ||
             strType == "mkey" || strType == "ckey" ||
-            strType == "hdchain" || strType == "chdchain");
+            strType == "chdchain");
 }
 
 DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
