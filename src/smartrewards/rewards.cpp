@@ -465,202 +465,210 @@ void ThreadSmartRewards()
     prewards->UpdateHeights(chainHeight, currentBlock.nHeight);
     uiInterface.NotifySmartRewardUpdate();
 
-    while (true)
-    {
-        int64_t nTime1 = GetTimeMicros();
+    try{
 
+        while (true)
         {
-            LOCK(cs_main);
+            int64_t nTime1 = GetTimeMicros();
 
-            // Allow the shutdown interrupt to crash into.
-            boost::this_thread::interruption_point();
-            // If the user want to close the wallet, step out.
-            if(ShutdownRequested()) return;
+            {
+                LOCK(cs_main);
 
-            // Get index of the last block in the chain.
-            currentIndex = chainActive.Tip();
-        }
+                // Allow the shutdown interrupt to crash into.
+                boost::this_thread::interruption_point();
+                // If the user want to close the wallet, step out.
+                if(ShutdownRequested()) return;
 
-        int64_t nTime2 = GetTimeMicros();
+                // Get index of the last block in the chain.
+                currentIndex = chainActive.Tip();
+            }
 
-        // If there is no block available. Should not happen!
-        if(!currentIndex){
-            lastIndex = NULL;
-            MilliSleep(1000);
-            continue;
-        }
+            int64_t nTime2 = GetTimeMicros();
 
-        if(!lastIndex){
-            // First run or on error below we use the current block height to find the
-            // start point of the sync.
-            lastIndex = currentIndex;
-
-            // If the rewards database is older then the chaindata
-            // break it. Happens if the chain gets deleted
-            // and the rewardsdb not.
-            if( currentBlock.nHeight + 1 > lastIndex->nHeight ){
+            // If there is no block available. Should not happen!
+            if(!currentIndex){
                 lastIndex = NULL;
                 MilliSleep(1000);
                 continue;
             }
 
-            // Search the index of the next missing bock in the
-            // rewards database.
-            while( lastIndex->nHeight != currentBlock.nHeight + 1){
-                lastIndex = lastIndex->pprev;
+            if(!lastIndex){
+                // First run or on error below we use the current block height to find the
+                // start point of the sync.
+                lastIndex = currentIndex;
+
+                // If the rewards database is older then the chaindata
+                // break it. Happens if the chain gets deleted
+                // and the rewardsdb not.
+                if( currentBlock.nHeight + 1 > lastIndex->nHeight ){
+                    lastIndex = NULL;
+                    MilliSleep(1000);
+                    continue;
+                }
+
+                // Search the index of the next missing bock in the
+                // rewards database.
+                while( lastIndex->nHeight != currentBlock.nHeight + 1){
+                    lastIndex = lastIndex->pprev;
+                }
+
+                // Use it as next.
+                nextIndex = lastIndex;
+
+            }else{
+                LOCK(cs_main);
+                nextIndex = chainActive.Next(lastIndex);
             }
 
-            // Use it as next.
-            nextIndex = lastIndex;
+            // If there is no next index available yet or the next detected has less
+            // than 10 confirmations, wait a bit..
+            if( !nextIndex || (currentIndex->nHeight - nextIndex->nHeight) < 10 ){
+                lastIndex = NULL;
+                MilliSleep(1000);
+                continue;
+            }
 
-        }else{
-            LOCK(cs_main);
-            nextIndex = chainActive.Next(lastIndex);
-        }
+            int64_t nTime3 = GetTimeMicros();
 
-        // If there is no next index available yet or the next detected has less
-        // than 10 confirmations, wait a bit..
-        if( !nextIndex || (currentIndex->nHeight - nextIndex->nHeight) < 10 ){
-            lastIndex = NULL;
-            MilliSleep(1000);
-            continue;
-        }
+            // Result of the block processing.
+            CSmartRewardsUpdateResult result;
+            // Synt the data all nCacheBlocks to the db.
+            bool sync = currentBlock.nHeight > 0 && !(currentBlock.nHeight % nCacheBlocks);
+            // Process the block!
+            if(!prewards->Update(nextIndex, chainparams, result, sync)) throw runtime_error(std::string(__func__) + ": rewards update failed");
 
-        int64_t nTime3 = GetTimeMicros();
+            // Update the current block to the processed one
+            currentBlock = result.block;
+            // Next round we use the current of this round as last.
+            lastIndex = nextIndex;
 
-        // Result of the block processing.
-        CSmartRewardsUpdateResult result;
-        // Synt the data all nCacheBlocks to the db.
-        bool sync = currentBlock.nHeight > 0 && !(currentBlock.nHeight % nCacheBlocks);
-        // Process the block!
-        if(!prewards->Update(nextIndex, chainparams, result, sync)) throw runtime_error(std::string(__func__) + ": rewards update failed");
+            int64_t nTime4 = GetTimeMicros();
 
-        // Update the current block to the processed one
-        currentBlock = result.block;
-        // Next round we use the current of this round as last.
-        lastIndex = nextIndex;
+            nTimeUpdateRewardsTotal += nTime4 - nTime3;
+            ++nCountUpdateRewards;
 
-        int64_t nTime4 = GetTimeMicros();
+            CSmartRewardRound round;
+            bool snapshot = false;
 
-        nTimeUpdateRewardsTotal += nTime4 - nTime3;
-        ++nCountUpdateRewards;
+            if( !prewards->GetCurrentRound(round) ){
 
-        CSmartRewardRound round;
-        bool snapshot = false;
+                if( lastIndex->GetBlockTime() > firstRoundStartTime){
 
-        if( !prewards->GetCurrentRound(round) ){
+                    snapshot = true;
 
-            if( lastIndex->GetBlockTime() > firstRoundStartTime){
+                    if( !prewards->SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
+
+                    // Create the very first smartrewards round.
+                    CSmartRewardRound first;
+                    first.number = 1;
+                    first.startBlockTime = lastIndex->GetBlockTime();
+                    first.startBlockHeight = firstRoundStartBlock;
+                    first.endBlockTime = firstRoundEndTime;
+                    // Estimate the block, gets updated on the end of the round to the real one.
+                    first.endBlockHeight = firstRoundEndBlock;
+
+                    CSmartRewardEntryList entries;
+                    CSmartRewardSnapshotList snapshots;
+
+                    // Get the current entries
+                    if( !prewards->GetRewardEntries(entries) ) throw runtime_error("Could't read all reward entries!");
+
+                    // Evaluate the round and update the next rounds parameter.
+                    prewards->EvaluateRound(round, first, entries, snapshots );
+
+                    CalculateRewardRatio(first);
+
+                    if( !prewards->StartFirstRound(first, entries) ) throw runtime_error("Could't finalize round!");
+                }
+
+            }else if( result.disqualifiedEntries || result.disqualifiedSmart ){
+
+                // If there were disqualification during the last block processing
+                // update the current round stats.
+
+                round.disqualifiedEntries += result.disqualifiedEntries;
+                round.disqualifiedSmart += result.disqualifiedSmart;
+
+                CalculateRewardRatio(round);
+
+                if( !prewards->UpdateCurrentRound(round) ) throw runtime_error("Could't update current round!");
+            }
+
+            // If just hit the next round threshold
+            if(round.number && lastIndex->GetBlockTime() > round.endBlockTime){
 
                 snapshot = true;
 
                 if( !prewards->SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
 
-                // Create the very first smartrewards round.
-                CSmartRewardRound first;
-                first.number = 1;
-                first.startBlockTime = lastIndex->GetBlockTime();
-                first.startBlockHeight = firstRoundStartBlock;
-                first.endBlockTime = firstRoundEndTime;
-                // Estimate the block, gets updated on the end of the round to the real one.
-                first.endBlockHeight = firstRoundEndBlock;
+                // Write the round to the history
+                round.endBlockHeight = lastIndex->nHeight;
+                round.endBlockTime = lastIndex->GetBlockTime();
 
                 CSmartRewardEntryList entries;
                 CSmartRewardSnapshotList snapshots;
 
+                // Create the next round.
+                CSmartRewardRound next;
+                next.number = round.number + 1;
+                next.startBlockTime = round.endBlockTime;
+                next.startBlockHeight = round.endBlockHeight + 1;
+
+                time_t startTime = (time_t)next.startBlockTime;
+
+                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date()
+                                                   + boost::gregorian::months(1);
+
+                // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
+                next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
+
+                // Estimate the block, gets updated on the end of the round to the real one.
+                next.endBlockHeight = next.startBlockHeight + (next.endBlockTime - next.startBlockTime) / 55;
+
+                if( !prewards->SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
+
                 // Get the current entries
-                if( !prewards->GetRewardEntries(entries) ) throw runtime_error("Could't read all reward entries!");
+                if( !prewards->GetRewardEntries(entries) ) throw runtime_error("Could not read all reward entries!");
+
+                CalculateRewardRatio(round);
 
                 // Evaluate the round and update the next rounds parameter.
-                prewards->EvaluateRound(round, first, entries, snapshots );
+                prewards->EvaluateRound(round, next, entries, snapshots);
 
-                CalculateRewardRatio(first);
+                CalculateRewardRatio(next);
 
-                if( !prewards->StartFirstRound(first, entries) ) throw runtime_error("Could't finalize round!");
+                if( !prewards->FinalizeRound(round, next, entries, snapshots) ) throw runtime_error("Could't finalize round!");
             }
 
-        }else if( result.disqualifiedEntries || result.disqualifiedSmart ){
+            prewards->UpdateHeights(getBlockHeight(currentIndex), lastIndex->nHeight);
 
-            // If there were disqualification during the last block processing
-            // update the current round stats.
+            int64_t nTime5 = GetTimeMicros();
 
-            round.disqualifiedEntries += result.disqualifiedEntries;
-            round.disqualifiedSmart += result.disqualifiedSmart;
+            // If we are synced notify the UI on each new block.
+            // If not notify the UI every nRewardsUISyncUpdateRate blocks to let it update the
+            // loading screen.
+            if( prewards->IsSynced() || !lastUIUpdate || lastIndex->nHeight - lastUIUpdate > nRewardsUISyncUpdateRate ){
+                lastUIUpdate = lastIndex->nHeight;
+                uiInterface.NotifySmartRewardUpdate();
+            }
 
-            CalculateRewardRatio(round);
+            int64_t nTime6 = GetTimeMicros(); nTimeTotal += nTime6 - nTime1;
 
-            if( !prewards->UpdateCurrentRound(round) ) throw runtime_error("Could't update current round!");
+            if(!(currentBlock.nHeight % 10000) || snapshot){
+                LogPrintf("Round %d - Block: %d - Progress %d%%\n",round.number, currentBlock.nHeight, int(prewards->GetProgress() * 100));
+                LogPrintf("  Get index : %.2fms\n", (nTime2 - nTime1) * 0.001);
+                LogPrintf("  Next index: %.2fms\n", (nTime3 - nTime2) * 0.001);
+                LogPrintf("  Update rewards: %.2fms [%.2fms]\n", (nTime4 - nTime3) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001);
+                LogPrintf("  Evaluate round: %.2fms\n", (nTime5 - nTime4) * 0.001);
+                LogPrintf("  Notify UI: %.2fms\n", (nTime6 - nTime5) * 0.001);
+                LogPrintf("  Total: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
+            }
         }
 
-        // If just hit the next round threshold
-        if(round.number && lastIndex->GetBlockTime() > round.endBlockTime){
-
-            snapshot = true;
-
-            if( !prewards->SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
-
-            // Write the round to the history
-            round.endBlockHeight = lastIndex->nHeight;
-            round.endBlockTime = lastIndex->GetBlockTime();
-
-            CSmartRewardEntryList entries;
-            CSmartRewardSnapshotList snapshots;
-
-            // Create the next round.
-            CSmartRewardRound next;
-            next.number = round.number + 1;
-            next.startBlockTime = round.endBlockTime;
-            next.startBlockHeight = round.endBlockHeight + 1;
-
-            time_t startTime = (time_t)next.startBlockTime;
-
-            boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date()
-                                               + boost::gregorian::months(1);
-
-            // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
-            next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
-
-            // Estimate the block, gets updated on the end of the round to the real one.
-            next.endBlockHeight = next.startBlockHeight + (next.endBlockTime - next.startBlockTime) / 55;
-
-            if( !prewards->SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
-
-            // Get the current entries
-            if( !prewards->GetRewardEntries(entries) ) throw runtime_error("Could not read all reward entries!");
-
-            CalculateRewardRatio(round);
-
-            // Evaluate the round and update the next rounds parameter.
-            prewards->EvaluateRound(round, next, entries, snapshots);
-
-            CalculateRewardRatio(next);
-
-            if( !prewards->FinalizeRound(round, next, entries, snapshots) ) throw runtime_error("Could't finalize round!");
-        }
-
-        prewards->UpdateHeights(getBlockHeight(currentIndex), lastIndex->nHeight);
-
-        int64_t nTime5 = GetTimeMicros();
-
-        // If we are synced notify the UI on each new block.
-        // If not notify the UI every nRewardsUISyncUpdateRate blocks to let it update the
-        // loading screen.
-        if( prewards->IsSynced() || !lastUIUpdate || lastIndex->nHeight - lastUIUpdate > nRewardsUISyncUpdateRate ){
-            lastUIUpdate = lastIndex->nHeight;
-            uiInterface.NotifySmartRewardUpdate();
-        }
-
-        int64_t nTime6 = GetTimeMicros(); nTimeTotal += nTime6 - nTime1;
-
-        if(!(currentBlock.nHeight % 10000) || snapshot){
-            LogPrintf("Round %d - Block: %d - Progress %d%%\n",round.number, currentBlock.nHeight, int(prewards->GetProgress() * 100));
-            LogPrintf("  Get index : %.2fms\n", (nTime2 - nTime1) * 0.001);
-            LogPrintf("  Next index: %.2fms\n", (nTime3 - nTime2) * 0.001);
-            LogPrintf("  Update rewards: %.2fms [%.2fms]\n", (nTime4 - nTime3) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001);
-            LogPrintf("  Evaluate round: %.2fms\n", (nTime5 - nTime4) * 0.001);
-            LogPrintf("  Notify UI: %.2fms\n", (nTime6 - nTime5) * 0.001);
-            LogPrintf("  Total: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
-        }
+    }catch (const runtime_error& error){
+        LogPrintf("*** %s\n", error.what() );
+        uiInterface.ThreadSafeMessageBox(
+            _("Error: A fatal internal error occurred. The SmartReward thread is not longer running. See debug.log for details!"),
+            "", CClientUIInterface::MSG_ERROR);
     }
 }
-
