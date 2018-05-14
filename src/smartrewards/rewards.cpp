@@ -416,6 +416,8 @@ void ThreadSmartRewards()
     if(fOneThread) return;
     fOneThread = true;
 
+    bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
+
     // Make this thread recognisable as the SmartRewards thread
     RenameThread("smartrewards");
 
@@ -423,10 +425,12 @@ void ThreadSmartRewards()
     boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 
     // Estimate or return the current block height.
-    std::function<int (const CBlockIndex*)> getBlockHeight = [](const CBlockIndex *index) {
+    std::function<int (const CBlockIndex*)> getBlockHeight = [fTestNet](const CBlockIndex *index) {
         int64_t syncDiff = std::time(0) - index->GetBlockTime();
-        int64_t genesisDiff = std::time(0) - nFirstTxTimestamp; // Diff from the first transaction till now.
-        return syncDiff > 1200 ? genesisDiff / 55 : index->nHeight;
+        int64_t firstTxDiff;
+        if( fTestNet ) firstTxDiff = std::time(0) - nFirstTxTimestamp_Testnet; // Diff from the first transaction till now on testnet.
+        else firstTxDiff = std::time(0) - nFirstTxTimestamp; // Diff from the first transaction till now on mainnet.
+        return syncDiff > 1200 ? firstTxDiff / 55 : index->nHeight;
     };
 
     CSmartRewardBlock currentBlock;
@@ -552,7 +556,8 @@ void ThreadSmartRewards()
 
             if( !prewards->GetCurrentRound(round) ){
 
-                if( lastIndex->GetBlockTime() > firstRoundStartTime){
+                if( (!fTestNet && lastIndex->GetBlockTime() > nFirstRoundStartTime) ||
+                    (fTestNet && lastIndex->GetBlockTime() > nFirstRoundStartTime_Testnet) ){
 
                     snapshot = true;
 
@@ -562,10 +567,10 @@ void ThreadSmartRewards()
                     CSmartRewardRound first;
                     first.number = 1;
                     first.startBlockTime = lastIndex->GetBlockTime();
-                    first.startBlockHeight = firstRoundStartBlock;
-                    first.endBlockTime = firstRoundEndTime;
+                    first.startBlockHeight = fTestNet ? nFirstRoundStartBlock_Testnet : nFirstRoundStartBlock;
+                    first.endBlockTime = fTestNet ? nFirstRoundEndTime_Testnet : nFirstRoundEndTime;;
                     // Estimate the block, gets updated on the end of the round to the real one.
-                    first.endBlockHeight = firstRoundEndBlock;
+                    first.endBlockHeight = fTestNet ? nFirstRoundEndBlock_Testnet : nFirstRoundEndBlock;
 
                     CSmartRewardEntryList entries;
                     CSmartRewardSnapshotList snapshots;
@@ -616,8 +621,10 @@ void ThreadSmartRewards()
 
                 time_t startTime = (time_t)next.startBlockTime;
 
-                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date()
-                                                   + boost::gregorian::months(1);
+                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
+
+                if( fTestNet ) endDate += boost::gregorian::days(1);
+                else           endDate += boost::gregorian::months(1);
 
                 // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
                 next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
