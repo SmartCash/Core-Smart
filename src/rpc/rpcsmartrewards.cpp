@@ -48,6 +48,12 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     if( !fDebug && !prewards->IsSynced() )
         throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Rewards database is not up to date. Current progress %d%%",int(prewards->GetProgress() * 100)));
 
+    TRY_LOCK(prewards->csDb, lockRewardsDb);
+
+    if (!lockRewardsDb) {
+        throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+    }
+
     if (strCommand == "current")
     {
         UniValue obj(UniValue::VOBJ);
