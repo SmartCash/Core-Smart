@@ -163,6 +163,21 @@ struct CSmartRewardId : public CBitcoinAddress
     CSmartRewardId(const std::string &address) : CBitcoinAddress(address) {}
     CSmartRewardId(const CTxDestination &destination) : CBitcoinAddress(destination) {}
     CSmartRewardId(const char* pszAddress) : CBitcoinAddress(pszAddress) {}
+
+    int Compare(const CSmartRewardId& other) const
+    {
+        std::vector<unsigned char> aVec = vchVersion;
+        aVec.insert(aVec.end(), vchData.begin(), vchData.end());
+
+        std::vector<unsigned char> bVec = other.vchVersion;
+        bVec.insert(bVec.end(), other.vchData.begin(), other.vchData.end());
+
+        return memcmp(aVec.data(), bVec.data(), aVec.capacity());
+    }
+
+public:
+    CScript GetScript() const { return GetScriptForDestination(Get()); }
+
 };
 
 class CSmartRewardEntry
@@ -239,6 +254,13 @@ public:
     friend bool operator!=(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
     {
         return !(a == b);
+    }
+
+    friend bool operator<(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
+    {
+        // TBD, verify this sort is fast/unique
+        int cmp = a.id.Compare(b.id);
+        return cmp < 0 || (cmp == 0 && a.reward < b.reward);
     }
 
     std::string GetAddress() const;

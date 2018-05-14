@@ -33,7 +33,7 @@ CCriticalSection cs_mapSmartnodePaymentVotes;
 *   - When non-superblocks are detected, the normal schedule should be maintained
 */
 
-bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockReward, std::string &strErrorRet)
+bool SmartNodePayments::IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockReward, std::string &strErrorRet)
 {
     strErrorRet = "";
 
@@ -130,7 +130,7 @@ bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockRewar
     return isBlockRewardValueMet;
 }
 
-bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward)
+bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward)
 {
     if(!smartnodeSync.IsSynced()) {
         //there is no budget data to use to check anything, let's just accept the longest chain
@@ -208,7 +208,7 @@ bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount bloc
     return true;
 }
 
-void FillBlockPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet, std::vector<CTxOut>& voutSuperblockRet)
+void SmartNodePayments::FillSmartNodePayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet, std::vector<CTxOut>& voutSuperblockRet)
 {
     // only create superblocks if spork is enabled AND if superblock is actually triggered
     // (height should be validated inside)
@@ -225,7 +225,7 @@ void FillBlockPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blo
                             nBlockHeight, blockReward, txoutSmartnodeRet.ToString(), txNew.ToString());
 }
 
-std::string GetRequiredPaymentsString(int nBlockHeight)
+std::string SmartNodePayments::GetRequiredPaymentsString(int nBlockHeight)
 {
     // IF WE HAVE A ACTIVATED TRIGGER FOR THIS HEIGHT - IT IS A SUPERBLOCK, GET THE REQUIRED PAYEES
     // if(CSuperblockManager::IsSuperblockTriggered(nBlockHeight)) {

@@ -14,7 +14,7 @@ CSmartRewards *prewards = NULL;
 
 // Exclude the following addresses form SmartRewards.
 static std::vector<CSmartRewardId> blacklist = {
-    CSmartRewardId("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b"), // Community treasure
+    CSmartRewardId("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b"), // SmartHive treasure
     CSmartRewardId("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x"), // Support hive
     CSmartRewardId("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF"), // Development hive
     CSmartRewardId("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M"), // Outreach hive
@@ -429,8 +429,8 @@ void ThreadSmartRewards()
         int64_t syncDiff = std::time(0) - index->GetBlockTime();
         int64_t firstTxDiff;
         if( fTestNet ) firstTxDiff = std::time(0) - nFirstTxTimestamp_Testnet; // Diff from the first transaction till now on testnet.
-        else firstTxDiff = std::time(0) - nFirstTxTimestamp; // Diff from the first transaction till now on mainnet.
-        return syncDiff > 1200 ? firstTxDiff / 55 : index->nHeight;
+        else firstTxDiff = std::time(0) - nStartRewardTime; // Diff from the reward blocks start till now on mainnet.
+        return syncDiff > 1200 ? firstTxDiff / 55 : index->nHeight; // If we are 20 minutes near now use the current height.
     };
 
     CSmartRewardBlock currentBlock;

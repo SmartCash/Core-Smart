@@ -32,11 +32,15 @@ extern CCriticalSection cs_mapSmartnodePayeeVotes;
 
 extern CSmartnodePayments mnpayments;
 
+namespace SmartNodePayments{
+
 /// TODO: all 4 functions do not belong here really, they should be refactored/moved somewhere (validation.cpp ?)
 bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockReward, std::string &strErrorRet);
 bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward);
-void FillBlockPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet, std::vector<CTxOut>& voutSuperblockRet);
+void FillSmartNodePayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet, std::vector<CTxOut>& voutSuperblockRet);
 std::string GetRequiredPaymentsString(int nBlockHeight);
+
+}
 
 class CSmartnodePayee
 {

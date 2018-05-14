@@ -146,6 +146,7 @@ BITCOIN_CORE_H = \
   smartnode/smartnodepayments.h \
   smartnode/smartnodesync.h \
   smartrewards/rewardsdb.h \
+  smartrewards/rewardspayments.h \
   smartrewards/rewards.h \
   spentindex.h \
   streams.h \
@@ -230,6 +231,7 @@ libbitcoin_server_a_SOURCES = \
   smartnode/smartnodepayments.cpp \
   smartnode/smartnodesync.cpp \
   smartrewards/rewardsdb.cpp \
+  smartrewards/rewardspayments.cpp \
   smartrewards/rewards.cpp \
   smartnode/spork.cpp \
   timedata.cpp \
@@ -265,6 +267,7 @@ libbitcoin_wallet_a_SOURCES = \
   smartnode/smartnodepayments.cpp \
   smartnode/smartnodesync.cpp \
   smartrewards/rewardsdb.cpp \
+  smartrewards/rewardspayments.cpp \
   smartrewards/rewards.cpp \
   smartnode/spork.cpp \
   wallet/crypter.cpp \

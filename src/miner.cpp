@@ -27,6 +27,7 @@
 #include "utilmoneystr.h"
 #include "validation.h"
 #include "validationinterface.h"
+#include "smartrewards/rewardspayments.h"
 
 #include <algorithm>
 #include <boost/thread.hpp>
@@ -156,29 +157,31 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
          CScript FOUNDER_7_SCRIPT;
          CScript FOUNDER_8_SCRIPT;
 
-         if(!fTestNet && (GetAdjustedTime() > nStartRewardTime)){
-                FOUNDER_1_SCRIPT = GetScriptForDestination(CBitcoinAddress("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M").Get());
-                FOUNDER_2_SCRIPT = GetScriptForDestination(CBitcoinAddress("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x").Get());
-                FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF").Get());
-                FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo").Get());
-                FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b").Get());
-                FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay").Get());
-                FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sgq5c4Rznibagv1aopAfPA81jac392scvm").Get());
-                FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8").Get());
-         }else if(!fTestNet && (GetAdjustedTime() <= nStartRewardTime)){
-             throw std::runtime_error("CreateNewBlock() : Create new block too early");
+         if(!fTestNet){
+
+             if(GetAdjustedTime() <= nStartRewardTime)
+                 throw std::runtime_error("CreateNewBlock() : Create new block too early");
+
+            FOUNDER_1_SCRIPT = GetScriptForDestination(CBitcoinAddress("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M").Get());
+            FOUNDER_2_SCRIPT = GetScriptForDestination(CBitcoinAddress("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x").Get());
+            FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF").Get());
+            FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo").Get());
+            FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b").Get());
+            FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay").Get());
+            FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sgq5c4Rznibagv1aopAfPA81jac392scvm").Get());
+            FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8").Get());
          }else{
-                FOUNDER_1_SCRIPT = GetScriptForDestination(CBitcoinAddress("TTpGqTr2PBeVx4vvNRJ9iTq4NwpTCbSSwy").Get());
-                FOUNDER_2_SCRIPT = GetScriptForDestination(CBitcoinAddress("THypUznpFaDHaE7PS6yAc4pHNjC2BnWzUv").Get());
-                FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("TDJVZE5oCYYbJQyizU4FgB2KpnKVdebnxg").Get());
-                FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("TSziXCdaBcPk3Dt94BbTH9BZDH18K6sWsc").Get());
-                FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("TLn1PGAVccBBjF8JuhQmATCR8vxhmamJg8").Get());
-                FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("TCi1wcVbkmpUiTcG277o5Y3VeD3zgtsHRD").Get());
-                FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB").Get());
-                FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
+            FOUNDER_1_SCRIPT = GetScriptForDestination(CBitcoinAddress("TTpGqTr2PBeVx4vvNRJ9iTq4NwpTCbSSwy").Get());
+            FOUNDER_2_SCRIPT = GetScriptForDestination(CBitcoinAddress("THypUznpFaDHaE7PS6yAc4pHNjC2BnWzUv").Get());
+            FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("TDJVZE5oCYYbJQyizU4FgB2KpnKVdebnxg").Get());
+            FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("TSziXCdaBcPk3Dt94BbTH9BZDH18K6sWsc").Get());
+            FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("TLn1PGAVccBBjF8JuhQmATCR8vxhmamJg8").Get());
+            FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("TCi1wcVbkmpUiTcG277o5Y3VeD3zgtsHRD").Get());
+            FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB").Get());
+            FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
          }
 
-         if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000)))) {
+         if ((nHeight > 0) && ((!fTestNet && (nHeight < HF_V1_0_START_HEIGHT)) || (fTestNet && (nHeight < 1000)))) {
             // Take out amounts for budgets
             coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets on each block
@@ -188,7 +191,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             coinbaseTx.vout.push_back(CTxOut((int64_t)(0.15 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
             coinbaseTx.vout.push_back(CTxOut((int64_t)(0.56 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))), CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
          }
-         if ((nHeight >= 90000) && (nHeight < HF_V1_1_SMARTNODE_HEIGHT)) {
+         if ((nHeight >= HF_V1_0_START_HEIGHT) && (nHeight < HF_V1_1_SMARTNODE_HEIGHT)) {
             // Take out amounts for budgets
             coinbaseTx.vout[0].nValue =-((int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
             // And pay the budgets over 95 block rotation
@@ -236,44 +239,61 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
             // Take out amounts for SmartNode payments.
             coinbaseTx.vout[0].nValue -= smartnodePayment;
             // And pay the next SmartNode in line
-            FillBlockPayments(coinbaseTx, nHeight, smartnodePayment, pblock->txoutSmartnode, pblock->voutSuperblock);
+            SmartNodePayments::FillSmartNodePayments(coinbaseTx, nHeight, smartnodePayment, pblock->txoutSmartnode, pblock->voutSuperblock);
         }
-         if (((!fTestNet && (nHeight >= HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight >=1000))) && (nHeight < HF_CHAIN_REWARD_END_HEIGHT)) {
+         if (((!fTestNet && (nHeight >= HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight >=TESTNET_V1_2_PAYMENTS_HEIGHT))) && (nHeight < HF_CHAIN_REWARD_END_HEIGHT)) {
+
+            // Pay the legacy SmartReward address until the last block's time was greater then HF_V1_2_LEGACY_SMARTREWARD_END_TIME
+            // thats where the cycle starts in the SmartRewards thread.
+            bool useLegacyRewards = fTestNet ? pindexPrev->GetBlockTime() <= TESTNET_V1_2_LEGACY_SMARTREWARD_END_TIME : pindexPrev->GetBlockTime() <= HF_V1_2_LEGACY_SMARTREWARD_END_TIME;
+            int hiveRewardAllocation = useLegacyRewards ? 85 : 70;
+            int blockRotation = nHeight - hiveRewardAllocation * ((pindexPrev->nHeight+1)/hiveRewardAllocation);
+
+            CAmount blockReward = GetBlockValue(nHeight, 0, pindexPrev->nTime);
+            CAmount hiveReward = (CAmount)((hiveRewardAllocation/100) * blockReward);
+            CAmount nodeReward = (CAmount)(0.1 * blockReward);
+
             // Take out amounts for budgets.
-            coinbaseTx.vout[0].nValue =-((int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime))));
-            // And pay the budgets over 85 block rotation
-            int blockRotation = nHeight - 85 * ((pindexPrev->nHeight+1)/85);
-            int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexPrev->nTime)));
+            coinbaseTx.vout[0].nValue -= hiveReward;
+
+            // If we dont pay longer to the legacy address remove the missing 15% allocation from mining output.
+            if(!useLegacyRewards) coinbaseTx.vout[0].nValue -= (CAmount)(0.15 * blockReward);
+
             if(blockRotation >= 0 && blockRotation <= 3){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_1_SCRIPT.begin(), FOUNDER_1_SCRIPT.end())));
             }
             if(blockRotation >= 4 && blockRotation <= 7){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_2_SCRIPT.begin(), FOUNDER_2_SCRIPT.end())));
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_2_SCRIPT.begin(), FOUNDER_2_SCRIPT.end())));
             }
             if(blockRotation >= 8 && blockRotation <= 11){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_3_SCRIPT.begin(), FOUNDER_3_SCRIPT.end())));
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_3_SCRIPT.begin(), FOUNDER_3_SCRIPT.end())));
             }
             if(blockRotation >= 12 && blockRotation <= 15){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_6_SCRIPT.begin(), FOUNDER_6_SCRIPT.end())));
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_6_SCRIPT.begin(), FOUNDER_6_SCRIPT.end())));
             }
             if(blockRotation >= 16 && blockRotation <= 19){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_7_SCRIPT.begin(), FOUNDER_7_SCRIPT.end())));
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_7_SCRIPT.begin(), FOUNDER_7_SCRIPT.end())));
             }
             if(blockRotation >= 20 && blockRotation <= 23){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_8_SCRIPT.begin(), FOUNDER_8_SCRIPT.end())));
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_8_SCRIPT.begin(), FOUNDER_8_SCRIPT.end())));
             }
-//Legacy SmartReward Address
-            if(blockRotation >= 24 && blockRotation <= 38){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
+            if(useLegacyRewards && blockRotation >= 24 && blockRotation <= 38 ){
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_4_SCRIPT.begin(), FOUNDER_4_SCRIPT.end())));
             }
-            if(blockRotation >= 39 && blockRotation <= 84){
-               coinbaseTx.vout.push_back(CTxOut(reward, CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
+            if( ( useLegacyRewards && blockRotation >= 39 && blockRotation <= 84 ) &&
+                ( !useLegacyRewards && blockRotation >= 24 && blockRotation <= 69 ) ){
+               coinbaseTx.vout.push_back(CTxOut(hiveReward, CScript(FOUNDER_5_SCRIPT.begin(), FOUNDER_5_SCRIPT.end())));
             }
-            CAmount smartnodePayment = (int64_t)(0.1 * (GetBlockValue(nHeight, 0, pindexPrev->nTime)));
+
             // Take out amounts for SmartNode payments.
-            coinbaseTx.vout[0].nValue -= smartnodePayment;
-            // And pay the next SmartNode in line
-            FillBlockPayments(coinbaseTx, nHeight, smartnodePayment, pblock->txoutSmartnode, pblock->voutSuperblock);
+            coinbaseTx.vout[0].nValue -= nodeReward;
+
+            // Add smartnode payments if there are any pending at the current block.
+            SmartNodePayments::FillSmartNodePayments(coinbaseTx, nHeight, nodeReward, pblock->txoutSmartnode, pblock->voutSuperblock);
+
+            // Add SmartReward payments if there are any pending at the current block.
+            SmartRewardPayments::FillRewardPayments(coinbaseTx, nHeight, pblock->voutSuperblock);
+
         }
     }
 
@@ -544,7 +564,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
         // Adjust miner reward for block time deviation
         float blockTimeDeviation = 100;
-        if ((!fTestNet && (nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight > 500))) {
+        if ((!fTestNet && (nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight > TESTNET_V1_2_PAYMENTS_HEIGHT))) {
             int64_t lastBlockTime = pblock->nTime;
             int64_t currentBlockTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
             blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);

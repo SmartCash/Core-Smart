@@ -19,8 +19,7 @@ const int64_t nCacheBlocks = 50;
 const int nRewardsSyncDistance = 30;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int nRewardsUISyncUpdateRate = 100;
-// Timestamp of the first real transaction in the mainnet
-const int64_t nFirstTxTimestamp = 1499790268;
+
 // Timestamp of the first real transaction in the testnet
 const int64_t nFirstTxTimestamp_Testnet = 1526307133;
 
