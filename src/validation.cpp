@@ -3301,10 +3301,10 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // Adjust miner blockReward for block time deviation
     bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
     float blockTimeDeviation = 100;
-    if ((!fTestNet && (pindex->nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (pindex->nHeight >500))) {
+    if ((!fTestNet && (pindex->nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (pindex->nHeight >20))) {
         int64_t lastBlockTime = pindex->pprev->GetBlockTime();
         int64_t currentBlockTime = std::max(pindex->GetMedianTimePast()+1, GetAdjustedTime());
-        blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);
+        blockTimeDeviation = floor(0.5+(currentBlockTime - lastBlockTime) / 0.55);
     }
 
     // SMARTCASH : MODIFIED TO CHECK MASTERNODE PAYMENTS AND SUPERBLOCKS
