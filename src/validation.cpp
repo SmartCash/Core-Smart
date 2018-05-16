@@ -2805,7 +2805,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // TODO: resync data (both ways?) and try to reprocess this block later.
 
     // Adjust miner blockReward for block time deviation
-
     //
     // TBD => Rewrite the mining rules.. looks a bit messy now but it was done in hurry for testnet.
     //
