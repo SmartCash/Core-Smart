@@ -29,9 +29,10 @@ typedef enum{
     NoRewardBlock,
     InvalidRewardList
 } Result;
-SmartRewardPayments::Result ValidateRewardPayments(const CTransaction& txCoinbase, int nBlockHeight);
-CSmartRewardSnapshotList GetPaymentsForBlock(const int nHeight, SmartRewardPayments::Result &result);
-void FillRewardPayments(CMutableTransaction& txNew, int nBlockHeight, std::vector<CTxOut>& voutSuperblockRet);
+
+CSmartRewardSnapshotList GetPaymentsForBlock(const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
+SmartRewardPayments::Result Validate(const CBlock& block, const int nHeight);
+void FillPayments(CMutableTransaction& txNew, int nHeight, int64_t prevBlockTime, std::vector<CTxOut>& voutSmartRewards);
 
 }
 #endif // REWARDSPAYMENTS_H

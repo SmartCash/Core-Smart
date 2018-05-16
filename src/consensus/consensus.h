@@ -22,15 +22,17 @@ static const int COINBASE_MATURITY = 100;
 static const int HF_V1_0_START_HEIGHT = 90000;
 /** Smartnode start block*/
 static const int HF_V1_1_SMARTNODE_HEIGHT = 300000;
-/** v1.2 mining changes start block*/
-static const int HF_V1_2_PAYMENTS_HEIGHT = 550000;
+///** v1.2 mining changes start block*/
+// DEPRECATED, we use the time for this fork to make sure we end up on the
+// SmartRewards deadline.
+//static const int HF_V1_2_PAYMENTS_HEIGHT = 550000;
 /** SmartRewards automation start time*/
 static const int HF_V1_2_LEGACY_SMARTREWARD_END_TIME = 1532502000; // 07/25/2018 @ 7:00am (UTC)
 /** SmartCash max reward block */
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 
 /** Testnets 1.2 mining changes start block*/
-static const int TESTNET_V1_2_TIMED_MINING_HEIGHT = 500;
+static const int TESTNET_V1_2_TIMED_MINING_HEIGHT = 20;
 /** Testnets 1.2 payment start block*/
 static const int TESTNET_V1_2_PAYMENTS_HEIGHT = 1000;
 /** Testnets 1.2 SmartRewards automation start block*/

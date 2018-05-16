@@ -87,8 +87,8 @@ public:
     bool UpdateCurrentRound(const CSmartRewardRound &round);
     bool UpdateRound(const CSmartRewardRound &round);
 
-    bool GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry);
-    void GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry, bool &added);
+    bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
+    void GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry, bool &added);
     bool GetRewardEntries(CSmartRewardEntryList &entries);
 
     void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots);

@@ -15,12 +15,12 @@
 
 #include <stdint.h>
 
-CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHeight, SmartRewardPayments::Result &result)
+CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result)
 {
     result = SmartRewardPayments::NoError;
 
-    // If we are not yet at the 1.2 payout block height.
-    if( nHeight < HF_V1_2_PAYMENTS_HEIGHT ){
+    // If we are not yet at the 1.2 payout block time.
+    if( blockTime < HF_V1_2_LEGACY_SMARTREWARD_END_TIME ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
     }
@@ -101,14 +101,37 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
     return CSmartRewardSnapshotList();
 }
 
-SmartRewardPayments::Result SmartRewardPayments::ValidateRewardPayments(const CTransaction& txCoinbase, int nBlockHeight)
+void SmartRewardPayments::FillPayments(CMutableTransaction &coinbaseTx, int nHeight, int64_t prevBlockTime, std::vector<CTxOut>& voutSmartRewards)
+{
+
+    SmartRewardPayments::Result result;
+    CSmartRewardSnapshotList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, prevBlockTime, result);
+
+    // only create rewardblocks if a rewardblock is actually required at the current height.
+    if( result == SmartRewardPayments::NoError && rewards.size() ) {
+            LogPrint("rewardpayments", "FillRewardPayments -- triggered rewardblock creation at height %d with %d payees\n", nHeight, rewards.size());
+
+            BOOST_FOREACH(CSmartRewardSnapshot s, rewards)
+            {
+                CTxOut out = CTxOut(s.reward, s.id.GetScript());
+                coinbaseTx.vout.push_back(out);
+                voutSmartRewards.push_back(out);
+            }
+    }
+}
+
+
+SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, int nHeight)
 {
     SmartRewardPayments::Result result;
-    CSmartRewardSnapshotList rewards =  SmartRewardPayments::GetPaymentsForBlock(nBlockHeight, result);
+
+    const CTransaction &txCoinbase = block.vtx[0];
+
+    CSmartRewardSnapshotList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, block.GetBlockTime(), result);
 
     if( result == SmartRewardPayments::NoError && rewards.size() ) {
 
-            LogPrint("rewardpayments","ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nBlockHeight, rewards.size());
+            LogPrint("rewardpayments","ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nHeight, rewards.size());
 
             BOOST_FOREACH(const CSmartRewardSnapshot &payout, rewards)
             {
@@ -127,31 +150,11 @@ SmartRewardPayments::Result SmartRewardPayments::ValidateRewardPayments(const CT
                 }
             }
 
-    }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::DatabaseError ){
+    }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::DatabaseError || result == SmartRewardPayments::NoRewardBlock ){
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
         result = SmartRewardPayments::NoError;
     }
 
     return result;
-}
-
-
-void SmartRewardPayments::FillRewardPayments(CMutableTransaction &coinbaseTx, int nBlockHeight, std::vector<CTxOut> &voutSuperblockRet)
-{
-
-    SmartRewardPayments::Result result;
-    CSmartRewardSnapshotList rewards =  SmartRewardPayments::GetPaymentsForBlock(nBlockHeight, result);
-
-    // only create rewardblocks if a rewardblock is actually required at the current height.
-    if( result == SmartRewardPayments::NoError && rewards.size() ) {
-            LogPrint("rewardpayments", "FillRewardPayments -- triggered rewardblock creation at height %d with %d payees\n", nBlockHeight, rewards.size());
-
-            BOOST_FOREACH(CSmartRewardSnapshot s, rewards)
-            {
-                CTxOut out = CTxOut(s.reward, s.id.GetScript());
-                coinbaseTx.vout.push_back(out);
-                voutSuperblockRet.push_back(out);
-            }
-    }
 }

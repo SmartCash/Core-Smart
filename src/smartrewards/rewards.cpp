@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "smartrewards/rewards.h"
+#include "smarthive/hive.h"
 #include "validation.h"
 #include "init.h"
 #include "ui_interface.h"
@@ -12,19 +13,8 @@
 
 CSmartRewards *prewards = NULL;
 
-// Exclude the following addresses form SmartRewards.
-static std::vector<CSmartRewardId> blacklist = {
-    CSmartRewardId("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b"), // SmartHive treasure
-    CSmartRewardId("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x"), // Support hive
-    CSmartRewardId("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF"), // Development hive
-    CSmartRewardId("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M"), // Outreach hive
-    CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo"), // Legacy smartrewards
-    CSmartRewardId("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay"), // New hive 1
-    CSmartRewardId("Sgq5c4Rznibagv1aopAfPA81jac392scvm"), // New hive 2
-    CSmartRewardId("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8") // New hive 3
-};
 
-int ParseScript(const CScript &script, std::vector<CSmartRewardId> &ids){
+int ParseScript(const CScript &script, std::vector<CSmartAddress> &ids){
 
     std::vector<CTxDestination> addresses;
     txnouttype type;
@@ -36,7 +26,7 @@ int ParseScript(const CScript &script, std::vector<CSmartRewardId> &ids){
 
     BOOST_FOREACH(const CTxDestination &d, addresses)
     {
-        ids.push_back(CSmartRewardId(d));
+        ids.push_back(CSmartAddress(d));
     }
 
     return nRequired;
@@ -100,12 +90,12 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 CTxOut rOut = rTx.vout[in.prevout.n];
 
                 bool added;
-                std::vector<CSmartRewardId> ids;
+                std::vector<CSmartAddress> ids;
                 CSmartRewardEntry rEntry;
                 int required = ParseScript(rOut.scriptPubKey ,ids);
 
                 if( !required || required > 1 || ids.size() > 1 ){
-                    return error("Could't parse CSmartRewardId: %s",rOut.ToString());
+                    return error("Could't parse CSmartAddress: %s",rOut.ToString());
                 }
 
                 GetRewardEntry(ids.at(0),rEntry, added);
@@ -142,12 +132,12 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
             if(out.scriptPubKey.IsZerocoinMint() ) continue;
 
             bool added;
-            std::vector<CSmartRewardId> ids;
+            std::vector<CSmartAddress> ids;
             CSmartRewardEntry rEntry;
             int required = ParseScript(out.scriptPubKey ,ids);
 
             if( !required || required > 1 || ids.size() > 1 ){
-                return error("Could't parse CSmartRewardId: %s",out.ToString());
+                return error("Could't parse CSmartAddress: %s",out.ToString());
             }else{
                 GetRewardEntry(ids.at(0),rEntry, added);
 
@@ -173,10 +163,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
 
         if( current.number ) snapshots.push_back(CSmartRewardSnapshot(entry, current));
 
-        auto blacklisted = std::find(blacklist.begin(), blacklist.end(), entry.id);
-
         entry.balanceOnStart = entry.balance;
-        entry.eligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && blacklisted == blacklist.end();
+        entry.eligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
 
         if( entry.eligible ){
             ++next.eligibleEntries;
@@ -264,14 +252,14 @@ void CSmartRewards::PrepareForRemove(const CSmartRewardEntry &entry)
     removeEntries.push_back(entry);
 }
 
-bool CSmartRewards::GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry)
+bool CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry)
 {
     bool added;
     GetRewardEntry(id, entry, added);
     return !added;
 }
 
-void CSmartRewards::GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry, bool &added)
+void CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry, bool &added)
 {
     LOCK(csDb);
 

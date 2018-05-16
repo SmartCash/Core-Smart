@@ -83,7 +83,8 @@ public:
     int PoolMaxTransactions() const { return nPoolMaxTransactions; } 
     int FulfilledRequestExpireTime() const { return nFulfilledRequestExpireTime; } 
     std::string SporkPubKey() const { return strSporkPubKey; } 
-    std::string SmartnodePaymentPubKey() const { return strSmartnodePaymentsPubKey; } 
+    std::string SmartnodePaymentPubKey() const { return strSmartnodePaymentsPubKey; }
+
 protected:
     CChainParams() {}
 
@@ -135,5 +136,16 @@ void SelectParams(const std::string& chain);
  * Allows modifying the BIP9 regtest parameters.
  */
 void UpdateRegtestBIP9Parameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
+
+
+inline bool TestNet(){
+    static bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
+    return fTestNet;
+}
+
+inline bool MainNet(){
+    static bool fMainNet = (Params().NetworkIDString() == CBaseChainParams::MAIN);
+    return fMainNet;
+}
 
 #endif // BITCOIN_CHAINPARAMS_H

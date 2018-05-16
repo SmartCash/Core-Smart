@@ -10,6 +10,7 @@
 #include "chain.h"
 #include "coins.h"
 #include "base58.h"
+#include "smarthive/hive.h"
 
 static constexpr uint8_t REWARDS_DB_VERSION = 0x01;
 
@@ -149,37 +150,6 @@ public:
     std::string ToString() const;
 };
 
-struct CSmartRewardId : public CBitcoinAddress
-{
-    ADD_SERIALIZE_METHODS
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(vchVersion);
-        READWRITE(vchData);
-    }
-
-    CSmartRewardId() : CBitcoinAddress() {}
-    CSmartRewardId(const std::string &address) : CBitcoinAddress(address) {}
-    CSmartRewardId(const CTxDestination &destination) : CBitcoinAddress(destination) {}
-    CSmartRewardId(const char* pszAddress) : CBitcoinAddress(pszAddress) {}
-
-    int Compare(const CSmartRewardId& other) const
-    {
-        std::vector<unsigned char> aVec = vchVersion;
-        aVec.insert(aVec.end(), vchData.begin(), vchData.end());
-
-        std::vector<unsigned char> bVec = other.vchVersion;
-        bVec.insert(bVec.end(), other.vchData.begin(), other.vchData.end());
-
-        return memcmp(aVec.data(), bVec.data(), aVec.capacity());
-    }
-
-public:
-    CScript GetScript() const { return GetScriptForDestination(Get()); }
-
-};
-
 class CSmartRewardEntry
 {
 
@@ -195,13 +165,13 @@ public:
         READWRITE(eligible);
     }
 
-    CSmartRewardId id;
+    CSmartAddress id;
     CAmount balance;
     CAmount balanceOnStart;
     CAmount reward;
     bool eligible;
 
-    CSmartRewardEntry() : id(CSmartRewardId()),
+    CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceOnStart(0),
                           reward(0), eligible(false) {}
 
@@ -225,7 +195,7 @@ class CSmartRewardSnapshot
 
 public:
 
-    CSmartRewardId id;
+    CSmartAddress id;
     CAmount balance;
     CAmount reward;
 
@@ -293,7 +263,7 @@ public:
     bool ReadCurrentRound(CSmartRewardRound &round);
     bool WriteCurrentRound(const CSmartRewardRound &round);
 
-    bool ReadRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry);
+    bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool ReadRewardEntries(CSmartRewardEntryList &vect);
 
     bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);

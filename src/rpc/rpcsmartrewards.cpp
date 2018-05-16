@@ -199,7 +199,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     if (strCommand == "check")
     {
         std::string addressString = params[1].get_str();
-        CSmartRewardId id = CSmartRewardId(addressString);
+        CSmartAddress id = CSmartAddress(addressString);
 
         if( !id.IsValid() ) throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Invalid SMART address provided: %s",addressString));
 

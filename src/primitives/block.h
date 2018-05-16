@@ -37,7 +37,7 @@ public:
         SetNull();
     }
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -84,8 +84,9 @@ public:
 
     // memory only
     mutable bool fChecked;
-    mutable CTxOut txoutSmartnode; // smartnode payment
-    mutable std::vector<CTxOut> voutSuperblock;
+    mutable std::vector<CTxOut> voutSmartNodes;
+    mutable std::vector<CTxOut> voutSmartHives;
+    mutable std::vector<CTxOut> voutSmartRewards;
     mutable std::vector<uint256> vMerkleTree;
 
     CBlock()
@@ -99,7 +100,7 @@ public:
         *((CBlockHeader*)this) = header;
     }
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -111,8 +112,9 @@ public:
     {
         CBlockHeader::SetNull();
         vtx.clear();
-        txoutSmartnode = CTxOut();
-        voutSuperblock.clear();
+        voutSmartHives.clear();
+        voutSmartNodes.clear();
+        voutSmartRewards.clear();
         fChecked = false;
     }
 

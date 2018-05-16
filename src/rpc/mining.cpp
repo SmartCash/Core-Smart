@@ -26,6 +26,7 @@
 #include "validationinterface.h"
 #include "smartnode/smartnodepayments.h"
 #include "smartnode/smartnodesync.h"
+#include "smarthive/hive.h"
 
 #include <stdint.h>
 
@@ -643,8 +644,6 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     //const bool fPreSegWit = (THRESHOLD_ACTIVE != VersionBitsState(pindexPrev, consensusParams, Consensus::DEPLOYMENT_SEGWIT, versionbitscache));
     const bool fPreSegWit = false;
 
-    UniValue aCaps(UniValue::VARR); aCaps.push_back("proposal");
-
     UniValue transactions(UniValue::VARR);
     map<uint256, int64_t> setTxIndex;
     int i = 0;
@@ -682,8 +681,67 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
         transactions.push_back(entry);
     }
 
-    UniValue aux(UniValue::VOBJ);
-    aux.push_back(Pair("flags", HexStr(COINBASE_FLAGS.begin(), COINBASE_FLAGS.end())));
+    UniValue coinbase(UniValue::VOBJ);
+    coinbase.push_back(Pair("mining", (int64_t)pblock->vtx[0].vout[0].nValue));
+    {
+        UniValue smartHivePayouts(UniValue::VARR);
+        if(pblock->voutSmartHives.size()) {
+
+            BOOST_FOREACH(const CTxOut &out, pblock->voutSmartHives)
+            {
+                UniValue payout(UniValue::VOBJ);
+                CTxDestination destination;
+                ExtractDestination(out.scriptPubKey, destination);
+                CSmartAddress address(destination);
+                payout.push_back(Pair("payee", address.ToString().c_str()));
+                payout.push_back(Pair("script", HexStr(out.scriptPubKey.begin(), out.scriptPubKey.end())));
+                payout.push_back(Pair("amount", out.nValue));
+
+                smartHivePayouts.push_back(payout);
+            }
+        }
+
+        coinbase.push_back(Pair("smarthives", smartHivePayouts));
+    }
+    {
+        UniValue smartNodePayouts(UniValue::VARR);
+        if(pblock->voutSmartNodes.size()) {
+
+            BOOST_FOREACH(const CTxOut &out, pblock->voutSmartNodes)
+            {
+                UniValue payout(UniValue::VOBJ);
+                CTxDestination destination;
+                ExtractDestination(out.scriptPubKey, destination);
+                CSmartAddress address(destination);
+                payout.push_back(Pair("payee", address.ToString().c_str()));
+                payout.push_back(Pair("script", HexStr(out.scriptPubKey.begin(), out.scriptPubKey.end())));
+                payout.push_back(Pair("amount", out.nValue));
+
+                smartNodePayouts.push_back(payout);
+            }
+        }
+        coinbase.push_back(Pair("smartnodes", smartNodePayouts));
+    }
+    {
+        UniValue smartRewardPayouts(UniValue::VARR);
+        if(pblock->voutSmartRewards.size()) {
+
+            BOOST_FOREACH(const CTxOut &out, pblock->voutSmartRewards)
+            {
+                UniValue payout(UniValue::VOBJ);
+                CTxDestination destination;
+                ExtractDestination(out.scriptPubKey, destination);
+                CSmartAddress address(destination);
+                payout.push_back(Pair("payee", address.ToString().c_str()));
+                payout.push_back(Pair("script", HexStr(out.scriptPubKey.begin(), out.scriptPubKey.end())));
+                payout.push_back(Pair("amount", out.nValue));
+
+                smartRewardPayouts.push_back(payout);
+            }
+        }
+
+        coinbase.push_back(Pair("smartrewards", smartRewardPayouts));
+    }
 
     arith_uint256 hashTarget = arith_uint256().SetCompact(pblock->nBits);
 
@@ -693,54 +751,9 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     aMutable.push_back("prevblock");
 
     UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("capabilities", aCaps));
 
-    UniValue aRules(UniValue::VARR);
-    UniValue vbavailable(UniValue::VOBJ);
-    // for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++i) {
-    //     Consensus::DeploymentPos pos = Consensus::DeploymentPos(i);
-    //     ThresholdState state = VersionBitsState(pindexPrev, consensusParams, pos, versionbitscache);
-    //     switch (state) {
-    //         case THRESHOLD_DEFINED:
-    //         case THRESHOLD_FAILED:
-    //             // Not exposed to GBT at all
-    //             break;
-    //         case THRESHOLD_LOCKED_IN:
-    //             // Ensure bit is set in block version
-    //             pblock->nVersion |= VersionBitsMask(consensusParams, pos);
-    //             // FALL THROUGH to get vbavailable set...
-    //         case THRESHOLD_STARTED:
-    //         {
-    //             const struct BIP9DeploymentInfo& vbinfo = VersionBitsDeploymentInfo[pos];
-    //             vbavailable.push_back(Pair(gbt_vb_name(pos), consensusParams.vDeployments[pos].bit));
-    //             if (setClientRules.find(vbinfo.name) == setClientRules.end()) {
-    //                 if (!vbinfo.gbt_force) {
-    //                     // If the client doesn't support this, don't indicate it in the [default] version
-    //                     pblock->nVersion &= ~VersionBitsMask(consensusParams, pos);
-    //                 }
-    //             }
-    //             break;
-    //         }
-    //         case THRESHOLD_ACTIVE:
-    //         {
-    //             // Add to rules only
-    //             const struct BIP9DeploymentInfo& vbinfo = VersionBitsDeploymentInfo[pos];
-    //             aRules.push_back(gbt_vb_name(pos));
-    //             if (setClientRules.find(vbinfo.name) == setClientRules.end()) {
-    //                 // Not supported by the client; make sure it's safe to proceed
-    //                 if (!vbinfo.gbt_force) {
-    //                     // If we do anything other than throw an exception here, be sure version/force isn't sent to old clients
-    //                     throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Support for '%s' rule requires explicit client support", vbinfo.name));
-    //                 }
-    //             }
-    //             break;
-    //         }
-    //     }
-    // }
+    result.push_back(Pair("mainnet", MainNet()));
     result.push_back(Pair("version", pblock->nVersion));
-    result.push_back(Pair("rules", aRules));
-    result.push_back(Pair("vbavailable", vbavailable));
-    result.push_back(Pair("vbrequired", int(0)));
 
     if (nMaxVersionPreVB >= 2) {
         // If VB is supported by the client, nMaxVersionPreVB is -1, so we won't get here
@@ -751,9 +764,8 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     }
 
     result.push_back(Pair("previousblockhash", pblock->hashPrevBlock.GetHex()));
+    result.push_back(Pair("coinbase", coinbase));
     result.push_back(Pair("transactions", transactions));
-    result.push_back(Pair("coinbaseaux", aux));
-    result.push_back(Pair("coinbasevalue", (int64_t)pblock->vtx[0].vout[0].nValue));
     result.push_back(Pair("longpollid", chainActive.Tip()->GetBlockHash().GetHex() + i64tostr(nTransactionsUpdatedLast)));
     result.push_back(Pair("target", hashTarget.GetHex()));
     result.push_back(Pair("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1));
@@ -771,19 +783,6 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     result.push_back(Pair("bits", strprintf("%08x", pblock->nBits)));
     result.push_back(Pair("height", (int64_t)(pindexPrev->nHeight+1)));
 
-    UniValue smartnodeObj(UniValue::VOBJ);
-    if(pblock->txoutSmartnode != CTxOut()) {
-        CTxDestination address1;
-        ExtractDestination(pblock->txoutSmartnode.scriptPubKey, address1);
-        CBitcoinAddress address2(address1);
-        smartnodeObj.push_back(Pair("payee", address2.ToString().c_str()));
-        smartnodeObj.push_back(Pair("script", HexStr(pblock->txoutSmartnode.scriptPubKey.begin(), pblock->txoutSmartnode.scriptPubKey.end())));
-        smartnodeObj.push_back(Pair("amount", pblock->txoutSmartnode.nValue));
-    }
-    result.push_back(Pair("smartnode", smartnodeObj));
-    result.push_back(Pair("smartnode_payments_started", pindexPrev->nHeight + 1 > Params().GetConsensus().nSmartnodePaymentsStartBlock));
-//    result.push_back(Pair("smartnode_payments_enforced", sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)));
-
     const struct BIP9DeploymentInfo& segwit_info = VersionBitsDeploymentInfo[Consensus::DEPLOYMENT_SEGWIT];
     if (!pblocktemplate->vchCoinbaseCommitment.empty() && setClientRules.find(segwit_info.name) != setClientRules.end()) {
         result.push_back(Pair("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment.begin(), pblocktemplate->vchCoinbaseCommitment.end())));
@@ -799,7 +798,7 @@ public:
     bool found;
     CValidationState state;
 
-    submitblock_StateCatcher(const uint256 &hashIn) : hash(hashIn), found(false), state() {};
+    submitblock_StateCatcher(const uint256 &hashIn) : hash(hashIn), found(false), state() {}
 
 protected:
     virtual void BlockChecked(const CBlock& block, const CValidationState& stateIn) {
