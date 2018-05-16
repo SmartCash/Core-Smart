@@ -544,10 +544,10 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
 
         // Adjust miner reward for block time deviation
         float blockTimeDeviation = 100;
-        if ((!fTestNet && (nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight > 500))) {
+        if ((!fTestNet && (nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight > 20))) {
             int64_t lastBlockTime = pblock->nTime;
             int64_t currentBlockTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
-            blockTimeDeviation = ((currentBlockTime - lastBlockTime) / 0.55);
+            blockTimeDeviation = floor(0.5 + (currentBlockTime - lastBlockTime) / 0.55);
         }
         
         // Fill in header
