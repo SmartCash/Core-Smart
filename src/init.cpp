@@ -66,6 +66,9 @@
 
 #include "smartrewards/rewards.h"
 
+#include "smarthive/hive.h"
+#include "smarthive/hivepayments.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <memory>
@@ -955,7 +958,13 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 #endif
 
     // ********************************************************* Step 2: parameter interactions
-        const CChainParams& chainparams = Params();
+
+    const CChainParams& chainparams = Params();
+
+    // Initialize SmartHive addresses
+    SmartHive::Init();
+    // Initialize SmartHive addresses
+    SmartHivePayments::Init();
 
     // also see: InitParameterInteraction()
 

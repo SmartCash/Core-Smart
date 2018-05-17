@@ -22,10 +22,6 @@
 #include "script/script.h"
 #include "script/sigcache.h"
 #include "script/standard.h"
-#include "smartnode/instantx.h"
-#include "smartnode/smartnodeman.h"
-#include "smartnode/smartnodepayments.h"
-#include "smartnode/spork.h"
 #include "timedata.h"
 #include "tinyformat.h"
 #include "txdb.h"
@@ -47,6 +43,14 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/math/distributions/poisson.hpp>
 #include <boost/thread.hpp>
+
+#include "smartnode/instantx.h"
+#include "smartnode/smartnodeman.h"
+#include "smartnode/smartnodepayments.h"
+#include "smartnode/spork.h"
+#include "smartrewards/rewardspayments.h"
+#include "smarthive/hive.h"
+#include "smarthive/hivepayments.h"
 
 using namespace std;
 
@@ -634,14 +638,14 @@ bool static FlushStateToDisk(CValidationState &state, FlushStateMode mode);
 
 
 
-bool GetBlockHash(uint256& hashRet, int nBlockHeight) 
-{ 
-    LOCK(cs_main); 
-    if(chainActive.Tip() == NULL) return false; 
-    if(nBlockHeight < -1 || nBlockHeight > chainActive.Height()) return false; 
-    if(nBlockHeight == -1) nBlockHeight = chainActive.Height(); 
-    hashRet = chainActive[nBlockHeight]->GetBlockHash(); 
-    return true; 
+bool GetBlockHash(uint256& hashRet, int nBlockHeight)
+{
+    LOCK(cs_main);
+    if(chainActive.Tip() == NULL) return false;
+    if(nBlockHeight < -1 || nBlockHeight > chainActive.Height()) return false;
+    if(nBlockHeight == -1) nBlockHeight = chainActive.Height();
+    hashRet = chainActive[nBlockHeight]->GetBlockHash();
+    return true;
 }
 
 // void RegisterNodeSignals(CNodeSignals& nodeSignals)
@@ -1058,206 +1062,11 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& in
 // }
 
 
-
-// zerocoin init
-static CBigNum bnTrustedModulus;
-bool setParams = bnTrustedModulus.SetHexBool(ZEROCOIN_MODULUS);
-
-// Set up the Zerocoin Params object
-uint32_t securityLevel = 80;
-//static libzerocoin::Params *ZCParams = new libzerocoin::Params(bnTrustedModulus);
-
-// bool CheckSpendZcoinTransaction(const CTransaction &tx, CZerocoinEntry pubCoinTx, list <CZerocoinEntry> listPubCoin, libzerocoin::CoinDenomination targetDenomination, CValidationState &state, uint256 hashTx, bool isVerifyDB, int nHeight, bool isCheckWallet) {
-//     // Check vOut
-//     // Only one loop, we checked on the format before enter this case
-//     // Check vIn
-//     CWalletDB walletdb(pwalletMain->strWalletFile);
-//     LogPrintf("CheckSpendZcoinTransaction denomination=%d nHeight=%d\n", targetDenomination, nHeight);
-//     BOOST_FOREACH(const CTxIn &txin, tx.vin)
-//     {
-//         if (txin.scriptSig.IsZerocoinSpend()) {
-//             // Deserialize the CoinSpend intro a fresh object
-//             std::vector<char, zero_after_free_allocator<char> > dataTxIn;
-//             dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + 4, txin.scriptSig.end());
-//             CDataStream serializedCoinSpend(SER_NETWORK, PROTOCOL_VERSION);
-//             serializedCoinSpend.vch = dataTxIn;
-//             libzerocoin::CoinSpend newSpend(ZCParams, serializedCoinSpend);
-//             // Create a new metadata object to contain the hash of the received
-//             // ZEROCOIN_SPEND transaction. If we were a real client we'd actually
-//             // compute the hash of the received transaction here.
-//             libzerocoin::SpendMetaData newMetadata(0, 0);
-//             libzerocoin::Accumulator accumulator(ZCParams, targetDenomination);
-//             libzerocoin::Accumulator accumulatorRev(ZCParams, targetDenomination);
-//             libzerocoin::Accumulator accumulatorPrecomputed(ZCParams, targetDenomination);
-//             bool passVerify = false;
-//             uint32_t pubcoinId = txin.nSequence;
-//             if (pubcoinId < 1 || pubcoinId >= INT_MAX) { // IT BEGINS WITH 1
-//                 return state.DoS(100, false, NSEQUENCE_INCORRECT,
-//                                  "CTransaction::CheckTransaction() : Error: nSequence is not correct format");
-//             }
-
-//             // VERIFY COINSPEND TX
-//             // used pre-computed accumulator
-//             walletdb.ReadZerocoinAccumulator(accumulatorPrecomputed, targetDenomination, pubcoinId);
-//             if (newSpend.Verify(accumulatorPrecomputed, newMetadata)) {
-//                 passVerify = true;
-//             }
-//             int countPubcoin = 0;
-//             if (!passVerify) {
-//                 BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-//                     if (pubCoinItem.denomination == targetDenomination &&
-//                         (pubCoinItem.id >= 0 && (uint32_t) pubCoinItem.id == pubcoinId) &&
-//                         pubCoinItem.nHeight != -1) {
-//                         libzerocoin::PublicCoin pubCoinTemp(ZCParams, pubCoinItem.value, targetDenomination);
-//                         if (!pubCoinTemp.validate()) {
-//                             return state.DoS(100, false, PUBLIC_COIN_FOR_ACCUMULATOR_INVALID,
-//                                              "CTransaction::CheckTransaction() : Error: Public Coin for Accumulator is not valid !!!");
-//                         }
-//                         countPubcoin++;
-//                         accumulator += pubCoinTemp;
-//                         LogPrintf("countPubcoin=%s\n", countPubcoin);
-//                         LogPrintf("accumulator=%s\n", accumulator.getValue().ToString().substr(0, 15));
-//                         if (countPubcoin >= 2) { // MINIMUM REQUIREMENT IS 2 PUBCOINS
-//                             if (newSpend.Verify(accumulator, newMetadata)) {
-//                                 LogPrintf("COIN SPEND TX DID VERIFY - accumulator!\n");
-//                                 // store this accumulator
-//                                 if (!isCheckWallet) {
-//                                     walletdb.WriteZerocoinAccumulator(accumulator, targetDenomination, pubcoinId);
-//                                 }
-//                                 passVerify = true;
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                 }
-
-//                 // It does not have this mint coins id, still sync
-//                 if (countPubcoin == 0) {
-//                     return state.DoS(0, false, NO_MINT_ZEROCOIN, "CTransaction::CheckTransaction() : Error: Node does not have mint zerocoin to verify, please wait until ");
-//                 }
-//             }
-
-//             if (!passVerify) {
-//                 int countPubcoin = 0;
-// //                LogPrint("CheckSpendZcoinTransaction", "Check reverse\n");
-//                 BOOST_REVERSE_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-// //                    LogPrintf("--denomination = %d, id = %d, pubcoinId = %d height = %d\n",
-// //                              pubCoinItem.denomination, pubCoinItem.id, pubcoinId, pubCoinItem.nHeight);
-//                     if (pubCoinItem.denomination == targetDenomination &&
-//                         (pubCoinItem.id >= 0 && (uint32_t) pubCoinItem.id == pubcoinId) &&
-//                         pubCoinItem.nHeight != -1) {
-//                         LogPrint("CheckSpendZcoinTransaction", "--## denomination = %d, id = %d, pubcoinId = %d height = %d\n",
-//                                   pubCoinItem.denomination, pubCoinItem.id, pubcoinId,
-//                                   pubCoinItem.nHeight);
-//                         libzerocoin::PublicCoin pubCoinTemp(ZCParams, pubCoinItem.value, targetDenomination);
-//                         if (!pubCoinTemp.validate()) {
-//                             return state.DoS(100,
-//                                              error("CTransaction::CheckTransaction() : Error: Public Coin for Accumulator is not valid !!!"));
-//                         }
-//                         countPubcoin++;
-//                         accumulatorRev += pubCoinTemp;
-//                         LogPrintf("countPubcoin=%s\n", countPubcoin);
-//                         LogPrintf("accumulatorRev=%s\n", accumulatorRev.getValue().ToString());
-//                         if (countPubcoin >= 2) { // MINIMUM REQUIREMENT IS 2 PUBCOINS
-//                             if (newSpend.Verify(accumulatorRev, newMetadata)) {
-//                                 LogPrintf("COIN SPEND TX DID VERIFY - accumulatorRev!\n");
-//                                 passVerify = true;
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                 }
-
-//                 // It does not have this mint coins id, still sync
-//                 if (countPubcoin == 0) {
-//                     return state.DoS(0, false, NO_MINT_ZEROCOIN, "CTransaction::CheckTransaction() : Error: Node does not have mint zerocoin to verify, please wait until ");
-//                 }
-//             }
-
-//             if (passVerify) {
-//                 // Pull the serial number out of the CoinSpend object. If we
-//                 // were a real Zerocoin client we would now check that the serial number
-//                 // has not been spent before (in another ZEROCOIN_SPEND) transaction.
-//                 // The serial number is stored as a Bignum.
-//                 if (!isVerifyDB && !isCheckWallet) {
-//                     // chceck already store
-//                     bool isAlreadyStored = false;
-
-//                     CBigNum serialNumber = newSpend.getCoinSerialNumber();
-//                     CWalletDB walletdb(pwalletMain->strWalletFile);
-
-//                     std::list <CZerocoinSpendEntry> listCoinSpendSerial;
-//                     walletdb.ListCoinSpendSerial(listCoinSpendSerial);
-//                     BOOST_FOREACH(const CZerocoinSpendEntry &item, listCoinSpendSerial) {
-//                         if (item.coinSerial == serialNumber
-//                             && item.denomination == targetDenomination
-//                             && (item.id >= 0 && (uint32_t) item.id == pubcoinId)
-//                             && item.hashTx != hashTx) {
-//                             return state.DoS(100, error("CTransaction::CheckTransaction() : The CoinSpend serial has been used"));
-//                         } else if (item.coinSerial == serialNumber
-//                                    && item.hashTx == hashTx
-//                                    && item.denomination == targetDenomination
-//                                    && (item.id >= 0 && (uint32_t) item.id == pubcoinId)
-//                                    && item.pubCoin != 0) {
-//                             // UPDATING PROCESS
-//                             BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-//                                 if (pubCoinItem.value == item.pubCoin) {
-//                                     pubCoinTx.nHeight = pubCoinItem.nHeight;
-//                                     pubCoinTx.denomination = pubCoinItem.denomination;
-//                                     // UPDATE FOR INDICATE IT HAS BEEN USED
-//                                     pubCoinTx.IsUsed = true;
-//                                     // REMOVE RANDOMNESS FOR PREVENT FUTURE USE
-//                                     // pubCoinTx.randomness = 0;
-//                                     // pubCoinTx.serialNumber = 0;
-//                                     pubCoinTx.value = pubCoinItem.value;
-//                                     pubCoinTx.id = pubCoinItem.id;
-//                                     walletdb.WriteZerocoinEntry(pubCoinTx);
-//                                     // Update UI wallet
-//                                     // LogPrint("CheckSpendZcoinTransaction", "pubcoin=%s, isUsed=Used\n", pubCoinItem.value.GetHex());
-//                                     pwalletMain->NotifyZerocoinChanged(pwalletMain, pubCoinItem.value.GetHex(), "Used", CT_UPDATED);
-//                                     break;
-//                                 }
-//                             }
-//                             isAlreadyStored = true;
-//                             break;
-//                         } else if (item.coinSerial == serialNumber
-//                                    && item.hashTx == hashTx
-//                                    && item.denomination == targetDenomination
-//                                    && (item.id >= 0 && (uint32_t) item.id == pubcoinId)
-//                                    && item.pubCoin == 0) {
-//                             isAlreadyStored = true;
-//                             break;
-//                         }
-//                     }
-
-//                     if (!isAlreadyStored) {
-//                         // INSERTING COINSPEND TO DB
-//                         CZerocoinSpendEntry zccoinSpend;
-//                         zccoinSpend.coinSerial = serialNumber;
-//                         zccoinSpend.hashTx = hashTx;
-//                         zccoinSpend.pubCoin = 0;
-//                         zccoinSpend.id = pubcoinId;
-//                         if (nHeight > 22000 && nHeight < INT_MAX) {
-//                             zccoinSpend.denomination = targetDenomination;
-//                         }
-// //                        LogPrintf("WriteCoinSpendSerialEntry, serialNumber=%s", serialNumber.ToString());
-//                         walletdb.WriteCoinSpendSerialEntry(zccoinSpend);
-//                     }
-//                 }
-//             } else {
-//                 return false;
-//             }
-//         }
-//     }
-//     return true;
-// }
-
 int64_t GetBlockValue(int nHeight, int64_t nFees, unsigned int nTime)
 {
-    bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
     int64_t value = 0 * COIN;
     // 0 rewards prior to start time and on genesis block.
-    if ((nTime < nStartRewardTime && !fTestNet) || nHeight ==0)
+    if ((nTime < nStartRewardTime && MainNet()) || nHeight ==0)
         value = 0 * COIN;
     // Maximum block reward is 5000 coins
     if (nHeight > 0 && nHeight <= 143499)
@@ -1272,9 +1081,8 @@ int64_t GetBlockValue(int nHeight, int64_t nFees, unsigned int nTime)
     return value;
 }
 
-bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 hashTx, bool isVerifyDB, int nHeight){
+bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 hashTx, bool isVerifyDB){
 
-    bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
         return state.DoS(10, false, REJECT_INVALID, "bad-txns-vin-empty");
@@ -1309,318 +1117,14 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
     if (tx.IsCoinBase()) {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-length");
-        // Check for SmartHive Funds
-        if ((nHeight > 0) && (nHeight <= HF_CHAIN_REWARD_END_HEIGHT)) {
-
-            bool found_1 = false;
-            bool found_2 = false;
-            bool found_3 = false;
-            bool found_4 = false;
-            bool found_5 = false;
-            bool found_6 = false;
-            bool found_7 = false;
-            bool found_8 = false;
-            int total_payment_tx = 0;
-            bool found_smartnode_payment = false; // no more than 1 output for payment
-            CScript FOUNDER_1_SCRIPT;
-            CScript FOUNDER_2_SCRIPT;
-            CScript FOUNDER_3_SCRIPT;
-            CScript FOUNDER_4_SCRIPT;
-            CScript FOUNDER_5_SCRIPT;
-            CScript FOUNDER_6_SCRIPT;
-            CScript FOUNDER_7_SCRIPT;
-            CScript FOUNDER_8_SCRIPT;
-
-            if(!fTestNet && (GetAdjustedTime() > nStartRewardTime)){
-                FOUNDER_1_SCRIPT = GetScriptForDestination(CBitcoinAddress("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M").Get());
-                FOUNDER_2_SCRIPT = GetScriptForDestination(CBitcoinAddress("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x").Get());
-                FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF").Get());
-                FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo").Get());
-                FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b").Get());
-                FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay").Get());
-                FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sgq5c4Rznibagv1aopAfPA81jac392scvm").Get());
-                FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8").Get());
-            }else if(!fTestNet && (GetAdjustedTime() <= nStartRewardTime)){
-                return state.DoS(100, error("CTransaction::CheckTransaction() : transaction is too early"));
-            }else{
-                FOUNDER_1_SCRIPT = GetScriptForDestination(CBitcoinAddress("TTpGqTr2PBeVx4vvNRJ9iTq4NwpTCbSSwy").Get());
-                FOUNDER_2_SCRIPT = GetScriptForDestination(CBitcoinAddress("THypUznpFaDHaE7PS6yAc4pHNjC2BnWzUv").Get());
-                FOUNDER_3_SCRIPT = GetScriptForDestination(CBitcoinAddress("TDJVZE5oCYYbJQyizU4FgB2KpnKVdebnxg").Get());
-                FOUNDER_4_SCRIPT = GetScriptForDestination(CBitcoinAddress("TSziXCdaBcPk3Dt94BbTH9BZDH18K6sWsc").Get());
-                FOUNDER_5_SCRIPT = GetScriptForDestination(CBitcoinAddress("TLn1PGAVccBBjF8JuhQmATCR8vxhmamJg8").Get());
-                FOUNDER_6_SCRIPT = GetScriptForDestination(CBitcoinAddress("TCi1wcVbkmpUiTcG277o5Y3VeD3zgtsHRD").Get());
-                FOUNDER_7_SCRIPT = GetScriptForDestination(CBitcoinAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB").Get());
-                FOUNDER_8_SCRIPT = GetScriptForDestination(CBitcoinAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f").Get());
-            }
-            if ((nHeight > 0) && ((!fTestNet && (nHeight < 90000)) || (fTestNet && (nHeight < 1000)))) {
-                BOOST_FOREACH(const CTxOut &output, tx.vout) {
-                    if (output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - (int64_t)(0.08 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
-                        found_1 = true;
-                    }
-                    if (output.scriptPubKey == FOUNDER_2_SCRIPT && abs(output.nValue - (int64_t)(0.08 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
-                        found_2 = true;
-                    }
-                    if (output.scriptPubKey == FOUNDER_3_SCRIPT && abs(output.nValue - (int64_t)(0.08 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
-                        found_3 = true;
-                    }
-                    if (output.scriptPubKey == FOUNDER_4_SCRIPT && abs(output.nValue - (int64_t)(0.15 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
-                        found_4 = true;
-                    }
-                    if (output.scriptPubKey == FOUNDER_5_SCRIPT && abs(output.nValue - (int64_t)(0.56 * (GetBlockValue(pindexBestHeader->nHeight+1, 0, pindexBestHeader->nTime)))) < 2 ) {
-                        found_5 = true;
-                    }
-                }
-                if (!(found_1 && found_2 && found_3 && found_4 && found_5)) {
-                    return state.DoS(100, false, REJECT_FOUNDER_REWARD_MISSING,
-                                     "CTransaction::CheckTransaction() : One of the SmartHive rewards is missing");
-                }
-            }
-            if ((nHeight >= 90000) && (nHeight < HF_V1_1_SMARTNODE_HEIGHT)) {
-                BOOST_FOREACH(const CTxOut& output, tx.vout) {
-                    int blockRotation = nHeight - 95 * (nHeight/95);
-                    int64_t reward = (int64_t)(0.95 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
-                    if (blockRotation >= 0 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {                    
-                        found_1 = true;
-                    }
-                    if (blockRotation >= 8 && blockRotation <= 15 && output.scriptPubKey == FOUNDER_2_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_2 = true;
-                    }
-                    if (blockRotation >= 16 && blockRotation <= 23 && output.scriptPubKey == FOUNDER_3_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_3 = true;
-                    }
-                    if (blockRotation >= 24 && blockRotation <= 38 && output.scriptPubKey == FOUNDER_4_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_4 = true;
-                    }
-                    if (blockRotation >= 39 && blockRotation <= 94 && output.scriptPubKey == FOUNDER_5_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_5 = true;
-	            }
-                }
-                if (!(found_1 || found_2 || found_3 || found_4 || found_5)) {
-                    return state.DoS(100, false, REJECT_FOUNDER_REWARD_MISSING,
-                                     "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
-	        }
-            }
-        if ((nHeight >= HF_V1_1_SMARTNODE_HEIGHT) && (nHeight < HF_V1_2_PAYMENTS_HEIGHT)) {
-                BOOST_FOREACH(const CTxOut& output, tx.vout){
-                    int blockRotation = nHeight - 85 * (nHeight/85);
-                    int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
-                    if (blockRotation >= 0 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_1 = true;
-                    }
-                    if (blockRotation >= 8 && blockRotation <= 15 && output.scriptPubKey == FOUNDER_2_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_2 = true;
-                    }
-                    if (blockRotation >= 16 && blockRotation <= 23 && output.scriptPubKey == FOUNDER_3_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_3 = true;
-                    }
-                    if (blockRotation >= 24 && blockRotation <= 38 && output.scriptPubKey == FOUNDER_4_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_4 = true;
-                    }
-                    if (blockRotation >= 39 && blockRotation <= 84 && output.scriptPubKey == FOUNDER_5_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_5 = true;
-        	    }
-
-                    int64_t smartnodePayment = (int64_t)(0.1 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
-		    if (abs(output.nValue - smartnodePayment) < 2 ){
-                            found_smartnode_payment = true;
-                            total_payment_tx = total_payment_tx + 1;
-                    }
-                }
-
-                if (!(found_1 || found_2 || found_3 || found_4 || found_5)) {
-                    return state.DoS(100, false, REJECT_FOUNDER_REWARD_MISSING,
-                                         "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
-                }
-
-                if ((nHeight >= HF_V1_1_SMARTNODE_HEIGHT + 7000) && (!found_smartnode_payment || total_payment_tx > 1)) {
-                    return state.DoS(100, false, REJECT_INVALID_SMARTNODE_PAYMENT,
-                                 "CTransaction::CheckTransaction() : SmartNode payment is invalid");
-                }
-            }
-            if (((!fTestNet && (nHeight >= HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (nHeight >= 1000))) && (nHeight <= HF_CHAIN_REWARD_END_HEIGHT)) {
-                BOOST_FOREACH(const CTxOut& output, tx.vout){
-                    int blockRotation = nHeight - 85 * (nHeight/85);
-                    int64_t reward = (int64_t)(0.85 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
-                    if (blockRotation >= 0 && blockRotation <= 3 && output.scriptPubKey == FOUNDER_1_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_1 = true;
-                    }
-                    if (blockRotation >= 4 && blockRotation <= 7 && output.scriptPubKey == FOUNDER_2_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_2 = true;
-                    }
-                    if (blockRotation >= 8 && blockRotation <= 11 && output.scriptPubKey == FOUNDER_3_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_3 = true;
-                    }
-                    if (blockRotation >= 12 && blockRotation <= 15 && output.scriptPubKey == FOUNDER_6_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_6 = true;
-                    }
-                    if (blockRotation >= 16 && blockRotation <= 19 && output.scriptPubKey == FOUNDER_7_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_7 = true;
-                    }
-                    if (blockRotation >= 20 && blockRotation <= 23 && output.scriptPubKey == FOUNDER_8_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_8 = true;
-                    }
-//Legacy SmartRewards
-                    if (blockRotation >= 24 && blockRotation <= 38 && output.scriptPubKey == FOUNDER_4_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_4 = true;
-                    }
-                    if (blockRotation >= 39 && blockRotation <= 84 && output.scriptPubKey == FOUNDER_5_SCRIPT && abs(output.nValue - reward) < 2 ) {
-                        found_5 = true;
-                    }
-
-                    int64_t smartnodePayment = (int64_t)(0.1 * (GetBlockValue(nHeight, 0, pindexBestHeader->nTime)));
-                    if (abs(output.nValue - smartnodePayment) < 2 ){
-                            found_smartnode_payment = true;
-                            total_payment_tx = total_payment_tx + 1;
-                    }
-                }
-
-                if (!(found_1 || found_2 || found_3 || found_4 || found_5 || found_6 || found_7 || found_8)) {
-                    return state.DoS(100, false, REJECT_FOUNDER_REWARD_MISSING,
-                                         "CTransaction::CheckTransaction() : One of the SmartHive Rewards is missing");
-                }
-
-                if (!found_smartnode_payment || total_payment_tx > 1) {
-                    return state.DoS(100, false, REJECT_INVALID_SMARTNODE_PAYMENT,
-                                 "CTransaction::CheckTransaction() : SmartNode payment is invalid");
-                }
-            }
-        }
-
     } else {
 
         BOOST_FOREACH(const CTxIn &txin, tx.vin){
-            if (txin.prevout.IsNull() && (!txin.scriptSig.IsZerocoinSpend() || nHeight != INT_MAX)) {
+            if (txin.prevout.IsNull() && !txin.scriptSig.IsZerocoinSpend() ) {
                 return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
             }
         }
 
-        // bool zerocoinEnable = false;
-        // if (zerocoinEnable)
-        // {
-        //     // Check Mint Zerocoin Transaction
-        //     BOOST_FOREACH(const CTxOut &txout, tx.vout) {
-        //         if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsZerocoinMint()) {
-        //             vector<unsigned char> vchZeroMint;
-        //             vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + 6,
-        //                                txout.scriptPubKey.begin() + txout.scriptPubKey.size());
-        //             CBigNum pubCoin;
-        //             pubCoin.setvch(vchZeroMint);
-        //             libzerocoin::CoinDenomination denomination;
-        //             if (txout.nValue == libzerocoin::ZQ_LOVELACE * COIN) {
-        //                 denomination = libzerocoin::ZQ_LOVELACE;
-        //                 libzerocoin::PublicCoin checkPubCoin(ZCParams, pubCoin, libzerocoin::ZQ_LOVELACE);
-        //                 if (!checkPubCoin.validate()) {
-        //                     return state.DoS(100, false, PUBCOIN_NOT_VALIDATE,
-        //                                      "CTransaction::CheckTransaction() : PubCoin is not validate");
-        //                 }
-        //             } else if (txout.nValue == libzerocoin::ZQ_GOLDWASSER * COIN) {
-        //                 denomination = libzerocoin::ZQ_GOLDWASSER;
-        //                 libzerocoin::PublicCoin checkPubCoin(ZCParams, pubCoin, libzerocoin::ZQ_GOLDWASSER);
-        //                 if (!checkPubCoin.validate()) {
-        //                     return state.DoS(100, false, PUBCOIN_NOT_VALIDATE,
-        //                                      "CTransaction::CheckTransaction() : PubCoin is not validate");
-        //                 }
-        //             } else if (txout.nValue == libzerocoin::ZQ_RACKOFF * COIN) {
-        //                 denomination = libzerocoin::ZQ_RACKOFF;
-        //                 libzerocoin::PublicCoin checkPubCoin(ZCParams, pubCoin, libzerocoin::ZQ_RACKOFF);
-        //                 if (!checkPubCoin.validate()) {
-        //                     return state.DoS(100, false, PUBCOIN_NOT_VALIDATE,
-        //                                      "CTransaction::CheckTransaction() : PubCoin is not validate");
-        //                 }
-        //             } else if (txout.nValue == libzerocoin::ZQ_PEDERSEN * COIN) {
-        //                 denomination = libzerocoin::ZQ_PEDERSEN;
-        //                 libzerocoin::PublicCoin checkPubCoin(ZCParams, pubCoin, libzerocoin::ZQ_PEDERSEN);
-        //                 if (!checkPubCoin.validate()) {
-        //                     return state.DoS(100, false, PUBCOIN_NOT_VALIDATE,
-        //                                      "CTransaction::CheckTransaction() : PubCoin is not validate");
-        //                 }
-        //             } else if (txout.nValue == libzerocoin::ZQ_WILLIAMSON * COIN) {
-        //                 denomination = libzerocoin::ZQ_WILLIAMSON;
-        //                 libzerocoin::PublicCoin checkPubCoin(ZCParams, pubCoin, libzerocoin::ZQ_WILLIAMSON);
-        //                 if (!checkPubCoin.validate()) {
-        //                     return state.DoS(100, false, PUBCOIN_NOT_VALIDATE,
-        //                                      "CTransaction::CheckTransaction() : PubCoin is not validate");
-        //                 }
-        //             } else {
-        //                 return state.DoS(100, false, PUBCOIN_NOT_VALIDATE,
-        //                                  "CTransaction::CheckTransaction() : PubCoin is not validate");
-        //             }
-
-        //             if (!isVerifyDB && !isCheckWallet) {
-        //                 // Check the pubCoinValue didn't alr`eady store in the wallet
-        //                 CZerocoinEntry pubCoinTx;
-        //                 list <CZerocoinEntry> listPubCoin = list<CZerocoinEntry>();
-        //                 CWalletDB walletdb(pwalletMain->strWalletFile);
-        //                 walletdb.ListPubCoin(listPubCoin);
-        //                 bool isAlreadyStored = false;
-
-        //                 // CHECKING PROCESS
-        //                 BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-        //                     if (pubCoinItem.value == pubCoin && pubCoinItem.denomination == denomination) {
-        //                         isAlreadyStored = true;
-        //                     }
-        //                 }
-        //                 // INSERT PROCESS
-        //                 if (!isAlreadyStored) {
-        //                     // TX DOES NOT INCLUDE IN DB
-        //                     LogPrintf("INSERTING\n");
-        //                     pubCoinTx.id = -1;
-        //                     pubCoinTx.denomination = denomination;
-        //                     pubCoinTx.value = pubCoin;
-        //                     pubCoinTx.randomness = 0;
-        //                     pubCoinTx.serialNumber = 0;
-        //                     pubCoinTx.nHeight = -1;
-        //                     LogPrintf("INSERT PUBCOIN ID: %d\n", pubCoinTx.id);
-        //                     walletdb.WriteZerocoinEntry(pubCoinTx);
-        //                 }
-        //             }
-        //         }
-        //     }
-        
-        //     // Check Spend Zerocoin Transaction
-        //     // (vin.size() == 1 && vin[0].prevout.IsNull() && (vin[0].scriptSig[0] == OP_ZEROCOINSPEND) );
-        //     if (tx.IsZerocoinSpend()) {
-        //         // Check vOut
-        //         // Only one loop, we checked on the format before enter this case
-        //         BOOST_FOREACH(const CTxOut &txout, tx.vout)
-        //         {
-        //             CZerocoinEntry pubCoinTx;
-        //             list <CZerocoinEntry> listPubCoin;
-        //             if (!isVerifyDB) {
-        //                 CWalletDB walletdb(pwalletMain->strWalletFile);
-        //                 listPubCoin.clear();
-        //                 walletdb.ListPubCoin(listPubCoin);
-        //                 listPubCoin.sort(CompHeight);
-        //                 if (txout.nValue == libzerocoin::ZQ_LOVELACE * COIN) {
-        //                     // Check vIn
-        //                     if (!CheckSpendZcoinTransaction(tx, pubCoinTx, listPubCoin, libzerocoin::ZQ_LOVELACE, state, hashTx,isVerifyDB, nHeight, isCheckWallet)){
-        //                         return state.DoS(100, error("CTransaction::CheckTransaction() : COIN SPEND TX IN ZQ_LOVELACE DID NOT VERIFY!"));
-        //                     };
-        //                 } else if (txout.nValue == libzerocoin::ZQ_GOLDWASSER * COIN) {
-        //                     if (!CheckSpendZcoinTransaction(tx, pubCoinTx, listPubCoin, libzerocoin::ZQ_GOLDWASSER, state, hashTx, isVerifyDB, nHeight, isCheckWallet)){
-        //                         return state.DoS(100, error("CTransaction::CheckTransaction() : COIN SPEND TX IN ZQ_GOLDWASSER DID NOT VERIFY!"));
-        //                     };
-        //                 } else if (txout.nValue == libzerocoin::ZQ_RACKOFF * COIN) {
-        //                     if (!CheckSpendZcoinTransaction(tx, pubCoinTx, listPubCoin, libzerocoin::ZQ_RACKOFF, state, hashTx, isVerifyDB, nHeight, isCheckWallet)){
-        //                         return state.DoS(100, error("CTransaction::CheckTransaction() : COIN SPEND TX IN ZQ_RACKOFF DID NOT VERIFY!"));
-        //                     };
-        //                  } else if (txout.nValue == libzerocoin::ZQ_PEDERSEN * COIN) {
-        //                     if (!CheckSpendZcoinTransaction(tx, pubCoinTx, listPubCoin, libzerocoin::ZQ_PEDERSEN, state, hashTx, isVerifyDB, nHeight, isCheckWallet)){
-        //                         return state.DoS(100, error("CTransaction::CheckTransaction() : COIN SPEND TX IN ZQ_PEDERSEN DID NOT VERIFY!"));
-        //                     };
-        //                 } else if (txout.nValue == libzerocoin::ZQ_WILLIAMSON * COIN) {
-        //                     if (!CheckSpendZcoinTransaction(tx, pubCoinTx, listPubCoin, libzerocoin::ZQ_WILLIAMSON, state, hashTx, isVerifyDB, nHeight, isCheckWallet)){
-        //                         return state.DoS(100, error("CTransaction::CheckTransaction() : COIN SPEND TX IN ZQ_WILLIAMSON DID NOT VERIFY!"));
-        //                     };
-        //                 } else {
-        //                     return state.DoS(100,error("CTransaction::CheckTransaction() : Your spending txout value does not match"));
-        //                 }
-        //                 walletdb.Flush();
-        //                 walletdb.Close();
-        //             }
-        //         }
-        //     }
-        // }
     }
     return true;
 }
@@ -1649,14 +1153,12 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
                               bool* pfMissingInputs, bool fOverrideMempoolLimit, bool fRejectAbsurdFee,
                               std::vector<COutPoint>& coins_to_uncache, bool fDryRun){
 
-    bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
-
     AssertLockHeld(cs_main);
     if (pfMissingInputs)
         *pfMissingInputs = false;
 
     uint256 hash = tx.GetHash();
-    if (!CheckTransaction(tx, state, hash, false, INT_MAX)) {
+    if (!CheckTransaction(tx, state, hash, false)) {
         return false; // state filled in by CheckTransaction
     }
 
@@ -1683,7 +1185,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
     if (!CheckFinalTx(tx, STANDARD_LOCKTIME_VERIFY_FLAGS))
         return state.DoS(0, false, REJECT_NONSTANDARD, "non-final");
 
-    // is it already in the memory pool?    
+    // is it already in the memory pool?
     if (pool.exists(hash))
         return state.Invalid(false, REJECT_ALREADY_KNOWN, "txn-already-in-mempool");
 
@@ -1736,7 +1238,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
             }
         }
     }
-    
+
     {
         CCoinsView dummy;
         CCoinsViewCache view(&dummy);
@@ -1801,11 +1303,11 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
     if (!tx.IsZerocoinSpend()) {
         // Check for non-standard pay-to-script-hash in inputs
-        if (!fTestNet && fRequireStandard && !AreInputsStandard(tx, view)) {
+        if (MainNet() && fRequireStandard && !AreInputsStandard(tx, view)) {
             LogPrintf("cause by -> AreInputsStandard\n");
             return state.Invalid(false, REJECT_NONSTANDARD, "bad-txns-nonstandard-inputs");
         }
-        
+
         unsigned int nSigOps = GetLegacySigOpCount(tx);
         nSigOps += GetP2SHSigOpCount(tx, view);
 
@@ -2117,7 +1619,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
         // if (tx.IsZerocoinSpend()) {
         //     pool.countZCSpend++;
-        // }    
+        // }
       }
     }
 
@@ -2263,8 +1765,8 @@ int getNHeight(const CBlockHeader &block) {
     if (mi != mapBlockIndex.end()) {
         pindexPrev = (*mi).second;
         nHeight = pindexPrev->nHeight+1;
-	}
-	return nHeight;
+    }
+    return nHeight;
 }
 
 bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMessageHeader::MessageStartChars& messageStart)
@@ -2325,18 +1827,13 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    //int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
     if (nHeight == 0)
         return 0;
 
     if (nHeight > 143499 && nHeight <= HF_CHAIN_REWARD_END_HEIGHT)
         return floor(0.5+((double)(5000 * 143500)/(nHeight +1))) * COIN;
 
-    CAmount nSubsidy = 5000 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    //nSubsidy >>= halvings;
-    return nSubsidy;
+    return 5000 * COIN;
 }
 
 bool IsInitialBlockDownload()
@@ -2528,7 +2025,7 @@ void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCach
             assert(is_spent);
         }
     }
-    // add outputs  
+    // add outputs
     AddCoins(inputs, tx, nHeight);
 }
 
@@ -3298,16 +2795,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime3 - nTime2), 0.001 * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * 0.000001);
 
-    // Adjust miner blockReward for block time deviation
-    bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
-    float blockTimeDeviation = 100;
-    if ((!fTestNet && (pindex->nHeight > HF_V1_2_PAYMENTS_HEIGHT)) || (fTestNet && (pindex->nHeight >20))) {
-        int64_t lastBlockTime = pindex->pprev->GetBlockTime();
-        int64_t currentBlockTime = std::max(pindex->GetMedianTimePast()+1, GetAdjustedTime());
-        blockTimeDeviation = floor(0.5+(currentBlockTime - lastBlockTime) / 0.55);
-    }
-
-    // SMARTCASH : MODIFIED TO CHECK MASTERNODE PAYMENTS AND SUPERBLOCKS
+    // SMARTCASH : MODIFIED TO CHECK MINING, SMARTNODE, SMARTHIVE AND SMARTREWARD PAYMENTS
 
     // It's possible that we simply don't have enough data and this could fail
     // (i.e. block itself could be a correct one and we need to store it),
@@ -3315,17 +2803,53 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // the peer who sent us this block is missing some data and wasn't able
     // to recognize that block is actually invalid.
     // TODO: resync data (both ways?) and try to reprocess this block later.
-    CAmount blockReward = nFees + (GetBlockSubsidy(pindex->pprev->nHeight, chainparams.GetConsensus()) * (0.95 + 0.05 * blockTimeDeviation / 100));
-    // std::string strError = "";
-    // if (!IsBlockValueValid(block, pindex->nHeight, blockReward, strError)) {
-    //     return state.DoS(0, error("ConnectBlock(SMARTCASH): %s", strError), REJECT_INVALID, "bad-cb-amount");
-    // }
 
-    if (!IsBlockPayeeValid(block.vtx[0], pindex->nHeight, blockReward)) {
+    // Adjust miner blockReward for block time deviation
+    //
+    // TBD => Rewrite the mining rules.. looks a bit messy now but it was done in hurry for testnet.
+    //
+
+    CAmount blockReward = GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
+//    CAmount legacyMiningReward = blockReward * 0.05;
+//    if ((MainNet() && (block.GetBlockTime() > HF_V1_2_LEGACY_SMARTREWARD_END_TIME)) || (TestNet() && (pindex->nHeight >= TESTNET_V1_2_TIMED_MINING_HEIGHT))) {
+
+//        int64_t lastBlockTime = pindex->pprev->GetBlockTime();
+//        int64_t currentBlockTime =  block.GetBlockTime();
+//        // Only use the block time difference if its less then x seconds. abs() just to make sure...
+//        float blockTimeDeviation = std::min(int64_t(600), int64_t(abs(currentBlockTime - lastBlockTime))) / 55.0;
+
+//        CAmount miningReward = nFees + (blockReward * (0.05 * blockTimeDeviation));
+
+//        // TBD, create a better rule. Just for testnet now..
+//        if (miningReward > blockReward || abs(block.vtx[0].vout[0].nValue - miningReward) >= 100 ) {
+//            return state.DoS(0, error("ConnectBlock(SMARTCASH): Invalid mining reward"), REJECT_INVALID, "bad-cb-amount");
+//        }
+
+//    }else if( MainNet() && ((pindex->nHeight == 1 && block.vtx[0].vout[0].nValue != blockReward) ||
+//        (pindex->nHeight > 1 && pindex->nHeight <= HF_V1_0_START_HEIGHT && (block.vtx[0].vout[0].nValue - legacyMiningReward) > (5 * COIN))) ){ // > 5 * COIN
+//        LogPrintf("Output:%d Exected:%d\n",block.vtx[0].vout[0].nValue, legacyMiningReward);
+//        return state.DoS(0, error("ConnectBlock(SMARTCASH): Invalid mining reward before 1.1"), REJECT_INVALID, "bad-cb-amount");
+//    }else if( TestNet() || (pindex->nHeight > HF_V1_0_START_HEIGHT && block.vtx[0].vout[0].nValue > legacyMiningReward) ) {
+//        return state.DoS(0, error("ConnectBlock(SMARTCASH): Too high mining reward"), REJECT_INVALID, "bad-cb-amount");
+//    }
+
+    SmartHivePayments::Result result = SmartHivePayments::Validate(block.vtx[0],pindex->nHeight, pindex->GetBlockTime());
+    if( result != SmartHivePayments::Valid ){
+        return state.DoS(100, false, SmartHivePayments::RejectionCode(result),
+                                     SmartHivePayments::RejectionMessage(result));
+    }
+
+    if (!SmartNodePayments::IsBlockPayeeValid(block.vtx[0], pindex->nHeight, blockReward)) {
         mapRejectedBlocks.insert(make_pair(block.GetHash(), GetTime()));
-        return state.DoS(0, error("ConnectBlock(SMARTCASH): couldn't find smartnode or superblock payments"),
+        return state.DoS(0, error("ConnectBlock(SMARTCASH): couldn't find smartnode payments"),
                                 REJECT_INVALID, "bad-cb-payee");
     }
+
+    if( SmartRewardPayments::Validate(block,pindex->nHeight) != SmartRewardPayments::NoError ){
+        return state.DoS(100, false, REJECT_INVALID_SMARTREWARD_PAYMENTS,
+                     "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
+    }
+
     // END SMARTCASH
 
     if (!control.Wait())
@@ -3516,10 +3040,12 @@ void static UpdateTip(CBlockIndex *pindexNew) {
     // New best block
     mempool.AddTransactionsUpdated(1);
 
-    LogPrintf("%s: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%.1fMiB(%utxo)\n", __func__,
-      chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
-      DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
-      Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+    if(fDebug || !(pindexNew->nHeight % 1000) ){
+        LogPrintf("%s: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%.1fMiB(%utxo)\n", __func__,
+          chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
+          DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
+          Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+    }
 
     cvBlockChange.notify_all();
 
@@ -3786,47 +3312,47 @@ int GetUTXOConfirmations(const COutPoint& outpoint)
     int nPrevoutHeight = GetUTXOHeight(outpoint);
     return (nPrevoutHeight > -1 && chainActive.Tip()) ? chainActive.Height() - nPrevoutHeight + 1 : -1;
 }
- 
-// int GetInputAge(const CTxIn &txin) 
-// { 
-//     CCoinsView viewDummy; 
-//     CCoinsViewCache view(&viewDummy); 
-//     { 
-//         LOCK(mempool.cs); 
-//         CCoinsViewMemPool viewMempool(pcoinsTip, mempool); 
-//         view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view 
- 
-//         const CCoins* coins = view.AccessCoins(txin.prevout.hash); 
- 
-//         if (coins) { 
-//             if(coins->nHeight < 0) return 0; 
-//             return chainActive.Height() - coins->nHeight + 1; 
-//         } else { 
-//             return -1; 
-//         } 
-//     } 
-// } 
- 
-CAmount GetSmartnodePayment(int nHeight, CAmount blockValue) 
-{ 
-    CAmount ret = blockValue/10; // start at 10% 
- 
-    //int nMNPIBlock = Params().GetConsensus().nSmartnodePaymentsIncreaseBlock; 
-    //int nMNPIPeriod = Params().GetConsensus().nSmartnodePaymentsIncreasePeriod; 
-/* 
-    // mainnet: 
-    if(nHeight > nMNPIBlock)                  ret += blockValue / 20; // 158000 - 25.0% - 2014-10-24 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 1)) ret += blockValue / 20; // 175280 - 30.0% - 2014-11-25 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 2)) ret += blockValue / 20; // 192560 - 35.0% - 2014-12-26 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 3)) ret += blockValue / 40; // 209840 - 37.5% - 2015-01-26 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 4)) ret += blockValue / 40; // 227120 - 40.0% - 2015-02-27 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 5)) ret += blockValue / 40; // 244400 - 42.5% - 2015-03-30 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 6)) ret += blockValue / 40; // 261680 - 45.0% - 2015-05-01 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 7)) ret += blockValue / 40; // 278960 - 47.5% - 2015-06-01 
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 9)) ret += blockValue / 40; // 313520 - 50.0% - 2015-08-03 
+
+// int GetInputAge(const CTxIn &txin)
+// {
+//     CCoinsView viewDummy;
+//     CCoinsViewCache view(&viewDummy);
+//     {
+//         LOCK(mempool.cs);
+//         CCoinsViewMemPool viewMempool(pcoinsTip, mempool);
+//         view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
+
+//         const CCoins* coins = view.AccessCoins(txin.prevout.hash);
+
+//         if (coins) {
+//             if(coins->nHeight < 0) return 0;
+//             return chainActive.Height() - coins->nHeight + 1;
+//         } else {
+//             return -1;
+//         }
+//     }
+// }
+
+CAmount GetSmartnodePayment(int nHeight, CAmount blockValue)
+{
+    CAmount ret = blockValue/10; // start at 10%
+
+    //int nMNPIBlock = Params().GetConsensus().nSmartnodePaymentsIncreaseBlock;
+    //int nMNPIPeriod = Params().GetConsensus().nSmartnodePaymentsIncreasePeriod;
+/*
+    // mainnet:
+    if(nHeight > nMNPIBlock)                  ret += blockValue / 20; // 158000 - 25.0% - 2014-10-24
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 1)) ret += blockValue / 20; // 175280 - 30.0% - 2014-11-25
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 2)) ret += blockValue / 20; // 192560 - 35.0% - 2014-12-26
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 3)) ret += blockValue / 40; // 209840 - 37.5% - 2015-01-26
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 4)) ret += blockValue / 40; // 227120 - 40.0% - 2015-02-27
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 5)) ret += blockValue / 40; // 244400 - 42.5% - 2015-03-30
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 6)) ret += blockValue / 40; // 261680 - 45.0% - 2015-05-01
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 7)) ret += blockValue / 40; // 278960 - 47.5% - 2015-06-01
+    if(nHeight > nMNPIBlock+(nMNPIPeriod* 9)) ret += blockValue / 40; // 313520 - 50.0% - 2015-08-03
 */
-    return ret; 
-} 
+    return ret;
+}
 
 /**
  * Connect a new ZCblock to chainActive. pblock is either NULL or a pointer to a CBlock
@@ -4479,7 +4005,7 @@ bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, unsigne
 bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool fCheckPOW)
 {
     // Check proof of work matches claimed amount
-	int nHeight = getNHeight(block);
+    int nHeight = getNHeight(block);
     if (fCheckPOW && !CheckProofOfWork(nHeight, block.GetHash(), block.nBits, Params().GetConsensus()))
         return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
 
@@ -4488,7 +4014,7 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
 
 bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bool fCheckMerkleRoot)
 {
-        // These are checks that are independent of context.
+     // These are checks that are independent of context.
 
     if (block.fChecked)
         return true;
@@ -4509,9 +4035,9 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
         // Check for merkle tree malleability (CVE-2012-2459): repeating sequences
         // of transactions in a block without affecting the merkle root of a block,
         // while still invalidating it.
-        // if (mutated)
-        //     return state.DoS(100, error("CheckBlock(): duplicate transaction"),
-        //                      REJECT_INVALID, "bad-txns-duplicate", true);
+        if (mutated)
+            return state.DoS(100, error("CheckBlock(): duplicate transaction"),
+                             REJECT_INVALID, "bad-txns-duplicate", true);
     }
 
     // All potential-corruption validation must be done before we do any
@@ -4562,13 +4088,9 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // END SMART
 
-    int nHeight = getNHeight(block);
-    if(nHeight < 266765){
-        nHeight = INT_MAX;
-    }
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, block.vtx)
-        if (!CheckTransaction(tx, state, tx.GetHash(), false, nHeight))
+        if (!CheckTransaction(tx, state, tx.GetHash(), false))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s", tx.GetHash().ToString(), state.GetDebugMessage()));
 
@@ -4940,7 +4462,6 @@ bool ProcessNewBlock(const CChainParams& chainparams, const CBlock* pblock, bool
     if (!ActivateBestChain(state, chainparams, pblock))
         return error("%s: ActivateBestChain failed", __func__);
 
-    LogPrintf("%s : ACCEPTED\n", __func__);
     return true;
 }
 
@@ -5460,7 +4981,7 @@ bool LoadBlockIndex()
     return true;
 }
 
-bool InitBlockIndex(const CChainParams& chainparams) 
+bool InitBlockIndex(const CChainParams& chainparams)
 {
     LOCK(cs_main);
 
@@ -5894,13 +5415,13 @@ std::string GetWarnings(const std::string& strFor)
 //     case MSG_BLOCK:
 //     case MSG_WITNESS_BLOCK:
 //         return mapBlockIndex.count(inv.hash);
-     
+
 //         SmartNode Related Inventory Messages
 //         --
 //         We shouldn't update the sync times for each of the messages when we already have it.
 //         We're going to be asking many nodes upfront for the full inventory list, so we'll get duplicates of these.
 //         We want to only update the time on new hits, so that we can time out appropriately if needed.
-    
+
 //         case MSG_TXLOCK_REQUEST:
 //             return instantsend.AlreadyHave(inv.hash);
 
@@ -7893,7 +7414,7 @@ std::string GetWarnings(const std::string& strFor)
 //             }
 //             pto->vInventoryToSend = vInvWait;
 //         }
-	    
+
 //         if (!vInv.empty())
 //             pto->PushMessage(NetMsgType::INV, vInv);
 

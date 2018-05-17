@@ -23,8 +23,8 @@ static const int MNPAYMENTS_SIGNATURES_TOTAL            = 10;
 //  vote for smartnode and be elected as a payment winner
 // V1 - Last protocol version before update
 // V2 - Newest protocol version
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1 = 90024;
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2 = 90025;
+static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1 = 90025;
+static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2 = 90026;
 
 extern CCriticalSection cs_vecPayees;
 extern CCriticalSection cs_mapSmartnodeBlocks;
@@ -32,11 +32,15 @@ extern CCriticalSection cs_mapSmartnodePayeeVotes;
 
 extern CSmartnodePayments mnpayments;
 
+namespace SmartNodePayments{
+
 /// TODO: all 4 functions do not belong here really, they should be refactored/moved somewhere (validation.cpp ?)
 bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockReward, std::string &strErrorRet);
 bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward);
-void FillBlockPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet, std::vector<CTxOut>& voutSuperblockRet);
+void FillPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartNodes);
 std::string GetRequiredPaymentsString(int nBlockHeight);
+
+}
 
 class CSmartnodePayee
 {
@@ -211,7 +215,7 @@ public:
     int GetMinSmartnodePaymentsProto();
     void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman);
     std::string GetRequiredPaymentsString(int nBlockHeight);
-    void FillBlockPayee(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet);
+    void FillBlockPayee(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartNodes);
     std::string ToString() const;
 
     int GetBlockCount() { return mapSmartnodeBlocks.size(); }

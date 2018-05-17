@@ -33,7 +33,7 @@ CCriticalSection cs_mapSmartnodePaymentVotes;
 *   - When non-superblocks are detected, the normal schedule should be maintained
 */
 
-bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockReward, std::string &strErrorRet)
+bool SmartNodePayments::IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockReward, std::string &strErrorRet)
 {
     strErrorRet = "";
 
@@ -130,7 +130,7 @@ bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockRewar
     return isBlockRewardValueMet;
 }
 
-bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward)
+bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward)
 {
     if(!smartnodeSync.IsSynced()) {
         //there is no budget data to use to check anything, let's just accept the longest chain
@@ -208,24 +208,12 @@ bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount bloc
     return true;
 }
 
-void FillBlockPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet, std::vector<CTxOut>& voutSuperblockRet)
+void SmartNodePayments::FillPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartNodes)
 {
-    // only create superblocks if spork is enabled AND if superblock is actually triggered
-    // (height should be validated inside)
-    // if(sporkManager.IsSporkActive(SPORK_9_SUPERBLOCKS_ENABLED) &&
-    //     CSuperblockManager::IsSuperblockTriggered(nBlockHeight)) {
-    //         LogPrint("gobject", "FillBlockPayments -- triggered superblock creation at height %d\n", nBlockHeight);
-    //         CSuperblockManager::CreateSuperblock(txNew, nBlockHeight, voutSuperblockRet);
-    //         return;
-    // }
-
-    // FILL BLOCK PAYEE WITH SMARTNODE PAYMENT OTHERWISE
-    mnpayments.FillBlockPayee(txNew, nBlockHeight, blockReward, txoutSmartnodeRet);
-    LogPrint("mnpayments", "FillBlockPayments -- nBlockHeight %d blockReward %lld txoutSmartnodeRet %s txNew %s",
-                            nBlockHeight, blockReward, txoutSmartnodeRet.ToString(), txNew.ToString());
+    mnpayments.FillBlockPayee(txNew, nBlockHeight, blockReward, voutSmartNodes);
 }
 
-std::string GetRequiredPaymentsString(int nBlockHeight)
+std::string SmartNodePayments::GetRequiredPaymentsString(int nBlockHeight)
 {
     // IF WE HAVE A ACTIVATED TRIGGER FOR THIS HEIGHT - IT IS A SUPERBLOCK, GET THE REQUIRED PAYEES
     // if(CSuperblockManager::IsSuperblockTriggered(nBlockHeight)) {
@@ -262,10 +250,9 @@ bool CSmartnodePayments::CanVote(COutPoint outSmartnode, int nBlockHeight)
 *   Fill Smartnode ONLY payment block
 */
 
-void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutSmartnodeRet)
+void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& vxoutSmartNodes)
 {
-    // make sure it's not filled yet
-    txoutSmartnodeRet = CTxOut();
+    vxoutSmartNodes.clear();
 
     CScript payee;
 
@@ -285,17 +272,16 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nBlockHe
     // GET SMARTNODE PAYMENT VARIABLES SETUP
     CAmount smartnodePayment = GetSmartnodePayment(nBlockHeight, blockReward);
 
-    // split reward between miner ...
-    txNew.vout[0].nValue -= smartnodePayment;
     // ... and smartnode
-    txoutSmartnodeRet = CTxOut(smartnodePayment, payee);
-    txNew.vout.push_back(txoutSmartnodeRet);
+    CTxOut out = CTxOut(smartnodePayment, payee);
+    vxoutSmartNodes.push_back(out);
+    txNew.vout.push_back(out);
 
-    CTxDestination address1;
-    ExtractDestination(payee, address1);
-    CBitcoinAddress address2(address1);
+    CTxDestination destination;
+    ExtractDestination(payee, destination);
+    CBitcoinAddress address(destination);
 
-    LogPrintf("CSmartnodePayments::FillBlockPayee -- Smartnode payment %lld to %s\n", smartnodePayment, address2.ToString());
+    LogPrintf("CSmartnodePayments::FillBlockPayee -- Smartnode payment %lld to %s\n", smartnodePayment, address.ToString());
 }
 
 int CSmartnodePayments::GetMinSmartnodePaymentsProto() {

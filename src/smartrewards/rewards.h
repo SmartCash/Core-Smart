@@ -19,14 +19,21 @@ const int64_t nCacheBlocks = 50;
 const int nRewardsSyncDistance = 30;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int nRewardsUISyncUpdateRate = 100;
-// Timestamp of the first real transaction in the chain
-const int64_t nFirstTxTimestamp = 1499790268;
 
-// Timestamps of the first round's start and end
-const int64_t firstRoundStartTime = 1500966000;
-const int64_t firstRoundEndTime = 1503644400;
-const int64_t firstRoundStartBlock = 1;
-const int64_t firstRoundEndBlock = 60001;
+// Timestamp of the first real transaction in the testnet
+const int64_t nFirstTxTimestamp_Testnet = 1526307133;
+
+// Timestamps of the first round's start and end on mainnet
+const int64_t nFirstRoundStartTime = 1500966000;
+const int64_t nFirstRoundEndTime = 1503644400;
+const int64_t nFirstRoundStartBlock = 1;
+const int64_t nFirstRoundEndBlock = 60001;
+
+// Timestamps of the first round's start and end on testnet
+const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
+const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (24*60*60);
+const int64_t nFirstRoundStartBlock_Testnet = 1;
+const int64_t nFirstRoundEndBlock_Testnet = 1570;
 
 void ThreadSmartRewards();
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
@@ -42,6 +49,8 @@ struct CSmartRewardsUpdateResult
 class CSmartRewards
 {
     CSmartRewardsDB * pdb;
+    CSmartRewardRoundList finishedRounds;
+
     int chainHeight;
     int rewardHeight;
 
@@ -50,7 +59,7 @@ class CSmartRewards
     CSmartRewardEntryList updateEntries;
     CSmartRewardEntryList removeEntries;
 
-    mutable CCriticalSection csDb;
+    mutable CCriticalSection csRounds;
 
     void PrepareForUpdate(const CSmartRewardEntry &entry);
     void PrepareForRemove(const CSmartRewardEntry &entry);
@@ -60,6 +69,8 @@ class CSmartRewards
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb) {}
+
+    mutable CCriticalSection csDb;
 
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
@@ -76,8 +87,8 @@ public:
     bool UpdateCurrentRound(const CSmartRewardRound &round);
     bool UpdateRound(const CSmartRewardRound &round);
 
-    bool GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry);
-    void GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry, bool &added);
+    bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
+    void GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry, bool &added);
     bool GetRewardEntries(CSmartRewardEntryList &entries);
 
     void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots);

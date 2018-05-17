@@ -111,7 +111,7 @@ bool CSmartRewardsDB::ResetToRound(const int16_t number, const CSmartRewardRound
 //        pcursor->Seek(make_pair(DB_ROUND_SNAPSHOT,number));
 
 //        while (pcursor->Valid()) {
-//            std::pair<char,std::pair<int16_t, CSmartRewardId>> key;
+//            std::pair<char,std::pair<int16_t, CSmartAddress>> key;
 //            if (pcursor->GetKey(key) && key.first == DB_ROUND_SNAPSHOT) {
 
 //                if( key.second.first != round ) break;
@@ -189,7 +189,7 @@ bool CSmartRewardsDB::WriteCurrentRound(const CSmartRewardRound &round)
     return Write(DB_ROUND_CURRENT, round, true);
 }
 
-bool CSmartRewardsDB::ReadRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry)
+bool CSmartRewardsDB::ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry)
 {
     return Read(make_pair(DB_REWARD_ENTRY,id), entry);
 }
@@ -261,7 +261,7 @@ bool CSmartRewardsDB::ReadRewardEntries(CSmartRewardEntryList &entries) {
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
-        std::pair<char,CSmartRewardId> key;
+        std::pair<char,CSmartAddress> key;
         if (pcursor->GetKey(key) && key.first == DB_REWARD_ENTRY) {
             CSmartRewardEntry nValue;
             if (pcursor->GetValue(nValue)) {
@@ -286,7 +286,7 @@ bool CSmartRewardsDB::ReadRewardSnapshots(const int16_t round, CSmartRewardSnaps
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
-        std::pair<char,std::pair<int16_t, CSmartRewardId>> key;
+        std::pair<char,std::pair<int16_t, CSmartAddress>> key;
         if (pcursor->GetKey(key) && key.first == DB_ROUND_SNAPSHOT) {
 
             if( key.second.first != round ) break;
@@ -314,7 +314,7 @@ bool CSmartRewardsDB::ReadRewardPayouts(const int16_t round, CSmartRewardSnapsho
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
-        std::pair<char,std::pair<int16_t, CSmartRewardId>> key;
+        std::pair<char,std::pair<int16_t, CSmartAddress>> key;
         if (pcursor->GetKey(key) && key.first == DB_ROUND_SNAPSHOT) {
 
             if( key.second.first != round ) break;
@@ -341,7 +341,7 @@ string CSmartRewardEntry::GetAddress() const
 
 void CSmartRewardEntry::setNull()
 {
-    id = CSmartRewardId();
+    id = CSmartAddress();
     balanceOnStart = 0;
     balance = 0;
     eligible = false;

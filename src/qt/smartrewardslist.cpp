@@ -256,7 +256,7 @@ void SmartrewardsList::updateUI()
                         change.label = tr("(change)");
                         change.balance = out.tx->vout[out.i].nValue;
 
-                        if( prewards->GetRewardEntry(CSmartRewardId(sAddress.toStdString()),reward) ){
+                        if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
 
                             change.eligible = reward.eligible ? reward.balanceOnStart : 0;
                             change.reward = current.percent * change.eligible;
@@ -283,7 +283,7 @@ void SmartrewardsList::updateUI()
 
                 CSmartRewardEntry reward;
 
-                if( prewards->GetRewardEntry(CSmartRewardId(rewardField.address.toStdString()),reward) ){
+                if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward) ){
 
                     rewardField.eligible = reward.eligible ? reward.balanceOnStart : 0;
                     rewardField.reward = current.percent * rewardField.eligible;

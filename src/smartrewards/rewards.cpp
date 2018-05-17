@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "smartrewards/rewards.h"
+#include "smarthive/hive.h"
 #include "validation.h"
 #include "init.h"
 #include "ui_interface.h"
@@ -12,19 +13,8 @@
 
 CSmartRewards *prewards = NULL;
 
-// Exclude the following addresses form SmartRewards.
-static std::vector<CSmartRewardId> blacklist = {
-    CSmartRewardId("SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b"), // Community treasure
-    CSmartRewardId("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x"), // Support hive
-    CSmartRewardId("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF"), // Development hive
-    CSmartRewardId("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M"), // Outreach hive
-    CSmartRewardId("SU5bKb35xUV8aHG5dNarWHB3HBVjcCRjYo"), // Legacy smartrewards
-    CSmartRewardId("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay"), // New hive 1
-    CSmartRewardId("Sgq5c4Rznibagv1aopAfPA81jac392scvm"), // New hive 2
-    CSmartRewardId("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8") // New hive 3
-};
 
-int ParseScript(const CScript &script, std::vector<CSmartRewardId> &ids){
+int ParseScript(const CScript &script, std::vector<CSmartAddress> &ids){
 
     std::vector<CTxDestination> addresses;
     txnouttype type;
@@ -36,7 +26,7 @@ int ParseScript(const CScript &script, std::vector<CSmartRewardId> &ids){
 
     BOOST_FOREACH(const CTxDestination &d, addresses)
     {
-        ids.push_back(CSmartRewardId(d));
+        ids.push_back(CSmartAddress(d));
     }
 
     return nRequired;
@@ -100,12 +90,12 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 CTxOut rOut = rTx.vout[in.prevout.n];
 
                 bool added;
-                std::vector<CSmartRewardId> ids;
+                std::vector<CSmartAddress> ids;
                 CSmartRewardEntry rEntry;
                 int required = ParseScript(rOut.scriptPubKey ,ids);
 
                 if( !required || required > 1 || ids.size() > 1 ){
-                    return error("Could't parse CSmartRewardId: %s",rOut.ToString());
+                    return error("Could't parse CSmartAddress: %s",rOut.ToString());
                 }
 
                 GetRewardEntry(ids.at(0),rEntry, added);
@@ -142,12 +132,12 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
             if(out.scriptPubKey.IsZerocoinMint() ) continue;
 
             bool added;
-            std::vector<CSmartRewardId> ids;
+            std::vector<CSmartAddress> ids;
             CSmartRewardEntry rEntry;
             int required = ParseScript(out.scriptPubKey ,ids);
 
             if( !required || required > 1 || ids.size() > 1 ){
-                return error("Could't parse CSmartRewardId: %s",out.ToString());
+                return error("Could't parse CSmartAddress: %s",out.ToString());
             }else{
                 GetRewardEntry(ids.at(0),rEntry, added);
 
@@ -173,10 +163,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
 
         if( current.number ) snapshots.push_back(CSmartRewardSnapshot(entry, current));
 
-        auto blacklisted = std::find(blacklist.begin(), blacklist.end(), entry.id);
-
         entry.balanceOnStart = entry.balance;
-        entry.eligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && blacklisted == blacklist.end();
+        entry.eligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
 
         if( entry.eligible ){
             ++next.eligibleEntries;
@@ -264,14 +252,14 @@ void CSmartRewards::PrepareForRemove(const CSmartRewardEntry &entry)
     removeEntries.push_back(entry);
 }
 
-bool CSmartRewards::GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry)
+bool CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry)
 {
     bool added;
     GetRewardEntry(id, entry, added);
     return !added;
 }
 
-void CSmartRewards::GetRewardEntry(const CSmartRewardId &id, CSmartRewardEntry &entry, bool &added)
+void CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry, bool &added)
 {
     LOCK(csDb);
 
@@ -416,6 +404,8 @@ void ThreadSmartRewards()
     if(fOneThread) return;
     fOneThread = true;
 
+    bool fTestNet = (Params().NetworkIDString() == CBaseChainParams::TESTNET);
+
     // Make this thread recognisable as the SmartRewards thread
     RenameThread("smartrewards");
 
@@ -423,10 +413,12 @@ void ThreadSmartRewards()
     boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 
     // Estimate or return the current block height.
-    std::function<int (const CBlockIndex*)> getBlockHeight = [](const CBlockIndex *index) {
+    std::function<int (const CBlockIndex*)> getBlockHeight = [fTestNet](const CBlockIndex *index) {
         int64_t syncDiff = std::time(0) - index->GetBlockTime();
-        int64_t genesisDiff = std::time(0) - nFirstTxTimestamp; // Diff from the first transaction till now.
-        return syncDiff > 1200 ? genesisDiff / 55 : index->nHeight;
+        int64_t firstTxDiff;
+        if( fTestNet ) firstTxDiff = std::time(0) - nFirstTxTimestamp_Testnet; // Diff from the first transaction till now on testnet.
+        else firstTxDiff = std::time(0) - nStartRewardTime; // Diff from the reward blocks start till now on mainnet.
+        return syncDiff > 1200 ? firstTxDiff / 55 : index->nHeight; // If we are 20 minutes near now use the current height.
     };
 
     CSmartRewardBlock currentBlock;
@@ -552,7 +544,8 @@ void ThreadSmartRewards()
 
             if( !prewards->GetCurrentRound(round) ){
 
-                if( lastIndex->GetBlockTime() > firstRoundStartTime){
+                if( (!fTestNet && lastIndex->GetBlockTime() > nFirstRoundStartTime) ||
+                    (fTestNet && lastIndex->GetBlockTime() > nFirstRoundStartTime_Testnet) ){
 
                     snapshot = true;
 
@@ -562,10 +555,10 @@ void ThreadSmartRewards()
                     CSmartRewardRound first;
                     first.number = 1;
                     first.startBlockTime = lastIndex->GetBlockTime();
-                    first.startBlockHeight = firstRoundStartBlock;
-                    first.endBlockTime = firstRoundEndTime;
+                    first.startBlockHeight = fTestNet ? nFirstRoundStartBlock_Testnet : nFirstRoundStartBlock;
+                    first.endBlockTime = fTestNet ? nFirstRoundEndTime_Testnet : nFirstRoundEndTime;;
                     // Estimate the block, gets updated on the end of the round to the real one.
-                    first.endBlockHeight = firstRoundEndBlock;
+                    first.endBlockHeight = fTestNet ? nFirstRoundEndBlock_Testnet : nFirstRoundEndBlock;
 
                     CSmartRewardEntryList entries;
                     CSmartRewardSnapshotList snapshots;
@@ -616,8 +609,10 @@ void ThreadSmartRewards()
 
                 time_t startTime = (time_t)next.startBlockTime;
 
-                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date()
-                                                   + boost::gregorian::months(1);
+                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
+
+                if( fTestNet ) endDate += boost::gregorian::days(1);
+                else           endDate += boost::gregorian::months(1);
 
                 // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
                 next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
