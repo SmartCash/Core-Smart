@@ -660,7 +660,7 @@ void CleanupBlockRevFiles()
 void ThreadImport(std::vector<boost::filesystem::path> vImportFiles)
 {
     const CChainParams& chainparams = Params();
-    RenameThread("dash-loadblk");
+    RenameThread("smartcash-loadblk");
     CImportingNow imp;
 
     // -reindex

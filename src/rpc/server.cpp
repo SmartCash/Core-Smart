@@ -355,7 +355,7 @@ static const CRPCCommand vRPCCommands[] =
     { "hidden",             "resendwallettransactions", &resendwallettransactions, true},
 #endif
 
-    /* Dash features */
+    /* Smartcash features */
     { "smartcash",               "smartnode",             &smartnode,             true  },
     { "smartcash",               "smartnodelist",         &smartnodelist,         true  },
     { "smartcash",               "smartnodebroadcast",    &smartnodebroadcast,    true  },
