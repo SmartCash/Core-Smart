@@ -38,6 +38,8 @@ const int64_t nFirstRoundEndBlock_Testnet = 1570;
 void ThreadSmartRewards();
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
+extern CCriticalSection csDb;
+
 struct CSmartRewardsUpdateResult
 {
     int64_t disqualifiedEntries;
@@ -69,8 +71,6 @@ class CSmartRewards
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb) {}
-
-    mutable CCriticalSection csDb;
 
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);

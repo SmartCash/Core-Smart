@@ -47,7 +47,6 @@ std::string CSmartnodeSync::GetAssetName()
         case(SMARTNODE_SYNC_WAITING):      return "SMARTNODE_SYNC_WAITING";
         case(SMARTNODE_SYNC_LIST):         return "SMARTNODE_SYNC_LIST";
         case(SMARTNODE_SYNC_MNW):          return "SMARTNODE_SYNC_MNW";
-        case(SMARTNODE_SYNC_GOVERNANCE):   return "SMARTNODE_SYNC_GOVERNANCE";
         case(SMARTNODE_SYNC_FAILED):       return "SMARTNODE_SYNC_FAILED";
         case SMARTNODE_SYNC_FINISHED:      return "SMARTNODE_SYNC_FINISHED";
         default:                            return "UNKNOWN";
@@ -80,12 +79,10 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
         case(SMARTNODE_SYNC_MNW):
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
             nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
-            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
-            break;
-        case(SMARTNODE_SYNC_GOVERNANCE):
-            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
-            nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
             uiInterface.NotifyAdditionalDataSyncProgressChanged(1);
+
+            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Sync has finished\n");
+
             //try to activate our smartnode if possible
             activeSmartnode.ManageState(connman);
 
@@ -96,7 +93,6 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
             connman.ForEachNode(CConnman::AllNodes, [](CNode* pnode) {
                 netfulfilledman.AddFulfilledRequest(pnode->addr, "full-sync");
             });
-            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Sync has finished\n");
 
             break;
     }
@@ -112,7 +108,6 @@ std::string CSmartnodeSync::GetSyncStatus()
         case SMARTNODE_SYNC_WAITING:       return _("Synchronization pending...");
         case SMARTNODE_SYNC_LIST:          return _("Synchronizing smartnodes...");
         case SMARTNODE_SYNC_MNW:           return _("Synchronizing smartnode payments...");
-        case SMARTNODE_SYNC_GOVERNANCE:    return _("Synchronizing governance objects...");
         case SMARTNODE_SYNC_FAILED:        return _("Synchronization failed");
         case SMARTNODE_SYNC_FINISHED:      return _("Synchronization finished");
         default:                            return "";
@@ -136,15 +131,14 @@ void CSmartnodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
 
 void CSmartnodeSync::ClearFulfilledRequests(CConnman& connman)
 {
-    // TODO: Find out whether we can just use LOCK instead of:
-    // TRY_LOCK(cs_vNodes, lockRecv);
-    // if(!lockRecv) return;
+//     //TODO: Find out whether we can just use LOCK instead of:
+//     TRY_LOCK(cs_vNodes, lockRecv);
+//     if(!lockRecv) return;
 
     connman.ForEachNode(CConnman::AllNodes, [](CNode* pnode) {
         netfulfilledman.RemoveFulfilledRequest(pnode->addr, "spork-sync");
         netfulfilledman.RemoveFulfilledRequest(pnode->addr, "smartnode-list-sync");
         netfulfilledman.RemoveFulfilledRequest(pnode->addr, "smartnode-payment-sync");
-        netfulfilledman.RemoveFulfilledRequest(pnode->addr, "governance-sync");
         netfulfilledman.RemoveFulfilledRequest(pnode->addr, "full-sync");
     });
 }
@@ -208,7 +202,6 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
             } else if(nRequestedSmartnodeAttempt < 6) {
                 int nMnCount = mnodeman.CountSmartnodes();
                 connman.PushMessage(pnode, NetMsgType::SMARTNODEPAYMENTSYNC, nMnCount); //sync payment votes
-                SendGovernanceSyncRequest(pnode, connman);
             } else {
                 nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
             }
@@ -331,84 +324,10 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                 connman.ReleaseNodeVector(vNodesCopy);
                 return; //this will cause each peer to get one request each six seconds for the various assets we need
             }
-
-            // GOVOBJ : SYNC GOVERNANCE ITEMS FROM OUR PEERS
-
-            // if(nRequestedSmartnodeAssets == SMARTNODE_SYNC_GOVERNANCE) {
-            //     LogPrint("gobject", "CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nTimeLastBumped %lld GetTime() %lld diff %lld\n", nTick, nRequestedSmartnodeAssets, nTimeLastBumped, GetTime(), GetTime() - nTimeLastBumped);
-
-            //     // check for timeout first
-            //     if(GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS) {
-            //         LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- timeout\n", nTick, nRequestedSmartnodeAssets);
-            //         if(nRequestedSmartnodeAttempt == 0) {
-            //             LogPrintf("CSmartnodeSync::ProcessTick -- WARNING: failed to sync %s\n", GetAssetName());
-            //             // it's kind of ok to skip this for now, hopefully we'll catch up later?
-            //         }
-            //         SwitchToNextAsset(connman);
-            //         connman.ReleaseNodeVector(vNodesCopy);
-            //         return;
-            //     }
-
-            //     // only request obj sync once from each peer, then request votes on per-obj basis
-            //     if(netfulfilledman.HasFulfilledRequest(pnode->addr, "governance-sync")) {
-            //         int nObjsLeftToAsk = governance.RequestGovernanceObjectVotes(pnode, connman);
-            //         static int64_t nTimeNoObjectsLeft = 0;
-            //         // check for data
-            //         if(nObjsLeftToAsk == 0) {
-            //             static int nLastTick = 0;
-            //             static int nLastVotes = 0;
-            //             if(nTimeNoObjectsLeft == 0) {
-            //                 // asked all objects for votes for the first time
-            //                 nTimeNoObjectsLeft = GetTime();
-            //             }
-            //             // make sure the condition below is checked only once per tick
-            //             if(nLastTick == nTick) continue;
-            //             if(GetTime() - nTimeNoObjectsLeft > SMARTNODE_SYNC_TIMEOUT_SECONDS &&
-            //                 governance.GetVoteCount() - nLastVotes < std::max(int(0.0001 * nLastVotes), SMARTNODE_SYNC_TICK_SECONDS)
-            //             ) {
-            //                 // We already asked for all objects, waited for SMARTNODE_SYNC_TIMEOUT_SECONDS
-            //                 // after that and less then 0.01% or SMARTNODE_SYNC_TICK_SECONDS
-            //                 // (i.e. 1 per second) votes were recieved during the last tick.
-            //                 // We can be pretty sure that we are done syncing.
-            //                 LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- asked for all objects, nothing to do\n", nTick, nRequestedSmartnodeAssets);
-            //                 // reset nTimeNoObjectsLeft to be able to use the same condition on resync
-            //                 nTimeNoObjectsLeft = 0;
-            //                 SwitchToNextAsset(connman);
-            //                 connman.ReleaseNodeVector(vNodesCopy);
-            //                 return;
-            //             }
-            //             nLastTick = nTick;
-            //             nLastVotes = governance.GetVoteCount();
-            //         }
-            //         continue;
-            //     }
-            //     netfulfilledman.AddFulfilledRequest(pnode->addr, "governance-sync");
-
-            //     if (pnode->nVersion < MIN_GOVERNANCE_PEER_PROTO_VERSION) continue;
-            //     nRequestedSmartnodeAttempt++;
-
-            //     SendGovernanceSyncRequest(pnode, connman);
-
-            //     connman.ReleaseNodeVector(vNodesCopy);
-            //     return; //this will cause each peer to get one request each six seconds for the various assets we need
-            // }
         }
     }
     // looped through all nodes, release them
     connman.ReleaseNodeVector(vNodesCopy);
-}
-
-void CSmartnodeSync::SendGovernanceSyncRequest(CNode* pnode, CConnman& connman)
-{
-    // if(pnode->nVersion >= GOVERNANCE_FILTER_PROTO_VERSION) {
-    //     CBloomFilter filter;
-    //     filter.clear();
-
-    //     connman.PushMessage(pnode, NetMsgType::MNGOVERNANCESYNC, uint256(), filter);
-    // }
-    // else {
-    //     connman.PushMessage(pnode, NetMsgType::MNGOVERNANCESYNC, uint256());
-    // }
 }
 
 void CSmartnodeSync::AcceptedBlockHeader(const CBlockIndex *pindexNew)

@@ -38,7 +38,7 @@ void SmartHive::Init()
     };
 
     scriptsMainnet = {
-        { SmartHive::Community,     new CScript(addressesMainnet.at(SmartHive::Community)->GetScript()) }, // SmartHive treasure
+        { SmartHive::Community,     new CScript(std::move(addressesMainnet.at(SmartHive::Community)->GetScript())) }, // SmartHive treasure
         { SmartHive::Support,       new CScript(std::move(addressesMainnet.at(SmartHive::Support)->GetScript())) }, // Support hive
         { SmartHive::Development,   new CScript(std::move(addressesMainnet.at(SmartHive::Development)->GetScript())) }, // Development hive
         { SmartHive::Outreach,      new CScript(std::move(addressesMainnet.at(SmartHive::Outreach)->GetScript())) }, // Outreach hive
@@ -50,13 +50,13 @@ void SmartHive::Init()
 
     scriptsTestnet = {
         { SmartHive::Community,     new CScript(std::move(addressesTestnet.at(SmartHive::Community)->GetScript())) }, // SmartHive treasure
-        { SmartHive::Support,      new CScript(std::move(addressesTestnet.at(SmartHive::Support)->GetScript())) }, // Support hive
-        { SmartHive::Development,  new CScript(std::move(addressesTestnet.at(SmartHive::Development)->GetScript())) }, // Development hive
-        { SmartHive::Outreach,     new CScript(std::move(addressesTestnet.at(SmartHive::Outreach)->GetScript())) }, // Outreach hive
-        { SmartHive::SmartRewards, new CScript(std::move(addressesTestnet.at(SmartHive::SmartRewards)->GetScript())) }, // Legacy smartrewards
-        { SmartHive::Outreach2,         new CScript(std::move(addressesTestnet.at(SmartHive::Outreach2)->GetScript())) }, // New hive 1
-        { SmartHive::Web,         new CScript(std::move(addressesTestnet.at(SmartHive::Web)->GetScript())) }, // New hive 2
-        { SmartHive::Quality,         new CScript(std::move(addressesTestnet.at(SmartHive::Quality)->GetScript())) } // New hive 3
+        { SmartHive::Support,       new CScript(std::move(addressesTestnet.at(SmartHive::Support)->GetScript())) }, // Support hive
+        { SmartHive::Development,   new CScript(std::move(addressesTestnet.at(SmartHive::Development)->GetScript())) }, // Development hive
+        { SmartHive::Outreach,      new CScript(std::move(addressesTestnet.at(SmartHive::Outreach)->GetScript())) }, // Outreach hive
+        { SmartHive::SmartRewards,  new CScript(std::move(addressesTestnet.at(SmartHive::SmartRewards)->GetScript())) }, // Legacy smartrewards
+        { SmartHive::Outreach2,     new CScript(std::move(addressesTestnet.at(SmartHive::Outreach2)->GetScript())) }, // New hive 1
+        { SmartHive::Web,           new CScript(std::move(addressesTestnet.at(SmartHive::Web)->GetScript())) }, // New hive 2
+        { SmartHive::Quality,       new CScript(std::move(addressesTestnet.at(SmartHive::Quality)->GetScript())) } // New hive 3
     };
 
     init = true;

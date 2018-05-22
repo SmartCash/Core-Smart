@@ -23,7 +23,7 @@ static const int64_t nRewardPayoutsPerBlock = 300;
 namespace SmartRewardPayments{
 
 typedef enum{
-    NoError,
+    Valid,
     DatabaseError,
     NotSynced,
     NoRewardBlock,

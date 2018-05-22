@@ -2845,10 +2845,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                                 REJECT_INVALID, "bad-cb-payee");
     }
 
-    if( SmartRewardPayments::Validate(block,pindex->nHeight) != SmartRewardPayments::NoError ){
+    if( SmartRewardPayments::Validate(block,pindex->nHeight) != SmartRewardPayments::Valid ){
         return state.DoS(100, false, REJECT_INVALID_SMARTREWARD_PAYMENTS,
                      "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
     }
+
 
     // END SMARTCASH
 

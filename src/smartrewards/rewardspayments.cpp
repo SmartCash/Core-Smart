@@ -17,10 +17,11 @@
 
 CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result)
 {
-    result = SmartRewardPayments::NoError;
+    result = SmartRewardPayments::Valid;
 
     // If we are not yet at the 1.2 payout block time.
-    if( blockTime < HF_V1_2_LEGACY_SMARTREWARD_END_TIME ){
+    if( ( MainNet() && blockTime < HF_V1_2_LEGACY_SMARTREWARD_END_TIME ) ||
+        ( TestNet() && nHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ) ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
     }
@@ -108,7 +109,7 @@ void SmartRewardPayments::FillPayments(CMutableTransaction &coinbaseTx, int nHei
     CSmartRewardSnapshotList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, prevBlockTime, result);
 
     // only create rewardblocks if a rewardblock is actually required at the current height.
-    if( result == SmartRewardPayments::NoError && rewards.size() ) {
+    if( result == SmartRewardPayments::Valid && rewards.size() ) {
             LogPrint("rewardpayments", "FillRewardPayments -- triggered rewardblock creation at height %d with %d payees\n", nHeight, rewards.size());
 
             BOOST_FOREACH(CSmartRewardSnapshot s, rewards)
@@ -129,7 +130,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
     CSmartRewardSnapshotList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, block.GetBlockTime(), result);
 
-    if( result == SmartRewardPayments::NoError && rewards.size() ) {
+    if( result == SmartRewardPayments::Valid && rewards.size() ) {
 
             LogPrint("rewardpayments","ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nHeight, rewards.size());
 
@@ -153,7 +154,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
     }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::DatabaseError || result == SmartRewardPayments::NoRewardBlock ){
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
-        result = SmartRewardPayments::NoError;
+        result = SmartRewardPayments::Valid;
     }
 
     return result;
