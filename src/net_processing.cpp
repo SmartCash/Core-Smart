@@ -1368,10 +1368,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         {
             const CInv &inv = vInv[nInv];
 
-            if(!inv.IsKnownType()) {
-                LogPrint("net", "got inv of unknown type %d: %s peer=%d\n", inv.type, inv.hash.ToString(), pfrom->id);
-                continue;
-            }
+            //TODO: Renable after upgrade
+            // if(!inv.IsKnownType()) {
+            //     LogPrint("net", "got inv of unknown type %d: %s peer=%d\n", inv.type, inv.hash.ToString(), pfrom->id);
+            //     continue;
+            // }
 
             if (interruptMsgProc)
                 return true;

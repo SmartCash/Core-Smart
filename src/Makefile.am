@@ -262,20 +262,6 @@ endif
 libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
-  smartnode/netfulfilledman.cpp \
-  smartnode/activesmartnode.cpp \
-  smartnode/instantx.cpp \
-  smartnode/smartnode.cpp \
-  smartnode/smartnodeconfig.cpp \
-  smartnode/smartnodeman.cpp \
-  smartnode/smartnodepayments.cpp \
-  smartnode/smartnodesync.cpp \
-  smartrewards/rewardsdb.cpp \
-  smartrewards/rewardspayments.cpp \
-  smartrewards/rewards.cpp \
-  smarthive/hivepayments.cpp \
-  smarthive/hive.cpp \
-  smartnode/spork.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/rpcdump.cpp \
