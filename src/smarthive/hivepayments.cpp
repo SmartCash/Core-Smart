@@ -26,7 +26,7 @@ void SmartHivePayments::Init()
             new CSmartHiveClassic(SmartHive::Support,  0.08),
             new CSmartHiveClassic(SmartHive::Development,  0.08),
             new CSmartHiveClassic(SmartHive::SmartRewards,  0.15),
-            new CSmartHiveClassic(SmartHive::Community,  0.56)
+            new CSmartHiveClassic(SmartHive::ProjectTreasury,  0.56)
         }
     };
 
@@ -37,7 +37,7 @@ void SmartHivePayments::Init()
             new CSmartHiveRotation(SmartHive::Support, 8,15),
             new CSmartHiveRotation(SmartHive::Development, 16,23),
             new CSmartHiveRotation(SmartHive::SmartRewards, 24,38),
-            new CSmartHiveRotation(SmartHive::Community, 39,94)
+            new CSmartHiveRotation(SmartHive::ProjectTreasury, 39,94)
         }
     );
 
@@ -48,7 +48,7 @@ void SmartHivePayments::Init()
             new CSmartHiveRotation(SmartHive::Support, 8,15),
             new CSmartHiveRotation(SmartHive::Development, 16,23),
             new CSmartHiveRotation(SmartHive::SmartRewards, 24,38),
-            new CSmartHiveRotation(SmartHive::Community, 39,84)
+            new CSmartHiveRotation(SmartHive::ProjectTreasury, 39,84)
         }
     );
 
@@ -61,7 +61,7 @@ void SmartHivePayments::Init()
             new CSmartHiveRotation(SmartHive::Outreach2, 12,15),
             new CSmartHiveRotation(SmartHive::Web, 16,19),
             new CSmartHiveRotation(SmartHive::Quality, 20,23),
-            new CSmartHiveRotation(SmartHive::Community, 24,69),
+            new CSmartHiveRotation(SmartHive::ProjectTreasury, 24,69),
         }
     );
 

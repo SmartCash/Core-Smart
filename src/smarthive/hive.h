@@ -46,7 +46,7 @@ namespace SmartHive{
         Outreach,
         Support,
         SmartRewards, //Deprecated with 1.2
-        Community,
+        ProjectTreasury,
         Outreach2,
         Web,
         Quality

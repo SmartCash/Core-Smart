@@ -386,9 +386,9 @@ enum {
     // MSG_FILTERED_BLOCK should not appear in any invs except as a part of getdata.
     MSG_FILTERED_BLOCK,
     MSG_CMPCT_BLOCK,
-    MSG_WITNESS_BLOCK = MSG_BLOCK | MSG_WITNESS_FLAG, 
-    MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG, 
-    MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG, 
+    MSG_WITNESS_BLOCK = MSG_BLOCK | MSG_WITNESS_FLAG,
+    MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG,
+    MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,
     // Smartcash message types
     // NOTE: declare non-implmented here, we must keep this enum consistent and backwards compatible
     MSG_TXLOCK_REQUEST,
