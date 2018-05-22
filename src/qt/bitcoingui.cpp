@@ -220,7 +220,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *platformStyle, const NetworkStyle *n
     progressBarLabel->setVisible(false);
     progressBar = new GUIUtil::ProgressBar();
     progressBar->setAlignment(Qt::AlignCenter);
-    progressBar->setVisible(false);
+    progressBar->setVisible(true);
 
     // Override style sheet for progress bar for styles that have a segmented progress bar,
     // as they make the text unreadable (workaround for issue #1071)
@@ -817,7 +817,7 @@ void BitcoinGUI::updateHeadersSyncProgressLabel()
 }
 
 void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, bool header)
-{   
+{
     if (modalOverlay)
     {
         if (header)
@@ -825,7 +825,7 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         else
             modalOverlay->tipUpdate(count, blockDate, nVerificationProgress);
     }
-    if(!clientModel)
+    if (!clientModel)
         return;
 
     // Prevent orphan statusbar messages (e.g. hover Quit in main menu, wait until chain-sync starts -> garbelled text)
@@ -856,8 +856,7 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
             if (header) {
                 return;
             }
-            // Case: not Importing, not Reindexing and no network connection
-            progressBarLabel->setText(tr("No block source available..."));
+            progressBarLabel->setText(tr("Connecting to peers..."));
             break;
     }
 
@@ -867,12 +866,6 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
     qint64 secs = blockDate.secsTo(currentDate);
 
     tooltip = tr("Processed %n block(s) of transaction history.", "", count);
-
-    // Set icon state: spinning if catching up, tick otherwise
-    if(secs < 90*60)
-    {
-        tooltip = tr("Up to date") + QString(".<br>") + tooltip;
-        labelBlocksIcon->setPixmap(platformStyle->SingleColorIcon(":/icons/synced").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
 
 #ifdef ENABLE_WALLET
     if (walletFrame)
@@ -890,44 +883,37 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
     }
 #endif // ENABLE_WALLET
 
-
-        progressBarLabel->setVisible(false);
-        progressBar->setVisible(false);
-    }
-    else
+    if(!smartnodeSync.IsBlockchainSynced())
     {
-        if(!smartnodeSync.IsBlockchainSynced())
+        QString timeBehindText = GUIUtil::formatNiceTimeOffset(secs);
+
+        progressBarLabel->setVisible(true);
+        progressBar->setFormat(tr("%1 behind").arg(timeBehindText));
+        progressBar->setMaximum(1000000000);
+        progressBar->setValue(nVerificationProgress * 1000000000.0 + 0.5);
+        progressBar->setVisible(true);
+
+        tooltip = tr("Catching up...") + QString("<br>") + tooltip;
+        if(count != prevBlocks)
         {
-            QString timeBehindText = GUIUtil::formatNiceTimeOffset(secs);
-
-            progressBarLabel->setVisible(true);
-            progressBar->setFormat(tr("%1 behind").arg(timeBehindText));
-            progressBar->setMaximum(1000000000);
-            progressBar->setValue(nVerificationProgress * 1000000000.0 + 0.5);
-            progressBar->setVisible(true);
-
-            tooltip = tr("Catching up...") + QString("<br>") + tooltip;
-            if(count != prevBlocks)
-            {
-                labelBlocksIcon->setPixmap(platformStyle->SingleColorIcon(QString(
-                    ":/movies/spinner-%1").arg(spinnerFrame, 3, 10, QChar('0')))
-                    .pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
-                spinnerFrame = (spinnerFrame + 1) % SPINNER_FRAMES;
-            }
-            prevBlocks = count;
-
-    #ifdef ENABLE_WALLET
-            if(walletFrame)
-            {
-                walletFrame->showOutOfSyncWarning(true);
-            }
-    #endif // ENABLE_WALLET
-
-            tooltip += QString("<br>");
-            tooltip += tr("Last received block was generated %1 ago.").arg(timeBehindText);
-            tooltip += QString("<br>");
-            tooltip += tr("Transactions after this will not yet be visible.");
+            labelBlocksIcon->setPixmap(platformStyle->SingleColorIcon(QString(
+                ":/movies/spinner-%1").arg(spinnerFrame, 3, 10, QChar('0')))
+                .pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
+            spinnerFrame = (spinnerFrame + 1) % SPINNER_FRAMES;
         }
+        prevBlocks = count;
+
+#ifdef ENABLE_WALLET
+        if(walletFrame)
+        {
+            walletFrame->showOutOfSyncWarning(true);
+        }
+#endif // ENABLE_WALLET
+
+        tooltip += QString("<br>");
+        tooltip += tr("Last received block was generated %1 ago.").arg(timeBehindText);
+        tooltip += QString("<br>");
+        tooltip += tr("Transactions after this will not yet be visible.");
     }
 
     // Don't word-wrap this (fixed-width) tooltip
