@@ -963,7 +963,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // Initialize SmartHive addresses
     SmartHive::Init();
-    // Initialize SmartHive addresses
+    // Initialize SmartHive payout rules
     SmartHivePayments::Init();
 
     // also see: InitParameterInteraction()

@@ -737,14 +737,6 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     case MSG_SMARTNODE_PING:
         return mnodeman.mapSeenSmartnodePing.count(inv.hash);
 
-    // case MSG_DSTX: {
-    //     return static_cast<bool>(CPrivateSend::GetDSTX(inv.hash));
-    // }
-
-    // case MSG_GOVERNANCE_OBJECT:
-    // case MSG_GOVERNANCE_OBJECT_VOTE:
-    //     return ! governance.ConfirmInventoryRequest(inv);
-
     case MSG_SMARTNODE_VERIFY:
         return mnodeman.mapSeenSmartnodeVerification.count(inv.hash);
     }
@@ -990,54 +982,6 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                         pushed = true;
                     }
                 }
-
-                // if (!pushed && inv.type == MSG_DSTX) {
-                //     CDarksendBroadcastTx dstx = CPrivateSend::GetDSTX(inv.hash);
-                //     if(dstx) {
-                //         CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-                //         ss.reserve(1000);
-                //         ss << dstx;
-                //         connman.PushMessage(pfrom, NetMsgType::DSTX, ss);
-                //         pushed = true;
-                //     }
-                // }
-
-                // if (!pushed && inv.type == MSG_GOVERNANCE_OBJECT) {
-                //     LogPrint("net", "ProcessGetData -- MSG_GOVERNANCE_OBJECT: inv = %s\n", inv.ToString());
-                //     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-                //     bool topush = false;
-                //     {
-                //         if(governance.HaveObjectForHash(inv.hash)) {
-                //             ss.reserve(1000);
-                //             if(governance.SerializeObjectForHash(inv.hash, ss)) {
-                //                 topush = true;
-                //             }
-                //         }
-                //     }
-                //     LogPrint("net", "ProcessGetData -- MSG_GOVERNANCE_OBJECT: topush = %d, inv = %s\n", topush, inv.ToString());
-                //     if(topush) {
-                //         connman.PushMessage(pfrom, NetMsgType::MNGOVERNANCEOBJECT, ss);
-                //         pushed = true;
-                //     }
-                // }
-
-                // if (!pushed && inv.type == MSG_GOVERNANCE_OBJECT_VOTE) {
-                //     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-                //     bool topush = false;
-                //     {
-                //         if(governance.HaveVoteForHash(inv.hash)) {
-                //             ss.reserve(1000);
-                //             if(governance.SerializeVoteForHash(inv.hash, ss)) {
-                //                 topush = true;
-                //             }
-                //         }
-                //     }
-                //     if(topush) {
-                //         LogPrint("net", "ProcessGetData -- pushing: inv = %s\n", inv.ToString());
-                //         connman.PushMessage(pfrom, NetMsgType::MNGOVERNANCEOBJECTVOTE, ss);
-                //         pushed = true;
-                //     }
-                // }
 
                 if (!pushed && inv.type == MSG_SMARTNODE_VERIFY) {
                     if(mnodeman.mapSeenSmartnodeVerification.count(inv.hash)) {
@@ -1368,11 +1312,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         {
             const CInv &inv = vInv[nInv];
 
-            //TODO: Renable after upgrade
-            // if(!inv.IsKnownType()) {
-            //     LogPrint("net", "got inv of unknown type %d: %s peer=%d\n", inv.type, inv.hash.ToString(), pfrom->id);
-            //     continue;
-            // }
+             if(!inv.IsKnownType()) {
+                 LogPrint("net", "got inv of unknown type %d: %s peer=%d\n", inv.type, inv.hash.ToString(), pfrom->id);
+                 continue;
+             }
 
             if (interruptMsgProc)
                 return true;

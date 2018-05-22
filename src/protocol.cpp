@@ -80,6 +80,7 @@ static const char* ppszTypeName[] =
     "filtered block", // Should never occur
     // Smartcash message types
     // NOTE: include non-implmented here, we must keep this list in sync with enum in protocol.h
+    NetMsgType::CMPCTBLOCK,
     NetMsgType::TXLOCKREQUEST,
     NetMsgType::TXLOCKVOTE,
     NetMsgType::SPORK,
@@ -263,14 +264,33 @@ bool operator<(const CInv& a, const CInv& b)
 
 bool CInv::IsKnownType() const
 {
-    return (type >= 1 && type < (int)ARRAYLEN(ppszTypeName));
+    int typeValue = type;
+
+    // Workaround because we have the witness flags in the message enum.
+    switch(typeValue){
+        case MSG_WITNESS_BLOCK:
+        case MSG_WITNESS_TX:
+        case MSG_FILTERED_WITNESS_BLOCK:
+        case MSG_GOVERNANCE_OBJECT:
+        case MSG_GOVERNANCE_OBJECT_VOTE:
+            return false;
+        default:
+        if(typeValue >= MSG_TXLOCK_REQUEST ) typeValue -= (MSG_WITNESS_FLAG - 1);
+    }
+
+    return (typeValue >= 1 && typeValue < (int)ARRAYLEN(ppszTypeName));
 }
 
 const char* CInv::GetCommand() const
 {
     if (!IsKnownType())
         throw std::out_of_range(strprintf("CInv::GetCommand(): type=%d unknown type", type));
-    return ppszTypeName[type];
+
+    // Workaround because we have the witness flags in the message enum.
+    int typeValue = type;
+    if(typeValue >= MSG_TXLOCK_REQUEST ) typeValue -= (MSG_WITNESS_FLAG - 1);
+
+    return ppszTypeName[typeValue];
 }
 
 std::string CInv::ToString() const

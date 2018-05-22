@@ -236,6 +236,7 @@ libbitcoin_server_a_SOURCES = \
   smartrewards/rewardspayments.cpp \
   smartrewards/rewards.cpp \
   smarthive/hivepayments.cpp \
+  smartmining/miningpayments.cpp \
   smarthive/hive.cpp \
   smartnode/spork.cpp \
   timedata.cpp \

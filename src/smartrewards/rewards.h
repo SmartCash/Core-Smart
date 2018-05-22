@@ -16,12 +16,12 @@ static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
 const int64_t nCacheBlocks = 50;
 // Minimum distance of the last processed block compared to the current chain
 // height to assume the rewards are synced.
-const int nRewardsSyncDistance = 30;
+const int64_t nRewardsSyncDistance = 30;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
-const int nRewardsUISyncUpdateRate = 100;
-
-// Timestamp of the first real transaction in the testnet
-const int64_t nFirstTxTimestamp_Testnet = 1526307133;
+const int64_t nRewardsUISyncUpdateRate = 100;
+// Number of blocks we update the SmartRewards UI when we are in the sync process
+const int64_t nRewardsBlocksPerRound = 47000;
+const int64_t nRewardsFirstAutomatedRound = 12;
 
 // Timestamps of the first round's start and end on mainnet
 const int64_t nFirstRoundStartTime = 1500966000;
@@ -30,13 +30,18 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
+const int64_t nFirstTxTimestamp_Testnet = 1525922959;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
-const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (24*60*60);
-const int64_t nFirstRoundStartBlock_Testnet = 1;
-const int64_t nFirstRoundEndBlock_Testnet = 1570;
+const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
+const int64_t nFirstRoundStartBlock_Testnet = 20001;
+const int64_t nFirstRoundEndBlock_Testnet = 20200;
+// Number of blocks we update the SmartRewards UI when we are in the sync process
+const int64_t nRewardsBlocksPerRound_Testnet = 200;
 
 void ThreadSmartRewards();
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
+
+extern CCriticalSection csDb;
 
 struct CSmartRewardsUpdateResult
 {
@@ -69,8 +74,6 @@ class CSmartRewards
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb) {}
-
-    mutable CCriticalSection csDb;
 
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
