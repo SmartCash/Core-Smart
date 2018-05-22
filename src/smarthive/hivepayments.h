@@ -19,7 +19,7 @@ typedef enum{
 
 void Init();
 
-SmartHivePayments::Result Validate(const CTransaction& txCoinbase, int nHeight, int64_t blockTime);
+SmartHivePayments::Result Validate(const CTransaction& txCoinbase, int nHeight, int64_t blockTime, CAmount& hiveReward);
 void FillPayments(CMutableTransaction& txNew, int nHeight, int64_t blockTime, CAmount blockReward, std::vector<CTxOut>& voutSmartHives);
 
 int RejectionCode(SmartHivePayments::Result result);
@@ -68,17 +68,25 @@ struct CSmartHiveSplit
     int allocation;
     double percent;
 
-    virtual bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward) const = 0;
+    virtual bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const = 0;
     virtual void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const {voutSmartHives.clear();}
     CSmartHiveSplit() : hives(), allocation(0) {}
     CSmartHiveSplit(int allocation, std::vector<CSmartHiveRewardBase*> hives) : hives(hives), allocation(allocation) {
         percent = allocation / 100.0;
+
+        double ratioCheck = 0;
+        BOOST_FOREACH(CSmartHiveRewardBase *hive, hives)
+        {
+            ratioCheck += hive->GetRatio();
+        }
+
+        if( abs(percent - ratioCheck) > 0.00001 ) throw std::runtime_error(strprintf("Invalid hive allocation! %f <> %f",percent, ratioCheck));
     }
 };
 
 struct CSmartHiveClassicSplit : public CSmartHiveSplit
 {
-    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward) const final;
+    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const final;
     void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final;
     CSmartHiveClassicSplit() : CSmartHiveSplit() {}
     CSmartHiveClassicSplit(int allocation, std::vector<CSmartHiveRewardBase*> hives) : CSmartHiveSplit(allocation, hives) {}
@@ -86,15 +94,25 @@ struct CSmartHiveClassicSplit : public CSmartHiveSplit
 
 struct CSmartHiveRotationSplit : public CSmartHiveSplit
 {
-    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward) const final;
+    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const final;
     void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final;
     CSmartHiveRotationSplit() : CSmartHiveSplit() {}
     CSmartHiveRotationSplit(int allocation, std::vector<CSmartHiveRewardBase*> hives) : CSmartHiveSplit(allocation, hives) {}
 };
 
+struct CSmartHiveBatchSplit : public CSmartHiveSplit
+{
+    int trigger;
+    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const final;
+    void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final;
+    CAmount GetBatchReward(int nHeight) const;
+    CSmartHiveBatchSplit() : CSmartHiveSplit() {}
+    CSmartHiveBatchSplit(int allocation, int trigger, std::vector<CSmartHiveRewardBase*> hives) : CSmartHiveSplit(allocation, hives), trigger(trigger) {}
+};
+
 struct CSmartHiveSplitDisabled : public CSmartHiveSplit
 {
-    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward) const final {return true;}
+    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const final {hiveReward = 0; return true;}
     void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final {voutSmartHives.clear();}
     CSmartHiveSplitDisabled() : CSmartHiveSplit() {}
 };

@@ -44,13 +44,11 @@
 #include <boost/math/distributions/poisson.hpp>
 #include <boost/thread.hpp>
 
-#include "smartnode/instantx.h"
 #include "smartnode/smartnodeman.h"
 #include "smartnode/smartnodepayments.h"
+#include "smartnode/instantx.h"
 #include "smartnode/spork.h"
-#include "smartrewards/rewardspayments.h"
-#include "smarthive/hive.h"
-#include "smarthive/hivepayments.h"
+#include "smartmining/miningpayments.h"
 
 using namespace std;
 
@@ -2804,52 +2802,10 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // to recognize that block is actually invalid.
     // TODO: resync data (both ways?) and try to reprocess this block later.
 
-    // Adjust miner blockReward for block time deviation
-    //
-    // TBD => Rewrite the mining rules.. looks a bit messy now but it was done in hurry for testnet.
-    //
-
-    CAmount blockReward = GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
-//    CAmount legacyMiningReward = blockReward * 0.05;
-//    if ((MainNet() && (block.GetBlockTime() > HF_V1_2_LEGACY_SMARTREWARD_END_TIME)) || (TestNet() && (pindex->nHeight >= TESTNET_V1_2_TIMED_MINING_HEIGHT))) {
-
-//        int64_t lastBlockTime = pindex->pprev->GetBlockTime();
-//        int64_t currentBlockTime =  block.GetBlockTime();
-//        // Only use the block time difference if its less then x seconds. abs() just to make sure...
-//        float blockTimeDeviation = std::min(int64_t(600), int64_t(abs(currentBlockTime - lastBlockTime))) / 55.0;
-
-//        CAmount miningReward = nFees + (blockReward * (0.05 * blockTimeDeviation));
-
-//        // TBD, create a better rule. Just for testnet now..
-//        if (miningReward > blockReward || abs(block.vtx[0].vout[0].nValue - miningReward) >= 100 ) {
-//            return state.DoS(0, error("ConnectBlock(SMARTCASH): Invalid mining reward"), REJECT_INVALID, "bad-cb-amount");
-//        }
-
-//    }else if( MainNet() && ((pindex->nHeight == 1 && block.vtx[0].vout[0].nValue != blockReward) ||
-//        (pindex->nHeight > 1 && pindex->nHeight <= HF_V1_0_START_HEIGHT && (block.vtx[0].vout[0].nValue - legacyMiningReward) > (5 * COIN))) ){ // > 5 * COIN
-//        LogPrintf("Output:%d Exected:%d\n",block.vtx[0].vout[0].nValue, legacyMiningReward);
-//        return state.DoS(0, error("ConnectBlock(SMARTCASH): Invalid mining reward before 1.1"), REJECT_INVALID, "bad-cb-amount");
-//    }else if( TestNet() || (pindex->nHeight > HF_V1_0_START_HEIGHT && block.vtx[0].vout[0].nValue > legacyMiningReward) ) {
-//        return state.DoS(0, error("ConnectBlock(SMARTCASH): Too high mining reward"), REJECT_INVALID, "bad-cb-amount");
-//    }
-
-    SmartHivePayments::Result result = SmartHivePayments::Validate(block.vtx[0],pindex->nHeight, pindex->GetBlockTime());
-    if( result != SmartHivePayments::Valid ){
-        return state.DoS(100, false, SmartHivePayments::RejectionCode(result),
-                                     SmartHivePayments::RejectionMessage(result));
-    }
-
-    if (!SmartNodePayments::IsBlockPayeeValid(block.vtx[0], pindex->nHeight, blockReward)) {
+    if( !SmartMining::Validate(block, pindex, state, nFees) ){
         mapRejectedBlocks.insert(make_pair(block.GetHash(), GetTime()));
-        return state.DoS(0, error("ConnectBlock(SMARTCASH): couldn't find smartnode payments"),
-                                REJECT_INVALID, "bad-cb-payee");
+        return false;
     }
-
-    if( SmartRewardPayments::Validate(block,pindex->nHeight) != SmartRewardPayments::Valid ){
-        return state.DoS(100, false, REJECT_INVALID_SMARTREWARD_PAYMENTS,
-                     "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
-    }
-
 
     // END SMARTCASH
 

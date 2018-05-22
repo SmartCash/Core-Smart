@@ -544,7 +544,7 @@ void ThreadSmartRewards()
             if( !prewards->GetCurrentRound(round) ){
 
                 if( (MainNet() && lastIndex->GetBlockTime() > nFirstRoundStartTime) ||
-                    (TestNet() && lastIndex->GetBlockTime() > nFirstRoundStartTime_Testnet) ){
+                    (TestNet() && lastIndex->nHeight >= nFirstRoundStartBlock_Testnet) ){
 
                     snapshot = true;
 
@@ -587,7 +587,8 @@ void ThreadSmartRewards()
             }
 
             // If just hit the next round threshold
-            if(round.number && lastIndex->GetBlockTime() > round.endBlockTime){
+            if( ( MainNet() && round.number < nRewardsFirstAutomatedRound && lastIndex->GetBlockTime() > round.endBlockTime ) ||
+                  lastIndex->nHeight >= round.endBlockHeight ){
 
                 snapshot = true;
 
@@ -610,14 +611,15 @@ void ThreadSmartRewards()
 
                 boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
 
-                if( MainNet() ) endDate += boost::gregorian::months(1);
-                else           endDate += boost::gregorian::days(1);
-
+                endDate += boost::gregorian::months(1);
                 // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
                 next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
 
+                if( TestNet() ) next.endBlockTime = startTime + nRewardsBlocksPerRound_Testnet * 55;
+
                 // Estimate the block, gets updated on the end of the round to the real one.
-                next.endBlockHeight = next.startBlockHeight + (next.endBlockTime - next.startBlockTime) / 55;
+                if( MainNet() )  next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound - 1;
+                else             next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound_Testnet - 1;
 
                 if( !prewards->SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
 

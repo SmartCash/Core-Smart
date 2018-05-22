@@ -118,10 +118,10 @@ public:
 
     CSmartRewardRound() {
         number = 0;
-        startBlockHeight = 0;
-        startBlockTime = 0;
-        endBlockHeight = 0;
-        endBlockTime = 0;
+        startBlockHeight = INT_MAX;
+        startBlockTime = INT_MAX;
+        endBlockHeight = INT_MAX;
+        endBlockTime = INT_MAX;
         eligibleEntries = 0;
         eligibleSmart = 0;
         disqualifiedEntries = 0;

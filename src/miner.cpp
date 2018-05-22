@@ -29,6 +29,7 @@
 #include "validationinterface.h"
 #include "smartrewards/rewardspayments.h"
 #include "smarthive/hivepayments.h"
+#include "smartmining/miningpayments.h"
 
 #include <algorithm>
 #include <boost/thread.hpp>
@@ -142,11 +143,14 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
+    coinbaseTx.vin[0].scriptSig = CScript() << OP_0 << OP_0;
     coinbaseTx.vout.resize(1);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = 0;
 
     CAmount blockReward = GetBlockValue(nHeight, 0, pindexPrev->GetBlockTime());
+
+    // Add the SmartMining payout for the current block.
+    SmartMining::FillPayment(coinbaseTx, nHeight, pindexPrev,blockReward);
 
     // Add the SmartHive payout for the current block.
     SmartHivePayments::FillPayments(coinbaseTx,nHeight, pindexPrev->GetBlockTime(), blockReward, pblock->voutSmartHives);
@@ -157,8 +161,8 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     // Add SmartReward payments if there are any pending at the current block.
     SmartRewardPayments::FillPayments(coinbaseTx, nHeight, pindexPrev->GetBlockTime(), pblock->voutSmartRewards);
 
-    // Add dummy coinbase tx as first transaction
-    pblock->vtx.push_back(CTransaction());
+    // Add coinbase tx as first transaction here. Will
+    pblock->vtx.push_back(coinbaseTx);
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
@@ -416,35 +420,15 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
         nLastBlockSize = nBlockSize;
         LogPrintf("CreateNewBlock(): total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
 
-        // Compute final coinbase transaction.
-        //coinbaseTx.vout[0].nValue += nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-        //coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
-        pblock->vtx[0] = coinbaseTx;
-        pblocktemplate->vTxFees[0] = -nFees;
-
-        // Adjust miner reward for block time deviation if we are at the required height.
-        // If not give them 5%.
-        CAmount miningReward;
-
-        if ((MainNet() && (pindexPrev->GetBlockTime() >= HF_V1_2_LEGACY_SMARTREWARD_END_TIME)) || (TestNet() && (nHeight >= TESTNET_V1_2_TIMED_MINING_HEIGHT))) {
-
-            int64_t lastBlockTime = pindexPrev->GetBlockTime();
-            int64_t currentTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
-            // Only use the block time difference if its less then x seconds. abs() just to make sure...
-            float blockTimeDeviation = std::min(int64_t(600), int64_t(abs(currentTime - lastBlockTime))) / 55.0;
-            miningReward = (blockReward * (0.05 * blockTimeDeviation));
-        }else{
-            miningReward = blockReward * 0.05;
-        }
+        // Finally now that we know the fees add them to the mining reward!
+        pblock->vtx[0].vout[0].nValue += nFees;
 
         // Fill in header
         pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
         UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
         pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
         pblock->nNonce         = 0;
-        pblock->vtx[0].vin[0].scriptSig = CScript() << OP_0 << OP_0;
         pblocktemplate->vTxSigOpsCost[0] = GetLegacySigOpCount(pblock->vtx[0]);
-        pblock->vtx[0].vout[0].nValue = nFees + miningReward;
         pblocktemplate->vTxFees[0] = -nFees;
 
         CValidationState state;

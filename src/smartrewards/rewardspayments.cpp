@@ -20,7 +20,7 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
     result = SmartRewardPayments::Valid;
 
     // If we are not yet at the 1.2 payout block time.
-    if( ( MainNet() && blockTime < HF_V1_2_LEGACY_SMARTREWARD_END_TIME ) ||
+    if( ( MainNet() && nHeight < HF_V1_2_START_HEIGHT ) ||
         ( TestNet() && nHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ) ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
@@ -44,13 +44,14 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
     {
         // If the requested height is lower then the rounds end step forward to the
         // next round.
-        if( nHeight < round.endBlockHeight + nRewardPayoutStartDelay ) continue;
+        int64_t delay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+        if( nHeight < ( round.endBlockHeight + nRewardPayoutStartDelay ) ) continue;
 
         int rewardBlocks = round.eligibleEntries / nRewardPayoutsPerBlock;
         // If we dont match nRewardPayoutsPerBlock add one more block for the remaining payments.
         if(round.eligibleEntries % nRewardPayoutsPerBlock ) rewardBlocks += 1;
 
-        int lastRoundBlock = round.endBlockHeight + nRewardPayoutStartDelay + ( rewardBlocks * nRewardPayoutBlockInterval );
+        int lastRoundBlock = round.endBlockHeight + delay + ( rewardBlocks * nRewardPayoutBlockInterval );
 
         // If we are out of the payout range of this round.
         if( nHeight > lastRoundBlock ){
@@ -122,7 +123,7 @@ void SmartRewardPayments::FillPayments(CMutableTransaction &coinbaseTx, int nHei
 }
 
 
-SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, int nHeight)
+SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, int nHeight, CAmount smartReward)
 {
     SmartRewardPayments::Result result;
 

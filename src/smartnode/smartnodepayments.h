@@ -23,8 +23,8 @@ static const int MNPAYMENTS_SIGNATURES_TOTAL            = 10;
 //  vote for smartnode and be elected as a payment winner
 // V1 - Last protocol version before update
 // V2 - Newest protocol version
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1 = 90024;
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2 = 90025;
+static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1 = 90025;
+static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2 = 90026;
 
 extern CCriticalSection cs_vecPayees;
 extern CCriticalSection cs_mapSmartnodeBlocks;
@@ -36,7 +36,7 @@ namespace SmartNodePayments{
 
 /// TODO: all 4 functions do not belong here really, they should be refactored/moved somewhere (validation.cpp ?)
 bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockReward, std::string &strErrorRet);
-bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward);
+bool IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward, CAmount& nodeReward);
 void FillPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartNodes);
 std::string GetRequiredPaymentsString(int nBlockHeight);
 
@@ -104,7 +104,7 @@ public:
     bool GetBestPayee(CScript& payeeRet);
     bool HasPayeeWithVotes(const CScript& payeeIn, int nVotesReq);
 
-    bool IsTransactionValid(const CTransaction& txNew);
+    bool IsTransactionValid(const CTransaction& txNew, CAmount& nodeReward);
 
     std::string GetRequiredPaymentsString();
 };
@@ -207,7 +207,7 @@ public:
     void CheckAndRemove();
 
     bool GetBlockPayee(int nBlockHeight, CScript& payee);
-    bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
+    bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CAmount& nodeReward);
     bool IsScheduled(CSmartnode& mn, int nNotBlockHeight);
 
     bool CanVote(COutPoint outSmartnode, int nBlockHeight);

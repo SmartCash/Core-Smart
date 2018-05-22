@@ -30,7 +30,7 @@ private:
 
     static const int LAST_PAID_SCAN_BLOCKS      = 100;
 
-    static const int MIN_POSE_PROTO_VERSION     = 90024;
+    static const int MIN_POSE_PROTO_VERSION     = 90025;
     static const int MAX_POSE_CONNECTIONS       = 10;
     static const int MAX_POSE_RANK              = 10;
     static const int MAX_POSE_BLOCKS            = 10;
@@ -40,7 +40,6 @@ private:
     static const int MNB_RECOVERY_MAX_ASK_ENTRIES   = 10;
     static const int MNB_RECOVERY_WAIT_SECONDS      = 60;
     static const int MNB_RECOVERY_RETRY_SECONDS     = 3 * 60 * 60;
-
 
     // critical section to protect the inner data structures
     mutable CCriticalSection cs;
