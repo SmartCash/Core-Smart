@@ -98,9 +98,9 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
 
     }else{
 
-        if ( nHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ) {
+        if ( nHeight <= TESTNET_V1_2_PAYMENTS_HEIGHT ) {
             return hiveSplitDisabled;
-        }else if ( nHeight >= TESTNET_V1_2_PAYMENTS_HEIGHT && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
+        }else if ( nHeight > TESTNET_V1_2_PAYMENTS_HEIGHT && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
             return hiveSplit_1_2;
         }else if(nHeight == 0 || nHeight <= HF_CHAIN_REWARD_END_HEIGHT){
             return hiveSplitDisabled;
@@ -159,7 +159,7 @@ bool CSmartHiveClassicSplit::Valididate(const std::vector<CTxOut> &outputs, int 
 
             // We found a valid hive payment here!
             ++found;
-            break;
+            break; // Break the inner loop.
     }}
 
     return hives.size() == found;
@@ -211,8 +211,8 @@ bool CSmartHiveRotationSplit::Valididate(const std::vector<CTxOut> &outputs, int
 
     CSmartHiveRotation * ptrHive;
 
-    BOOST_FOREACH(const CTxOut& output, outputs){
     BOOST_FOREACH(CSmartHiveRewardBase *hive, hives){
+    BOOST_FOREACH(const CTxOut& output, outputs){
 
         ptrHive = static_cast<CSmartHiveRotation*> (hive);
 
@@ -233,7 +233,7 @@ CAmount CSmartHiveBatchSplit::GetBatchReward(int nHeight) const
 {
     CAmount reward = 0;
     int block = nHeight - trigger - 1;
-    while (++block <= nHeight) {
+    while (++block < nHeight) {
         reward += GetBlockValue(block, 0, INT_MAX);
     }
 
@@ -243,7 +243,7 @@ CAmount CSmartHiveBatchSplit::GetBatchReward(int nHeight) const
 void CSmartHiveBatchSplit::FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut> &voutSmartHives) const
 {
     // Only add the payouts each "trigger" blocks
-    if( (nHeight & trigger) ) return;
+    if( (nHeight % trigger) ) return;
 
     CAmount batchReward = GetBatchReward(nHeight);
 
@@ -259,13 +259,16 @@ void CSmartHiveBatchSplit::FillPayment(std::vector<CTxOut> &outputs, int nHeight
 
 bool CSmartHiveBatchSplit::Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const
 {
+    hiveReward = 0;
+
+    // Only validate the payouts each "trigger" blocks
+    if( (nHeight % trigger) ) return true;
+
     size_t found = 0;
     CAmount batchReward = GetBatchReward(nHeight);
 
-    hiveReward = 0;
-
-    BOOST_FOREACH(const CTxOut& output, outputs){
     BOOST_FOREACH(CSmartHiveRewardBase *hive, hives){
+    BOOST_FOREACH(const CTxOut& output, outputs){
 
             if( hive->GetScript() != output.scriptPubKey ) continue;
             if( abs( output.nValue - ( batchReward * hive->GetRatio() ) ) >= 2) continue;
@@ -274,7 +277,7 @@ bool CSmartHiveBatchSplit::Valididate(const std::vector<CTxOut> &outputs, int nH
 
             // We found a valid hive payment here!
             ++found;
-            break;
+            break; // Break the inner loop.
     }}
 
     return hives.size() == found;

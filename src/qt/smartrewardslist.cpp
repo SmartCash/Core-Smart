@@ -165,8 +165,17 @@ void SmartrewardsList::copyReward()
 
 void SmartrewardsList::updateUI()
 {
+    static int64_t lastUpdate = 0;
     // If the wallet model hasn't been set yet we cant update the UI.
     if(!model) {
+        return;
+    }
+
+    int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
+
+    if( !lastUpdate || currentTime - lastUpdate  > 10 ){
+        lastUpdate = currentTime;
+    }else{
         return;
     }
 
@@ -185,7 +194,6 @@ void SmartrewardsList::updateUI()
 
         ui->roundLabel->setText(QString::number(current.number));
 
-        uint64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
         QDateTime roundEnd;
         roundEnd.setTime_t(current.endBlockTime);
         QString roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
