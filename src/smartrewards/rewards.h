@@ -30,7 +30,7 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
-const int64_t nFirstTxTimestamp_Testnet = 1525922959;
+const int64_t nFirstTxTimestamp_Testnet = 1526523238;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
 const int64_t nFirstRoundStartBlock_Testnet = 20001;
