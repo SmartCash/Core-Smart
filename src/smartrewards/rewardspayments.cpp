@@ -41,7 +41,7 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
         return CSmartRewardSnapshotList();
     }
 
-    BOOST_FOREACH( const CSmartRewardRound &round, rounds)
+    BOOST_FOREACH( CSmartRewardRound &round, rounds)
     {
         // If the requested height is lower then the rounds end step forward to the
         // next round.
@@ -56,14 +56,13 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
         // If we are out of the payout range of this round.
         if( nHeight > lastRoundBlock ){
-            result = SmartRewardPayments::NoRewardBlock;
-            return CSmartRewardSnapshotList();
+            continue;
         }
 
         if( !(( lastRoundBlock - nHeight ) % nRewardPayoutBlockInterval) ){
             // We have a reward block! Now try to create the payments vector.
 
-            if( prewards->GetRewardPayouts( round.number, roundPayments ) ){
+            if( !prewards->GetRewardPayouts( round.number, roundPayments ) ){
                 result = SmartRewardPayments::DatabaseError;
                 return CSmartRewardSnapshotList();
             }
@@ -77,7 +76,8 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
             // If the to be paid addresses are no multile of nRewardPayoutsPerBlock
             // the last payout block has less payees than the others.
-            if( rewardBlock == rewardBlocks && round.eligibleEntries % nRewardPayoutsPerBlock ){
+            if( ( rewardBlock == rewardBlocks && round.eligibleEntries % nRewardPayoutsPerBlock ) ||
+                ( rewardBlock == 0 && round.eligibleEntries < nRewardPayoutsPerBlock ) ){
                 // Use the remainders here..
                 blockPayees = round.eligibleEntries % nRewardPayoutsPerBlock;
             }

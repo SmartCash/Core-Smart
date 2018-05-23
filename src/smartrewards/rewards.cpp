@@ -588,7 +588,7 @@ void ThreadSmartRewards()
 
             // If just hit the next round threshold
             if( ( MainNet() && round.number < nRewardsFirstAutomatedRound && lastIndex->GetBlockTime() > round.endBlockTime ) ||
-                  lastIndex->nHeight >= round.endBlockHeight ){
+                ( ( TestNet() || round.number >= nRewardsFirstAutomatedRound ) && lastIndex->nHeight >= round.endBlockHeight ) ){
 
                 snapshot = true;
 
