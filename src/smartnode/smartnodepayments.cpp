@@ -138,6 +138,8 @@ bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockH
         return true;
     }
 
+    nodeReward = GetSmartnodePayment(nBlockHeight, blockReward);
+
     if(!smartnodeSync.IsSynced()) {
         //there is no budget data to use to check anything, let's just accept the longest chain
         if(fDebug) LogPrintf("IsBlockPayeeValid -- WARNING: Client not synced, skipping block payee checks\n");

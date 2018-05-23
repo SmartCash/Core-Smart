@@ -16,9 +16,9 @@ static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
 const int64_t nCacheBlocks = 50;
 // Minimum distance of the last processed block compared to the current chain
 // height to assume the rewards are synced.
-const int64_t nRewardsSyncDistance = 30;
+const int64_t nRewardsSyncDistance = 15;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
-const int64_t nRewardsUISyncUpdateRate = 100;
+const int64_t nRewardsUISyncUpdateRate = 500;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int64_t nRewardsBlocksPerRound = 47000;
 const int64_t nRewardsFirstAutomatedRound = 12;

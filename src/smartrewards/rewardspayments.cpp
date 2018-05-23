@@ -35,6 +35,7 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
     CSmartRewardRoundList rounds;
     CSmartRewardSnapshotList roundPayments;
     // If there are no rounds yet or the database has an issue.
+    //TBD - Use only the last round here from RAM
     if( !prewards->GetRewardRounds(rounds) ){
         result = SmartRewardPayments::DatabaseError;
         return CSmartRewardSnapshotList();
@@ -45,7 +46,7 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
         // If the requested height is lower then the rounds end step forward to the
         // next round.
         int64_t delay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
-        if( nHeight < ( round.endBlockHeight + nRewardPayoutStartDelay ) ) continue;
+        if( nHeight < ( round.endBlockHeight + delay ) ) continue;
 
         int rewardBlocks = round.eligibleEntries / nRewardPayoutsPerBlock;
         // If we dont match nRewardPayoutsPerBlock add one more block for the remaining payments.
