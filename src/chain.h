@@ -14,6 +14,8 @@
 
 #include <vector>
 
+static const int64_t MAX_FUTURE_BLOCK_TIME = 15 * 60;
+
 class CBlockFileInfo
 {
 public:
