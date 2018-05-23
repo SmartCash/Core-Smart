@@ -233,7 +233,7 @@ CAmount CSmartHiveBatchSplit::GetBatchReward(int nHeight) const
 {
     CAmount reward = 0;
     int block = nHeight - trigger - 1;
-    while (++block <= nHeight) {
+    while (++block < nHeight) {
         reward += GetBlockValue(block, 0, INT_MAX);
     }
 
