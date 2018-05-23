@@ -124,9 +124,11 @@ void SmartRewardPayments::FillPayments(CMutableTransaction &coinbaseTx, int nHei
 }
 
 
-SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, int nHeight, CAmount smartReward)
+SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, int nHeight, CAmount &smartReward)
 {
     SmartRewardPayments::Result result;
+
+    smartReward = 0;
 
     const CTransaction &txCoinbase = block.vtx[0];
 
@@ -150,6 +152,8 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     result = SmartRewardPayments::InvalidRewardList;
                     // We could return here..But lets print which payments else are missing.
                     // return result;
+                }else{
+                    smartReward += payout.reward;
                 }
             }
 
