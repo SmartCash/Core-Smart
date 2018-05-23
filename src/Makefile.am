@@ -137,6 +137,9 @@ BITCOIN_CORE_H = \
   script/sign.h \
   script/standard.h \
   script/ismine.h \
+  smarthive/hive.h \
+  smarthive/hivepayments.h \
+  smartmining/miningpayments.h \
   smartnode/activesmartnode.h \
   smartnode/instantx.h \
   smartnode/netfulfilledman.h \
@@ -145,11 +148,9 @@ BITCOIN_CORE_H = \
   smartnode/smartnodeman.h \
   smartnode/smartnodepayments.h \
   smartnode/smartnodesync.h \
-  smartrewards/rewardsdb.h \
-  smartrewards/rewardspayments.h \
   smartrewards/rewards.h \
-  smarthive/hivepayments.h \
-  smarthive/hive.h \
+  smartrewards/rewardsdb.h \
+  smartrewards/rewardspayments.h \  
   spentindex.h \
   streams.h \
   support/allocators/secure.h \
@@ -224,6 +225,9 @@ libbitcoin_server_a_SOURCES = \
   script/sigcache.cpp \
   script/ismine.cpp \
   sendalert.cpp \
+  smarthive/hive.cpp \
+  smarthive/hivepayments.cpp \
+  smartmining/miningpayments.cpp \
   smartnode/netfulfilledman.cpp \
   smartnode/activesmartnode.cpp \
   smartnode/instantx.cpp \
@@ -232,13 +236,10 @@ libbitcoin_server_a_SOURCES = \
   smartnode/smartnodeman.cpp \
   smartnode/smartnodepayments.cpp \
   smartnode/smartnodesync.cpp \
+  smartnode/spork.cpp \
+  smartrewards/rewards.cpp \
   smartrewards/rewardsdb.cpp \
   smartrewards/rewardspayments.cpp \
-  smartrewards/rewards.cpp \
-  smarthive/hivepayments.cpp \
-  smartmining/miningpayments.cpp \
-  smarthive/hive.cpp \
-  smartnode/spork.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \
