@@ -29,7 +29,7 @@ static const int HF_V1_2_START_HEIGHT = 525000; // 1 here to not trigger the new
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 
 /** Testnets 1.2 payment start block*/
-static const int TESTNET_V1_2_PAYMENTS_HEIGHT = 25000;
+static const int TESTNET_V1_2_PAYMENTS_HEIGHT = 1000;
 
 inline unsigned int MaxBlockSigOps()
 {
