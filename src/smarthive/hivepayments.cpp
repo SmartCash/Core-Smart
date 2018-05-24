@@ -81,7 +81,7 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
 
     if( MainNet() ){
 
-        if ( nHeight < HF_V1_0_START_HEIGHT ) {
+        if ( nHeight > 1 && nHeight < HF_V1_0_START_HEIGHT ) {
             return hiveSplitInitial;
         }else if ( nHeight >= HF_V1_0_START_HEIGHT && nHeight < HF_V1_1_SMARTNODE_HEIGHT ) {
             // We have a lot blocks with missing hive payments in this range. Just accept them.
@@ -92,7 +92,7 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
             return hiveSplit_1_1;
         }else if ( (nHeight >= HF_V1_2_START_HEIGHT) && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
             return hiveSplit_1_2;
-        }else if(nHeight == 0 || nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
+        }else if(nHeight <= 1 || nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
             return hiveSplitDisabled;
         }
 
@@ -113,8 +113,6 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
 
 SmartHivePayments::Result SmartHivePayments::Validate(const CTransaction& txCoinbase, int nHeight, int64_t blockTime, CAmount& hiveReward)
 {
-    // No validtion required for the first block or after the change to fee only.
-    if ( nHeight <= 1 || nHeight > HF_CHAIN_REWARD_END_HEIGHT) return SmartHivePayments::Valid;
 
     CAmount blockReward = GetBlockValue(nHeight, 0, blockTime);
 
