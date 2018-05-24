@@ -8,15 +8,18 @@
 #include "sync.h"
 
 #include <smartrewards/rewardsdb.h>
+#include "consensus/consensus.h"
 
 using namespace std;
 
 static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
 // Cache n blocks before the sync (leveldb batch write).
 const int64_t nCacheBlocks = 50;
+// Minimum number of confirmations to process a block for the reward database.
+const int64_t nRewardsConfirmations = 15;
 // Minimum distance of the last processed block compared to the current chain
 // height to assume the rewards are synced.
-const int64_t nRewardsSyncDistance = 15;
+const int64_t nRewardsSyncDistance = 20;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int64_t nRewardsUISyncUpdateRate = 500;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
@@ -30,18 +33,18 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
-const int64_t nFirstTxTimestamp_Testnet = 1526523238;
+const int64_t nRewardsBlocksPerRound_Testnet = 400;
+const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
-const int64_t nFirstRoundStartBlock_Testnet = 20001;
-const int64_t nFirstRoundEndBlock_Testnet = 20200;
-// Number of blocks we update the SmartRewards UI when we are in the sync process
-const int64_t nRewardsBlocksPerRound_Testnet = 200;
+const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_PAYMENTS_HEIGHT + 1;
+const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + nRewardsBlocksPerRound_Testnet;
 
-void ThreadSmartRewards();
+
+void ThreadSmartRewards(bool fRecreate = false);
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
-extern CCriticalSection csDb;
+extern CCriticalSection cs_rewardsdb;
 
 struct CSmartRewardsUpdateResult
 {
@@ -74,6 +77,9 @@ class CSmartRewards
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb) {}
+    ~CSmartRewards() { delete pdb; }
+    void Lock();
+    bool IsLocked();
 
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
@@ -85,6 +91,7 @@ public:
     bool SyncPrepared();
     bool IsSynced();
     double GetProgress();
+    int GetLastHeight();
 
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync);
     bool UpdateCurrentRound(const CSmartRewardRound &round);
@@ -106,5 +113,6 @@ public:
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
 extern CSmartRewards *prewards;
+extern bool fSmartRewardsRunning;
 
 #endif // REWARDS_H

@@ -21,7 +21,7 @@ static const int64_t nRewardPayoutBlockInterval = 5;
 static const int64_t nRewardPayoutsPerBlock = 300;
 
 //! Number of blocks to wait until we start to pay the rewards after a cycles end.
-static const int64_t nRewardPayoutStartDelay_Testnet = 20;
+static const int64_t nRewardPayoutStartDelay_Testnet = 100;
 
 
 namespace SmartRewardPayments{

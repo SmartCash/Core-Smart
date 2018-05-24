@@ -29,8 +29,11 @@ static const char DB_BLOCK_LAST = 'b';
 static const char DB_TX_HASH = 't';
 
 static const char DB_VERSION = 'V';
+static const char DB_LOCK = 'L';
 
 CSmartRewardsDB::CSmartRewardsDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "rewards", nCacheSize, fMemory, fWipe) {
+
+    locked = false;
 
     if( !Exists(DB_VERSION) ){
         Write(DB_VERSION, REWARDS_DB_VERSION);
@@ -38,7 +41,7 @@ CSmartRewardsDB::CSmartRewardsDB(size_t nCacheSize, bool fMemory, bool fWipe) : 
 
 }
 
-bool CSmartRewardsDB::Verify()
+bool CSmartRewardsDB::Verify(int& lastBlockHeight)
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
     CSmartRewardBlock last;
@@ -58,6 +61,8 @@ bool CSmartRewardsDB::Verify()
         LogPrintf("CSmartRewards::Verify() No block here yet\n");
         return true;
     }
+
+    lastBlockHeight = last.nHeight;
 
     LogPrintf("CSmartRewards::Verify() Verify blocks 1 - %d\n", last.nHeight);
 
@@ -90,6 +95,26 @@ bool CSmartRewardsDB::Verify()
     }
 
     return true;
+}
+
+void CSmartRewardsDB::Lock()
+{
+    locked = true;
+    Write(DB_LOCK, 1, true);
+    Sync();
+}
+
+void CSmartRewardsDB::Unlock()
+{
+    if(locked){
+        Erase(DB_LOCK,true);
+        Sync();
+    }
+}
+
+bool CSmartRewardsDB::IsLocked()
+{
+    return Exists(DB_LOCK);
 }
 
 // --- TBD ---
@@ -198,6 +223,8 @@ bool CSmartRewardsDB::SyncBlocks(const std::vector<CSmartRewardBlock> &blocks, c
 {
 
     CDBBatch batch(*this);
+
+    if(!blocks.size()) return true;
 
     BOOST_FOREACH(const CSmartRewardEntry &e, remove) {
         batch.Erase(make_pair(DB_REWARD_ENTRY,e.id));

@@ -99,10 +99,10 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
     }else{
 
         if ( nHeight <= TESTNET_V1_2_PAYMENTS_HEIGHT ) {
-            return hiveSplitDisabled;
+            return hiveSplit_1_1;
         }else if ( nHeight > TESTNET_V1_2_PAYMENTS_HEIGHT && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
             return hiveSplit_1_2;
-        }else if(nHeight == 0 || nHeight <= HF_CHAIN_REWARD_END_HEIGHT){
+        }else if(nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
             return hiveSplitDisabled;
         }
 
