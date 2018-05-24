@@ -1617,28 +1617,33 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
 
+    uiInterface.InitMessage(_("Verifying SmartRewards..."));
+
     CSmartRewardsDB * prewardsdb = nullptr;
     bool fResetRewards = GetBoolArg("-reset-rewards", false);
     fLoaded = false;
-    while (!fLoaded && !fRequestShutdown) {
+
+    while (!fLoaded) {
 
         std::string strLoadError;
-
-        uiInterface.InitMessage(_("Verifying SmartRewards..."));
 
         nStart = GetTimeMillis();
         do {
             try {
 
                 delete prewards;
-                delete prewardsdb;
 
-                CSmartRewardsDB * prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fResetRewards);
+                prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fResetRewards);
+
                 prewards = new CSmartRewards(prewardsdb);
 
-                if( !(fLoaded = prewards->Verify())) throw std::runtime_error(_("Error verfying rewards database"));
+                if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database might be corrupted."));
+
+                if( !(fLoaded = prewards->Verify())) throw std::runtime_error(_("Failed to verfy SmartRewards database"));
 
                 if (fRequestShutdown) break;
+
+                prewards->Lock();
 
             } catch (const std::runtime_error &e) {
                 if (fDebug) LogPrintf("%s\n", e.what());
@@ -1658,25 +1663,14 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
         } while(false);
 
-        if (!fLoaded && !fRequestShutdown) {
-            // first suggest a reset
-            if (!fResetRewards) {
-                bool fRet = uiInterface.ThreadSafeQuestion(
-                    strLoadError + ".\n\n" + _("Do you want to rebuild the rewards database now?"),
-                    strLoadError + ".\nPlease restart with -reset-rewards.",
-                    "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
-                if (fRet) {
-                    fResetRewards = true;
-                    fRequestShutdown = false;
-                } else {
-                    LogPrintf("Aborted rewards database rebuild. Exiting.\n");
-                    return false;
-                }
-            } else {
-                return InitError(strLoadError);
-            }
+        if( !fLoaded ){
+            InitWarning(strLoadError + _("\n\nRecreating it now..."));
+            fResetRewards = true;
         }
+
     }
+
+    ThreadSmartRewards(true);
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
@@ -2040,9 +2034,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
 
-    // ********************************************************* Step 11d: start smartcash-privatesend thread
+    // ********************************************************* Step 11e: start smartrewards thread
 
-    threadGroup.create_thread(boost::bind(&ThreadSmartRewards));
+    threadGroup.create_thread(boost::bind(&ThreadSmartRewards, false));
 
     // ********************************************************* Step 12: start node
 

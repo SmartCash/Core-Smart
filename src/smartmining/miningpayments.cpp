@@ -49,7 +49,7 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
     }
 
     if( ( MainNet() && pindex->nHeight >= HF_V1_2_START_VALIDATION_HEIGHT && pindex->nHeight <= HF_CHAIN_REWARD_END_HEIGHT ) ||
-        ( TestNet() && pindex->nHeight >= TESTNET_V1_2_PAYMENTS_HEIGHT && pindex->nHeight <= HF_CHAIN_REWARD_END_HEIGHT)){
+        ( TestNet() )){
         if( coinbase > (nFees + nodeReward + hiveReward + smartReward + miningReward) )
             return state.DoS(100, false, REJECT_INVALID,
                          "CTransaction::CheckTransaction() : Coinbase value too high");

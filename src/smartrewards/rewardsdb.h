@@ -243,12 +243,19 @@ class CSmartRewardsDB : public CDBWrapper
 {
 public:
     CSmartRewardsDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
+    ~CSmartRewardsDB() { Unlock(); }
 private:
     CSmartRewardsDB(const CSmartRewardsDB&);
     void operator=(const CSmartRewardsDB&);
+
+    bool locked;
+    void Unlock();
 public:
 
-    bool Verify();
+    bool Verify(int& lastBlockHeight);
+
+    void Lock();
+    bool IsLocked();
 
     bool ResetToRound(const int16_t number, const CSmartRewardRound &round, const CSmartRewardEntryList &entries);
 

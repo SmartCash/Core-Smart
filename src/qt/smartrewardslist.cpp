@@ -198,7 +198,7 @@ void SmartrewardsList::updateUI()
         roundEnd.setTime_t(current.endBlockTime);
         QString roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
 
-        if( (uint64_t)current.endBlockTime < currentTime ) {
+        if( current.endBlockTime < currentTime ) {
             roundEndText += " ( Now )";
         }else{
             uint64_t minutesLeft = ( (uint64_t)current.endBlockTime - currentTime ) / 60;

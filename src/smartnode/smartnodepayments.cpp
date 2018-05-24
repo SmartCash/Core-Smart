@@ -134,7 +134,7 @@ bool SmartNodePayments::IsBlockValueValid(const CBlock& block, int nBlockHeight,
 bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward, CAmount& nodeReward)
 {
 
-    if( nBlockHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ){
+    if( TestNet() && nBlockHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ){
         return true;
     }
 
@@ -162,6 +162,10 @@ bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockH
 
 void SmartNodePayments::FillPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartNodes)
 {
+    if( TestNet() && nBlockHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ){
+        return;
+    }
+
     mnpayments.FillBlockPayee(txNew, nBlockHeight, blockReward, voutSmartNodes);
 }
 

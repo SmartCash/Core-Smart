@@ -21,14 +21,8 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
     // If we are not yet at the 1.2 payout block time.
     if( ( MainNet() && nHeight < HF_V1_2_START_HEIGHT ) ||
-        ( TestNet() && nHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ) ){
+        ( TestNet() && nHeight < nFirstRoundEndBlock_Testnet ) ){
         result = SmartRewardPayments::NoRewardBlock;
-        return CSmartRewardSnapshotList();
-    }
-
-    // If the rewardlist is not synced yet we have no chance to create the payments.
-    if( !prewards->IsSynced() ){
-        result = SmartRewardPayments::NotSynced;
         return CSmartRewardSnapshotList();
     }
 
