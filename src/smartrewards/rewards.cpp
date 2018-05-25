@@ -479,7 +479,10 @@ void ThreadSmartRewards(bool fRecreate)
             }
 
             TRY_LOCK(cs_main, locked);
-            if(!locked) continue;
+            if(!locked){
+                MilliSleep(100);
+                continue;
+            }
 
             CBlockIndex* checkPoint = chainActive.Tip();
 
