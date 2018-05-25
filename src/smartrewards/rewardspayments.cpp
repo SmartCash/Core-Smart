@@ -78,8 +78,8 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
             // As start index we want to use the current payout block index + payouts per block as offset.
             size_t startIndex = rewardBlock * nRewardPayoutsPerBlock;
-            // As ennd index we use the startIndex + number of payees for this round. -1 since we start with 0.
-            size_t endIndex = startIndex + blockPayees - 1;
+            // As ennd index we use the startIndex + number of payees for this round.
+            size_t endIndex = startIndex + blockPayees;
             // If for any reason the calculations end up in an overflow of the vector return an error.
             if( startIndex + endIndex > roundPayments.size() || endIndex > roundPayments.size() ){
                 // Should not happen!
