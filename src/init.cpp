@@ -1263,8 +1263,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         nWalletBackups = std::max(0, std::min(10, nWalletBackups));
 
         if(!AutoBackupWallet(NULL, strWalletFile, strWarning, strError)) {
-            if (!strWarning.empty())
-                InitWarning(strWarning);
             if (!strError.empty())
                 return InitError(strError);
         }
@@ -1282,7 +1280,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             InitWarning(strWarning);
         if (!strError.empty())
             return InitError(strError);
-
 
         // Initialize KeePass Integration
         //keePassInt.init();
@@ -1788,11 +1785,11 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             std::string strBackupWarning;
             std::string strBackupError;
             if(!AutoBackupWallet(pwalletMain, "", strBackupWarning, strBackupError)) {
-                if (!strBackupWarning.empty())
-                    InitWarning(strBackupWarning);
                 if (!strBackupError.empty())
                     return InitError(strBackupError);
             }
+
+            InitWarning(_("Make sure to encrypt your wallet and delete all non-encrypted backups after you verified that wallet works!"));
 
         }
         else if (mapArgs.count("-usehd")) {
@@ -1801,11 +1798,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 return InitError(strprintf(_("Error loading %s: You can't disable HD on a already existing HD wallet"), strWalletFile));
             if (!pwalletMain->IsHDEnabled() && useHD)
                 return InitError(strprintf(_("Error loading %s: You can't enable HD on a already existing non-HD wallet"), strWalletFile));
-        }
-
-        // Warn user every time he starts non-encrypted HD wallet
-        if (!GetBoolArg("-smartnode", false) && GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET) && !pwalletMain->IsLocked()) {
-            InitWarning(_("Make sure to encrypt your wallet and delete all non-encrypted backups after you verified that wallet works!"));
         }
 
         LogPrintf("%s", strErrors.str());
