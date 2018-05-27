@@ -18,7 +18,7 @@ static const int64_t nRewardPayoutStartDelay = 200;
 //! Number of blocks to wait between reward payout blocks
 static const int64_t nRewardPayoutBlockInterval = 5;
 //! Number of payouts per rewardblock
-static const int64_t nRewardPayoutsPerBlock = 300;
+static const int64_t nRewardPayoutsPerBlock = 500;
 
 //! Number of blocks to wait until we start to pay the rewards after a cycles end.
 static const int64_t nRewardPayoutStartDelay_Testnet = 100;

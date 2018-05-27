@@ -1619,6 +1619,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     uiInterface.InitMessage(_("Verifying SmartRewards..."));
 
+    CBlockIndex *pLastIndex = chainActive.Tip();
     CSmartRewardsDB * prewardsdb = nullptr;
     bool fResetRewards = GetBoolArg("-reset-rewards", false);
     fLoaded = false;
@@ -1640,6 +1641,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database might be corrupted."));
 
                 if( !(fLoaded = prewards->Verify())) throw std::runtime_error(_("Failed to verfy SmartRewards database"));
+
+                if( !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
 
                 if (fRequestShutdown) break;
 
@@ -1670,7 +1673,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     }
 
-    ThreadSmartRewards(true);
+    prewards->CatchUp();
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
@@ -2033,10 +2036,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 11d: start smartcash-privatesend thread
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
-
-    // ********************************************************* Step 11e: start smartrewards thread
-
-    threadGroup.create_thread(boost::bind(&ThreadSmartRewards, false));
 
     // ********************************************************* Step 12: start node
 

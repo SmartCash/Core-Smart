@@ -26,37 +26,38 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
         return CSmartRewardSnapshotList();
     }
 
-    CSmartRewardRoundList rounds;
+    CSmartRewardRound round;
     CSmartRewardSnapshotList roundPayments;
+
+    {
+        LOCK(cs_rewardrounds);
+        round = prewards->GetLastRound();
+    }
+
     // If there are no rounds yet or the database has an issue.
-    //TBD - Use only the last round here from RAM
-    if( !prewards->GetRewardRounds(rounds) ){
-        result = SmartRewardPayments::DatabaseError;
+    if( !round.number ){
+        result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
     }
 
-    BOOST_FOREACH( CSmartRewardRound &round, rounds)
-    {
-        // If the requested height is lower then the rounds end step forward to the
-        // next round.
-        int64_t delay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
-        if( nHeight < ( round.endBlockHeight + delay ) ) continue;
+    // If the requested height is lower then the rounds end step forward to the
+    // next round.
+    int64_t delay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
 
-        int rewardBlocks = round.eligibleEntries / nRewardPayoutsPerBlock;
+    if( nHeight >= ( round.endBlockHeight + delay ) ){
+
+        int eligibleEntries = round.eligibleEntries - round.disqualifiedEntries;
+        int rewardBlocks = eligibleEntries / nRewardPayoutsPerBlock;
         // If we dont match nRewardPayoutsPerBlock add one more block for the remaining payments.
-        if(round.eligibleEntries % nRewardPayoutsPerBlock ) rewardBlocks += 1;
+        if(eligibleEntries > nRewardPayoutsPerBlock && eligibleEntries % nRewardPayoutsPerBlock ) rewardBlocks += 1;
 
         int lastRoundBlock = round.endBlockHeight + delay + ( rewardBlocks * nRewardPayoutBlockInterval );
 
-        // If we are out of the payout range of this round.
-        if( nHeight > lastRoundBlock ){
-            continue;
-        }
-
-        if( !(( lastRoundBlock - nHeight ) % nRewardPayoutBlockInterval) ){
+        if( nHeight <= lastRoundBlock && !(( lastRoundBlock - nHeight ) % nRewardPayoutBlockInterval) ){
             // We have a reward block! Now try to create the payments vector.
 
-            if( !prewards->GetRewardPayouts( round.number, roundPayments ) ){
+            if( !prewards->GetRewardPayouts( round.number, roundPayments ) ||
+                roundPayments.size() != eligibleEntries ){
                 result = SmartRewardPayments::DatabaseError;
                 return CSmartRewardSnapshotList();
             }
@@ -70,10 +71,10 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
             // If the to be paid addresses are no multile of nRewardPayoutsPerBlock
             // the last payout block has less payees than the others.
-            if( ( rewardBlock == rewardBlocks && round.eligibleEntries % nRewardPayoutsPerBlock ) ||
-                ( rewardBlock == 0 && round.eligibleEntries < nRewardPayoutsPerBlock ) ){
+            if( ( rewardBlock == rewardBlocks - 1 && eligibleEntries % nRewardPayoutsPerBlock ) ||
+                ( rewardBlock == 0 && eligibleEntries < nRewardPayoutsPerBlock ) ){
                 // Use the remainders here..
-                blockPayees = round.eligibleEntries % nRewardPayoutsPerBlock;
+                blockPayees = eligibleEntries % nRewardPayoutsPerBlock;
             }
 
             // As start index we want to use the current payout block index + payouts per block as offset.
@@ -81,7 +82,7 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
             // As ennd index we use the startIndex + number of payees for this round.
             size_t endIndex = startIndex + blockPayees;
             // If for any reason the calculations end up in an overflow of the vector return an error.
-            if( startIndex + endIndex > roundPayments.size() || endIndex > roundPayments.size() ){
+            if( endIndex > roundPayments.size() ){
                 // Should not happen!
                 result = SmartRewardPayments::DatabaseError;
                 return CSmartRewardSnapshotList();
@@ -106,7 +107,7 @@ void SmartRewardPayments::FillPayments(CMutableTransaction &coinbaseTx, int nHei
 
     // only create rewardblocks if a rewardblock is actually required at the current height.
     if( result == SmartRewardPayments::Valid && rewards.size() ) {
-            LogPrint("rewardpayments", "FillRewardPayments -- triggered rewardblock creation at height %d with %d payees\n", nHeight, rewards.size());
+            LogPrintf("FillRewardPayments -- triggered rewardblock creation at height %d with %d payees\n", nHeight, rewards.size());
 
             BOOST_FOREACH(CSmartRewardSnapshot s, rewards)
             {
@@ -130,7 +131,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
     if( result == SmartRewardPayments::Valid && rewards.size() ) {
 
-            LogPrint("rewardpayments","ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nHeight, rewards.size());
+            LogPrintf("ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nHeight, rewards.size());
 
             BOOST_FOREACH(const CSmartRewardSnapshot &payout, rewards)
             {
@@ -142,7 +143,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
                 // If the payout is not in the list?
                 if( isInOutputs == txCoinbase.vout.end() ){
-                    LogPrint("rewardpayments", "ValidateRewardPayments -- missing payment %s",payout.ToString() );
+                    LogPrintf("ValidateRewardPayments -- missing payment %s",payout.ToString() );
                     result = SmartRewardPayments::InvalidRewardList;
                     // We could return here..But lets print which payments else are missing.
                     // return result;
@@ -151,7 +152,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                 }
             }
 
-    }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::DatabaseError || result == SmartRewardPayments::NoRewardBlock ){
+    }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::NoRewardBlock ){
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
         result = SmartRewardPayments::Valid;

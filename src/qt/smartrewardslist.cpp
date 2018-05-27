@@ -185,9 +185,10 @@ void SmartrewardsList::updateUI()
     if( prewards->IsSynced() ){
 
         CSmartRewardRound current;
-
-        if( !prewards->GetCurrentRound(current) ) return;
-
+        {
+            LOCK(cs_rewardrounds);
+            current = prewards->GetCurrentRound();
+        }
         QString percentText;
         percentText.sprintf("%.2f%%", current.percent * 100);
         ui->percentLabel->setText(percentText);

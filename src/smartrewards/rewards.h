@@ -33,11 +33,11 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
-const int64_t nRewardsBlocksPerRound_Testnet = 400;
+const int64_t nRewardsBlocksPerRound_Testnet = 1000;
 const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
-const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_PAYMENTS_HEIGHT + 1;
+const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_PAYMENTS_HEIGHT;
 const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + nRewardsBlocksPerRound_Testnet;
 
 
@@ -45,6 +45,7 @@ void ThreadSmartRewards(bool fRecreate = false);
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
 extern CCriticalSection cs_rewardsdb;
+extern CCriticalSection cs_rewardrounds;
 
 struct CSmartRewardsUpdateResult
 {
@@ -58,6 +59,10 @@ class CSmartRewards
 {
     CSmartRewardsDB * pdb;
     CSmartRewardRoundList finishedRounds;
+    CSmartRewardRound currentRound;
+    CSmartRewardRound lastRound;
+    CSmartRewardBlock currentBlock;
+    CSmartRewardBlock lastBlock;
 
     int chainHeight;
     int rewardHeight;
@@ -76,15 +81,18 @@ class CSmartRewards
     void AddTransaction(const CSmartRewardTransaction &transaction);
 public:
 
-    CSmartRewards(CSmartRewardsDB *prewardsdb) : pdb(prewardsdb) {}
-    ~CSmartRewards() { delete pdb; }
+    CSmartRewards(CSmartRewardsDB *prewardsdb);
+    ~CSmartRewards() { SyncPrepared(); delete pdb; }
     void Lock();
     bool IsLocked();
 
+    void CatchUp();
+
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
-    bool GetCurrentRound(CSmartRewardRound &round);
-    bool GetRewardRounds(CSmartRewardRoundList &vect);
+    const CSmartRewardRound& GetCurrentRound();
+    const CSmartRewardRound &GetLastRound();
+    const CSmartRewardRoundList& GetRewardRounds();
 
     void UpdateHeights(const int nHeight, const int nRewardHeight);
     bool Verify();
@@ -94,8 +102,9 @@ public:
     int GetLastHeight();
 
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync);
-    bool UpdateCurrentRound(const CSmartRewardRound &round);
     bool UpdateRound(const CSmartRewardRound &round);
+
+    void ProcessBlock(CBlockIndex* pLastIndex,const CChainParams& chainparams);
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     void GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry, bool &added);
