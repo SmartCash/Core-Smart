@@ -471,7 +471,7 @@ QProgressBar::chunk {
          </column>
          <column>
           <property name="text">
-           <string>Expected SmartReward</string>
+           <string>Estimated SmartReward</string>
           </property>
          </column>
         </widget>
@@ -514,7 +514,7 @@ QProgressBar::chunk {
                </font>
               </property>
               <property name="text">
-               <string>Expected SmartRewards</string>
+               <string>Estimated SmartRewards</string>
               </property>
              </widget>
             </item>
