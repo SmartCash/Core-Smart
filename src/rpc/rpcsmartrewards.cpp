@@ -38,11 +38,11 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
                 "\nArguments:\n"
                 "1. \"command\"        (string or set of strings, required) The command to execute\n"
                 "\nAvailable commands:\n"
-                "  current      - Print information about the current SmartReward cycle.\n"
-                "  history      - Print the results of all past SmartReward cycles.\n"
-                "  payouts      - Print a list of all paid rewards in a past cycle.\n"
-                "  snapshot     - Print a list of all addresses with their balances from the end of a past cycle.\n"
-                "  check        - Check a SmartCash address for eligibility in the current rewards cycle.\n"
+                "  current           - Print information about the current SmartReward cycle.\n"
+                "  history           - Print the results of all past SmartReward cycles.\n"
+                "  payouts  :round   - Print a list of all paid rewards in the past cycle :round\n"
+                "  snapshot :round   - Print a list of all addresses with their balances from the end of the past cycle :round.\n"
+                "  check :address    - Check the given :address for eligibility in the current rewards cycle.\n"
                 );
 
     if( !fDebug && !prewards->IsSynced() )
@@ -213,6 +213,8 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if (strCommand == "check")
     {
+        if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, "SMART address required.");
+
         std::string addressString = params[1].get_str();
         CSmartAddress id = CSmartAddress(addressString);
 

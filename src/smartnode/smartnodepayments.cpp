@@ -138,15 +138,18 @@ bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockH
         return true;
     }
 
-    nodeReward = GetSmartnodePayment(nBlockHeight, blockReward);
+    CAmount expectedNodeReward = GetSmartnodePayment(nBlockHeight, blockReward);
+
+    nodeReward = 0;
 
     if(!smartnodeSync.IsSynced()) {
         //there is no budget data to use to check anything, let's just accept the longest chain
         if(fDebug) LogPrintf("IsBlockPayeeValid -- WARNING: Client not synced, skipping block payee checks\n");
+        nodeReward = expectedNodeReward;
         return true;
     }
 
-    if(mnpayments.IsTransactionValid(txNew, nBlockHeight, nodeReward)) {
+    if(mnpayments.IsTransactionValid(txNew, nBlockHeight, expectedNodeReward, nodeReward)) {
         LogPrint("mnpayments", "IsBlockPayeeValid -- Valid smartnode payment at height %d: %s", nBlockHeight, txNew.ToString());
         return true;
     }
@@ -156,6 +159,7 @@ bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockH
         return false;
     }
 
+    nodeReward = expectedNodeReward;
     LogPrintf("IsBlockPayeeValid -- WARNING: Smartnode payment enforcement is disabled, accepting any payee\n");
     return true;
 }
@@ -485,14 +489,14 @@ bool CSmartnodeBlockPayees::HasPayeeWithVotes(const CScript& payeeIn, int nVotes
     return false;
 }
 
-bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmount& nodeReward)
+bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmount expectedNodeReward, CAmount& nodeReward)
 {
     LOCK(cs_vecPayees);
 
     int nMaxSignatures = 0;
     std::string strPayeesPossible = "";
 
-    CAmount nSmartnodePayment = GetSmartnodePayment(nBlockHeight, txNew.GetValueOut());
+    nodeReward = 0;
 
     //require at least MNPAYMENTS_SIGNATURES_REQUIRED signatures
 
@@ -508,7 +512,7 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
         if (payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED) {
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
-                if (payee.GetPayee() == txout.scriptPubKey && nSmartnodePayment == txout.nValue) {
+                if (payee.GetPayee() == txout.scriptPubKey && expectedNodeReward == txout.nValue) {
                     nodeReward = txout.nValue;
                     LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment\n");
                     return true;
@@ -527,7 +531,7 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
         }
     }
 
-    LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- ERROR: Missing required payment, possible payees: '%s', amount: %f SMARTCASH\n", strPayeesPossible, (float)nSmartnodePayment/COIN);
+    LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- ERROR: Missing required payment, possible payees: '%s', amount: %f SMARTCASH\n", strPayeesPossible, (float)expectedNodeReward/COIN);
     return false;
 }
 
@@ -564,12 +568,12 @@ std::string CSmartnodePayments::GetRequiredPaymentsString(int nBlockHeight)
     return "Unknown";
 }
 
-bool CSmartnodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CAmount& nodeReward)
+bool CSmartnodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CAmount expectedNodeReward, CAmount& nodeReward)
 {
     LOCK(cs_mapSmartnodeBlocks);
 
     if(mapSmartnodeBlocks.count(nBlockHeight)){
-        return mapSmartnodeBlocks[nBlockHeight].IsTransactionValid(txNew, nodeReward);
+        return mapSmartnodeBlocks[nBlockHeight].IsTransactionValid(txNew, expectedNodeReward, nodeReward);
     }
 
     return true;

@@ -765,7 +765,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     {
         LOCK(cs_main);
         BlockMap::iterator mi = mapBlockIndex.find(blockHash);
-        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 24) {
+        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 125) {
             LogPrintf("CSmartnodePing::CheckAndUpdate -- Smartnode ping is invalid, block hash is too old: smartnode=%s  blockHash=%s\n", vin.prevout.ToStringShort(), blockHash.ToString());
             // nDos = 1;
             return false;
@@ -776,8 +776,8 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
 
     // LogPrintf("mnping - Found corresponding mn for vin: %s\n", vin.prevout.ToStringShort());
     // update only if there is no known ping for this smartnode or
-    // last ping was more then SMARTNODE_MIN_MNP_SECONDS-60 ago comparing to this one
-    if (pmn->IsPingedWithin(SMARTNODE_MIN_MNP_SECONDS - 60, sigTime)) {
+    // last ping was more then SMARTNODE_MIN_MNP_SECONDS-120 ago comparing to this one
+    if (pmn->IsPingedWithin(SMARTNODE_MIN_MNP_SECONDS - 120, sigTime)) {
         LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping arrived too early, smartnode=%s\n", vin.prevout.ToStringShort());
         //nDos = 1; //disable, this is happening frequently and causing banned peers
         return false;
