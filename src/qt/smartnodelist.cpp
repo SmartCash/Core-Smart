@@ -100,7 +100,7 @@ void SmartnodeList::showContextMenu(const QPoint &point)
     if(item) contextMenu->exec(QCursor::pos());
 }
 
-void SmartnodeList::StartAlias(std::string strAlias)
+void SmartnodeList::StartAlias(bool lockedBefore, std::string strAlias)
 {
     std::string strStatusHtml;
     strStatusHtml += "<center>Alias: " + strAlias;
@@ -125,6 +125,8 @@ void SmartnodeList::StartAlias(std::string strAlias)
     }
     strStatusHtml += "</center>";
 
+    if( lockedBefore ) pwalletMain->Lock();
+
     QMessageBox msg;
     msg.setText(QString::fromStdString(strStatusHtml));
     msg.exec();
@@ -132,7 +134,7 @@ void SmartnodeList::StartAlias(std::string strAlias)
     updateMyNodeList(true);
 }
 
-void SmartnodeList::StartAll(std::string strCommand)
+void SmartnodeList::StartAll(bool lockedBefore, std::string strCommand)
 {
     int nCountSuccessful = 0;
     int nCountFailed = 0;
@@ -163,7 +165,8 @@ void SmartnodeList::StartAll(std::string strCommand)
             strFailedHtml += "\nFailed to start " + mne.getAlias() + ". Error: " + strError;
         }
     }
-    pwalletMain->Lock();
+
+    if( lockedBefore ) pwalletMain->Lock();
 
     std::string returnObj;
     returnObj = strprintf("Successfully started %d smartnodes, failed to start %d, total %d", nCountSuccessful, nCountFailed, nCountFailed + nCountSuccessful);
@@ -352,12 +355,9 @@ void SmartnodeList::on_startButton_clicked()
         WalletModel::UnlockContext ctx(walletModel->requestUnlock());
 
         if(!ctx.isValid()) return; // Unlock wallet was cancelled
-
-        StartAlias(strAlias);
-        return;
     }
 
-    StartAlias(strAlias);
+    StartAlias(encStatus == walletModel->Locked, strAlias);
 }
 
 void SmartnodeList::on_startAllButton_clicked()
@@ -376,12 +376,9 @@ void SmartnodeList::on_startAllButton_clicked()
         WalletModel::UnlockContext ctx(walletModel->requestUnlock());
 
         if(!ctx.isValid()) return; // Unlock wallet was cancelled
-
-        StartAll();
-        return;
     }
 
-    StartAll();
+    StartAll(encStatus == walletModel->Locked);
 }
 
 void SmartnodeList::on_startMissingButton_clicked()
@@ -408,12 +405,9 @@ void SmartnodeList::on_startMissingButton_clicked()
         WalletModel::UnlockContext ctx(walletModel->requestUnlock());
 
         if(!ctx.isValid()) return; // Unlock wallet was cancelled
-
-        StartAll("start-missing");
-        return;
     }
 
-    StartAll("start-missing");
+    StartAll(encStatus == walletModel->Locked, "start-missing");
 }
 
 void SmartnodeList::on_tableWidgetMySmartnodes_itemSelectionChanged()
