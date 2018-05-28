@@ -58,9 +58,13 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         UniValue obj(UniValue::VOBJ);
 
-        CSmartRewardRound current;
-        if( !prewards->GetCurrentRound(current) )
-            throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
+        TRY_LOCK(cs_rewardrounds,roundsLocked);
+
+        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+
+        const CSmartRewardRound& current = prewards->GetCurrentRound();
+
+        if( !current.number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
 
         obj.push_back(Pair("rewards_cycle",current.number));
         obj.push_back(Pair("start_blockheight",current.startBlockHeight));
@@ -81,10 +85,13 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         UniValue obj(UniValue::VARR);
 
-        CSmartRewardRoundList history;
+        TRY_LOCK(cs_rewardrounds,roundsLocked);
 
-        if( !prewards->GetRewardRounds(history))
-            throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
+        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+
+        const CSmartRewardRoundList& history = prewards->GetRewardRounds();
+
+        if(!history.size()) throw JSONRPCError(RPC_DATABASE_ERROR, "No finished reward round available yet.");
 
         BOOST_FOREACH(CSmartRewardRound round, history) {
 
@@ -110,9 +117,13 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if(strCommand == "payouts")
     {
-        CSmartRewardRound current;
-        if( !prewards->GetCurrentRound(current) )
-            throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
+        TRY_LOCK(cs_rewardrounds,roundsLocked);
+
+        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+
+        const CSmartRewardRound& current = prewards->GetCurrentRound();
+
+        if( !current.number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
 
         int round = 0;
         std::string err = strprintf("Past SmartReward round required: 1 - %d ",current.number - 1 );
@@ -154,9 +165,13 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if(strCommand == "snapshot")
     {
-        CSmartRewardRound current;
-        if( !prewards->GetCurrentRound(current) )
-            throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't read from the rewards database.");
+        TRY_LOCK(cs_rewardrounds,roundsLocked);
+
+        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+
+        const CSmartRewardRound& current = prewards->GetCurrentRound();
+
+        if( !current.number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
 
         int round = 0;
         std::string err = strprintf("Past SmartReward round required: 1 - %d ",current.number - 1 );

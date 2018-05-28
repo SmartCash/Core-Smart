@@ -268,7 +268,6 @@ public:
     bool ReadRounds(CSmartRewardRoundList &vect);
 
     bool ReadCurrentRound(CSmartRewardRound &round);
-    bool WriteCurrentRound(const CSmartRewardRound &round);
 
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool ReadRewardEntries(CSmartRewardEntryList &vect);
@@ -276,7 +275,7 @@ public:
     bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
 
-    bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions);
+    bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshot);
 

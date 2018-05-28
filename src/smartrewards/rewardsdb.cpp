@@ -47,6 +47,8 @@ bool CSmartRewardsDB::Verify(int& lastBlockHeight)
     CSmartRewardBlock last;
     uint8_t dbVersion;
 
+    lastBlockHeight = 0;
+
     if( !Read(DB_VERSION, dbVersion) ){
         LogPrintf("CSmartRewards::Verify() Could't read DB_VERSION\n");
         return false;
@@ -209,17 +211,12 @@ bool CSmartRewardsDB::ReadCurrentRound(CSmartRewardRound &round)
     return Read(DB_ROUND_CURRENT, round);
 }
 
-bool CSmartRewardsDB::WriteCurrentRound(const CSmartRewardRound &round)
-{
-    return Write(DB_ROUND_CURRENT, round, true);
-}
-
 bool CSmartRewardsDB::ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry)
 {
     return Read(make_pair(DB_REWARD_ENTRY,id), entry);
 }
 
-bool CSmartRewardsDB::SyncBlocks(const std::vector<CSmartRewardBlock> &blocks, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions)
+bool CSmartRewardsDB::SyncBlocks(const std::vector<CSmartRewardBlock> &blocks, const CSmartRewardRound& current, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions)
 {
 
     CDBBatch batch(*this);
@@ -241,6 +238,8 @@ bool CSmartRewardsDB::SyncBlocks(const std::vector<CSmartRewardBlock> &blocks, c
     BOOST_FOREACH(const CSmartRewardBlock &b, blocks) {
         batch.Write(make_pair(DB_BLOCK,b.nHeight), b);
     }
+
+    batch.Write(DB_ROUND_CURRENT, current);
 
     auto last = std::max_element(blocks.begin(), blocks.end());
 

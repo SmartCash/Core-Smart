@@ -1263,8 +1263,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         nWalletBackups = std::max(0, std::min(10, nWalletBackups));
 
         if(!AutoBackupWallet(NULL, strWalletFile, strWarning, strError)) {
-            if (!strWarning.empty())
-                InitWarning(strWarning);
             if (!strError.empty())
                 return InitError(strError);
         }
@@ -1282,7 +1280,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             InitWarning(strWarning);
         if (!strError.empty())
             return InitError(strError);
-
 
         // Initialize KeePass Integration
         //keePassInt.init();
@@ -1619,6 +1616,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     uiInterface.InitMessage(_("Verifying SmartRewards..."));
 
+    CBlockIndex *pLastIndex = chainActive.Tip();
     CSmartRewardsDB * prewardsdb = nullptr;
     bool fResetRewards = GetBoolArg("-reset-rewards", false);
     fLoaded = false;
@@ -1640,6 +1638,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database might be corrupted."));
 
                 if( !(fLoaded = prewards->Verify())) throw std::runtime_error(_("Failed to verfy SmartRewards database"));
+
+                if( !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
 
                 if (fRequestShutdown) break;
 
@@ -1670,7 +1670,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     }
 
-    ThreadSmartRewards(true);
+    prewards->CatchUp();
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
@@ -1785,11 +1785,11 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             std::string strBackupWarning;
             std::string strBackupError;
             if(!AutoBackupWallet(pwalletMain, "", strBackupWarning, strBackupError)) {
-                if (!strBackupWarning.empty())
-                    InitWarning(strBackupWarning);
                 if (!strBackupError.empty())
                     return InitError(strBackupError);
             }
+
+            InitWarning(_("Make sure to encrypt your wallet and delete all non-encrypted backups after you verified that wallet works!"));
 
         }
         else if (mapArgs.count("-usehd")) {
@@ -1798,11 +1798,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 return InitError(strprintf(_("Error loading %s: You can't disable HD on a already existing HD wallet"), strWalletFile));
             if (!pwalletMain->IsHDEnabled() && useHD)
                 return InitError(strprintf(_("Error loading %s: You can't enable HD on a already existing non-HD wallet"), strWalletFile));
-        }
-
-        // Warn user every time he starts non-encrypted HD wallet
-        if (!GetBoolArg("-smartnode", false) && GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET) && !pwalletMain->IsLocked()) {
-            InitWarning(_("Make sure to encrypt your wallet and delete all non-encrypted backups after you verified that wallet works!"));
         }
 
         LogPrintf("%s", strErrors.str());
@@ -2033,10 +2028,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 11d: start smartcash-privatesend thread
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
-
-    // ********************************************************* Step 11e: start smartrewards thread
-
-    threadGroup.create_thread(boost::bind(&ThreadSmartRewards, false));
 
     // ********************************************************* Step 12: start node
 

@@ -44,6 +44,7 @@
 #include <boost/math/distributions/poisson.hpp>
 #include <boost/thread.hpp>
 
+#include "smartrewards/rewards.h"
 #include "smartnode/smartnodeman.h"
 #include "smartnode/smartnodepayments.h"
 #include "smartnode/instantx.h"
@@ -3241,6 +3242,10 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5; nTimeTotal += nTime6 - nTime1;
     LogPrint("bench", "  - Connect postprocess: %.2fms [%.2fs]\n", (nTime6 - nTime5) * 0.001, nTimePostConnect * 0.000001);
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
+
+    //### SMARTCASH START
+    if(pindexNew->nHeight > 0) prewards->ProcessBlock(pindexNew, chainparams);
+    //### SMARTCASH END
 
     return true;
 }
