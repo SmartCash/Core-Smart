@@ -46,12 +46,12 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
     if( nHeight >= ( round.endBlockHeight + delay ) ){
 
-        int eligibleEntries = round.eligibleEntries - round.disqualifiedEntries;
+        size_t eligibleEntries = round.eligibleEntries - round.disqualifiedEntries;
         int rewardBlocks = eligibleEntries / nRewardPayoutsPerBlock;
         // If we dont match nRewardPayoutsPerBlock add one more block for the remaining payments.
-        if(eligibleEntries > nRewardPayoutsPerBlock && eligibleEntries % nRewardPayoutsPerBlock ) rewardBlocks += 1;
+        if( eligibleEntries % nRewardPayoutsPerBlock ) rewardBlocks += 1;
 
-        int lastRoundBlock = round.endBlockHeight + delay + ( rewardBlocks * nRewardPayoutBlockInterval );
+        int lastRoundBlock = round.endBlockHeight + delay + ( (rewardBlocks - 1) * nRewardPayoutBlockInterval );
 
         if( nHeight <= lastRoundBlock && !(( lastRoundBlock - nHeight ) % nRewardPayoutBlockInterval) ){
             // We have a reward block! Now try to create the payments vector.
@@ -71,14 +71,13 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
             // If the to be paid addresses are no multile of nRewardPayoutsPerBlock
             // the last payout block has less payees than the others.
-            if( ( rewardBlock == rewardBlocks - 1 && eligibleEntries % nRewardPayoutsPerBlock ) ||
-                ( rewardBlock == 0 && eligibleEntries < nRewardPayoutsPerBlock ) ){
+            if( rewardBlock == rewardBlocks && eligibleEntries % nRewardPayoutsPerBlock ){
                 // Use the remainders here..
                 blockPayees = eligibleEntries % nRewardPayoutsPerBlock;
             }
 
             // As start index we want to use the current payout block index + payouts per block as offset.
-            size_t startIndex = rewardBlock * nRewardPayoutsPerBlock;
+            size_t startIndex = (rewardBlock - 1) * nRewardPayoutsPerBlock;
             // As ennd index we use the startIndex + number of payees for this round.
             size_t endIndex = startIndex + blockPayees;
             // If for any reason the calculations end up in an overflow of the vector return an error.
