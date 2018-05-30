@@ -112,6 +112,7 @@ SmartrewardsList::~SmartrewardsList()
 void SmartrewardsList::setModel(WalletModel *model)
 {
     this->model = model;
+    updateUI();
 }
 
 void SmartrewardsList::setClientModel(ClientModel *model)

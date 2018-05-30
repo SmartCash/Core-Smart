@@ -216,19 +216,20 @@ bool CSmartRewardsDB::ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry
     return Read(make_pair(DB_REWARD_ENTRY,id), entry);
 }
 
-bool CSmartRewardsDB::SyncBlocks(const std::vector<CSmartRewardBlock> &blocks, const CSmartRewardRound& current, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions)
+bool CSmartRewardsDB::SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions)
 {
 
     CDBBatch batch(*this);
 
     if(!blocks.size()) return true;
 
-    BOOST_FOREACH(const CSmartRewardEntry &e, remove) {
-        batch.Erase(make_pair(DB_REWARD_ENTRY,e.id));
-    }
-
-    BOOST_FOREACH(const CSmartRewardEntry &e, update) {
-        batch.Write(make_pair(DB_REWARD_ENTRY,e.id), e);
+    BOOST_FOREACH(const PAIRTYPE(CSmartAddress, CSmartRewardEntry*)& r, rewards) {
+        if( r.second->balance <= 0 ){
+            batch.Erase(make_pair(DB_REWARD_ENTRY,r.first));
+        }else{
+            batch.Write(make_pair(DB_REWARD_ENTRY,r.first), *r.second);
+        }
+        delete r.second;
     }
 
     BOOST_FOREACH(const CSmartRewardTransaction &t, transactions) {

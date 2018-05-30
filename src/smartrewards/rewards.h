@@ -13,8 +13,8 @@
 using namespace std;
 
 static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
-// Cache n blocks before the sync (leveldb batch write).
-const int64_t nCacheBlocks = 50;
+// Cache max. n prepared entries before the sync (leveldb batch write).
+const int64_t nCacheEntires = 8000;
 // Minimum number of confirmations to process a block for the reward database.
 const int64_t nRewardsConfirmations = 15;
 // Minimum distance of the last processed block compared to the current chain
@@ -69,14 +69,13 @@ class CSmartRewards
 
     CSmartRewardBlockList blockEntries;
     CSmartRewardTransactionList transactionEntries;
-    CSmartRewardEntryList updateEntries;
-    CSmartRewardEntryList removeEntries;
+    CSmartRewardEntryMap rewardEntries;
 
     mutable CCriticalSection csRounds;
 
-    void PrepareForUpdate(const CSmartRewardEntry &entry);
-    void PrepareForRemove(const CSmartRewardEntry &entry);
-    void RemovePrepared(const CSmartRewardEntry &entry);
+    bool GetCachedRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&entry);
+    bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
+    bool GetRewardEntries(CSmartRewardEntryList &entries);
     bool AddBlock(const CSmartRewardBlock &block, bool sync);
     void AddTransaction(const CSmartRewardTransaction &transaction);
 public:
@@ -101,14 +100,12 @@ public:
     double GetProgress();
     int GetLastHeight();
 
-    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync);
+    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
     bool UpdateRound(const CSmartRewardRound &round);
 
     void ProcessBlock(CBlockIndex* pLastIndex,const CChainParams& chainparams);
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
-    void GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry, bool &added);
-    bool GetRewardEntries(CSmartRewardEntryList &entries);
 
     void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots);
     bool StartFirstRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
