@@ -17,7 +17,7 @@ static constexpr uint8_t REWARDS_DB_VERSION = 0x01;
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
 //! -rewardsdbcache default (MiB)
-static const int64_t nRewardsDefaultDbCache = 30;
+static const int64_t nRewardsDefaultDbCache = 80;
 //! max. -rewardsdbcache (MiB)
 static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 
@@ -32,6 +32,8 @@ typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
 typedef std::vector<CSmartRewardSnapshot> CSmartRewardSnapshotList;
 typedef std::vector<CSmartRewardTransaction> CSmartRewardTransactionList;
+
+typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
 
 class CSmartRewardTransaction
 {
@@ -174,6 +176,9 @@ public:
     CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceOnStart(0),
                           reward(0), eligible(false) {}
+    CSmartRewardEntry(const CSmartAddress &address) : id(address),
+                          balance(0), balanceOnStart(0),
+                          reward(0), eligible(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -275,7 +280,7 @@ public:
     bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
 
-    bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryList &update, const CSmartRewardEntryList &remove, const CSmartRewardTransactionList &transactions);
+    bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshot);
 

@@ -12,6 +12,7 @@ using namespace std;
 
 class CSmartnodeMan;
 class CConnman;
+struct CSmartNodeWinners;
 
 extern CSmartnodeMan mnodeman;
 
@@ -165,9 +166,9 @@ public:
     bool GetSmartnodeInfo(const CScript& payee, smartnode_info_t& mnInfoRet);
 
     /// Find an entry in the smartnode list that is next to be paid
-    bool GetNextSmartnodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCountRet, smartnode_info_t& mnInfoRet);
+    bool GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCountRet, CSmartNodeWinners& mnInfoRet);
     /// Same as above but use current block height
-    bool GetNextSmartnodeInQueueForPayment(bool fFilterSigTime, int& nCountRet, smartnode_info_t& mnInfoRet);
+    bool GetNextSmartnodesInQueueForPayment(bool fFilterSigTime, int& nCountRet, CSmartNodeWinners& mnInfoRet);
 
     /// Find a random entry
     smartnode_info_t FindRandomNotInVec(const std::vector<COutPoint> &vecToExclude, int nProtocolVersion = -1);

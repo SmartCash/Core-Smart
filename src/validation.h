@@ -502,7 +502,6 @@ void ReprocessBlocks(int nBlocks);
 int GetInputAge(const CTxIn &txin); 
 int GetInputAgeIX(const uint256 &nTXHash, const CTxIn &txin); 
 int GetIXConfirmations(const uint256 &nTXHash); 
-CAmount GetSmartnodePayment(int nHeight, CAmount blockValue);
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block, with cs_main held) */
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true);

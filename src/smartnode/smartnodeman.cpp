@@ -480,14 +480,14 @@ bool CSmartnodeMan::Has(const COutPoint& outpoint)
 //
 // Deterministically select the oldest/best smartnode to pay on the network
 //
-bool CSmartnodeMan::GetNextSmartnodeInQueueForPayment(bool fFilterSigTime, int& nCountRet, smartnode_info_t& mnInfoRet)
+bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(bool fFilterSigTime, int& nCountRet, CSmartNodeWinners& mnInfoRet)
 {
-    return GetNextSmartnodeInQueueForPayment(nCachedBlockHeight, fFilterSigTime, nCountRet, mnInfoRet);
+    return GetNextSmartnodesInQueueForPayment(nCachedBlockHeight, fFilterSigTime, nCountRet, mnInfoRet);
 }
 
-bool CSmartnodeMan::GetNextSmartnodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCountRet, smartnode_info_t& mnInfoRet)
+bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCountRet, CSmartNodeWinners& mnInfoRet)
 {
-    mnInfoRet = smartnode_info_t();
+    mnInfoRet.clear();
     nCountRet = 0;
 
     if (!smartnodeSync.IsWinnersListSynced()) {
@@ -528,14 +528,14 @@ bool CSmartnodeMan::GetNextSmartnodeInQueueForPayment(int nBlockHeight, bool fFi
 
     //when the network is in the process of upgrading, don't penalize nodes that recently restarted
     if(fFilterSigTime && nCountRet < nMnCount/3)
-        return GetNextSmartnodeInQueueForPayment(nBlockHeight, false, nCountRet, mnInfoRet);
+        return GetNextSmartnodesInQueueForPayment(nBlockHeight, false, nCountRet, mnInfoRet);
 
     // Sort them low to high
     sort(vecSmartnodeLastPaid.begin(), vecSmartnodeLastPaid.end(), CompareLastPaidBlock());
 
     uint256 blockHash;
     if(!GetBlockHash(blockHash, nBlockHeight - 101)) {
-        LogPrintf("CSmartnode::GetNextSmartnodeInQueueForPayment -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", nBlockHeight - 101);
+        LogPrintf("CSmartnode::GetNextSmartnodesInQueueForPayment -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", nBlockHeight - 101);
         return false;
     }
     // Look at 1/10 of the oldest nodes (by last payment), calculate their scores and pay the best one
@@ -544,21 +544,32 @@ bool CSmartnodeMan::GetNextSmartnodeInQueueForPayment(int nBlockHeight, bool fFi
     //  -- (chance per block * chances before IsScheduled will fire)
     int nTenthNetwork = nMnCount/10;
     int nCountTenth = 0;
-    arith_uint256 nHighest = 0;
-    CSmartnode *pBestSmartnode = NULL;
-    BOOST_FOREACH (PAIRTYPE(int, CSmartnode*)& s, vecSmartnodeLastPaid){
+    size_t requiredPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
+
+    std::vector<std::pair<arith_uint256, CSmartnode*>> vecTopTenthScores;
+
+    for (const auto& s : vecSmartnodeLastPaid) {
         arith_uint256 nScore = s.second->CalculateScore(blockHash);
-        if(nScore > nHighest){
-            nHighest = nScore;
-            pBestSmartnode = s.second;
-        }
+        vecTopTenthScores.push_back(std::make_pair(nScore,s.second));
         nCountTenth++;
         if(nCountTenth >= nTenthNetwork) break;
     }
-    if (pBestSmartnode) {
-        mnInfoRet = pBestSmartnode->GetInfo();
+
+    std::sort(vecTopTenthScores.begin(), vecTopTenthScores.end(),CompareScoreMN());
+
+    if( vecTopTenthScores.size() >= requiredPayees ){
+
+        for (const auto& s : vecSmartnodeLastPaid) {
+
+            mnInfoRet.push_back(s.second->GetInfo());
+
+            if( mnInfoRet.size() == requiredPayees )
+                return true;
+        }
+
     }
-    return mnInfoRet.fInfoValid;
+
+    return false;
 }
 
 smartnode_info_t CSmartnodeMan::FindRandomNotInVec(const std::vector<COutPoint> &vecToExclude, int nProtocolVersion)

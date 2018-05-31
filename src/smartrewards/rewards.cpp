@@ -64,15 +64,18 @@ bool CSmartRewards::Verify()
     return pdb->Verify(rewardHeight);
 }
 
-bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool sync) {
+bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result) {
 
+    CSmartRewardEntry *rEntry = nullptr;
     CBlock block;
     ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
 
     BOOST_FOREACH(const CTransaction &tx, block.vtx) {
 
         CSmartRewardTransaction testTx;
-
+#ifdef DEBUG_LOCKORDER
+        int nTime1 = GetTimeMicros();
+#endif
         // First check if the transaction hash did already come up in the past.
         if( GetTransaction(tx.GetHash(),testTx)){
             // If yes we want to ignore it!
@@ -100,69 +103,85 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
                 CTxOut rOut = rTx.vout[in.prevout.n];
 
-                bool added;
                 std::vector<CSmartAddress> ids;
-                CSmartRewardEntry rEntry;
+
                 int required = ParseScript(rOut.scriptPubKey ,ids);
 
                 if( !required || required > 1 || ids.size() > 1 ){
                     return error("Could't parse CSmartAddress: %s",rOut.ToString());
                 }
 
-                GetRewardEntry(ids.at(0),rEntry, added);
+                if(!GetCachedRewardEntry(ids.at(0),rEntry)){
 
-                if(added){
-                    LogPrintf("%s: Spend without previous receive - %s", __func__, tx.ToString());
-                    continue;
+                    rEntry = new CSmartRewardEntry(ids.at(0));
+
+                    if(!ReadRewardEntry(rEntry->id, *rEntry)){
+                        delete rEntry;
+                        LogPrintf("%s: Spend without previous receive - %s", __func__, tx.ToString());
+                        continue;
+                    }
+
+                    rewardEntries.insert(make_pair(ids.at(0), rEntry));
                 }
 
-                rEntry.balance -= rOut.nValue;
+                rEntry->balance -= rOut.nValue;
 
-                if( rEntry.eligible ){
-                    rEntry.eligible = false;
+                if( rEntry->eligible ){
+                    rEntry->eligible = false;
                     result.disqualifiedEntries++;
-                    result.disqualifiedSmart += rEntry.balanceOnStart;
+                    result.disqualifiedSmart += rEntry->balanceOnStart;
                 }
 
-                if(rEntry.balance < 0 ){
-                    LogPrintf("%s: Negative amount?! - %s", __func__, rEntry.ToString());
-                    rEntry.balance = 0;
+                if(rEntry->balance < 0 ){
+                    LogPrintf("%s: Negative amount?! - %s", __func__, rEntry->ToString());
+                    rEntry->balance = 0;
                  }
-
-                if( rEntry.balance == 0 ){
-                    PrepareForRemove(rEntry);
-                }else{
-                    PrepareForUpdate(rEntry);
-                }
 
             }
         }
+#ifdef DEBUG_LOCKORDER
+        int nTime2 = GetTimeMicros();
+#endif
 
         BOOST_FOREACH(const CTxOut &out, tx.vout) {
 
             if(out.scriptPubKey.IsZerocoinMint() ) continue;
 
-            bool added;
             std::vector<CSmartAddress> ids;
-            CSmartRewardEntry rEntry;
             int required = ParseScript(out.scriptPubKey ,ids);
 
             if( !required || required > 1 || ids.size() > 1 ){
                 return error("Could't parse CSmartAddress: %s",out.ToString());
             }else{
-                GetRewardEntry(ids.at(0),rEntry, added);
-
-                rEntry.balance += out.nValue;
-
-                PrepareForUpdate(rEntry);
+                if(!GetCachedRewardEntry(ids.at(0),rEntry)){
+                    rEntry = new CSmartRewardEntry(ids.at(0));
+                    ReadRewardEntry(rEntry->id, *rEntry);
+                    rewardEntries.insert(make_pair(ids.at(0), rEntry));
+                }
+                rEntry->balance += out.nValue;
             }
         }
+
+#ifdef DEBUG_LOCKORDER
+        int nTime3 = GetTimeMicros();
+        int nTimeTx = nTime3 - nTime1;
+
+        if( nTimeTx > 500000){
+            LogPrint("smartrewards", "CSmartRewards::Update TX %s - %.2fms\n",HexStr(tx.GetHash()), nTimeTx * 0.001);
+            LogPrint("smartrewards", " inputs - %.2fms\n", (nTime2 - nTime1) * 0.001);
+            LogPrint("smartrewards", " outputs - %.2fms\n", (nTime3 - nTime2) * 0.001);
+        }
+#endif
+
     }
 
     uint256 blockHash = block.GetHash();
     result.block = CSmartRewardBlock(pindexNew->nHeight, blockHash, block.GetBlockTime());
 
-    return AddBlock(result.block, sync);
+    // Synt the data all nCacheEntires to the db.
+    int preparedEntries = rewardEntries.size() + transactionEntries.size();
+
+    return AddBlock(result.block, preparedEntries > nCacheEntires );
 }
 
 void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots)
@@ -232,83 +251,38 @@ bool CSmartRewards::RestoreSnapshot(const int16_t round)
     return false;
 }
 
-void CSmartRewards::RemovePrepared(const CSmartRewardEntry &entry)
-{
-    // Remove the entries if its marked to become removed.
-    auto checkRemove = std::find(removeEntries.begin(), removeEntries.end(), entry);
-    if( checkRemove != removeEntries.end() ) removeEntries.erase(checkRemove);
-    // Remove the entries if its marked to become updated.
-    auto checkUpdate = std::find(updateEntries.begin(), updateEntries.end(), entry);
-    if( checkUpdate != updateEntries.end() ) updateEntries.erase(checkUpdate);
-}
-
-void CSmartRewards::PrepareForUpdate(const CSmartRewardEntry &entry)
+bool CSmartRewards::GetCachedRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&entry)
 {
     LOCK(cs_rewardsdb);
 
-    // If it is prepared for update/remove delete it first.
-    RemovePrepared(entry);
+    // Return the entry if its already in cache.
+    auto findResult = rewardEntries.find(id);
 
-    updateEntries.push_back(entry);
+    if( findResult != rewardEntries.end() ){
+        entry = findResult->second;
+        return true;
+    }
+
+    return false;
 }
 
-void CSmartRewards::PrepareForRemove(const CSmartRewardEntry &entry)
+bool CSmartRewards::ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry)
 {
     LOCK(cs_rewardsdb);
-
-    // If it is prepared for update/remove delete it first.
-    RemovePrepared(entry);
-
-    // And add the new one.
-    removeEntries.push_back(entry);
+    return pdb->ReadRewardEntry(id,entry);
 }
 
 bool CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry)
 {
-    bool added;
-    GetRewardEntry(id, entry, added);
-    return !added;
-}
-
-void CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry, bool &added)
-{
     LOCK(cs_rewardsdb);
 
-    added = false;
+    CSmartRewardEntry * pReadEntry;
 
-    auto checkEntry = [id](const CSmartRewardEntry &e) -> bool {
-                                return e.id == id;
-                           };
-
-    // Return the entry prepared for update if it exists.
-    auto checkRemove = std::find_if(removeEntries.begin(), removeEntries.end(), checkEntry);
-
-    if( checkRemove != removeEntries.end() ){
-        entry = *checkRemove;
-        return;
+    if( GetCachedRewardEntry(id,pReadEntry) ){
+        entry = *pReadEntry;
     }
 
-    // Return the entry prepared for remove if it exists.
-    auto checkUpdate = std::find_if(updateEntries.begin(), updateEntries.end(), checkEntry);
-
-    if( checkUpdate != updateEntries.end() ){
-        entry = *checkUpdate;
-        return;
-    }
-
-    // Otherwise use the one from the database.
-    if( !pdb->ReadRewardEntry(id, entry)){
-
-        //If it was not yet in the db create it
-        entry.id = id;
-        entry.balanceOnStart = 0;
-        entry.balance = 0;
-        entry.eligible = false;
-
-        // and mark it as added!
-        added = true;
-    }
-
+    return ReadRewardEntry(id,entry);
 }
 
 bool CSmartRewards::GetRewardEntries(CSmartRewardEntryList &entries)
@@ -321,10 +295,10 @@ bool CSmartRewards::SyncPrepared()
 {
     LOCK2(cs_rewardsdb, cs_rewardrounds);
 
-    bool ret =  pdb->SyncBlocks(blockEntries,currentRound, updateEntries,removeEntries, transactionEntries);
+    bool ret =  pdb->SyncBlocks(blockEntries,currentRound, rewardEntries, transactionEntries);
 
-    updateEntries.clear();
-    removeEntries.clear();
+    // Destructor of the elements is called in the pdb->SyncBlocks.
+    rewardEntries.clear();
     blockEntries.clear();
     transactionEntries.clear();
 
@@ -351,7 +325,18 @@ bool CSmartRewards::AddBlock(const CSmartRewardBlock &block, bool sync)
 {
     blockEntries.push_back(block);
 
+#ifdef DEBUG_LOCKORDER
+    int nTime1 = GetTimeMicros();
+#endif
+
     if(sync) return SyncPrepared();
+
+#ifdef DEBUG_LOCKORDER
+    int nTimeSync = GetTimeMicros() - nTime1;
+    if( nTimeSync > 300000){
+        LogPrint("smartrewards", "CSmartRewards::AddBlock - Sync - Block: %d - Progress %.2fms\n",block.nHeight, nTimeSync * 0.001);
+    }
+#endif
 
     return true;
 }
@@ -428,6 +413,7 @@ void CSmartRewards::CatchUp()
 
     }
 
+    prewards->UpdateHeights(GetBlockHeight(pHighestIndex), currentBlock.nHeight);
 }
 
 bool CSmartRewards::GetLastBlock(CSmartRewardBlock &block)
@@ -490,10 +476,8 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
 
         // Result of the block processing.
         CSmartRewardsUpdateResult result;
-        // Synt the data all nCacheBlocks to the db.
-        bool sync = currentBlock.nHeight > 0 && !(currentBlock.nHeight % nCacheBlocks);
         // Process the block!
-        if(!Update(pNextIndex, chainparams, result, sync)) throw runtime_error(std::string(__func__) + ": rewards update failed");
+        if(!Update(pNextIndex, chainparams, result)) throw runtime_error(std::string(__func__) + ": rewards update failed");
 
         // Update the current block to the processed one
         currentBlock = result.block;
@@ -607,17 +591,18 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
             currentRound = next;
         }
 
-        prewards->UpdateHeights(currentBlock.nHeight, GetBlockHeight(pLastIndex));
+        prewards->UpdateHeights(GetBlockHeight(pLastIndex), currentBlock.nHeight);
 
         nTime3 = GetTimeMicros(); nTimeTotal += nTime3 - nTime1;
+        int nTimeUpdateMean = nTimeUpdateRewardsTotal/nCountUpdateRewards;
+        int nTimeUpdate = nTime2 - nTime1;
 
-        if(!(currentBlock.nHeight % 10000) || snapshot){
-            LogPrintf("Round %d - Block: %d - Progress %d%%\n",currentRound.number, currentBlock.nHeight, int(prewards->GetProgress() * 100));
-            LogPrintf("  Update rewards: %.2fms [%.2fms]\n", (nTime2 - nTime1) * 0.001, (nTimeUpdateRewardsTotal/nCountUpdateRewards) * 0.001);
-            LogPrintf("  Evaluate round: %.2fms\n", (nTime3 - nTime1) * 0.001);
-            LogPrintf("  Total: %.2fms [%.2fs]\n", (nTime3 - nTime1) * 0.001, nTimeTotal * 0.000001);
+        if( nTimeUpdate > nTimeUpdateMean * 100){
+            LogPrint("smartrewards", "Round %d - Block: %d - Progress %d%%\n",currentRound.number, currentBlock.nHeight, int(prewards->GetProgress() * 100));
+            LogPrint("smartrewards", "  Update rewards: %.2fms [%.2fms]\n", nTimeUpdate * 0.001, (nTimeUpdateMean) * 0.001);
+            LogPrint("smartrewards", "  Evaluate round: %.2fms\n", (nTime3 - nTime2) * 0.001);
+            LogPrint("smartrewards", "  Total: %.2fms [%.2fs]\n", (nTime3 - nTime1) * 0.001, nTimeTotal * 0.000001);
         }
-
         // If we are synced notify the UI on each new block.
         // If not notify the UI every nRewardsUISyncUpdateRate blocks to let it update the
         // loading screen.
@@ -625,3 +610,4 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
             uiInterface.NotifySmartRewardUpdate();
     }
 }
+

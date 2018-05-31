@@ -256,7 +256,8 @@ bool LogAcceptCategory(const char* category)
                 ptrCategory->insert(string("smartnode"));
                 ptrCategory->insert(string("spork"));
                 ptrCategory->insert(string("mnpayments"));
-                ptrCategory->insert(string("rewardpayments"));
+                ptrCategory->insert(string("mnpaymentvote"));
+                ptrCategory->insert(string("smartrewards"));
                 ptrCategory->insert(string("gobject"));
             }
         }

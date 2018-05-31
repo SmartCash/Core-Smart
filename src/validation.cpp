@@ -2469,16 +2469,17 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
         ThresholdState state = VersionBitsState(pindexPrev, params, pos, versionbitscache);
         //const struct BIP9DeploymentInfo& vbinfo = VersionBitsDeploymentInfo[pos];
         if (state == THRESHOLD_STARTED && !fAssumeSmartnodeIsUpgraded) {
-            CScript payee;
+            CScriptVector payees;
             smartnode_info_t mnInfo;
-            if (!mnpayments.GetBlockPayee(pindexPrev->nHeight + 1, payee)) {
-                // no votes for this block
-                continue;
-            }
-            if (!mnodeman.GetSmartnodeInfo(payee, mnInfo)) {
-                // unknown masternode
-                continue;
-            }
+//            if (!mnpayments.GetBlockPayees(pindexPrev->nHeight + 1, payees)) {
+//                // no votes for this block
+//                continue;
+//            }
+// ## SMARTCASH - TODO, check if we can use this version check?
+//            if (!mnodeman.GetSmartnodeInfo(payee, mnInfo)) {
+//                // unknown masternode
+//                continue;
+//            }
             // if (mnInfo.nProtocolVersion < DIP0001_PROTOCOL_VERSION) {
             //     // masternode is not upgraded yet
             //     continue;
@@ -3274,109 +3275,6 @@ int GetUTXOConfirmations(const COutPoint& outpoint)
     int nPrevoutHeight = GetUTXOHeight(outpoint);
     return (nPrevoutHeight > -1 && chainActive.Tip()) ? chainActive.Height() - nPrevoutHeight + 1 : -1;
 }
-
-// int GetInputAge(const CTxIn &txin)
-// {
-//     CCoinsView viewDummy;
-//     CCoinsViewCache view(&viewDummy);
-//     {
-//         LOCK(mempool.cs);
-//         CCoinsViewMemPool viewMempool(pcoinsTip, mempool);
-//         view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
-
-//         const CCoins* coins = view.AccessCoins(txin.prevout.hash);
-
-//         if (coins) {
-//             if(coins->nHeight < 0) return 0;
-//             return chainActive.Height() - coins->nHeight + 1;
-//         } else {
-//             return -1;
-//         }
-//     }
-// }
-
-CAmount GetSmartnodePayment(int nHeight, CAmount blockValue)
-{
-    CAmount ret = blockValue/10; // start at 10%
-
-    //int nMNPIBlock = Params().GetConsensus().nSmartnodePaymentsIncreaseBlock;
-    //int nMNPIPeriod = Params().GetConsensus().nSmartnodePaymentsIncreasePeriod;
-/*
-    // mainnet:
-    if(nHeight > nMNPIBlock)                  ret += blockValue / 20; // 158000 - 25.0% - 2014-10-24
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 1)) ret += blockValue / 20; // 175280 - 30.0% - 2014-11-25
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 2)) ret += blockValue / 20; // 192560 - 35.0% - 2014-12-26
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 3)) ret += blockValue / 40; // 209840 - 37.5% - 2015-01-26
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 4)) ret += blockValue / 40; // 227120 - 40.0% - 2015-02-27
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 5)) ret += blockValue / 40; // 244400 - 42.5% - 2015-03-30
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 6)) ret += blockValue / 40; // 261680 - 45.0% - 2015-05-01
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 7)) ret += blockValue / 40; // 278960 - 47.5% - 2015-06-01
-    if(nHeight > nMNPIBlock+(nMNPIPeriod* 9)) ret += blockValue / 40; // 313520 - 50.0% - 2015-08-03
-*/
-    return ret;
-}
-
-/**
- * Connect a new ZCblock to chainActive. pblock is either NULL or a pointer to a CBlock
- * corresponding to pindexNew, to bypass loading it again from disk.
- */
-// bool static ConnectTipZC(CValidationState &state, const CChainParams &chainparams, CBlockIndex *pindexNew, const CBlock *pblock) {
-// CBlock block;
-//     if (!pblock) {
-//         if (!ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus()))
-//             return AbortNode(state, "Failed to read block");
-//         pblock = &block;
-//     }
-//     // Zerocoin reorg, calculate new height and id
-//     list <CZerocoinEntry> listPubCoin = list<CZerocoinEntry>();
-//     CWalletDB walletdb(pwalletMain->strWalletFile);
-//     walletdb.ListPubCoin(listPubCoin);
-
-//     BOOST_FOREACH(const CTransaction &tx, pblock->vtx){
-//         // Check Mint Zerocoin Transaction
-//         BOOST_FOREACH(const CTxOut txout, tx.vout) {
-//             if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsZerocoinMint()) {
-//                 vector<unsigned char> vchZeroMint;
-//                 vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + 6, txout.scriptPubKey.begin() + txout.scriptPubKey.size());
-
-//                 CBigNum pubCoin;
-//                 pubCoin.setvch(vchZeroMint);
-//                 int zerocoinMintHeight = -1;
-//                 BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-//                     if (pubCoinItem.value == pubCoin) {
-
-//                         CZerocoinEntry pubCoinTx;
-//                         pubCoinTx.id = -1;
-//                         pubCoinTx.IsUsed = pubCoinItem.IsUsed;
-//                         pubCoinTx.randomness = pubCoinItem.randomness;
-//                         pubCoinTx.denomination = pubCoinItem.denomination;
-//                         pubCoinTx.serialNumber = pubCoinItem.serialNumber;
-//                         pubCoinTx.value = pubCoinItem.value;
-//                         pubCoinTx.nHeight = -1;
-//                         walletdb.WriteZerocoinEntry(pubCoinTx);
-//                         LogPrintf("Pubcoin Connect Reset Pubcoin Denomination: %d Pubcoin Id: %d Height: %d\n", pubCoinTx.denomination, pubCoinTx.id, pubCoinItem.nHeight);
-//                         zerocoinMintHeight = pindexNew->nHeight;
-//                     }
-//                 }
-//                 BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-//                     if (pubCoinItem.nHeight > zerocoinMintHeight) {
-//                         CZerocoinEntry pubCoinTx;
-//                         pubCoinTx.id = -1;
-//                         pubCoinTx.IsUsed = pubCoinItem.IsUsed;
-//                         pubCoinTx.randomness = pubCoinItem.randomness;
-//                         pubCoinTx.denomination = pubCoinItem.denomination;
-//                         pubCoinTx.serialNumber = pubCoinItem.serialNumber;
-//                         pubCoinTx.value = pubCoin;
-//                         pubCoinTx.nHeight = -1;
-//                         LogPrintf("Connect Reset Pubcoin Denomination: %d Pubcoin Id: %d Height: %d\n", pubCoinTx.denomination, pubCoinTx.id, pubCoinItem.nHeight);
-//                         walletdb.WriteZerocoinEntry(pubCoinTx);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     return true;
-// }
 
 bool DisconnectBlocks(int blocks) {
     LOCK(cs_main);

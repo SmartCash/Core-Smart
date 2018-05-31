@@ -324,7 +324,7 @@ void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanB
             if(!ReadBlockFromDisk(block, BlockReading, Params().GetConsensus())) // shouldn't really happen
                 continue;
 
-            CAmount nSmartnodePayment = GetSmartnodePayment(BlockReading->nHeight, block.vtx[0].GetValueOut());
+            CAmount nSmartnodePayment = SmartNodePayments::Payment(BlockReading->nHeight) / SmartNodePayments::PayoutsPerBlock(BlockReading->nHeight);
 
             BOOST_FOREACH(CTxOut txout, block.vtx[0].vout)
                 if(mnpayee == txout.scriptPubKey && nSmartnodePayment == txout.nValue) {
