@@ -980,7 +980,7 @@ void CSmartnodeMan::DoFullVerificationStep(CConnman& connman)
 
 void CSmartnodeMan::CheckSameAddr()
 {
-    if(!smartnodeSync.IsSynced() || mapSmartnodes.empty()) return;
+    if(!smartnodeSync.IsSynced() || mapSmartnodes.empty() || Params().NetworkIDString() == CBaseChainParams::TESTNET) return;
 
     std::vector<CSmartnode*> vBan;
     std::vector<CSmartnode*> vSortedByAddr;
