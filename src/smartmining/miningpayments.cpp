@@ -39,7 +39,7 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
                                      SmartHivePayments::RejectionMessage(result));
     }
 
-    if (!SmartNodePayments::IsBlockPayeeValid(block.vtx[0], pindex->nHeight, blockReward, nodeReward)) {
+    if (!SmartNodePayments::IsPaymentValid(block.vtx[0], pindex->nHeight, blockReward, nodeReward)) {
         LogPrintf("SmartMining::Validate - Invalid node payment %s\n", block.vtx[0].ToString());
         return state.DoS(0, error("ConnectBlock(SMARTCASH): couldn't find smartnode payments"),
                                 REJECT_INVALID, "bad-cb-payee");

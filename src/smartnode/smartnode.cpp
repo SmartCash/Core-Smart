@@ -310,7 +310,6 @@ void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanB
     if(!pindex) return;
 
     const CBlockIndex *BlockReading = pindex;
-    CAmount blockReward = GetBlockSubsidy(pindex->nHeight, Params().GetConsensus());
 
     CScript mnpayee = GetScriptForDestination(pubKeyCollateralAddress.GetID());
     // LogPrint("smartnode", "CSmartnode::UpdateLastPaidBlock -- searching for block with payment to %s\n", vin.prevout.ToStringShort());
@@ -325,7 +324,7 @@ void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanB
             if(!ReadBlockFromDisk(block, BlockReading, Params().GetConsensus())) // shouldn't really happen
                 continue;
 
-            CAmount nSmartnodePayment = GetSmartnodePayment(BlockReading->nHeight, blockReward);
+            CAmount nSmartnodePayment = SmartNodePayments::Payment(BlockReading->nHeight) / SmartNodePayments::PayoutsPerBlock(BlockReading->nHeight);
 
             BOOST_FOREACH(CTxOut txout, block.vtx[0].vout)
                 if(mnpayee == txout.scriptPubKey && nSmartnodePayment == txout.nValue) {

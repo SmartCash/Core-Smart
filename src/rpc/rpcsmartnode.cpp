@@ -183,22 +183,18 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
         std::string strMode = params[1].get_str();
 
-        // if (strMode == "ps")
-        //     return mnodeman.CountEnabled(MIN_PRIVATESEND_PEER_PROTO_VERSION);
-
         if (strMode == "enabled")
             return mnodeman.CountEnabled();
 
         int nCount;
-        smartnode_info_t mnInfo;
-        mnodeman.GetNextSmartnodeInQueueForPayment(true, nCount, mnInfo);
+        CSmartNodeWinners mnInfos;
+        mnodeman.GetNextSmartnodesInQueueForPayment(true, nCount, mnInfos);
 
         if (strMode == "qualify")
             return nCount;
 
         if (strMode == "all")
             return strprintf("Total: %d ( Enabled: %d / Qualify: %d)",
-                //mnodeman.size(), mnodeman.CountEnabled(MIN_PRIVATESEND_PEER_PROTO_VERSION),
                 mnodeman.CountEnabled(), nCount);
     }
 
@@ -206,7 +202,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
     {
         int nCount;
         int nHeight;
-        smartnode_info_t mnInfo;
+        CSmartNodeWinners mnInfos;
         CBlockIndex* pindex = NULL;
         {
             LOCK(cs_main);
@@ -215,18 +211,30 @@ UniValue smartnode(const UniValue& params, bool fHelp)
         nHeight = pindex->nHeight + (strCommand == "current" ? 1 : 10);
         mnodeman.UpdateLastPaid(pindex);
 
-        if(!mnodeman.GetNextSmartnodeInQueueForPayment(nHeight, true, nCount, mnInfo))
+        if(!mnodeman.GetNextSmartnodesInQueueForPayment(nHeight, true, nCount, mnInfos))
             return "unknown";
 
         UniValue obj(UniValue::VOBJ);
+        UniValue nodes(UniValue::VARR);
 
-        obj.push_back(Pair("height",        nHeight));
-        obj.push_back(Pair("IP:port",       mnInfo.addr.ToString()));
-        obj.push_back(Pair("protocol",      (int64_t)mnInfo.nProtocolVersion));
-        obj.push_back(Pair("outpoint",      mnInfo.vin.prevout.ToStringShort()));
-        obj.push_back(Pair("payee",         CBitcoinAddress(mnInfo.pubKeyCollateralAddress.GetID()).ToString()));
-        obj.push_back(Pair("lastseen",      mnInfo.nTimeLastPing));
-        obj.push_back(Pair("activeseconds", mnInfo.nTimeLastPing - mnInfo.sigTime));
+        obj.push_back(Pair("height", nHeight));
+
+        for(auto& mnInfo : mnInfos )
+        {
+            UniValue node(UniValue::VOBJ);
+
+            node.push_back(Pair("IP:port",       mnInfo.addr.ToString()));
+            node.push_back(Pair("protocol",      (int64_t)mnInfo.nProtocolVersion));
+            node.push_back(Pair("outpoint",      mnInfo.vin.prevout.ToStringShort()));
+            node.push_back(Pair("payee",         CBitcoinAddress(mnInfo.pubKeyCollateralAddress.GetID()).ToString()));
+            node.push_back(Pair("lastseen",      mnInfo.nTimeLastPing));
+            node.push_back(Pair("activeseconds", mnInfo.nTimeLastPing - mnInfo.sigTime));
+
+            nodes.push_back(node);
+        }
+
+        obj.pushKV("nodes", nodes);
+
         return obj;
     }
 
