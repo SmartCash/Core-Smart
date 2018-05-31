@@ -861,9 +861,9 @@ void CWallet::MarkDirty() {
 }
 
 bool CWallet::AddToWallet(const CWalletTx &wtxIn, bool fFromLoadWallet, CWalletDB *pwalletdb) {
-    LogPrintf("CWallet::AddToWallet\n");
+    LogPrint("selectcoins", "CWallet::AddToWallet\n");
     uint256 hash = wtxIn.GetHash();
-    LogPrintf("hash=%s\n", hash.ToString());
+    LogPrint("selectcoins","hash=%s\n", hash.ToString());
     if (fFromLoadWallet) {
         mapWallet[hash] = wtxIn;
         CWalletTx &wtx = mapWallet[hash];
@@ -926,7 +926,7 @@ bool CWallet::AddToWallet(const CWalletTx &wtxIn, bool fFromLoadWallet, CWalletD
                     int64_t blocktime = mapBlockIndex[wtxIn.hashBlock]->GetBlockTime();
                     wtx.nTimeSmart = std::max(latestEntry, std::min(blocktime, latestNow));
                 } else
-                    LogPrintf("AddToWallet(): found %s in block %s not in index\n",
+                    LogPrint("selectcoins", "AddToWallet(): found %s in block %s not in index\n",
                               wtxIn.GetHash().ToString(),
                               wtxIn.hashBlock.ToString());
             }
@@ -955,7 +955,7 @@ bool CWallet::AddToWallet(const CWalletTx &wtxIn, bool fFromLoadWallet, CWalletD
         }
 
         //// debug print
-        LogPrintf("AddToWallet %s  %s%s\n", wtxIn.GetHash().ToString(), (fInsertedNew ? "new" : ""),
+        LogPrint("selectcoins", "AddToWallet %s  %s%s\n", wtxIn.GetHash().ToString(), (fInsertedNew ? "new" : ""),
                   (fUpdated ? "update" : ""));
 
         // Write to disk
@@ -978,7 +978,7 @@ bool CWallet::AddToWallet(const CWalletTx &wtxIn, bool fFromLoadWallet, CWalletD
         }
 
     }
-    LogPrintf("CWallet::AddToWallet -> ok\n");
+    LogPrint("selectcoins", "CWallet::AddToWallet -> ok\n");
     return true;
 }
 

@@ -144,23 +144,31 @@ bool SmartNodePayments::IsBlockPayeeValid(const CTransaction& txNew, int nBlockH
 
     if(!smartnodeSync.IsSynced()) {
         //there is no budget data to use to check anything, let's just accept the longest chain
-        if(fDebug) LogPrintf("IsBlockPayeeValid -- WARNING: Client not synced, skipping block payee checks\n");
+        LogPrint("mnpayments", "SmartNodePayments::IsBlockPayeeValid -- WARNING: Client not synced, skipping block payee checks\n");
         nodeReward = expectedNodeReward;
         return true;
     }
 
     if(mnpayments.IsTransactionValid(txNew, nBlockHeight, expectedNodeReward, nodeReward)) {
-        LogPrint("mnpayments", "IsBlockPayeeValid -- Valid smartnode payment at height %d: %s", nBlockHeight, txNew.ToString());
+        LogPrint("mnpayments", "SmartNodePayments::IsBlockPayeeValid -- Valid smartnode payment at height %d: %s", nBlockHeight, txNew.ToString());
         return true;
     }
 
     if(sporkManager.IsSporkActive(SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT)) {
-        LogPrintf("IsBlockPayeeValid -- ERROR: Invalid smartnode payment detected at height %d: %s", nBlockHeight, txNew.ToString());
+        LogPrint("mnpayments", "SmartNodePayments::IsBlockPayeeValid -- ERROR: Invalid smartnode payment detected at height %d: %s", nBlockHeight, txNew.ToString());
         return false;
     }
 
-    nodeReward = expectedNodeReward;
-    LogPrintf("IsBlockPayeeValid -- WARNING: Smartnode payment enforcement is disabled, accepting any payee\n");
+    LogPrint("mnpayments", "IsBlockPayeeValid -- WARNING: Smartnode payment enforcement is disabled, accepting any payee\n");
+
+    BOOST_FOREACH(CTxOut txout, txNew.vout) {
+        if (expectedNodeReward == txout.nValue) {
+            nodeReward = txout.nValue;
+            LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment without node validity check!\n");
+            return true;
+        }
+    }
+
     return true;
 }
 
@@ -294,7 +302,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         {
             LOCK(cs_mapSmartnodePaymentVotes);
             if(mapSmartnodePaymentVotes.count(nHash)) {
-                LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE -- hash=%s, nHeight=%d seen\n", nHash.ToString(), nCachedBlockHeight);
+                LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- hash=%s, nHeight=%d seen\n", nHash.ToString(), nCachedBlockHeight);
                 return;
             }
 
@@ -307,25 +315,25 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
 
         int nFirstBlock = nCachedBlockHeight - GetStorageLimit();
         if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight+20) {
-            LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE -- vote out of range: nFirstBlock=%d, nBlockHeight=%d, nHeight=%d\n", nFirstBlock, vote.nBlockHeight, nCachedBlockHeight);
+            LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- vote out of range: nFirstBlock=%d, nBlockHeight=%d, nHeight=%d\n", nFirstBlock, vote.nBlockHeight, nCachedBlockHeight);
             return;
         }
 
         std::string strError = "";
         if(!vote.IsValid(pfrom, nCachedBlockHeight, strError, connman)) {
-            LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE -- invalid message, error: %s\n", strError);
+            LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- invalid message, error: %s\n", strError);
             return;
         }
 
         if(!CanVote(vote.vinSmartnode.prevout, vote.nBlockHeight)) {
-            LogPrintf("SMARTNODEPAYMENTVOTE -- smartnode already voted, smartnode=%s\n", vote.vinSmartnode.prevout.ToStringShort());
+            LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- smartnode already voted, smartnode=%s\n", vote.vinSmartnode.prevout.ToStringShort());
             return;
         }
 
         smartnode_info_t mnInfo;
         if(!mnodeman.GetSmartnodeInfo(vote.vinSmartnode.prevout, mnInfo)) {
             // mn was not found, so we can't check vote, some info is probably missing
-            LogPrintf("SMARTNODEPAYMENTVOTE -- smartnode is missing %s\n", vote.vinSmartnode.prevout.ToStringShort());
+            LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- smartnode is missing %s\n", vote.vinSmartnode.prevout.ToStringShort());
             mnodeman.AskForMN(pfrom, vote.vinSmartnode.prevout, connman);
             return;
         }
@@ -333,7 +341,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         int nDos = 0;
         if(!vote.CheckSignature(mnInfo.pubKeySmartnode, nCachedBlockHeight, nDos)) {
             if(nDos) {
-                LogPrintf("SMARTNODEPAYMENTVOTE -- ERROR: invalid signature\n");
+                LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- ERROR: invalid signature\n");
                 Misbehaving(pfrom->GetId(), nDos);
             } else {
                 // only warn about anything non-critical (i.e. nDos == 0) in debug mode
@@ -352,7 +360,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         ExtractDestination(vote.payee, address1);
         CBitcoinAddress address2(address1);
 
-        LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE -- vote: address=%s, nBlockHeight=%d, nHeight=%d, prevout=%s, hash=%s new\n",
+        LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- vote: address=%s, nBlockHeight=%d, nHeight=%d, prevout=%s, hash=%s new\n",
                     address2.ToString(), vote.nBlockHeight, nCachedBlockHeight, vote.vinSmartnode.prevout.ToStringShort(), nHash.ToString());
 
         if(AddPaymentVote(vote)){
@@ -485,7 +493,7 @@ bool CSmartnodeBlockPayees::HasPayeeWithVotes(const CScript& payeeIn, int nVotes
         }
     }
 
-    LogPrint("mnpayments", "CSmartnodeBlockPayees::HasPayeeWithVotes -- ERROR: couldn't find any payee with %d+ votes\n", nVotesReq);
+    LogPrint("mnpaymentvote", "CSmartnodeBlockPayees::HasPayeeWithVotes -- ERROR: couldn't find any payee with %d+ votes\n", nVotesReq);
     return false;
 }
 
@@ -507,7 +515,11 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     }
 
     // if we don't have at least MNPAYMENTS_SIGNATURES_REQUIRED signatures on a payee, approve whichever is the longest chain
-    if(nMaxSignatures < MNPAYMENTS_SIGNATURES_REQUIRED) return true;
+    if(nMaxSignatures < MNPAYMENTS_SIGNATURES_REQUIRED){
+        LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- WARNING: Approve for too less signatures %d\n", nMaxSignatures);
+        nodeReward = expectedNodeReward;
+        return true;
+    }
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
         if (payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED) {
@@ -576,7 +588,7 @@ bool CSmartnodePayments::IsTransactionValid(const CTransaction& txNew, int nBloc
         return mapSmartnodeBlocks[nBlockHeight].IsTransactionValid(txNew, expectedNodeReward, nodeReward);
     }
 
-    return true;
+    return false;
 }
 
 void CSmartnodePayments::CheckAndRemove()
@@ -790,7 +802,7 @@ void CSmartnodePaymentVote::Relay(CConnman& connman)
 {
     // Do not relay until fully synced
     if(!smartnodeSync.IsSynced()) {
-        LogPrint("mnpayments", "CSmartnodePayments::Relay -- won't relay until fully synced\n");
+        LogPrint("mnpaymentvote", "CSmartnodePayments::Relay -- won't relay until fully synced\n");
         return;
     }
 

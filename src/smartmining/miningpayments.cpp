@@ -34,25 +34,30 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
 
     SmartHivePayments::Result result = SmartHivePayments::Validate(block.vtx[0],pindex->nHeight, pindex->GetBlockTime(), hiveReward);
     if( result != SmartHivePayments::Valid ){
+        LogPrintf("SmartMining::Validate - Invalid hive payment %s\n", block.vtx[0].ToString());
         return state.DoS(100, false, SmartHivePayments::RejectionCode(result),
                                      SmartHivePayments::RejectionMessage(result));
     }
 
     if (!SmartNodePayments::IsBlockPayeeValid(block.vtx[0], pindex->nHeight, blockReward, nodeReward)) {
+        LogPrintf("SmartMining::Validate - Invalid node payment %s\n", block.vtx[0].ToString());
         return state.DoS(0, error("ConnectBlock(SMARTCASH): couldn't find smartnode payments"),
                                 REJECT_INVALID, "bad-cb-payee");
     }
 
     if( SmartRewardPayments::Validate(block,pindex->nHeight, smartReward) != SmartRewardPayments::Valid ){
+         LogPrintf("SmartMining::Validate - Invalid smartreward payment %s\n", block.vtx[0].ToString());
         return state.DoS(100, false, REJECT_INVALID_SMARTREWARD_PAYMENTS,
                      "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
     }
 
     if( ( MainNet() && pindex->nHeight >= HF_V1_2_START_VALIDATION_HEIGHT && pindex->nHeight <= HF_CHAIN_REWARD_END_HEIGHT ) ||
         ( TestNet() )){
-        if( coinbase > (nFees + nodeReward + hiveReward + smartReward + miningReward) )
+        if( coinbase > (nFees + nodeReward + hiveReward + smartReward + miningReward) ){
+             LogPrintf("SmartMining::Validate - Coinbase too high! %s\n", block.vtx[0].ToString());
             return state.DoS(100, false, REJECT_INVALID,
                          "CTransaction::CheckTransaction() : Coinbase value too high");
+        }
     }
 
     return true;
