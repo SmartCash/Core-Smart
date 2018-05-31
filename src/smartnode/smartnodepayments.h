@@ -157,12 +157,21 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        std::vector<CScriptBase> bases;
         READWRITE(vinSmartnode);
         READWRITE(nBlockHeight);
         READWRITE(vchSig);
-        BOOST_FOREACH(const CScript& scriptPubKey, payees)
-        {
-            READWRITE(*(CScriptBase*)(&scriptPubKey));
+
+        if (ser_action.ForRead()) {
+            READWRITE(bases);
+            BOOST_FOREACH(const CScriptBase& scriptBase, bases){
+                payees.push_back(CScript(scriptBase.begin(),scriptBase.end()));
+            }
+        }else{
+            BOOST_FOREACH(const CScript& scriptPubKey, payees){
+                bases.push_back(*(CScriptBase*)(&scriptPubKey));
+            }
+            READWRITE(bases);
         }
     }
 
