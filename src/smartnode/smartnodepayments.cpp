@@ -302,7 +302,9 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         }
 
         int nFirstBlock = nCachedBlockHeight - GetStorageLimit();
-        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight+ 20 + (interval * 2)) {
+        int interval = SmartNodePayments::PayoutInterval(vote.nBlockHeight);
+
+        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight + 20 + (interval * 2)) {
             LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- vote out of range: nFirstBlock=%d, nBlockHeight=%d, nHeight=%d\n", nFirstBlock, vote.nBlockHeight, nCachedBlockHeight);
             return;
         }
@@ -401,6 +403,8 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     mnpayee = GetScriptForDestination(mn.pubKeyCollateralAddress.GetID());
 
     CScriptVector payees;
+    int interval = SmartNodePayments::PayoutInterval(nNotBlockHeight);
+
     for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8 + (interval * 2); h++){
         if(h == nNotBlockHeight) continue;
         if(mapSmartnodeBlocks.count(h) &&
@@ -1002,8 +1006,9 @@ void CSmartnodePayments::UpdatedBlockTip(const CBlockIndex *pindex, CConnman& co
     nCachedBlockHeight = pindex->nHeight;
     LogPrint("mnpayments", "CSmartnodePayments::UpdatedBlockTip -- nCachedBlockHeight=%d\n", nCachedBlockHeight);
 
-    int interval = SmartNodePayments::PayoutInterval(nFutureBlock);
+    int interval = SmartNodePayments::PayoutInterval(nCachedBlockHeight);
     int nFutureBlock = nCachedBlockHeight + 10 + (interval * 2);
+
 //    CheckPreviousBlockVotes(nFutureBlock - 1);
     if( !interval || !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);
 
