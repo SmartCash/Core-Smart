@@ -93,7 +93,7 @@ public:
 
     void AddVoteHash(uint256 hashIn) { vecVoteHashes.push_back(hashIn); }
     std::vector<uint256> GetVoteHashes() { return vecVoteHashes; }
-    int GetVoteCount() { return vecVoteHashes.size(); }
+    int GetVoteCount() const { return vecVoteHashes.size(); }
 };
 
 // Keep track of votes for payees from smartnodes

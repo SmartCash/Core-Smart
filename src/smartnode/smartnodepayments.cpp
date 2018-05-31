@@ -25,10 +25,10 @@ CCriticalSection cs_mapSmartnodePaymentVotes;
 
 struct CompareBlockPayees
 {
-    bool operator()(CSmartnodePayee& t1,
-                    CSmartnodePayee& t2)
+    bool operator()(const CSmartnodePayee& t1,
+                    const CSmartnodePayee& t2) const
     {
-        return t1.GetVoteCount() < t2.GetVoteCount();
+        return t1.GetVoteCount() > t2.GetVoteCount();
     }
 };
 
@@ -302,7 +302,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         }
 
         int nFirstBlock = nCachedBlockHeight - GetStorageLimit();
-        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight+20) {
+        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight+ 20 + (interval * 2)) {
             LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- vote out of range: nFirstBlock=%d, nBlockHeight=%d, nHeight=%d\n", nFirstBlock, vote.nBlockHeight, nCachedBlockHeight);
             return;
         }
@@ -401,7 +401,7 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     mnpayee = GetScriptForDestination(mn.pubKeyCollateralAddress.GetID());
 
     CScriptVector payees;
-    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8; h++){
+    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8 + (interval * 2); h++){
         if(h == nNotBlockHeight) continue;
         if(mapSmartnodeBlocks.count(h) &&
            mapSmartnodeBlocks[h].GetBestPayees(payees) &&
@@ -876,7 +876,7 @@ void CSmartnodePayments::Sync(CNode* pnode, CConnman& connman)
 
     int nInvCount = 0;
 
-    for(int h = nCachedBlockHeight; h < nCachedBlockHeight + 20; h++) {
+    for(int h = nCachedBlockHeight; h < nCachedBlockHeight + 100; h++) {
         if(mapSmartnodeBlocks.count(h)) {
             BOOST_FOREACH(CSmartnodePayee& payee, mapSmartnodeBlocks[h].vecPayees) {
                 std::vector<uint256> vecVoteHashes = payee.GetVoteHashes();
@@ -1002,9 +1002,8 @@ void CSmartnodePayments::UpdatedBlockTip(const CBlockIndex *pindex, CConnman& co
     nCachedBlockHeight = pindex->nHeight;
     LogPrint("mnpayments", "CSmartnodePayments::UpdatedBlockTip -- nCachedBlockHeight=%d\n", nCachedBlockHeight);
 
-    int nFutureBlock = nCachedBlockHeight + 10;
     int interval = SmartNodePayments::PayoutInterval(nFutureBlock);
-
+    int nFutureBlock = nCachedBlockHeight + 10 + (interval * 2);
 //    CheckPreviousBlockVotes(nFutureBlock - 1);
     if( !interval || !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);
 
