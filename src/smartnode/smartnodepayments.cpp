@@ -567,8 +567,9 @@ std::string CSmartnodeBlockPayees::GetRequiredPaymentsString()
     LOCK(cs_vecPayees);
 
     std::string strRequiredPayments = "Unknown";
+    int interval = SmartNodePayments::PayoutInterval(nBlockHeight);
 
-    if( nBlockHeight % SmartNodePayments::PayoutInterval(nBlockHeight) ) return "NoRewardBlock";
+    if( !interval || nBlockHeight % interval ) return "NoRewardBlock";
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees)
     {
@@ -1010,6 +1011,6 @@ void CSmartnodePayments::UpdatedBlockTip(const CBlockIndex *pindex, CConnman& co
     int nFutureBlock = nCachedBlockHeight + 10 + interval;
 
 //    CheckPreviousBlockVotes(nFutureBlock - 1);
-    if( !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);
+    if( interval && !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);
 
 }
