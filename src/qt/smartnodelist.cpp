@@ -258,6 +258,8 @@ void SmartnodeList::updateNodeList()
         return;
     }
 
+    if( ShutdownRequested() ) delete timer;
+
     static int64_t nTimeListUpdated = GetTime();
 
     // to prevent high cpu usage update only once in SMARTNODELIST_UPDATE_SECONDS seconds

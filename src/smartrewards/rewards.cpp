@@ -487,15 +487,11 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
         nTimeUpdateRewardsTotal += nTime2 - nTime1;
         ++nCountUpdateRewards;
 
-        bool snapshot = false;
-
         // For the first round we have special parameter..
         if( !currentRound.number ){
 
             if( (MainNet() && pNextIndex->GetBlockTime() > nFirstRoundStartTime) ||
                 (TestNet() && pNextIndex->nHeight >= nFirstRoundStartBlock_Testnet) ){
-
-                snapshot = true;
 
                 if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
 
@@ -538,8 +534,6 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
         // If just hit the next round threshold
         if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound && pNextIndex->GetBlockTime() > currentRound.endBlockTime ) ||
             ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound ) && pNextIndex->nHeight >= currentRound.endBlockHeight ) ){
-
-            snapshot = true;
 
             if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
 

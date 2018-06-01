@@ -403,7 +403,7 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     mnpayee = GetScriptForDestination(mn.pubKeyCollateralAddress.GetID());
 
     CScriptVector payees;
-    int interval = SmartNodePayments::PayoutInterval(nNotBlockHeight);
+    int interval = SmartNodePayments::PayoutInterval(nCachedBlockHeight);
 
     for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8 + interval; h++){
         if(h == nNotBlockHeight) continue;
@@ -474,6 +474,8 @@ void CSmartnodeBlockPayees::AddPayees(const CSmartnodePaymentVote& vote)
 bool CSmartnodeBlockPayees::GetBestPayees(CScriptVector& payeesRet)
 {
     LOCK(cs_vecPayees);
+
+    payeesRet.clear();
 
     size_t expectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
@@ -1012,5 +1014,4 @@ void CSmartnodePayments::UpdatedBlockTip(const CBlockIndex *pindex, CConnman& co
 
 //    CheckPreviousBlockVotes(nFutureBlock - 1);
     if( interval && !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);
-
 }

@@ -559,7 +559,7 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
 
     if( vecTopTenthScores.size() >= requiredPayees ){
 
-        for (const auto& s : vecSmartnodeLastPaid) {
+        for (const auto& s : vecTopTenthScores) {
 
             mnInfoRet.push_back(s.second->GetInfo());
 
