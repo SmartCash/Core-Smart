@@ -432,7 +432,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
         UniValue obj(UniValue::VOBJ);
 
-        for(int i = nHeight - nLast; i < nHeight + 20; i++) {
+        for(int i = nHeight - nLast; i < nHeight + 20 + SmartNodePayments::PayoutInterval(nHeight); i++) {
             std::string strPayment = SmartNodePayments::GetRequiredPaymentsString(i);
             if (strFilter !="" && strPayment.find(strFilter) == std::string::npos) continue;
             obj.push_back(Pair(strprintf("%d", i), strPayment));

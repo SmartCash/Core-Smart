@@ -57,7 +57,7 @@ int SmartNodePayments::PayoutInterval(int nHeight)
     }else{
 
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT)
-            return TESTNET_V1_2_NODES_PER_BLOCK;
+            return TESTNET_V1_2_NODES_BLOCK_INTERVAL;
 
     }
 
@@ -113,7 +113,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
             return true;
         }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT){
 
-            if( nHeight % SmartNodePayments::PayoutsPerBlock(nHeight) ) return true;
+            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return true;
         }
 
     }
@@ -198,7 +198,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
             return;
         }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT){
 
-            if( nHeight % SmartNodePayments::PayoutsPerBlock(nHeight) )
+            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) )
                 return;
 
         }
@@ -218,7 +218,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
         }
         // fill payee with locally calculated winner and hope for the best
         for( const auto& mnInfo : mnInfos)
-        payees.push_back(GetScriptForDestination(mnInfo.pubKeyCollateralAddress.GetID()));
+            payees.push_back(GetScriptForDestination(mnInfo.pubKeyCollateralAddress.GetID()));
     }
 
     // GET SMARTNODE PAYMENT VARIABLES SETUP
@@ -304,7 +304,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         int nFirstBlock = nCachedBlockHeight - GetStorageLimit();
         int interval = SmartNodePayments::PayoutInterval(vote.nBlockHeight);
 
-        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight + 20 + (interval * 2)) {
+        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight + 20 + interval) {
             LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- vote out of range: nFirstBlock=%d, nBlockHeight=%d, nHeight=%d\n", nFirstBlock, vote.nBlockHeight, nCachedBlockHeight);
             return;
         }
@@ -405,7 +405,7 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     CScriptVector payees;
     int interval = SmartNodePayments::PayoutInterval(nNotBlockHeight);
 
-    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8 + (interval * 2); h++){
+    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8 + interval; h++){
         if(h == nNotBlockHeight) continue;
         if(mapSmartnodeBlocks.count(h) &&
            mapSmartnodeBlocks[h].GetBestPayees(payees) &&
@@ -1007,9 +1007,9 @@ void CSmartnodePayments::UpdatedBlockTip(const CBlockIndex *pindex, CConnman& co
     LogPrint("mnpayments", "CSmartnodePayments::UpdatedBlockTip -- nCachedBlockHeight=%d\n", nCachedBlockHeight);
 
     int interval = SmartNodePayments::PayoutInterval(nCachedBlockHeight);
-    int nFutureBlock = nCachedBlockHeight + 10 + (interval * 2);
+    int nFutureBlock = nCachedBlockHeight + 10 + interval;
 
 //    CheckPreviousBlockVotes(nFutureBlock - 1);
-    if( !interval || !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);
+    if( !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);
 
 }
