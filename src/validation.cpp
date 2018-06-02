@@ -1080,7 +1080,7 @@ int64_t GetBlockValue(int nHeight, int64_t nFees, unsigned int nTime)
     return value;
 }
 
-bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 hashTx, bool isVerifyDB){
+bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 hashTx, bool isVerifyDB, int nHeight){
 
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
@@ -1102,6 +1102,8 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
         nValueOut += txout.nValue;
         if (!MoneyRange(nValueOut))
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-txouttotal-toolarge");
+        if (nHeight > HF_ZEROCOIN_DISABLE && (txout.scriptPubKey.IsZerocoinMint() || txout.scriptPubKey.IsZerocoinSpend()))
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-zerocoin");
     }
 
     // Check for duplicate inputs
@@ -1122,6 +1124,8 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
             if (txin.prevout.IsNull() && !txin.scriptSig.IsZerocoinSpend() ) {
                 return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
             }
+            if (nHeight > HF_ZEROCOIN_DISABLE && ( txin.scriptSig.IsZerocoinMint() || txin.scriptSig.IsZerocoinSpend()) )
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-zerocoin");
         }
 
     }
@@ -3950,7 +3954,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, block.vtx)
-        if (!CheckTransaction(tx, state, tx.GetHash(), false))
+        if (!CheckTransaction(tx, state, tx.GetHash(), false, getNHeight(block)))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s", tx.GetHash().ToString(), state.GetDebugMessage()));
 

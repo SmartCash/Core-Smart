@@ -46,6 +46,15 @@ struct CompareByAddr
     }
 };
 
+struct CompareRankPair
+{
+    bool operator()(const CSmartnodeMan::rank_pair_t& t1,
+                    const CSmartnodeMan::rank_pair_t& t2) const
+    {
+        return t1.first < t2.first;
+    }
+};
+
 CSmartnodeMan::CSmartnodeMan()
 : cs(),
   mapSmartnodes(),
@@ -555,7 +564,7 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
         if(nCountTenth >= nTenthNetwork) break;
     }
 
-    std::sort(vecTopTenthScores.begin(), vecTopTenthScores.end(),CompareScoreMN());
+    std::sort(vecTopTenthScores.begin(), vecTopTenthScores.end(), CompareScoreMN());
 
     if( vecTopTenthScores.size() >= requiredPayees ){
 
@@ -645,26 +654,19 @@ bool CSmartnodeMan::GetSmartnodeRank(const COutPoint& outpoint, int& nRankRet, i
     if (!smartnodeSync.IsSmartnodeListSynced())
         return false;
 
-    // make sure we know about this block
-    uint256 nBlockHash = uint256();
-    if (!GetBlockHash(nBlockHash, nBlockHeight)) {
-        LogPrintf("CSmartnodeMan::%s -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", __func__, nBlockHeight);
-        return false;
-    }
-
     LOCK(cs);
 
-    score_pair_vec_t vecSmartnodeScores;
-    if (!GetSmartnodeScores(nBlockHash, vecSmartnodeScores, nMinProtocol))
+    CSmartnodeMan::rank_pair_vec_t vecSmartnodeRanks;
+    if (!GetSmartnodeRanks(vecSmartnodeRanks, nBlockHeight, nMinProtocol))
         return false;
 
-    int nRank = 0;
-    for (auto& scorePair : vecSmartnodeScores) {
-        nRank++;
-        if(scorePair.second->vin.prevout == outpoint) {
-            nRankRet = nRank;
-            return true;
-        }
+    auto hasRank = std::find_if(vecSmartnodeRanks.begin(), vecSmartnodeRanks.end(), [outpoint](const CSmartnodeMan::rank_pair_t &rankPair) -> bool {
+        return outpoint == rankPair.second.vin.prevout;
+    });
+
+    if( hasRank != vecSmartnodeRanks.end() ){
+        nRankRet = hasRank->first;
+        return true;
     }
 
     return false;
@@ -692,9 +694,16 @@ bool CSmartnodeMan::GetSmartnodeRanks(CSmartnodeMan::rank_pair_vec_t& vecSmartno
 
     int nRank = 0;
     for (auto& scorePair : vecSmartnodeScores) {
-        nRank++;
-        vecSmartnodeRanksRet.push_back(std::make_pair(nRank, *scorePair.second));
+
+        if( scorePair.second->IsEnabled() ){
+            nRank++;
+            vecSmartnodeRanksRet.push_back(std::make_pair(nRank, *scorePair.second));
+        }else{
+            vecSmartnodeRanksRet.push_back(std::make_pair(INT_MAX, *scorePair.second));
+        }
     }
+
+    std::sort(vecSmartnodeRanksRet.begin(), vecSmartnodeRanksRet.end(),CompareRankPair());
 
     return true;
 }
