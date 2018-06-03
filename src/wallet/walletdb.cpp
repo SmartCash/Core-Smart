@@ -705,17 +705,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 strErr = "Error reading wallet database: LoadDestData failed";
                 return false;
             }
-        }
-        else if (strType == "hdchain")
-        {
-            CHDChain chain;
-            ssValue >> chain;
-            if (!pwallet->SetHDChain(chain, true))
-            {
-                strErr = "Error reading wallet database: SetHDChain failed";
-                return false;
-            }
-        }
+        }        
         else if (strType == "chdchain")
         {
             CHDChain chain;
@@ -756,7 +746,7 @@ static bool IsKeyType(string strType)
 {
     return (strType== "key" || strType == "wkey" ||
             strType == "mkey" || strType == "ckey" ||
-            strType == "chdchain");
+            strType == "hdchain" || strType == "chdchain");
 }
 
 DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
