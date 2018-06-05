@@ -124,8 +124,9 @@ public:
 
         nPoolMaxTransactions = 3;
         nFulfilledRequestExpireTime = 60*30; // fulfilled requests expire in half hour
+
         strSporkPubKey = "04549ac134f694c0243f503e8c8a9a986f5de6610049c40b07816809b0d1d06a21b07be27b9bb555931773f62ba6cf35a25fd52f694d4e1106ccd237a7bb899fdd";
-        strSmartnodePaymentsPubKey = "04549ac134f694c0243f503e8c8a9a986f5de6610049c40b07816809b0d1d06a21b07be27b9bb555931773f62ba6cf35a25fd52f694d4e1106ccd237a7bb899fdd";
+
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
@@ -234,7 +235,9 @@ public:
         nDelayGetHeadersTime = 24 * 60 * 60;
 
         nFulfilledRequestExpireTime = 60*30; // fulfilled requests expire in half hour
-            
+
+        strSporkPubKey = "048ef2cc80961da504be6034679d2f7f84e082b7e31b541124fd4692b524bb47ceef74f666cd4169f3ea79a0206e643c870eb355c6d06d837eeaf1093ae9946baf";
+
         pchMessageStart[0] = 0xcf;
         pchMessageStart[1] = 0xfc;
         pchMessageStart[2] = 0xbe;
