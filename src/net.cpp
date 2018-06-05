@@ -210,7 +210,7 @@ void AdvertiseLocal(CNode *pnode)
         }
         if (addrLocal.IsRoutable())
         {
-            LogPrintf("AdvertiseLocal: advertising address %s\n", addrLocal.ToString());
+            LogPrint("net", "AdvertiseLocal: advertising address %s\n", addrLocal.ToString());
             pnode->PushAddress(addrLocal);
         }
     }
@@ -1098,7 +1098,7 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
 
     // don't accept incoming connections until fully synced
     if(fSmartNode && !smartnodeSync.IsSynced()) {
-        LogPrintf("AcceptConnection -- smartnode is not synced yet, skipping inbound connection attempt\n");
+        LogPrint("net", "AcceptConnection -- smartnode is not synced yet, skipping inbound connection attempt\n");
         CloseSocket(hSocket);
         return;
     }
@@ -1131,7 +1131,7 @@ void CConnman::ThreadSocketHandler()
             {
                 if (pnode->fDisconnect)
                 {
-                    LogPrintf("ThreadSocketHandler -- removing node: peer=%d addr=%s nRefCount=%d fNetworkNode=%d fInbound=%d fSmartnode=%d\n",
+                    LogPrint("net", "ThreadSocketHandler -- removing node: peer=%d addr=%s nRefCount=%d fNetworkNode=%d fInbound=%d fSmartnode=%d\n",
                               pnode->id, pnode->addr.ToString(), pnode->GetRefCount(), pnode->fNetworkNode, pnode->fInbound, pnode->fSmartnode);
 
                     // remove from vNodes
