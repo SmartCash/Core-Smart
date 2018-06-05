@@ -24,6 +24,7 @@
 #endif
 #include "utilstrencodings.h"
 #include "validationinterface.h"
+#include "warnings.h"
 #include "smartnode/smartnodepayments.h"
 #include "smartnode/smartnodesync.h"
 #include "smarthive/hive.h"

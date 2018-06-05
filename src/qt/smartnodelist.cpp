@@ -280,7 +280,7 @@ void SmartnodeList::updateNodeList()
     ui->tableWidgetSmartnodes->clearContents();
     ui->tableWidgetSmartnodes->setRowCount(0);
     std::map<COutPoint, CSmartnode> mapSmartnodes = mnodeman.GetFullSmartnodeMap();
-    LogPrintf("Update nodes, map = %d\n", mapSmartnodes.size());
+
     int offsetFromUtc = GetOffsetFromUtc();
 
     for(auto& mnpair : mapSmartnodes)

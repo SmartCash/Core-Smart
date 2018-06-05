@@ -13,7 +13,7 @@ class CSmartnode;
 class CSmartnodeBroadcast;
 class CConnman;
 
-static const int SMARTNODE_CHECK_SECONDS               =   60;
+static const int SMARTNODE_CHECK_SECONDS               =   30;
 static const int SMARTNODE_MIN_MNB_SECONDS             =   5 * 60; //BROADCAST_TIME
 static const int SMARTNODE_MIN_MNP_SECONDS             =  20 * 60; //PRE_ENABLE_TIME
 static const int SMARTNODE_EXPIRATION_SECONDS          = 120 * 60;

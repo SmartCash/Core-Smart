@@ -150,7 +150,7 @@ BITCOIN_CORE_H = \
   smartnode/smartnodesync.h \
   smartrewards/rewards.h \
   smartrewards/rewardsdb.h \
-  smartrewards/rewardspayments.h \  
+  smartrewards/rewardspayments.h \
   spentindex.h \
   streams.h \
   support/allocators/secure.h \
@@ -356,6 +356,7 @@ libbitcoin_common_a_SOURCES = \
   script/sign.cpp \
   script/standard.cpp \
   smartnode/spork.cpp \
+  warnings.cpp \
   $(BITCOIN_CORE_H)
 
 # util: shared between all executables.

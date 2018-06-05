@@ -171,9 +171,9 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
 
     // gradually request the rest of the votes after sync finished
     if(IsSynced()) {
-        std::vector<CNode*> vNodesCopy = connman.CopyNodeVector();
+        //std::vector<CNode*> vNodesCopy = connman.CopyNodeVector();
         //governance.RequestGovernanceObjectVotes(vNodesCopy, connman);
-        connman.ReleaseNodeVector(vNodesCopy);
+        //connman.ReleaseNodeVector(vNodesCopy);
         return;
     }
 
@@ -191,24 +191,6 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
         // Inbound connection this early is most likely a "smartnode" connection
         // initiated from another node, so skip it too.
         if(pnode->fSmartnode || (fSmartNode && pnode->fInbound)) continue;
-
-        // QUICK MODE (REGTEST ONLY!)
-        if(Params().NetworkIDString() == CBaseChainParams::REGTEST)
-        {
-            if(nRequestedSmartnodeAttempt <= 2) {
-                connman.PushMessageWithVersion(pnode, INIT_PROTO_VERSION, NetMsgType::GETSPORKS); //get current network sporks
-            } else if(nRequestedSmartnodeAttempt < 4) {
-                mnodeman.DsegUpdate(pnode, connman);
-            } else if(nRequestedSmartnodeAttempt < 6) {
-                int nMnCount = mnodeman.CountSmartnodes();
-                connman.PushMessage(pnode, NetMsgType::SMARTNODEPAYMENTSYNC, nMnCount); //sync payment votes
-            } else {
-                nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
-            }
-            nRequestedSmartnodeAttempt++;
-            connman.ReleaseNodeVector(vNodesCopy);
-            return;
-        }
 
         // NORMAL NETWORK MODE - TESTNET/MAINNET
         {

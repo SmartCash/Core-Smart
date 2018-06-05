@@ -18,6 +18,7 @@ class CSmartnodeBlockPayees;
 
 static const int MNPAYMENTS_SIGNATURES_REQUIRED         = 6;
 static const int MNPAYMENTS_SIGNATURES_TOTAL            = 10;
+static const int MNPAYMENTS_NO_RANK                    = INT_MAX;
 
 //! minimum peer version that can receive and send smartnode payment messages,
 //  vote for smartnode and be elected as a payment winner

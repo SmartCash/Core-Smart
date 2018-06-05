@@ -150,12 +150,6 @@ void SmartNodePayments::FillPayments(CMutableTransaction& txNew, int nBlockHeigh
 
 std::string SmartNodePayments::GetRequiredPaymentsString(int nBlockHeight)
 {
-    // IF WE HAVE A ACTIVATED TRIGGER FOR THIS HEIGHT - IT IS A SUPERBLOCK, GET THE REQUIRED PAYEES
-    // if(CSuperblockManager::IsSuperblockTriggered(nBlockHeight)) {
-    //     return CSuperblockManager::GetRequiredPaymentsString(nBlockHeight);
-    // }
-
-    // OTHERWISE, PAY SMARTNODE
     return mnpayments.GetRequiredPaymentsString(nBlockHeight);
 }
 
@@ -522,7 +516,6 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     LOCK(cs_vecPayees);
 
     int found = 0;
-    int nMaxSignatures = 0;
     int expectedPayees =  SmartNodePayments::PayoutsPerBlock(nBlockHeight);
     std::string strPayeesPossible = "";
 
@@ -531,23 +524,26 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     //require at least MNPAYMENTS_SIGNATURES_REQUIRED signatures
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
-        if (payee.GetVoteCount() >= nMaxSignatures) {
-            nMaxSignatures = payee.GetVoteCount();
-        }
+        if( payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED )
+            found++;
     }
 
-    // if we don't have at least MNPAYMENTS_SIGNATURES_REQUIRED signatures on a payee, approve whichever is the longest chain
-    if(nMaxSignatures < MNPAYMENTS_SIGNATURES_REQUIRED){
-        LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- WARNING: Approve for too less signatures %d\n", nMaxSignatures);
+    // if we don't have at least expectedPayees with MNPAYMENTS_SIGNATURES_REQUIRED signatures, approve whichever is the longest chain
+    if(found < expectedPayees ){
+        LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- WARNING: Approve for too less payees with minimum signatures %d\n", found);
         return true;
     }
+
+    // Reset to count the expected payees.
+    found = 0;
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
         if (payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED) {
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
                 if (txout.scriptPubKey == payee.GetPayee() && txout.nValue == expectedPerNode) {
-                    LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment\n");
+                    LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment: %s\n",txout.ToString());
                     found++;
+                    break;
                 }
             }
 
@@ -565,7 +561,7 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
 
     if( found == expectedPayees ) return true;
 
-    LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- ERROR: Missing required payment, possible payees: '%s', amount: %f SMARTCASH\n", strPayeesPossible, (float)expectedNodeReward/COIN);
+    LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- ERROR: Missing required payment, possible payees: '%s'\n", strPayeesPossible);
     return false;
 }
 
@@ -688,10 +684,10 @@ bool CSmartnodePaymentVote::IsValid(CNode* pnode, int nValidationHeight, std::st
         // We don't want to print all of these messages in normal mode, debug mode should print though
         strError = strprintf("Smartnode is not in the top %d (%d)", MNPAYMENTS_SIGNATURES_TOTAL, nRank);
         // Only ban for new mnw which is out of bounds, for old mnw MN list itself might be way too much off
-        if(nRank > MNPAYMENTS_SIGNATURES_TOTAL*2 && nBlockHeight > nValidationHeight) {
+        if(nRank != MNPAYMENTS_NO_RANK && nRank > MNPAYMENTS_SIGNATURES_TOTAL*2 && nBlockHeight > nValidationHeight) {
             strError = strprintf("Smartnode is not in the top %d (%d)", MNPAYMENTS_SIGNATURES_TOTAL*2, nRank);
-            LogPrintf("CSmartnodePaymentVote::IsValid -- Error: %s\n", strError);
-            Misbehaving(pnode->GetId(), 20);
+            LogPrint("mnpayments", "CSmartnodePaymentVote::IsValid -- Error: %s\n", strError);
+            Misbehaving(pnode->GetId(), 10);
         }
         // Still invalid however
         return false;
@@ -770,6 +766,7 @@ bool CSmartnodePayments::ProcessBlock(int nBlockHeight, CConnman& connman)
     return false;
 }
 
+// TBD Check -> This is not very useful? Why should we do that?
 //void CSmartnodePayments::CheckPreviousBlockVotes(int nPrevBlockHeight)
 //{
 //    if (!smartnodeSync.IsWinnersListSynced()) return;
@@ -936,18 +933,18 @@ void CSmartnodePayments::RequestLowDataPaymentBlocks(CNode* pnode, CConnman& con
     std::map<int, CSmartnodeBlockPayees>::iterator it = mapSmartnodeBlocks.begin();
 
     while(it != mapSmartnodeBlocks.end()) {
+        int expectedPayees = SmartNodePayments::PayoutsPerBlock(it->first);
         int nTotalVotes = 0;
-        bool fFound = false;
+        int fFound = 0;
         BOOST_FOREACH(CSmartnodePayee& payee, it->second.vecPayees) {
             if(payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED) {
-                fFound = true;
-                break;
+                if( ++fFound == expectedPayees) break;
             }
             nTotalVotes += payee.GetVoteCount();
         }
         // A clear winner (MNPAYMENTS_SIGNATURES_REQUIRED+ votes) was found
         // or no clear winner was found but there are at least avg number of votes
-        if(fFound || nTotalVotes >= (MNPAYMENTS_SIGNATURES_TOTAL + MNPAYMENTS_SIGNATURES_REQUIRED)/2) {
+        if(fFound == expectedPayees || nTotalVotes >= ( (MNPAYMENTS_SIGNATURES_TOTAL + MNPAYMENTS_SIGNATURES_REQUIRED) * expectedPayees )/2) {
             // so just move to the next block
             ++it;
             continue;

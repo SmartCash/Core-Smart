@@ -34,6 +34,7 @@
 #include "validationinterface.h"
 #include "versionbits.h"
 #include "wallet/wallet.h"
+#include "warnings.h"
 
 #include <sstream>
 
@@ -1219,6 +1220,19 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
                 if (itConflicting != pool.mapNextTx.end()) {
                     const CTransaction *ptxConflicting = pool.mapNextTx[txin.prevout].ptx;
                     if (!setConflicts.count(ptxConflicting->GetHash())) {
+                        // InstantSend txes are not replacable
+                        if(instantsend.HasTxLockRequest(ptxConflicting->GetHash())) {
+                            // this tx conflicts with a Transaction Lock Request candidate
+                            return state.DoS(0, error("AcceptToMemoryPool : Transaction %s conflicts with Transaction Lock Request %s",
+                                                    hash.ToString(), ptxConflicting->GetHash().ToString()),
+                                            REJECT_INVALID, "tx-txlockreq-mempool-conflict");
+                        } else if (instantsend.HasTxLockRequest(hash)) {
+                            // this tx is a tx lock request and it conflicts with a normal tx
+                            return state.DoS(0, error("AcceptToMemoryPool : Transaction Lock Request %s conflicts with transaction %s",
+                                                    hash.ToString(), ptxConflicting->GetHash().ToString()),
+                                            REJECT_INVALID, "txlockreq-tx-mempool-conflict");
+                        }
+
                         bool fReplacementOptOut = true;
                         if (fEnableReplacement) {
                             BOOST_FOREACH(const CTxIn &txin, ptxConflicting->vin)
@@ -1351,24 +1365,24 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         // itself can contain sigops MAX_STANDARD_TX_SIGOPS is less than
         // MAX_BLOCK_SIGOPS; we still consider this an invalid rather than
         // merely non-standard transaction.
-//        if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST) {
-//            LogPrintf("cause by -> bad-txns-too-many-sigops\n");
-//            return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-too-many-sigops", false,
-//                             strprintf("%d", nSigOpsCost));
-//        }
-//        CAmount mempoolRejectFee = pool.GetMinFee(GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000).GetFee(
-//                nSize);
-//        if (mempoolRejectFee > 0 && nModifiedFees < mempoolRejectFee) {
-//            LogPrintf("cause by -> mempool min fee not met\n");
-//            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool min fee not met", false,
-//                             strprintf("%d < %d", nFees, mempoolRejectFee));
-//        } else if (GetBoolArg("-relaypriority", DEFAULT_RELAYPRIORITY) &&
-//                   nModifiedFees < ::minRelayTxFee.GetFee(nSize) &&
-//                   !AllowFree(entry.GetPriority(chainActive.Height() + 1))) {
-//            LogPrintf("cause by -> insufficient priority\n");
+        if (nSigOps > MAX_STANDARD_TX_SIGOPS_COST) {
+            LogPrintf("cause by -> bad-txns-too-many-sigops\n");
+            return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-too-many-sigops", false,
+                             strprintf("%d", nSigOps));
+        }
+        CAmount mempoolRejectFee = pool.GetMinFee(GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000).GetFee(
+                nSize);
+        if (mempoolRejectFee > 0 && nModifiedFees < mempoolRejectFee) {
+            LogPrintf("cause by -> mempool min fee not met\n");
+            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool min fee not met", false,
+                             strprintf("%d < %d", nFees, mempoolRejectFee));
+        } else if (GetBoolArg("-relaypriority", DEFAULT_RELAYPRIORITY) &&
+                   nModifiedFees < ::minRelayTxFee.GetFee(nSize) &&
+                   !AllowFree(entry.GetPriority(chainActive.Height() + 1))) {
+            LogPrintf("cause by -> insufficient priority\n");
             // Require that free transactions have sufficient priority to be mined in the next block.
-//            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient priority");
-//        }
+            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient priority");
+        }
 
         // Continuously rate-limit free (really, very-low-fee) transactions
         // This mitigates 'penny-flooding' -- sending thousands of free transactions just to
@@ -1620,9 +1634,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool full");
         }
 
-        // if (tx.IsZerocoinSpend()) {
-        //     pool.countZCSpend++;
-        // }
       }
     }
 
@@ -1859,7 +1870,7 @@ bool IsInitialBlockDownload()
 }
 
 bool fLargeWorkForkFound = false;
-bool fLargeWorkInvalidChainFound = false;
+
 CBlockIndex *pindexBestForkTip = NULL, *pindexBestForkBase = NULL;
 
 // static void AlertNotify(const std::string& strMessage)
@@ -1908,7 +1919,7 @@ void CheckForkWarningConditions()
                 LogPrintf("%s: Warning: Large valid fork found\n  forking the chain at height %d (%s)\n  lasting to height %d (%s).\nChain state database corruption likely.\n", __func__,
                        pindexBestForkBase->nHeight, pindexBestForkBase->phashBlock->ToString(),
                        pindexBestForkTip->nHeight, pindexBestForkTip->phashBlock->ToString());
-                fLargeWorkForkFound = true;
+                SetfLargeWorkForkFound(true);
             }
         }
         else
@@ -1917,13 +1928,13 @@ void CheckForkWarningConditions()
                 LogPrintf("%s: Warning: Found invalid chain at least ~6 blocks longer than our best chain.\nChain state database corruption likely.\n", __func__);
             else
                 LogPrintf("%s: Warning: Found invalid chain which has higher work (at least ~6 blocks worth of work) than our best chain.\nChain state database corruption likely.\n", __func__);
-            fLargeWorkInvalidChainFound = true;
+            SetfLargeWorkInvalidChainFound(true);
         }
     }
     else
     {
-        fLargeWorkForkFound = false;
-        fLargeWorkInvalidChainFound = false;
+        SetfLargeWorkForkFound(false);
+        SetfLargeWorkInvalidChainFound(false);
     }
 }
 
@@ -3257,7 +3268,8 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
 
 bool GetUTXOCoin(const COutPoint& outpoint, Coin& coin)
 {
-    LOCK(cs_main);
+    AssertLockHeld(cs_main);
+
     if (!pcoinsTip->GetCoin(outpoint, coin))
         return false;
     if (coin.IsSpent())
@@ -3275,7 +3287,6 @@ int GetUTXOHeight(const COutPoint& outpoint)
 int GetUTXOConfirmations(const COutPoint& outpoint)
 {
     // -1 means UTXO is yet unknown or already spent
-    LOCK(cs_main);
     int nPrevoutHeight = GetUTXOHeight(outpoint);
     return (nPrevoutHeight > -1 && chainActive.Tip()) ? chainActive.Height() - nPrevoutHeight + 1 : -1;
 }
@@ -5199,56 +5210,6 @@ void static CheckBlockIndex(const Consensus::Params& consensusParams)
     // Check that we actually traversed the entire map.
     assert(nNodes == forward.size());
 }
-
-std::string GetWarnings(const std::string& strFor)
-{
-    string strStatusBar;
-    string strRPC;
-    string strGUI;
-    const string uiAlertSeperator = "<hr />";
-
-    if (!CLIENT_VERSION_IS_RELEASE) {
-        strStatusBar = "This is a pre-release test build - use at your own risk - do not use for mining or merchant applications";
-        strGUI = _("This is a pre-release test build - use at your own risk - do not use for mining or merchant applications");
-    }
-
-    if (GetBoolArg("-testsafemode", DEFAULT_TESTSAFEMODE))
-        strStatusBar = strRPC = strGUI = "testsafemode enabled";
-
-    // Misc warnings like out of disk space and clock is wrong
-    if (strMiscWarning != "")
-    {
-        strStatusBar = strMiscWarning;
-        strGUI += (strGUI.empty() ? "" : uiAlertSeperator) + strMiscWarning;
-    }
-
-    if (fLargeWorkForkFound)
-    {
-        strStatusBar = strRPC = "Warning: The network does not appear to fully agree! Some miners appear to be experiencing issues.";
-        strGUI += (strGUI.empty() ? "" : uiAlertSeperator) + _("Warning: The network does not appear to fully agree! Some miners appear to be experiencing issues.");
-    }
-    else if (fLargeWorkInvalidChainFound)
-    {
-        strStatusBar = strRPC = "Warning: We do not appear to fully agree with our peers! You may need to upgrade, or other nodes may need to upgrade.";
-        strGUI += (strGUI.empty() ? "" : uiAlertSeperator) + _("Warning: We do not appear to fully agree with our peers! You may need to upgrade, or other nodes may need to upgrade.");
-    }
-
-    if (strFor == "gui")
-        return strGUI;
-    else if (strFor == "statusbar")
-        return strStatusBar;
-    else if (strFor == "rpc")
-        return strRPC;
-    assert(!"GetWarnings(): invalid parameter");
-    return "error";
-}
-
-
-
-
-
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 // Messages

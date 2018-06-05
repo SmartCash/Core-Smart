@@ -360,7 +360,11 @@ void CSmartnodeMan::Clear()
 
 int CSmartnodeMan::CountSmartnodes(int nProtocolVersion)
 {
-    LOCK(cs);
+    static int nodes = 0;
+
+    TRY_LOCK(cs,locked);
+    if( !locked ) return nodes;
+
     int nCount = 0;
     nProtocolVersion = nProtocolVersion == -1 ? mnpayments.GetMinSmartnodePaymentsProto() : nProtocolVersion;
 
@@ -369,12 +373,16 @@ int CSmartnodeMan::CountSmartnodes(int nProtocolVersion)
         nCount++;
     }
 
-    return nCount;
+    return (nodes = nCount);
 }
 
 int CSmartnodeMan::CountEnabled(int nProtocolVersion)
 {
-    LOCK(cs);
+    static int enabled = 0;
+
+    TRY_LOCK(cs,locked);
+    if( !locked ) return enabled;
+
     int nCount = 0;
     nProtocolVersion = nProtocolVersion == -1 ? mnpayments.GetMinSmartnodePaymentsProto() : nProtocolVersion;
 
@@ -383,7 +391,7 @@ int CSmartnodeMan::CountEnabled(int nProtocolVersion)
         nCount++;
     }
 
-    return nCount;
+    return (enabled = nCount);
 }
 
 /* Only IPv4 smartnodes are allowed in 12.1, saving this for later
@@ -581,49 +589,6 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
     return false;
 }
 
-smartnode_info_t CSmartnodeMan::FindRandomNotInVec(const std::vector<COutPoint> &vecToExclude, int nProtocolVersion)
-{
-    LOCK(cs);
-
-    nProtocolVersion = nProtocolVersion == -1 ? mnpayments.GetMinSmartnodePaymentsProto() : nProtocolVersion;
-
-    int nCountEnabled = CountEnabled(nProtocolVersion);
-    int nCountNotExcluded = nCountEnabled - vecToExclude.size();
-
-    LogPrintf("CSmartnodeMan::FindRandomNotInVec -- %d enabled smartnodes, %d smartnodes to choose from\n", nCountEnabled, nCountNotExcluded);
-    if(nCountNotExcluded < 1) return smartnode_info_t();
-
-    // fill a vector of pointers
-    std::vector<CSmartnode*> vpSmartnodesShuffled;
-    for (auto& mnpair : mapSmartnodes) {
-        vpSmartnodesShuffled.push_back(&mnpair.second);
-    }
-
-    InsecureRand insecureRand;
-    // shuffle pointers
-    std::random_shuffle(vpSmartnodesShuffled.begin(), vpSmartnodesShuffled.end(), insecureRand);
-    bool fExclude;
-
-    // loop through
-    BOOST_FOREACH(CSmartnode* pmn, vpSmartnodesShuffled) {
-        if(pmn->nProtocolVersion < nProtocolVersion || !pmn->IsEnabled()) continue;
-        fExclude = false;
-        BOOST_FOREACH(const COutPoint &outpointToExclude, vecToExclude) {
-            if(pmn->vin.prevout == outpointToExclude) {
-                fExclude = true;
-                break;
-            }
-        }
-        if(fExclude) continue;
-        // found the one not in vecToExclude
-        LogPrint("smartnode", "CSmartnodeMan::FindRandomNotInVec -- found, smartnode=%s\n", pmn->vin.prevout.ToStringShort());
-        return pmn->GetInfo();
-    }
-
-    LogPrint("smartnode", "CSmartnodeMan::FindRandomNotInVec -- failed\n");
-    return smartnode_info_t();
-}
-
 bool CSmartnodeMan::GetSmartnodeScores(const uint256& nBlockHash, CSmartnodeMan::score_pair_vec_t& vecSmartnodeScoresRet, int nMinProtocol)
 {
     vecSmartnodeScoresRet.clear();
@@ -654,8 +619,6 @@ bool CSmartnodeMan::GetSmartnodeRank(const COutPoint& outpoint, int& nRankRet, i
     if (!smartnodeSync.IsSmartnodeListSynced())
         return false;
 
-    LOCK(cs);
-
     CSmartnodeMan::rank_pair_vec_t vecSmartnodeRanks;
     if (!GetSmartnodeRanks(vecSmartnodeRanks, nBlockHeight, nMinProtocol))
         return false;
@@ -679,14 +642,14 @@ bool CSmartnodeMan::GetSmartnodeRanks(CSmartnodeMan::rank_pair_vec_t& vecSmartno
     if (!smartnodeSync.IsSmartnodeListSynced())
         return false;
 
+    LOCK2(cs,cs_main);
+
     // make sure we know about this block
     uint256 nBlockHash = uint256();
     if (!GetBlockHash(nBlockHash, nBlockHeight)) {
         LogPrintf("CSmartnodeMan::%s -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", __func__, nBlockHeight);
         return false;
     }
-
-    LOCK(cs);
 
     score_pair_vec_t vecSmartnodeScores;
     if (!GetSmartnodeScores(nBlockHash, vecSmartnodeScores, nMinProtocol))
@@ -699,11 +662,11 @@ bool CSmartnodeMan::GetSmartnodeRanks(CSmartnodeMan::rank_pair_vec_t& vecSmartno
             nRank++;
             vecSmartnodeRanksRet.push_back(std::make_pair(nRank, *scorePair.second));
         }else{
-            vecSmartnodeRanksRet.push_back(std::make_pair(INT_MAX, *scorePair.second));
+            vecSmartnodeRanksRet.push_back(std::make_pair(MNPAYMENTS_NO_RANK, *scorePair.second));
         }
     }
 
-    std::sort(vecSmartnodeRanksRet.begin(), vecSmartnodeRanksRet.end(),CompareRankPair());
+    std::sort(vecSmartnodeRanksRet.begin(), vecSmartnodeRanksRet.end(), CompareRankPair());
 
     return true;
 }
@@ -774,6 +737,7 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
             // use announced Smartnode as a peer
             connman.AddNewAddress(CAddress(mnb.addr, NODE_NETWORK), pfrom->addr, 2*60*60);
         } else if(nDos > 0) {
+            LOCK(cs_main);
             Misbehaving(pfrom->GetId(), nDos);
         }
 
@@ -838,8 +802,6 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
         vRecv >> vin;
 
         LogPrint("smartnode", "DSEG -- Smartnode list, smartnode=%s\n", vin.prevout.ToStringShort());
-
-        LOCK(cs);
 
         if(vin == CTxIn()) { //only should ask for this once
             //local network
@@ -1226,6 +1188,8 @@ void CSmartnodeMan::ProcessVerifyReply(CNode* pnode, CSmartnodeVerification& mnv
 
 void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerification& mnv)
 {
+    AssertLockHeld(cs_main);
+
     std::string strError;
 
     if(mapSeenSmartnodeVerification.find(mnv.GetHash()) != mapSeenSmartnodeVerification.end()) {
@@ -1366,10 +1330,9 @@ void CSmartnodeMan::UpdateSmartnodeList(CSmartnodeBroadcast mnb, CConnman& connm
 bool CSmartnodeMan::CheckMnbAndUpdateSmartnodeList(CNode* pfrom, CSmartnodeBroadcast mnb, int& nDos, CConnman& connman)
 {
     // Need to lock cs_main here to ensure consistent locking order because the SimpleCheck call below locks cs_main
-    LOCK(cs_main);
+    LOCK2(cs_main,cs);
 
     {
-        LOCK(cs);
         nDos = 0;
         LogPrint("smartnode", "CSmartnodeMan::CheckMnbAndUpdateSmartnodeList -- smartnode=%s\n", mnb.vin.prevout.ToStringShort());
 
@@ -1516,7 +1479,7 @@ void CSmartnodeMan::RemoveGovernanceObject(uint256 nGovernanceObjectHash)
 
 void CSmartnodeMan::CheckSmartnode(const CPubKey& pubKeySmartnode, bool fForce)
 {
-    LOCK(cs);
+    LOCK2(cs_main, cs);
     for (auto& mnpair : mapSmartnodes) {
         if (mnpair.second.pubKeySmartnode == pubKeySmartnode) {
             mnpair.second.Check(fForce);

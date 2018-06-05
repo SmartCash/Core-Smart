@@ -171,8 +171,6 @@ public:
     bool GetNextSmartnodesInQueueForPayment(bool fFilterSigTime, int& nCountRet, CSmartNodeWinners& mnInfoRet);
 
     /// Find a random entry
-    smartnode_info_t FindRandomNotInVec(const std::vector<COutPoint> &vecToExclude, int nProtocolVersion = -1);
-
     std::map<COutPoint, CSmartnode> GetFullSmartnodeMap() { return mapSmartnodes; }
 
     bool GetSmartnodeRanks(rank_pair_vec_t& vecSmartnodeRanksRet, int nBlockHeight = -1, int nMinProtocol = 0);

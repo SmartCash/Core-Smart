@@ -17,6 +17,7 @@
 #include "txmempool.h"
 #include "ui_interface.h"
 #include "util.h"
+#include "warnings.h"
 
 #include "smartnode/smartnodeman.h"
 #include "smartnode/smartnodesync.h"
