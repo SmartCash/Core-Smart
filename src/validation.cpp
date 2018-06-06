@@ -1869,8 +1869,6 @@ bool IsInitialBlockDownload()
     return false;
 }
 
-bool fLargeWorkForkFound = false;
-
 CBlockIndex *pindexBestForkTip = NULL, *pindexBestForkBase = NULL;
 
 // static void AlertNotify(const std::string& strMessage)

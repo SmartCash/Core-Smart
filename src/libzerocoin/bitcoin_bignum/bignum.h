@@ -578,7 +578,7 @@ public:
     /**
      * Miller-Rabin primality test on this element
      * @param checks: optional, the number of Miller-Rabin tests to run
-     * 			 	default causes error rate of 2^-80.
+     *              default causes error rate of 2^-80.
      * @return true if prime
      */
     bool isPrime(const int checks=BN_prime_checks) const {
