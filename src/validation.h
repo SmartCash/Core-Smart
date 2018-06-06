@@ -142,7 +142,7 @@ static const bool DEFAULT_RELAYPRIORITY = true;
 static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
 
 /** Default for -permitbaremultisig */
-static const bool DEFAULT_PERMIT_BAREMULTISIG = true;
+static const bool DEFAULT_PERMIT_BAREMULTISIG = false;
 static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
 static const bool DEFAULT_TXINDEX = true;
 static const bool DEFAULT_ADDRESSINDEX = false;

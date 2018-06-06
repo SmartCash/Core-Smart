@@ -125,7 +125,7 @@ public:
         nPoolMaxTransactions = 3;
         nFulfilledRequestExpireTime = 60*30; // fulfilled requests expire in half hour
 
-        strSporkPubKey = "04549ac134f694c0243f503e8c8a9a986f5de6610049c40b07816809b0d1d06a21b07be27b9bb555931773f62ba6cf35a25fd52f694d4e1106ccd237a7bb899fdd";
+        strSporkPubKey = "04100e553254edbd9ba785a326ee381816e58e183684cc2ca35434f941eed0cba438ccf655edee0ba85bfa402eed6f01f9e0ec39948cf46f69f072369205ae8013";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
