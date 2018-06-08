@@ -1135,9 +1135,12 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::VERACK);
 
         pfrom->nServices = nServices;
-        pfrom->addrLocal = addrMe;
-        pfrom->strSubVer = strSubVer;
-        pfrom->cleanSubVer = SanitizeString(strSubVer);
+        pfrom->SetAddrLocal(addrMe);
+        {
+            LOCK(pfrom->cs_SubVer);
+            pfrom->strSubVer = strSubVer;
+            pfrom->cleanSubVer = SanitizeString(strSubVer);
+        }
         pfrom->nStartingHeight = nStartingHeight;
         pfrom->fClient = !(nServices & NODE_NETWORK);
         {

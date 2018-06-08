@@ -10,6 +10,7 @@
 #include "addrman.h"
 #include "bloom.h"
 #include "compat.h"
+#include "hash.h"
 #include "limitedmap.h"
 #include "netaddress.h"
 #include "protocol.h"
@@ -61,6 +62,8 @@ static const unsigned int MAX_PROTOCOL_MESSAGE_LENGTH = 4 * 1000 * 1000;
 static const unsigned int MAX_SUBVERSION_LENGTH = 256;
 /** Maximum number of outgoing nodes */
 static const int MAX_OUTBOUND_CONNECTIONS = 8;
+/** Maximum number of addnode outgoing nodes */
+static const int MAX_ADDNODE_CONNECTIONS = 8;
 /** Maximum number if outgoing masternodes */
 static const int MAX_OUTBOUND_SMARTNODE_CONNECTIONS = 20;
 /** -listen default */
@@ -91,7 +94,7 @@ static const ServiceFlags REQUIRED_SERVICES = NODE_NETWORK;
 // NOTE: When adjusting this, update rpcnet:setban's help ("24h")
 static const unsigned int DEFAULT_MISBEHAVING_BANTIME = 60 * 60 * 24;  // Default 24-hour ban
 
-typedef int NodeId;
+typedef int64_t NodeId;
 
 struct AddedNodeInfo
 {
@@ -122,28 +125,32 @@ public:
         ServiceFlags nRelevantServices = NODE_NONE;
         int nMaxConnections = 0;
         int nMaxOutbound = 0;
+        int nMaxAddNode = 0;
         int nMaxFeeler = 0;
         int nBestHeight = 0;
         CClientUIInterface* uiInterface = nullptr;
         unsigned int nSendBufferMaxSize = 0;
         unsigned int nReceiveFloodSize = 0;
+        uint64_t nMaxOutboundTimeframe = 0;
+        uint64_t nMaxOutboundLimit = 0;
     };
-    CConnman();
+    CConnman(uint64_t nSeed0In, uint64_t nSeed1In);
     ~CConnman();
     bool Start(CScheduler& scheduler, std::string& strNodeError, Options options);
     void Stop();
     void Interrupt();
     bool BindListenPort(const CService &bindAddr, std::string& strError, bool fWhitelisted = false);
-    bool GetNetworkActive() const { return fNetworkActive; };
+    bool GetNetworkActive() const { return fNetworkActive; }
     void SetNetworkActive(bool active);
-    bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant *grantOutbound = NULL, const char *strDest = NULL, bool fOneShot = false, bool fFeeler = false);
+    bool OpenNetworkConnection(const CAddress& addrConnect, bool fCountFailure, CSemaphoreGrant *grantOutbound = NULL, const char *strDest = NULL, bool fOneShot = false, bool fFeeler = false, bool fAddnode = false, bool fConnectToSmartnode = false);
+    bool OpenSmartnodeConnection(const CAddress& addrConnect);
     bool CheckIncomingNonce(uint64_t nonce);
 
     // fConnectToSmartnode should be 'true' only if you want this node to allow to connect to itself
     // and/or you want it to be disconnected on CSmartnodeMan::ProcessSmartnodeConnections()
     // Unfortunately, can't make this method private like in Bitcoin,
     // because it's used in many Smartcash-specific places (smartnode, privatesend).
-    CNode* ConnectNode(CAddress addrConnect, const char *pszDest = NULL, bool fConnectToSmartnode = false);
+    CNode* ConnectNode(CAddress addrConnect, const char *pszDest = NULL, bool fCountFailure = false);
 
     struct CFullyConnectedOnly {
         bool operator() (const CNode* pnode) const {
@@ -301,6 +308,9 @@ public:
         ForEachNodeThen(FullyConnectedOnly, pre, post);
     }
 
+    std::vector<CNode*> CopyNodeVector(std::function<bool(const CNode* pnode)> cond);
+    bool IsSmartnodeOrDisconnectRequested(const CService& addr);
+
     std::vector<CNode*> CopyNodeVector();
     void ReleaseNodeVector(const std::vector<CNode*>& vecNodes);
 
@@ -345,6 +355,7 @@ public:
 
     bool AddNode(const std::string& node);
     bool RemoveAddedNode(const std::string& node);
+    bool AddPendingSmartnode(const CService& addr);
     std::vector<AddedNodeInfo> GetAddedNodeInfo();
 
     size_t GetNodeCount(NumConnections num);
@@ -385,6 +396,8 @@ public:
     void SetBestHeight(int height);
     int GetBestHeight() const;
 
+    /** Get a unique deterministic randomizer. */
+    CSipHasher GetDeterministicRandomizer(uint64_t id) const;
 
     unsigned int GetReceiveFloodSize() const;
 private:
@@ -402,7 +415,9 @@ private:
     void AcceptConnection(const ListenSocket& hListenSocket);
     void ThreadSocketHandler();
     void ThreadDNSAddressSeed();
-    void ThreadMnbRequestConnections();
+    void ThreadOpenSmartnodeConnections();
+
+    uint64_t CalculateKeyedNetGroup(const CAddress& ad) const;
 
     void WakeMessageHandler();
 
@@ -418,7 +433,7 @@ private:
 
     NodeId GetNewNodeId();
 
-    size_t SocketSendData(CNode *pnode);
+    size_t SocketSendData(CNode *pnode) const;
     //!check is the banlist has unwritten changes
     bool BannedSetIsDirty();
     //!set the "dirty" flag for the banlist
@@ -430,6 +445,7 @@ private:
     void DumpBanlist();
 
     CDataStream BeginMessage(CNode* node, int nVersion, int flags, const std::string& sCommand);
+
     void PushMessage(CNode* pnode, CDataStream& strm, const std::string& sCommand);
     void EndMessage(CDataStream& strm);
 
@@ -471,6 +487,8 @@ private:
     CCriticalSection cs_vOneShots;
     std::vector<std::string> vAddedNodes;
     CCriticalSection cs_vAddedNodes;
+    std::vector<CService> vPendingSmartnodes;
+    CCriticalSection cs_vPendingSmartnodes;
     std::vector<CNode*> vNodes;
     std::list<CNode*> vNodesDisconnected;
     mutable CCriticalSection cs_vNodes;
@@ -483,15 +501,20 @@ private:
     ServiceFlags nRelevantServices;
 
     CSemaphore *semOutbound;
+    CSemaphore *semAddnode;
     CSemaphore *semSmartnodeOutbound;
     int nMaxConnections;
     int nMaxOutbound;
+    int nMaxAddNode;
     int nMaxFeeler;
     std::atomic<int> nBestHeight;
     CClientUIInterface* clientInterface;
 
     /** flag for waking the message processor. */
     bool fMsgProcWake;
+
+    /** SipHasher seeds for deterministic randomness */
+    const uint64_t nSeed0, nSeed1;
 
     std::condition_variable condMsgProc;
     std::mutex mutexMsgProc;
@@ -503,7 +526,7 @@ private:
     std::thread threadSocketHandler;
     std::thread threadOpenAddedConnections;
     std::thread threadOpenConnections;
-    std::thread threadMnbRequestConnections;
+    std::thread threadOpenSmartnodeConnections;
     std::thread threadMessageHandler;
 };
 extern std::unique_ptr<CConnman> g_connman;
@@ -572,7 +595,6 @@ extern bool fListen;
 extern bool fRelayTxes;
 
 extern std::map<CInv, CDataStream> mapRelay;
-extern std::deque<std::pair<int64_t, CInv> > vRelayExpiration;
 extern CCriticalSection cs_mapRelay;
 extern limitedmap<uint256, int64_t> mapAlreadyAskedFor;
 
@@ -602,6 +624,7 @@ public:
     int nVersion;
     std::string cleanSubVer;
     bool fInbound;
+    bool fAddnode;
     int nStartingHeight;
     uint64_t nSendBytes;
     mapMsgCmdSize mapSendBytesPerMsgCmd;
@@ -619,6 +642,9 @@ public:
 
 
 class CNetMessage {
+private:
+    mutable CHash256 hasher;
+    mutable uint256 data_hash;
 public:
     bool in_data;                   // parsing header (false) or data (true)
 
@@ -662,7 +688,7 @@ class CNode
     friend class CConnman;
 public:
     // socket
-    ServiceFlags nServices;
+    std::atomic<ServiceFlags> nServices;
     ServiceFlags nServicesExpected;
     SOCKET hSocket;
     size_t nSendSize; // total size of all vSendMsg entries
@@ -670,10 +696,14 @@ public:
     uint64_t nSendBytes;
     std::deque<CSerializeData> vSendMsg;
     CCriticalSection cs_vSend;
+    CCriticalSection cs_hSocket;
+    CCriticalSection cs_vRecv;
 
     CCriticalSection cs_vProcessMsg;
     std::list<CNetMessage> vProcessMsg;
     size_t nProcessQueueSize;
+
+    CCriticalSection cs_sendProcessing;
 
     std::deque<CInv> vRecvGetData;
     uint64_t nRecvBytes;
@@ -685,7 +715,9 @@ public:
     int64_t nTimeOffset;
     int64_t nLastWarningTime;
     CAddress addr;
+    mutable CCriticalSection cs_addrName;
     std::string addrName;
+    mutable CCriticalSection cs_addrLocal;
     CService addrLocal;
     int nNumWarningsSkipped;
     std::atomic<int> nVersion;
@@ -694,9 +726,11 @@ public:
     // store the sanitized version in cleanSubVer. The original should be used when dealing with
     // the network or wire types and the cleaned string used when displayed or logged.
     std::string strSubVer, cleanSubVer;
+    CCriticalSection cs_SubVer;
     bool fWhitelisted; // This peer can bypass DoS banning.
     bool fFeeler; // If true this node is being used as a short lived feeler.
     bool fOneShot;
+    bool fAddnode;
     bool fClient;
     bool fInbound;
     bool fNetworkNode;
@@ -708,6 +742,7 @@ public:
     //    unless it loads a bloom filter.
     bool fRelayTxes;
     // If 'true' this node will be disconnected on CSmartnodeMan::ProcessSmartnodeConnections()
+    bool fSentAddr;
     bool fSmartnode;
     CSemaphoreGrant grantOutbound;
     CSemaphoreGrant grantSmartnodeOutbound;
@@ -715,6 +750,8 @@ public:
     CBloomFilter* pfilter;
     int nRefCount;
     NodeId id;
+
+    const uint64_t nKeyedNetGroup;
 
     std::atomic_bool fPauseRecv;
     std::atomic_bool fPauseSend;
@@ -725,7 +762,7 @@ protected:
 
 public:
     uint256 hashContinue;
-    int nStartingHeight;
+    std::atomic<int> nStartingHeight;
 
     // flood relay
     std::vector<CAddress> vAddrToSend;
@@ -748,6 +785,8 @@ public:
     // Blocks received by INV while headers chain was too far behind. These are used to delay GETHEADERS messages
     // Also protected by cs_inventory
     std::vector<uint256> vBlockHashesFromINV;
+    // Used for BIP35 mempool sending, also protected by cs_inventory
+    bool fSendMempool;
 
     // Block and TXN accept times
     std::atomic<int64_t> nLastBlockTime;
@@ -765,14 +804,10 @@ public:
     // Whether a ping is requested.
     bool fPingQueued;
 
-    std::vector<unsigned char> vchKeyedNetGroup;
-
-    CNode(NodeId id, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn, SOCKET hSocketIn, const CAddress &addrIn, const std::string &addrNameIn = "", bool fInboundIn = false, bool fNetworkNodeIn = false);
+    CNode(NodeId id, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn, SOCKET hSocketIn, const CAddress &addrIn, uint64_t nKeyedNetGroupIn, uint64_t nLocalHostNonceIn, const std::string &addrNameIn = "", bool fInboundIn = false);
     ~CNode();
 
 private:
-    // Secret key for computing keyed net groups
-    static std::vector<unsigned char> vchSecretKey;
 
     CCriticalSection cs_nRefCount;
 
@@ -800,7 +835,6 @@ public:
 
     int GetRefCount()
     {
-        LOCK(cs_nRefCount);
         assert(nRefCount >= 0);
         return nRefCount;
     }
@@ -818,25 +852,26 @@ public:
     void SetSendVersion(int nVersionIn);
     int GetSendVersion() const;
 
+    CService GetAddrLocal() const;
+    //! May not be called more than once
+    void SetAddrLocal(const CService& addrLocalIn);
+
     CNode* AddRef()
     {
-        LOCK(cs_nRefCount);
         nRefCount++;
         return this;
     }
 
     void Release()
     {
-        LOCK(cs_nRefCount);
         nRefCount--;
-        assert(nRefCount >= 0);
     }
 
 
 
-    void AddAddressKnown(const CAddress& addr)
+    void AddAddressKnown(const CAddress& _addr)
     {
-        addrKnown.insert(addr.GetKey());
+        addrKnown.insert(_addr.GetKey());
     }
 
     void PushAddress(const CAddress& addr)
@@ -898,7 +933,9 @@ public:
         return nLocalServices;
     }
 
-    static std::vector<unsigned char> CalculateKeyedNetGroup(CAddress& address);
+    std::string GetAddrName() const;
+    //! Sets the addrName only if it was not previously set
+    void MaybeSetAddrName(const std::string& addrNameIn);
 };
 
 class CExplicitNetCleanup

@@ -51,13 +51,12 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
                      "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
     }
 
-    if( ( MainNet() && pindex->nHeight >= HF_V1_2_START_VALIDATION_HEIGHT && pindex->nHeight <= HF_CHAIN_REWARD_END_HEIGHT ) ||
-        ( TestNet() )){
-        if( coinbase > (nFees + nodeReward + hiveReward + smartReward + miningReward) ){
-             LogPrintf("SmartMining::Validate - Coinbase too high! %s\n", block.vtx[0].ToString());
-            return state.DoS(100, false, REJECT_INVALID,
-                         "CTransaction::CheckTransaction() : Coinbase value too high");
-        }
+    CAmount expectedCoinbase = nFees + nodeReward + hiveReward + smartReward + miningReward;
+
+    if( pindex->nHeight > 1 && coinbase > expectedCoinbase ){
+         LogPrintf("SmartMining::Validate - Coinbase too high Expected: %d.%08d! %s\n", expectedCoinbase / COIN, expectedCoinbase % COIN, block.vtx[0].ToString());
+        return state.DoS(100, false, REJECT_INVALID,
+                     "CTransaction::CheckTransaction() : Coinbase value too high");
     }
 
     return true;

@@ -220,11 +220,18 @@ class CSipHasher
 {
 private:
     uint64_t v[4];
+    uint64_t tmp;
     int count;
 
 public:
     CSipHasher(uint64_t k0, uint64_t k1);
+    /** Hash a 64-bit integer worth of data
+     *  It is treated as if this was the little-endian interpretation of 8 bytes.
+     *  This function can only be used when a multiple of 8 bytes have been written so far.
+     */
     CSipHasher& Write(uint64_t data);
+    /** Hash arbitrary bytes. */
+    CSipHasher& Write(const unsigned char* data, size_t size);
     uint64_t Finalize() const;
 };
 

@@ -580,7 +580,7 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
 
             mnInfoRet.push_back(s.second->GetInfo());
 
-            if( mnInfoRet.size() == requiredPayees )
+            if( mnInfoRet.size() >= requiredPayees )
                 return true;
         }
 
@@ -642,7 +642,7 @@ bool CSmartnodeMan::GetSmartnodeRanks(CSmartnodeMan::rank_pair_vec_t& vecSmartno
     if (!smartnodeSync.IsSmartnodeListSynced())
         return false;
 
-    LOCK2(cs,cs_main);
+    LOCK2(cs_main, cs);
 
     // make sure we know about this block
     uint256 nBlockHash = uint256();
@@ -677,11 +677,8 @@ void CSmartnodeMan::ProcessSmartnodeConnections(CConnman& connman)
     if(Params().NetworkIDString() == CBaseChainParams::REGTEST) return;
 
     connman.ForEachNode(CConnman::AllNodes, [](CNode* pnode) {
-//#ifdef ENABLE_WALLET
-//        if(pnode->fSmartnode && !privateSendClient.IsMixingSmartnode(pnode)) {
-//#else
+
         if(pnode->fSmartnode) {
-//#endif // ENABLE_WALLET
             LogPrintf("Closing Smartnode connection: peer=%d, addr=%s\n", pnode->id, pnode->addr.ToString());
             pnode->fDisconnect = true;
         }
@@ -715,6 +712,48 @@ std::pair<CService, std::set<uint256> > CSmartnodeMan::PopScheduledMnbRequestCon
     return std::make_pair(pairFront.first, setResult);
 }
 
+
+void CSmartnodeMan::ProcessPendingMnbRequests(CConnman& connman)
+{
+    std::pair<CService, std::set<uint256> > p = PopScheduledMnbRequestConnection();
+    if (!(p.first == CService() || p.second.empty())) {
+        if (connman.IsSmartnodeOrDisconnectRequested(p.first)) return;
+        mapPendingMNB.insert(std::make_pair(p.first, std::make_pair(GetTime(), p.second)));
+        connman.AddPendingSmartnode(p.first);
+    }
+
+    std::map<CService, std::pair<int64_t, std::set<uint256> > >::iterator itPendingMNB = mapPendingMNB.begin();
+    while (itPendingMNB != mapPendingMNB.end()) {
+        bool fDone = connman.ForNode(itPendingMNB->first, [&](CNode* pnode) {
+            // compile request vector
+            std::vector<CInv> vToFetch;
+            std::set<uint256>& setHashes = itPendingMNB->second.second;
+            std::set<uint256>::iterator it = setHashes.begin();
+            while(it != setHashes.end()) {
+                if(*it != uint256()) {
+                    vToFetch.push_back(CInv(MSG_SMARTNODE_ANNOUNCE, *it));
+                    LogPrint("smartnode", "-- asking for mnb %s from addr=%s\n", it->ToString(), pnode->addr.ToString());
+                }
+                ++it;
+            }
+
+            // ask for data
+            connman.PushMessage(pnode, NetMsgType::GETDATA, vToFetch);
+            return true;
+        });
+
+        int64_t nTimeAdded = itPendingMNB->second.first;
+        if (fDone || (GetTime() - nTimeAdded > 15)) {
+            if (!fDone) {
+                LogPrint("smartnode", "CSmartnodeMan::%s -- failed to connect to %s\n", __func__, itPendingMNB->first.ToString());
+            }
+            mapPendingMNB.erase(itPendingMNB++);
+        } else {
+            ++itPendingMNB;
+        }
+    }
+    LogPrint("smartnode", "%s -- mapPendingMNB size: %d\n", __func__, mapPendingMNB.size());
+}
 
 void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
@@ -1021,20 +1060,44 @@ bool CSmartnodeMan::SendVerifyRequest(const CAddress& addr, const std::vector<CS
         return false;
     }
 
-    CNode* pnode = connman.ConnectNode(addr, NULL, true);
-    if(pnode == NULL) {
-        LogPrintf("CSmartnodeMan::SendVerifyRequest -- can't connect to node to verify it, addr=%s\n", addr.ToString());
-        return false;
-    }
+    if (connman.IsSmartnodeOrDisconnectRequested(addr)) return false;
 
-    netfulfilledman.AddFulfilledRequest(addr, strprintf("%s", NetMsgType::MNVERIFY)+"-request");
+    connman.AddPendingSmartnode(addr);
     // use random nonce, store it and require node to reply with correct one later
     CSmartnodeVerification mnv(addr, GetRandInt(999999), nCachedBlockHeight - 1);
-    mWeAskedForVerification[addr] = mnv;
+    LOCK(cs_mapPendingMNV);
+    mapPendingMNV.insert(std::make_pair(addr, std::make_pair(GetTime(), mnv)));
     LogPrintf("CSmartnodeMan::SendVerifyRequest -- verifying node using nonce %d addr=%s\n", mnv.nonce, addr.ToString());
-    connman.PushMessage(pnode, NetMsgType::MNVERIFY, mnv);
-
     return true;
+}
+
+void CSmartnodeMan::ProcessPendingMnvRequests(CConnman& connman)
+{
+    LOCK(cs_mapPendingMNV);
+
+    std::map<CService, std::pair<int64_t, CSmartnodeVerification> >::iterator itPendingMNV = mapPendingMNV.begin();
+
+    while (itPendingMNV != mapPendingMNV.end()) {
+        bool fDone = connman.ForNode(itPendingMNV->first, [&](CNode* pnode) {
+            netfulfilledman.AddFulfilledRequest(pnode->addr, strprintf("%s", NetMsgType::MNVERIFY)+"-request");
+            // use random nonce, store it and require node to reply with correct one later
+            mWeAskedForVerification[pnode->addr] = itPendingMNV->second.second;
+            LogPrint("smartnode", "-- verifying node using nonce %d addr=%s\n", itPendingMNV->second.second.nonce, pnode->addr.ToString());
+            connman.PushMessage(pnode, NetMsgType::MNVERIFY, itPendingMNV->second.second);
+            return true;
+        });
+
+        int64_t nTimeAdded = itPendingMNV->second.first;
+        if (fDone || (GetTime() - nTimeAdded > 15)) {
+            if (!fDone) {
+                LogPrint("smartnode", "CSmartnodeMan::%s -- failed to connect to %s\n", __func__, itPendingMNV->first.ToString());
+            }
+            mapPendingMNV.erase(itPendingMNV++);
+        } else {
+            ++itPendingMNV;
+        }
+    }
+    LogPrint("smartnode", "%s -- mapPendingMNV size: %d\n", __func__, mapPendingMNV.size());
 }
 
 void CSmartnodeMan::SendVerifyReply(CNode* pnode, CSmartnodeVerification& mnv, CConnman& connman)
@@ -1079,6 +1142,8 @@ void CSmartnodeMan::SendVerifyReply(CNode* pnode, CSmartnodeVerification& mnv, C
 
 void CSmartnodeMan::ProcessVerifyReply(CNode* pnode, CSmartnodeVerification& mnv)
 {
+    AssertLockHeld(cs_main);
+
     std::string strError;
 
     // did we even ask for it? if that's the case we should have matching fulfilled request
@@ -1124,6 +1189,7 @@ void CSmartnodeMan::ProcessVerifyReply(CNode* pnode, CSmartnodeVerification& mnv
         CSmartnode* prealSmartnode = NULL;
         std::vector<CSmartnode*> vpSmartnodesToBan;
         std::string strMessage1 = strprintf("%s%d%s", pnode->addr.ToString(false), mnv.nonce, blockHash.ToString());
+
         for (auto& mnpair : mapSmartnodes) {
             if(CAddress(mnpair.second.addr, NODE_NETWORK) == pnode->addr) {
                 if(CMessageSigner::VerifyMessage(mnpair.second.pubKeySmartnode, mnv.vchSig1, strMessage1, strError)) {
@@ -1330,8 +1396,7 @@ void CSmartnodeMan::UpdateSmartnodeList(CSmartnodeBroadcast mnb, CConnman& connm
 bool CSmartnodeMan::CheckMnbAndUpdateSmartnodeList(CNode* pfrom, CSmartnodeBroadcast mnb, int& nDos, CConnman& connman)
 {
     // Need to lock cs_main here to ensure consistent locking order because the SimpleCheck call below locks cs_main
-    LOCK2(cs_main,cs);
-
+    LOCK2(cs_main, cs);
     {
         nDos = 0;
         LogPrint("smartnode", "CSmartnodeMan::CheckMnbAndUpdateSmartnodeList -- smartnode=%s\n", mnb.vin.prevout.ToStringShort());

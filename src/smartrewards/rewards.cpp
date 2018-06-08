@@ -4,6 +4,7 @@
 
 #include "smartrewards/rewards.h"
 #include "smarthive/hive.h"
+#include "smartnode/spork.h"
 #include "validation.h"
 #include "init.h"
 #include "ui_interface.h"
@@ -108,7 +109,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 int required = ParseScript(rOut.scriptPubKey ,ids);
 
                 if( !required || required > 1 || ids.size() > 1 ){
-                    return error("Could't parse CSmartAddress: %s",rOut.ToString());
+                    LogPrintf("Process Inputs: Could't parse CSmartAddress: %s",rOut.ToString());
+                    continue;
                 }
 
                 if(!GetCachedRewardEntry(ids.at(0),rEntry)){
@@ -151,7 +153,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
             int required = ParseScript(out.scriptPubKey ,ids);
 
             if( !required || required > 1 || ids.size() > 1 ){
-                return error("Could't parse CSmartAddress: %s",out.ToString());
+                LogPrintf("Process Outputs: Could't parse CSmartAddress: %s",out.ToString());
+                continue;
             }else{
                 if(!GetCachedRewardEntry(ids.at(0),rEntry)){
                     rEntry = new CSmartRewardEntry(ids.at(0));
@@ -307,12 +310,14 @@ bool CSmartRewards::SyncPrepared()
 
 bool CSmartRewards::IsSynced()
 {
-    return (chainHeight - rewardHeight) <= nRewardsSyncDistance - 1;
+    int nSyncDistance = MainNet() ? nRewardsSyncDistance : nRewardsSyncDistance_Testnet;
+    return (chainHeight - rewardHeight) <= nSyncDistance - 1;
 }
 
 double CSmartRewards::GetProgress()
 {
-    double progress = chainHeight > nRewardsSyncDistance ? double(rewardHeight) / double(chainHeight - nRewardsSyncDistance) : 0.0;
+    int nSyncDistance = MainNet() ? nRewardsSyncDistance : nRewardsSyncDistance_Testnet;
+    double progress = chainHeight > nSyncDistance ? double(rewardHeight) / double(chainHeight - nSyncDistance) : 0.0;
     return progress > 1 ? 1 : progress;
 }
 
@@ -396,7 +401,9 @@ void CSmartRewards::CatchUp()
         pLastIndex = pLastIndex->pprev;
     }
 
-    while( pLastIndex && ( currentBlock.nHeight - pLastIndex->nHeight ) < nRewardsConfirmations)
+    int nMinConfirmations = MainNet() ? nRewardsConfirmations : nRewardsConfirmations_Testnet;
+
+    while( pLastIndex && ( currentBlock.nHeight - pLastIndex->nHeight ) < nMinConfirmations)
     {
         if( ShutdownRequested() ){
             SyncPrepared();
@@ -464,7 +471,13 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
     static int64_t nTimeUpdateRewardsTotal = 0;
     static int64_t nCountUpdateRewards = 0;
 
-    if( ( pLastIndex->nHeight - currentBlock.nHeight ) > nRewardsConfirmations){
+    if(!sporkManager.IsSporkActive(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)){
+        return;
+    }
+
+    int nMinConfirmations = MainNet() ? nRewardsConfirmations : nRewardsConfirmations_Testnet;
+
+    if( ( pLastIndex->nHeight - currentBlock.nHeight ) > nMinConfirmations){
 
         CBlockIndex* pNextIndex = pLastIndex;
 

@@ -63,6 +63,9 @@ private:
     std::map<uint256, std::pair< int64_t, std::set<CNetAddr> > > mMnbRecoveryRequests;
     std::map<uint256, std::vector<CSmartnodeBroadcast> > mMnbRecoveryGoodReplies;
     std::list< std::pair<CService, uint256> > listScheduledMnbRequestConnections;
+    std::map<CService, std::pair<int64_t, std::set<uint256> > > mapPendingMNB;
+    std::map<CService, std::pair<int64_t, CSmartnodeVerification> > mapPendingMNV;
+    CCriticalSection cs_mapPendingMNV;
 
     /// Set when smartnodes are added, cleared when CGovernanceManager is notified
     bool fSmartnodesAdded;
@@ -178,6 +181,8 @@ public:
 
     void ProcessSmartnodeConnections(CConnman& connman);
     std::pair<CService, std::set<uint256> > PopScheduledMnbRequestConnection();
+    void ProcessPendingMnbRequests(CConnman& connman);
+    void ProcessPendingMnvRequests(CConnman& connman);
 
     void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman);
 

@@ -241,15 +241,7 @@ public:
 
     bool IsValidForPayment()
     {
-        if(nActiveState == SMARTNODE_ENABLED) {
-            return true;
-        }
-        if(!sporkManager.IsSporkActive(SPORK_14_REQUIRE_SENTINEL_FLAG) &&
-           (nActiveState == SMARTNODE_WATCHDOG_EXPIRED)) {
-            return true;
-        }
-
-        return false;
+        return nActiveState == SMARTNODE_ENABLED;
     }
 
     /// Is the input associated with collateral public key? (and there is 10000 SMART - checking if valid smartnode)

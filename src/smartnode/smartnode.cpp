@@ -12,6 +12,7 @@
 #include "smartnodepayments.h"
 #include "smartnodesync.h"
 #include "smartnodeman.h"
+#include "netfulfilledman.h"
 #include "../util.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
@@ -901,24 +902,26 @@ void ThreadSmartnode(CConnman& connman)
             // make sure to check all smartnodes first
             mnodeman.Check();
 
+            mnodeman.ProcessPendingMnbRequests(connman);
+            mnodeman.ProcessPendingMnvRequests(connman);
+
             // check if we should activate or ping every few minutes,
             // slightly postpone first run to give net thread a chance to connect to some peers
             if(nTick % SMARTNODE_MIN_MNP_SECONDS == 15)
                 activeSmartnode.ManageState(connman);
 
             if(nTick % 60 == 0) {
+                netfulfilledman.CheckAndRemove();
                 mnodeman.ProcessSmartnodeConnections(connman);
                 mnodeman.CheckAndRemove(connman);
                 mnpayments.CheckAndRemove();
                 instantsend.CheckAndRemove();
             }
+
             if(fSmartNode && (nTick % (60 * 5) == 0)) {
                 mnodeman.DoFullVerificationStep(connman);
             }
 
-            // if(nTick % (60 * 5) == 0) {
-            //     governance.DoMaintenance(connman);
-            // }
         }
     }
 }

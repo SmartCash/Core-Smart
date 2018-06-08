@@ -8,6 +8,7 @@
 #include "../hash.h"
 #include "../net.h"
 #include "../utilstrencodings.h"
+#include "key.h"
 
 class CSporkMessage;
 class CSporkManager;
@@ -16,30 +17,19 @@ class CSporkManager;
     Don't ever reuse these IDs for other sporks
     - This would result in old clients getting confused about which spork is for what
 */
-static const int SPORK_START                                            = 10001;
-static const int SPORK_END                                              = 10013;
 
 static const int SPORK_2_INSTANTSEND_ENABLED                            = 10001;
 static const int SPORK_3_INSTANTSEND_BLOCK_FILTERING                    = 10002;
 static const int SPORK_5_INSTANTSEND_MAX_VALUE                          = 10004;
 static const int SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT                  = 10007;
-static const int SPORK_9_SUPERBLOCKS_ENABLED                            = 10008;
 static const int SPORK_10_SMARTNODE_PAY_UPDATED_NODES                   = 10009;
-static const int SPORK_12_RECONSIDER_BLOCKS                             = 10011;
-static const int SPORK_13_OLD_SUPERBLOCK_FLAG                           = 10012;
-static const int SPORK_14_REQUIRE_SENTINEL_FLAG                         = 10013;
+static const int SPORK_15_SMARTREWARDS_BLOCKS_ENABLED                   = 10014;
 
-static const int64_t SPORK_2_INSTANTSEND_ENABLED_DEFAULT                = 1;            // ON
-static const int64_t SPORK_3_INSTANTSEND_BLOCK_FILTERING_DEFAULT        = 1;            // ON
-static const int64_t SPORK_5_INSTANTSEND_MAX_VALUE_DEFAULT              = 1000;            // 1 SMART
-static const int64_t SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT_DEFAULT      = 4070908800ULL;
-static const int64_t SPORK_9_SUPERBLOCKS_ENABLED_DEFAULT                = 4070908800ULL;// OFF
-static const int64_t SPORK_10_SMARTNODE_PAY_UPDATED_NODES_DEFAULT       = 1529648568ULL;// OFF
-static const int64_t SPORK_12_RECONSIDER_BLOCKS_DEFAULT                 = 0;            // 0 BLOCKS
-static const int64_t SPORK_13_OLD_SUPERBLOCK_FLAG_DEFAULT               = 4070908800ULL;// OFF
-static const int64_t SPORK_14_REQUIRE_SENTINEL_FLAG_DEFAULT             = 4070908800ULL;// OFF
+static const int SPORK_START                                            = SPORK_2_INSTANTSEND_ENABLED;
+static const int SPORK_END                                              = SPORK_15_SMARTREWARDS_BLOCKS_ENABLED;
 
 extern std::map<uint256, CSporkMessage> mapSporks;
+extern std::map<int, int64_t> mapSporkDefaults;
 extern CSporkManager sporkManager;
 
 //
@@ -70,7 +60,7 @@ public:
         {}
 
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -89,8 +79,8 @@ public:
         return ss.GetHash();
     }
 
-    bool Sign(std::string strSignKey);
-    bool CheckSignature();
+    bool Sign(const CKey& key);
+    bool CheckSignature(const CKeyID& pubKeyId) const;
     void Relay(CConnman& connman);
 };
 
@@ -99,8 +89,10 @@ class CSporkManager
 {
 private:
     std::vector<unsigned char> vchSig;
-    std::string strSmartPrivKey;
     std::map<int, CSporkMessage> mapSporksActive;
+
+    CKeyID sporkPubKeyID;
+    CKey sporkPrivKey;
 
 public:
 
@@ -115,6 +107,7 @@ public:
     int GetSporkIDByName(std::string strName);
     std::string GetSporkNameByID(int nSporkID);
 
+    bool SetSporkAddress(const std::string& strAddress);
     bool SetPrivKey(std::string strPrivKey);
 };
 

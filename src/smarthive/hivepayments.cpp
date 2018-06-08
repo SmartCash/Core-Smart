@@ -13,6 +13,7 @@ static CSmartHiveSplit *hiveSplit_1_0 = nullptr;
 static CSmartHiveSplit *hiveSplit_1_1 = nullptr;
 static CSmartHiveSplit *hiveSplit_1_2 = nullptr;
 static CSmartHiveSplit *hiveSplitDisabled = nullptr;
+static CSmartHiveSplit *hiveSplitInvalid_1_0 = nullptr;
 
 void SmartHivePayments::Init()
 {
@@ -54,7 +55,7 @@ void SmartHivePayments::Init()
 
     int trigger_1_2;
 
-    if(MainNet()) trigger_1_2 = 1500;
+    if(MainNet()) trigger_1_2 = 1000;
     else          trigger_1_2 = 25;
 
     hiveSplit_1_2 = new CSmartHiveBatchSplit(
@@ -72,6 +73,7 @@ void SmartHivePayments::Init()
     );
 
     hiveSplitDisabled = new CSmartHiveSplitDisabled();
+    hiveSplitInvalid_1_0 = new CSmartHiveSplitInvalid(0.95);
 
     init = true;
 }
@@ -85,12 +87,12 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
             return hiveSplitInitial;
         }else if ( nHeight >= HF_V1_0_START_HEIGHT && nHeight < HF_V1_1_SMARTNODE_HEIGHT ) {
             // We have a lot blocks with missing hive payments in this range. Just accept them.
-            if( nHeight >= 227898 && nHeight <= 259345) return hiveSplitDisabled;
+            if( nHeight >= 227000 && nHeight <= 259345) return hiveSplitInvalid_1_0;
             // Out of this range use the v1.0 split.
             return hiveSplit_1_0;
-        }else if ( nHeight >= HF_V1_1_SMARTNODE_HEIGHT && nHeight < HF_V1_2_START_HEIGHT ) {
+        }else if ( nHeight >= HF_V1_1_SMARTNODE_HEIGHT && nHeight < HF_V1_2_SMARTREWARD_HEIGHT ) {
             return hiveSplit_1_1;
-        }else if ( (nHeight >= HF_V1_2_START_HEIGHT) && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
+        }else if ( (nHeight >= HF_V1_2_SMARTREWARD_HEIGHT) && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
             return hiveSplit_1_2;
         }else if(nHeight <= 1 || nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
             return hiveSplitDisabled;

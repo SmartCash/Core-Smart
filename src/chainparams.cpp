@@ -119,13 +119,13 @@ public:
         //consensus.nBudgetPaymentsCycleBlocks = 16616; // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
         //consensus.nBudgetPaymentsWindowBlocks = 100;
         consensus.nSmartnodeMinimumConfirmations = 15;
-        nMaxTipAge = 6 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
+        nMaxTipAge = 3 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
         nDelayGetHeadersTime = 24 * 60 * 60;
 
         nPoolMaxTransactions = 3;
         nFulfilledRequestExpireTime = 60*30; // fulfilled requests expire in half hour
 
-        strSporkPubKey = "04100e553254edbd9ba785a326ee381816e58e183684cc2ca35434f941eed0cba438ccf655edee0ba85bfa402eed6f01f9e0ec39948cf46f69f072369205ae8013";
+        strSporkAddress = "ShF3FXyj2BR8tXFXMxC33gjgJ9aaD2FiAv";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -176,6 +176,7 @@ public:
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
+        fAllowMultipleAddressesFromGroup = false;
         fTestnetToBeDeprecatedFieldRPC = false;
 
         checkpointData = (CCheckpointData) {
@@ -231,12 +232,12 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000111");
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT + 1000;
-        nMaxTipAge = 6 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
+        nMaxTipAge = 3 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
         nDelayGetHeadersTime = 24 * 60 * 60;
 
         nFulfilledRequestExpireTime = 60*30; // fulfilled requests expire in half hour
 
-        strSporkPubKey = "048ef2cc80961da504be6034679d2f7f84e082b7e31b541124fd4692b524bb47ceef74f666cd4169f3ea79a0206e643c870eb355c6d06d837eeaf1093ae9946baf";
+        strSporkAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
 
         pchMessageStart[0] = 0xcf;
         pchMessageStart[1] = 0xfc;
@@ -277,6 +278,7 @@ public:
         fMiningRequiresPeers = true;
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
+        fAllowMultipleAddressesFromGroup = false;
         fMineBlocksOnDemand = false;
         fTestnetToBeDeprecatedFieldRPC = true;
 
@@ -352,6 +354,7 @@ public:
         fDefaultConsistencyChecks = true;
         fRequireStandard = false;
         fMineBlocksOnDemand = true;
+        fAllowMultipleAddressesFromGroup = true;
         fTestnetToBeDeprecatedFieldRPC = false;
 
         checkpointData = (CCheckpointData){

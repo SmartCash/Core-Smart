@@ -36,14 +36,18 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 {
     if( MainNet() ){
 
-        //TBD!
+        if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
+            return HF_V1_2_NODES_PER_BLOCK;
+        }
 
     }else{
 
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
             return TESTNET_V1_2_NODES_PER_BLOCK_1;
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
+        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
             return TESTNET_V1_2_NODES_PER_BLOCK_2;
+        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
+            return TESTNET_V1_2_NODES_PER_BLOCK_3;
 
     }
 
@@ -54,14 +58,18 @@ int SmartNodePayments::PayoutInterval(int nHeight)
 {
     if( MainNet() ){
 
-        //TBD!
+    if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
+        return HF_V1_2_NODES_BLOCK_INTERVAL;
+    }
 
     }else{
 
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
             return TESTNET_V1_2_NODES_BLOCK_INTERVAL_1;
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
+        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
             return TESTNET_V1_2_NODES_BLOCK_INTERVAL_2;
+        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
+            return TESTNET_V1_2_NODES_BLOCK_INTERVAL_3;
 
     }
 
@@ -74,7 +82,22 @@ CAmount SmartNodePayments::Payment(int nHeight)
 
     if( MainNet() ){
 
-        //TBD!
+        if( nHeight < HF_V1_1_SMARTNODE_HEIGHT ){
+            blockValue = 0;
+        }else if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT &&
+            nHeight < HF_V1_2_MULTINODE_HEIGHT ){
+            blockValue = GetBlockValue(nHeight,0,INT_MAX);
+        }else if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
+
+            int interval = SmartNodePayments::PayoutInterval(nHeight);
+
+            if( nHeight % interval ){
+                blockValue = 0;
+            }else{
+                while( interval-- ) blockValue += GetBlockValue(nHeight--,0,INT_MAX);
+            }
+
+        }
 
     }else{
 
@@ -106,7 +129,19 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
     if( MainNet() ){
 
-        //TBD!
+        if( nHeight < HF_V1_2_MULTINODE_HEIGHT ){
+
+            BOOST_FOREACH(CTxOut txout, txNew.vout) {
+                if (abs(txout.nValue - nodeReward) < 2) {
+                    LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment: %s\n",txout.ToString());
+                    return true;
+                }
+            }
+
+            return false;
+        }else if( nHeight >= HF_V1_2_MULTINODE_HEIGHT ){
+            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return true;
+        }
 
     }else{
 
@@ -160,16 +195,20 @@ void CSmartnodePayments::Clear()
     mapSmartnodePaymentVotes.clear();
 }
 
-bool CSmartnodePayments::CanVote(COutPoint outSmartnode, int nBlockHeight)
+bool CSmartnodePayments::UpdateLastVote(const CSmartnodePaymentVote& vote)
 {
     LOCK(cs_mapSmartnodePaymentVotes);
 
-    if (mapSmartnodesLastVote.count(outSmartnode) && mapSmartnodesLastVote[outSmartnode] == nBlockHeight) {
-        return false;
+    const auto it = mapSmartnodesLastVote.find(vote.vinSmartnode.prevout);
+    if (it != mapSmartnodesLastVote.end()) {
+        if (it->second == vote.nBlockHeight)
+            return false;
+        it->second = vote.nBlockHeight;
+        return true;
     }
 
     //record this smartnode voted
-    mapSmartnodesLastVote[outSmartnode] = nBlockHeight;
+    mapSmartnodesLastVote.emplace(vote.vinSmartnode.prevout, vote.nBlockHeight);
     return true;
 }
 
@@ -185,7 +224,37 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 
     if( MainNet() ){
 
-        //TBD!
+        if( nHeight < HF_V1_1_SMARTNODE_HEIGHT ){
+            return;
+        }else if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT &&
+            nHeight < HF_V1_2_MULTINODE_HEIGHT ){
+            int nCount;
+            CSmartNodeWinners mnInfos;
+            if(!mnodeman.GetNextSmartnodesInQueueForPayment(nHeight, true, nCount, mnInfos)) {
+                // ...and we can't calculate it on our own
+                LogPrintf("CSmartnodePayments::FillBlockPayee -- Failed to detect smartnode to pay\n");
+                return;
+            }
+
+            if( mnInfos.size() ){
+
+                CScript payee = GetScriptForDestination(mnInfos.front().pubKeyCollateralAddress.GetID());
+
+                CAmount smartnodePayment = SmartNodePayments::Payment(nHeight);
+
+                CTxOut out = CTxOut(smartnodePayment, payee);
+                vxoutSmartNodes.push_back(out);
+                txNew.vout.push_back(out);
+            }
+
+            return;
+
+        }else if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
+
+            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) )
+                return;
+
+        }
 
     }else{
 
@@ -271,10 +340,10 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
 
     } else if (strCommand == NetMsgType::SMARTNODEPAYMENTVOTE) { // Smartnode Payments Vote for the Winner
 
+        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION) return;
+
         CSmartnodePaymentVote vote;
         vRecv >> vote;
-
-        if(pfrom->nVersion < GetMinSmartnodePaymentsProto()) return;
 
         uint256 nHash = vote.GetHash();
 
@@ -287,16 +356,17 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
 
         {
             LOCK(cs_mapSmartnodePaymentVotes);
-            if(mapSmartnodePaymentVotes.count(nHash)) {
-                LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- hash=%s, nHeight=%d seen\n", nHash.ToString(), nCachedBlockHeight);
+
+            auto res = mapSmartnodePaymentVotes.emplace(nHash, vote);
+
+            // Avoid processing same vote multiple times if it was already verified earlier
+            if(!res.second && res.first->second.IsVerified()) {
+                LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE -- hash=%s, nBlockHeight=%d/%d seen\n",
+                            nHash.ToString(), vote.nBlockHeight, nCachedBlockHeight);
                 return;
             }
 
-            // Avoid processing same vote multiple times
-            mapSmartnodePaymentVotes[nHash] = vote;
-            // but first mark vote as non-verified,
-            // AddPaymentVote() below should take care of it if vote is actually ok
-            mapSmartnodePaymentVotes[nHash].MarkAsNotVerified();
+            res.first->second.MarkAsNotVerified();
         }
 
         int nFirstBlock = nCachedBlockHeight - GetStorageLimit();
@@ -313,11 +383,6 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
             return;
         }
 
-        if(!CanVote(vote.vinSmartnode.prevout, vote.nBlockHeight)) {
-            LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- smartnode already voted, smartnode=%s\n", vote.vinSmartnode.prevout.ToStringShort());
-            return;
-        }
-
         smartnode_info_t mnInfo;
         if(!mnodeman.GetSmartnodeInfo(vote.vinSmartnode.prevout, mnInfo)) {
             // mn was not found, so we can't check vote, some info is probably missing
@@ -329,6 +394,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         int nDos = 0;
         if(!vote.CheckSignature(mnInfo.pubKeySmartnode, nCachedBlockHeight, nDos)) {
             if(nDos) {
+                LOCK(cs_main);
                 LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- ERROR: invalid signature\n");
                 Misbehaving(pfrom->GetId(), nDos);
             } else {
@@ -344,6 +410,11 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
             return;
         }
 
+        if(!UpdateLastVote(vote)) {
+            LogPrintf("SMARTNODEPAYMENTVOTE -- smartnode already voted, smartnode=%s\n", vote.vinSmartnode.prevout.ToStringShort());
+            return;
+        }
+
         for( const auto& payee : vote.payees ){
             CTxDestination address1;
             ExtractDestination(payee, address1);
@@ -353,7 +424,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
                         address2.ToString(), vote.nBlockHeight, nCachedBlockHeight, vote.vinSmartnode.prevout.ToStringShort(), nHash.ToString());
         }
 
-        if(AddPaymentVote(vote)){
+        if(AddOrUpdatePaymentVote(vote)){
             vote.Relay(connman);
             smartnodeSync.BumpAssetLastTime("SMARTNODEPAYMENTVOTE");
         }
@@ -404,6 +475,7 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     int interval = SmartNodePayments::PayoutInterval(nCachedBlockHeight);
 
     for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8 + interval; h++){
+        interval = SmartNodePayments::PayoutInterval(h);
         if(h == nNotBlockHeight) continue;
         if(mapSmartnodeBlocks.count(h) &&
            mapSmartnodeBlocks[h].GetBestPayees(payees) &&
@@ -415,26 +487,27 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     return false;
 }
 
-bool CSmartnodePayments::AddPaymentVote(const CSmartnodePaymentVote& vote)
+bool CSmartnodePayments::AddOrUpdatePaymentVote(const CSmartnodePaymentVote& vote)
 {
     uint256 blockHash = uint256();
     if(!GetBlockHash(blockHash, vote.nBlockHeight - 101)) return false;
 
-    if(HasVerifiedPaymentVote(vote.GetHash())) return false;
+    uint256 nVoteHash = vote.GetHash();
+
+    if(HasVerifiedPaymentVote(nVoteHash)) return false;
 
     LOCK2(cs_mapSmartnodeBlocks, cs_mapSmartnodePaymentVotes);
 
-    mapSmartnodePaymentVotes[vote.GetHash()] = vote;
+    mapSmartnodePaymentVotes[nVoteHash] = vote;
 
-    if(!mapSmartnodeBlocks.count(vote.nBlockHeight)) {
-       CSmartnodeBlockPayees blockPayees(vote.nBlockHeight);
-       mapSmartnodeBlocks[vote.nBlockHeight] = blockPayees;
-    }
+    auto it = mapSmartnodeBlocks.emplace(vote.nBlockHeight, CSmartnodeBlockPayees(vote.nBlockHeight)).first;
+    it->second.AddPayees(vote);
 
-    mapSmartnodeBlocks[vote.nBlockHeight].AddPayees(vote);
+    LogPrint("mnpayments", "CSmartnodePayments::AddOrUpdatePaymentVote -- added, hash=%s\n", nVoteHash.ToString());
 
     return true;
 }
+
 
 bool CSmartnodePayments::HasVerifiedPaymentVote(uint256 hashIn)
 {
@@ -613,7 +686,7 @@ bool CSmartnodePayments::IsTransactionValid(const CTransaction& txNew, int nBloc
         return mapSmartnodeBlocks[nBlockHeight].IsTransactionValid(txNew, expectedNodeReward);
     }
 
-    return false;
+    return true;
 }
 
 void CSmartnodePayments::CheckAndRemove()
@@ -755,9 +828,9 @@ bool CSmartnodePayments::ProcessBlock(int nBlockHeight, CConnman& connman)
 
     LogPrintf("CSmartnodePayments::ProcessBlock -- Signing vote\n");
     if (voteNew.Sign()) {
-        LogPrintf("CSmartnodePayments::ProcessBlock -- AddPaymentVote()\n");
+        LogPrintf("CSmartnodePayments::ProcessBlock -- AddOrUpdatePaymentVote()\n");
 
-        if (AddPaymentVote(voteNew)) {
+        if (AddOrUpdatePaymentVote(voteNew)) {
             voteNew.Relay(connman);
             return true;
         }

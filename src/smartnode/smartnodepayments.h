@@ -223,7 +223,7 @@ public:
 
     CSmartnodePayments() : nStorageCoeff(1.25), nMinBlocksToStore(5000) {}
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -233,7 +233,7 @@ public:
 
     void Clear();
 
-    bool AddPaymentVote(const CSmartnodePaymentVote& vote);
+    bool AddOrUpdatePaymentVote(const CSmartnodePaymentVote& vote);
     bool HasVerifiedPaymentVote(uint256 hashIn);
     bool ProcessBlock(int nBlockHeight, CConnman& connman);
     void CheckPreviousBlockVotes(int nPrevBlockHeight);
@@ -246,7 +246,7 @@ public:
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CAmount expectedNodeReward);
     bool IsScheduled(CSmartnode& mn, int nNotBlockHeight);
 
-    bool CanVote(COutPoint outSmartnode, int nBlockHeight);
+    bool UpdateLastVote(const CSmartnodePaymentVote& vote);
 
     int GetMinSmartnodePaymentsProto();
     void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman);

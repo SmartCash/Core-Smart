@@ -3,10 +3,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "activesmartnode.h"
-#include "protocol.h"
 #include "smartnode.h"
 #include "smartnodesync.h"
 #include "smartnodeman.h"
+#include "protocol.h"
+#include "netbase.h"
 
 // Keep track of the active Smartnode
 CActiveSmartnode activeSmartnode;
@@ -181,8 +182,11 @@ void CActiveSmartnode::ManageStateInitial(CConnman& connman)
     }
 
     LogPrintf("CActiveSmartnode::ManageStateInitial -- Checking inbound connection to '%s'\n", service.ToString());
+    SOCKET hSocket;
+    bool fConnected = ConnectSocket(service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
+    CloseSocket(hSocket);
 
-    if(!connman.ConnectNode(CAddress(service, NODE_NETWORK), NULL, true)) {
+    if (!fConnected) {
         nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
         strNotCapableReason = "Could not connect to " + service.ToString();
         LogPrintf("CActiveSmartnode::ManageStateInitial -- %s: %s\n", GetStateString(), strNotCapableReason);

@@ -117,4 +117,11 @@ struct CSmartHiveSplitDisabled : public CSmartHiveSplit
     CSmartHiveSplitDisabled() : CSmartHiveSplit() {}
 };
 
+struct CSmartHiveSplitInvalid : public CSmartHiveSplit
+{
+    bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const final {hiveReward = blockReward * percent; return true;}
+    void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final {voutSmartHives.clear();}
+    CSmartHiveSplitInvalid(double percent) : CSmartHiveSplit() {this->percent = percent;}
+};
+
 #endif // HIVEPAYMENTS_H

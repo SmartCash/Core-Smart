@@ -12,6 +12,7 @@
 #include "pow.h"
 #include "ui_interface.h"
 #include "init.h"
+#include "smartnode/spork.h"
 
 #include <stdint.h>
 
@@ -19,8 +20,14 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 {
     result = SmartRewardPayments::Valid;
 
+    if(!sporkManager.IsSporkActive(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)) {
+        LogPrint("smartrewards", "SmartRewardPayments::GetPaymentsForBlock -- Disabled");
+        result = SmartRewardPayments::NoRewardBlock;
+        return CSmartRewardSnapshotList();
+    }
+
     // If we are not yet at the 1.2 payout block time.
-    if( ( MainNet() && nHeight < HF_V1_2_START_HEIGHT ) ||
+    if( ( MainNet() && nHeight < HF_V1_2_SMARTREWARD_HEIGHT ) ||
         ( TestNet() && nHeight < nFirstRoundEndBlock_Testnet ) ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
@@ -46,14 +53,27 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 
     if( nHeight >= ( round.endBlockHeight + delay ) ){
 
+        int nPayoutsPerBlock = nRewardPayoutsPerBlock;
+        int nPayoutInterval = nRewardPayoutBlockInterval;
+
+        if( TestNet() ){
+            if( round.number < 68 ){
+                nPayoutsPerBlock = nRewardPayoutsPerBlock_1_Testnet;
+                nPayoutInterval = nRewardPayoutBlockInterval_1_Testnet;
+            }else{
+                nPayoutsPerBlock = nRewardPayoutsPerBlock_2_Testnet;
+                nPayoutInterval = nRewardPayoutBlockInterval_2_Testnet;
+            }
+        }
+
         size_t eligibleEntries = round.eligibleEntries - round.disqualifiedEntries;
-        int rewardBlocks = eligibleEntries / nRewardPayoutsPerBlock;
+        int rewardBlocks = eligibleEntries / nPayoutsPerBlock;
         // If we dont match nRewardPayoutsPerBlock add one more block for the remaining payments.
-        if( eligibleEntries % nRewardPayoutsPerBlock ) rewardBlocks += 1;
+        if( eligibleEntries % nPayoutsPerBlock ) rewardBlocks += 1;
 
-        int lastRoundBlock = round.endBlockHeight + delay + ( (rewardBlocks - 1) * nRewardPayoutBlockInterval );
+        int lastRoundBlock = round.endBlockHeight + delay + ( (rewardBlocks - 1) * nPayoutInterval );
 
-        if( nHeight <= lastRoundBlock && !(( lastRoundBlock - nHeight ) % nRewardPayoutBlockInterval) ){
+        if( nHeight <= lastRoundBlock && !(( lastRoundBlock - nHeight ) % nPayoutInterval) ){
             // We have a reward block! Now try to create the payments vector.
 
             if( !prewards->GetRewardPayouts( round.number, roundPayments ) ||
@@ -66,18 +86,18 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
             std::sort(roundPayments.begin(), roundPayments.end());
 
             // Index of the current payout block for this round.
-            int rewardBlock = rewardBlocks - ( (lastRoundBlock - nHeight) / nRewardPayoutBlockInterval );
-            int blockPayees = nRewardPayoutsPerBlock;
+            int rewardBlock = rewardBlocks - ( (lastRoundBlock - nHeight) / nPayoutInterval );
+            int blockPayees = nPayoutsPerBlock;
 
             // If the to be paid addresses are no multile of nRewardPayoutsPerBlock
             // the last payout block has less payees than the others.
-            if( rewardBlock == rewardBlocks && eligibleEntries % nRewardPayoutsPerBlock ){
+            if( rewardBlock == rewardBlocks && eligibleEntries % nPayoutsPerBlock ){
                 // Use the remainders here..
-                blockPayees = eligibleEntries % nRewardPayoutsPerBlock;
+                blockPayees = eligibleEntries % nPayoutsPerBlock;
             }
 
             // As start index we want to use the current payout block index + payouts per block as offset.
-            size_t startIndex = (rewardBlock - 1) * nRewardPayoutsPerBlock;
+            size_t startIndex = (rewardBlock - 1) * nPayoutsPerBlock;
             // As ennd index we use the startIndex + number of payees for this round.
             size_t endIndex = startIndex + blockPayees;
             // If for any reason the calculations end up in an overflow of the vector return an error.

@@ -16,14 +16,14 @@ static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
 // Cache max. n prepared entries before the sync (leveldb batch write).
 const int64_t nCacheEntires = 8000;
 // Minimum number of confirmations to process a block for the reward database.
-const int64_t nRewardsConfirmations = 15;
+const int64_t nRewardsConfirmations = 100;
 // Minimum distance of the last processed block compared to the current chain
 // height to assume the rewards are synced.
-const int64_t nRewardsSyncDistance = 20;
+const int64_t nRewardsSyncDistance = nRewardsConfirmations + 10;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int64_t nRewardsUISyncUpdateRate = 500;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
-const int64_t nRewardsBlocksPerRound = 47000;
+const int64_t nRewardsBlocksPerRound = 47500;
 const int64_t nRewardsFirstAutomatedRound = 12;
 
 // Timestamps of the first round's start and end on mainnet
@@ -33,6 +33,8 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
+const int64_t nRewardsConfirmations_Testnet = 50;
+const int64_t nRewardsSyncDistance_Testnet = nRewardsConfirmations_Testnet + 10;
 const int64_t nRewardsBlocksPerRound_Testnet = 1000;
 const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;

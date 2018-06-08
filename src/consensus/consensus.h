@@ -24,12 +24,12 @@ static const int HF_V1_0_START_HEIGHT = 90000;
 static const int HF_V1_1_SMARTNODE_HEIGHT = 300000;
 /** Reject zerocoin in/outputs starting with this block */
 static const int HF_ZEROCOIN_DISABLE = 266765;
-/** SmartRewards automation start time*/
-static const int HF_V1_2_START_VALIDATION_HEIGHT = 450000;
-static const int HF_V1_2_START_HEIGHT = 525000; // 1 here to not trigger the new hive split instantly. before 07/25/2018 @ 7:00am (UTC)
+/** 1.2 fork blocks*/
+static const int HF_V1_2_MULTINODE_HEIGHT = 525000; // TBD - set the correct height
+static const int HF_V1_2_SMARTREWARD_HEIGHT = 572500; // TBD - set the correct height
 
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
-static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 4;
+static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 2;
 
 /** SmartCash max reward block */
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
@@ -38,11 +38,14 @@ static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 static const int TESTNET_V1_2_PAYMENTS_HEIGHT = 1000;
 static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 = 28500;
 static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 = 30300;
+static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3 = 75000;
 
 static const int TESTNET_V1_2_NODES_PER_BLOCK_1        = 3;
 static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_1   = 6;
 static const int TESTNET_V1_2_NODES_PER_BLOCK_2        = 3;
 static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_2   = 3;
+static const int TESTNET_V1_2_NODES_PER_BLOCK_3        = 10;
+static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_3   = 2;
 
 inline unsigned int MaxBlockSigOps()
 {

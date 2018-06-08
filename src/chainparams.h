@@ -68,6 +68,8 @@ public:
     uint64_t PruneAfterHeight() const { return nPruneAfterHeight; }
     /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
+    /** Allow multiple addresses to be selected from the same network group (e.g. 192.168.x.x) */
+    bool AllowMultipleAddressesFromGroup() const { return fAllowMultipleAddressesFromGroup; }
     /** In the future use NetworkIDString() for RPC fields */
     bool TestnetToBeDeprecatedFieldRPC() const { return fTestnetToBeDeprecatedFieldRPC; }
     /** Return the BIP70 network string (main, test or regtest) */
@@ -82,7 +84,7 @@ public:
     int64_t DelayGetHeadersTime() const { return nDelayGetHeadersTime; }
     int PoolMaxTransactions() const { return nPoolMaxTransactions; } 
     int FulfilledRequestExpireTime() const { return nFulfilledRequestExpireTime; } 
-    std::string SporkPubKey() const { return strSporkPubKey; } 
+    const std::string& SporkAddress() const { return strSporkAddress; }
 
 protected:
     CChainParams() {}
@@ -103,6 +105,7 @@ protected:
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;
     bool fMineBlocksOnDemand;
+    bool fAllowMultipleAddressesFromGroup;
     bool fTestnetToBeDeprecatedFieldRPC;
     CCheckpointData checkpointData;
     /** Smartnode params*/ 
@@ -110,7 +113,7 @@ protected:
     int64_t nDelayGetHeadersTime; 
     int nPoolMaxTransactions; 
     int nFulfilledRequestExpireTime; 
-    std::string strSporkPubKey; 
+    std::string strSporkAddress;
 };
 
 /**
