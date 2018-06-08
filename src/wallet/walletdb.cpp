@@ -705,6 +705,16 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 strErr = "Error reading wallet database: LoadDestData failed";
                 return false;
             }
+        }
+        else if (strType == "hdchain")
+        {
+            CHDChain chain;
+            ssValue >> chain;
+            if (!pwallet->SetHDChain(chain, true))
+            {
+                strErr = "Error reading wallet database: SetHDChain failed";
+                return false;
+            }
         }        
         else if (strType == "chdchain")
         {
@@ -745,15 +755,13 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
 static bool IsKeyType(string strType)
 {
     return (strType== "key" || strType == "wkey" ||
-            strType == "mkey" || strType == "ckey" ||
-            strType == "hdchain" || strType == "chdchain");
+            strType == "mkey" || strType == "ckey");
 }
 
 DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
 {
     pwallet->vchDefaultKey = CPubKey();
     CWalletScanState wss;
-    bool fNoncriticalErrors = false;
     DBErrors result = DB_LOAD_OK;
 
     try {
@@ -792,7 +800,6 @@ DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
             string strType, strErr;
             if (!ReadKeyValue(pwallet, ssKey, ssValue, wss, strType, strErr))
             {
-                LogPrintf("type %s\n", strType);
                 // losing keys is considered a catastrophic error, anything else
                 // we assume the user can live with:
                 if (IsKeyType(strType))
@@ -800,7 +807,6 @@ DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
                 else
                 {
                     // Leave other errors alone, if we try to fix them we might make things worse.
-                    fNoncriticalErrors = true; // ... but do warn the user there is something wrong.
                     if (strType == "tx")
                         // Rescan if there is a bad transaction record:
                         SoftSetBoolArg("-rescan", true);
@@ -821,9 +827,6 @@ DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
     catch (...) {
         result = DB_CORRUPT;
     }
-
-    if (fNoncriticalErrors && result == DB_LOAD_OK)
-        result = DB_NONCRITICAL_ERROR;
 
     // Any wallet corruption at all: skip any rewriting or
     // upgrading, we don't want to make it worse.
