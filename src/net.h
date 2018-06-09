@@ -733,7 +733,6 @@ public:
     bool fAddnode;
     bool fClient;
     bool fInbound;
-    bool fNetworkNode;
     std::atomic_bool fSuccessfullyConnected;
     bool fDisconnect;
     // We use fRelayTxes for two purposes -
