@@ -1083,7 +1083,7 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
 
     // don't accept incoming connections until fully synced
     if(fSmartNode && !smartnodeSync.IsSynced()) {
-        LogPrintf("AcceptConnection -- smartnode is not synced yet, skipping inbound connection attempt\n");
+        LogPrint("net", "AcceptConnection -- smartnode is not synced yet, skipping inbound connection attempt\n");
         CloseSocket(hSocket);
         return;
     }
@@ -1119,7 +1119,7 @@ void CConnman::ThreadSocketHandler()
             {
                 if (pnode->fDisconnect)
                 {
-                    LogPrintf("ThreadSocketHandler -- removing node: peer=%d addr=%s nRefCount=%d fInbound=%d fSmartnode=%d\n",
+                    LogPrint("net", "ThreadSocketHandler -- removing node: peer=%d addr=%s nRefCount=%d fInbound=%d fSmartnode=%d\n",
                                                   pnode->id, pnode->addr.ToString(), pnode->GetRefCount(), pnode->fInbound, pnode->fSmartnode);
 
                     // remove from vNodes
