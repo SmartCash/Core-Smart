@@ -129,7 +129,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
     if( MainNet() ){
 
-        if( nHeight < HF_V1_2_MULTINODE_HEIGHT ){
+        if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT + 7000 && nHeight < HF_V1_2_MULTINODE_HEIGHT ){
 
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
                 if (abs(txout.nValue - nodeReward) < 2) {
