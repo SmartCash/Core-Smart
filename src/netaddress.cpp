@@ -15,6 +15,9 @@
 static const unsigned char pchIPv4[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
 static const unsigned char pchOnionCat[] = {0xFD,0x87,0xD8,0x7E,0xEB,0x43};
 
+// 0xFD + sha256("smartcash")[0:4]
+static const unsigned char g_internal_prefix[] = {0xFD,0x15,0x46,0x42,0x36,0xF6};
+
 void CNetAddr::Init()
 {
     memset(ip, 0, sizeof(ip));
@@ -39,6 +42,18 @@ void CNetAddr::SetRaw(Network network, const uint8_t *ip_in)
         default:
             assert(!"invalid network");
     }
+}
+
+bool CNetAddr::SetInternal(const std::string &name)
+{
+    if (name.empty()) {
+        return false;
+    }
+    unsigned char hash[32] = {};
+    CSHA256().Write((const unsigned char*)name.data(), name.size()).Finalize(hash);
+    memcpy(ip, g_internal_prefix, sizeof(g_internal_prefix));
+    memcpy(ip + sizeof(g_internal_prefix), hash, sizeof(ip) - sizeof(g_internal_prefix));
+    return true;
 }
 
 bool CNetAddr::SetSpecial(const std::string &strName)

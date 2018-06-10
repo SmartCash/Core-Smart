@@ -1562,7 +1562,7 @@ void CConnman::ThreadDNSAddressSeed()
         LOCK(cs_vNodes);
         int nRelevant = 0;
         for (auto pnode : vNodes) {
-            nRelevant += pnode->fSuccessfullyConnected && ((pnode->nServices & nRelevantServices) == nRelevantServices);
+            nRelevant += pnode->fSuccessfullyConnected && !pnode->fFeeler && !pnode->fOneShot && !pnode->fInbound;
         }
         if (nRelevant >= 2) {
             LogPrintf("P2P peers available. Skipped DNS seeding.\n");
@@ -1585,7 +1585,14 @@ void CConnman::ThreadDNSAddressSeed()
             std::vector<CNetAddr> vIPs;
             std::vector<CAddress> vAdd;
             ServiceFlags requiredServiceBits = nRelevantServices;
-            if (LookupHost(GetDNSHost(seed, &requiredServiceBits).c_str(), vIPs, 0, true))
+
+            std::string host = GetDNSHost(seed, &requiredServiceBits);
+            CNetAddr resolveSource;
+            if (!resolveSource.SetInternal(host)) {
+                continue;
+            }
+
+            if (LookupHost(host.c_str(), vIPs, 256, true))
             {
                 BOOST_FOREACH(const CNetAddr& ip, vIPs)
                 {
@@ -1593,8 +1600,14 @@ void CConnman::ThreadDNSAddressSeed()
                     CAddress addr = CAddress(CService(ip, Params().GetDefaultPort()), requiredServiceBits);
                     addr.nTime = GetTime() - 3*nOneDay - GetRand(4*nOneDay); // use a random age between 3 and 7 days old
                     vAdd.push_back(addr);
+                    LogPrintf(" => %s found from %s\n", ip.ToString(), seed.host);
                     found++;
                 }
+
+                addrman.Add(vAdd, resolveSource);
+
+            }else{
+                AddOneShot(seed.host);
             }
             if (interruptNet) {
                 return;
@@ -1894,12 +1907,12 @@ void CConnman::ThreadOpenAddedConnections()
 
     while (true)
     {
-        CSemaphoreGrant grant(*semAddnode);
+        CSemaphoreGrant grant(*semAddnode, true);
         std::vector<AddedNodeInfo> vInfo = GetAddedNodeInfo();
         bool tried = false;
         for (const AddedNodeInfo& info : vInfo) {
             if (!info.fConnected) {
-                if (!grant.TryAcquire()) {
+                if (!grant) {
                     // If we've used up our semaphore and need a new one, lets not wait here since while we are waiting
                     // the addednodeinfo state might change.
                     break;
