@@ -278,7 +278,7 @@ public:
         fMiningRequiresPeers = true;
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
-        fAllowMultipleAddressesFromGroup = false;
+        fAllowMultipleAddressesFromGroup = true;
         fMineBlocksOnDemand = false;
         fTestnetToBeDeprecatedFieldRPC = true;
 
