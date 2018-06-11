@@ -571,7 +571,7 @@ std::string HelpMessage(HelpMessageMode mode)
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/smartcash/smartcash>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/smartcash/core-smart>";
     const std::string URL_WEBSITE = "<https://smartcash.cc>";
     // todo: remove urls from translations on next change
     return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
@@ -1792,7 +1792,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                     return InitError(strBackupError);
             }
 
-            InitWarning(_("Make sure to encrypt your wallet and delete all non-encrypted backups after you verified that wallet works!"));
+            InitWarning(_("Please encrypt and backup your wallet to a separate device.  Do not move a wallet file or shutdown computer while wallet application is running."));
 
         }
         else if (mapArgs.count("-usehd")) {
