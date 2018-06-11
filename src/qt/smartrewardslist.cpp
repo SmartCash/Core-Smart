@@ -20,6 +20,7 @@
 //#include "validation.h" // For minRelayTxFee
 #include "wallet/wallet.h"
 #include "clientmodel.h"
+#include "validation.h"
 
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 
@@ -186,9 +187,11 @@ void SmartrewardsList::updateUI()
     if( prewards->IsSynced() ){
 
         CSmartRewardRound current;
+        CBlockIndex* tip = nullptr;
         {
             LOCK(cs_rewardrounds);
             current = prewards->GetCurrentRound();
+            tip = chainActive.Tip();
         }
         QString percentText;
         percentText.sprintf("%.2f%%", current.percent * 100);
@@ -198,32 +201,70 @@ void SmartrewardsList::updateUI()
 
         QDateTime roundEnd;
         roundEnd.setTime_t(current.endBlockTime);
-        QString roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
+        QString roundEndText;
 
-        if( current.endBlockTime < currentTime ) {
-            roundEndText += " ( Now )";
+        if( ( ( MainNet() && current.number >= nRewardsFirstAutomatedRound ) || TestNet() ) && tip ){
+
+            uint64_t remainingBlocks = current.endBlockHeight - tip->nHeight;
+
+            roundEndText = QString("%1 blocks ( ").arg(remainingBlocks);
+
+            if( remainingBlocks <= 1 ) {
+                roundEndText += " ( Now )";
+            }else{
+
+                uint64_t remainingSeconds = remainingBlocks * Params().GetConsensus().nPowTargetSpacing;
+                uint64_t minutesLeft = remainingSeconds / 60;
+                uint64_t days = minutesLeft / 1440;
+                uint64_t hours = (minutesLeft % 1440) / 60;
+                uint64_t minutes = (minutesLeft % 1440) % 60;
+
+                if( days ){
+                    roundEndText += QString("%1day%2").arg(days).arg(days > 1 ? "s":"");
+                }
+
+                if( hours ){
+                    if( days ) roundEndText += ", ";
+                    roundEndText += QString("%1hour%2").arg(hours).arg(hours > 1 ? "s":"");
+                }
+
+                if( !days && minutes ){
+                    if( hours ) roundEndText += ", ";
+                    roundEndText += QString("%1minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
+                }
+
+                roundEndText += " )";
+            }
+
         }else{
-            uint64_t minutesLeft = ( (uint64_t)current.endBlockTime - currentTime ) / 60;
-            uint64_t days = minutesLeft / 1440;
-            uint64_t hours = (minutesLeft % 1440) / 60;
-            uint64_t minutes = (minutesLeft % 1440) % 60;
 
-            roundEndText += " ( ";
-            if( days ){
-                roundEndText += QString("%1day%2").arg(days).arg(days > 1 ? "s":"");
+            roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
+
+            if( current.endBlockTime < currentTime ) {
+                roundEndText += " ( Now )";
+            }else{
+                uint64_t minutesLeft = ( (uint64_t)current.endBlockTime - currentTime ) / 60;
+                uint64_t days = minutesLeft / 1440;
+                uint64_t hours = (minutesLeft % 1440) / 60;
+                uint64_t minutes = (minutesLeft % 1440) % 60;
+
+                roundEndText += " ( ";
+                if( days ){
+                    roundEndText += QString("%1day%2").arg(days).arg(days > 1 ? "s":"");
+                }
+
+                if( hours ){
+                    if( days ) roundEndText += ", ";
+                    roundEndText += QString("%1hour%2").arg(hours).arg(hours > 1 ? "s":"");
+                }
+
+                if( !days && minutes ){
+                    if( hours ) roundEndText += ", ";
+                    roundEndText += QString("%1minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
+                }
+
+                roundEndText += " )";
             }
-
-            if( hours ){
-                if( days ) roundEndText += ", ";
-                roundEndText += QString("%1hour%2").arg(hours).arg(hours > 1 ? "s":"");
-            }
-
-            if( !days && minutes ){
-                if( !hours ) roundEndText += ", ";
-                roundEndText += QString("%1minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
-            }
-
-            roundEndText += " )";
         }
 
         ui->nextRoundLabel->setText(roundEndText);

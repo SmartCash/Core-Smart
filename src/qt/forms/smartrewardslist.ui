@@ -411,16 +411,6 @@ QProgressBar::chunk {
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QPushButton" name="historyButton">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="text">
-               <string>History</string>
-              </property>
-             </widget>
-            </item>
            </layout>
           </item>
          </layout>
