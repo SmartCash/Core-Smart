@@ -533,10 +533,10 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
         if(mnpayments.IsScheduled(mnpair.second, nBlockHeight)) continue;
 
         //it's too new, wait for a cycle
-        if(fFilterSigTime && mnpair.second.sigTime + (nMnCount*55) > GetAdjustedTime()) continue;
+        if(fFilterSigTime && mnpair.second.sigTime + (nMnCount* 55 / 5) > GetAdjustedTime()) continue;
 
-        //make sure it has at least as many confirmations as there are smartnodes
-        if(GetUTXOConfirmations(mnpair.first) < nMnCount) continue;
+        //make sure it has at least as many confirmations as the smartnode cycle time
+        if(GetUTXOConfirmations(mnpair.first) < (nMnCount / 5)) continue;
 
         vecSmartnodeLastPaid.push_back(std::make_pair(mnpair.second.GetLastPaidBlock(), &mnpair.second));
     }
