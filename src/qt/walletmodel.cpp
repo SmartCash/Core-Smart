@@ -278,7 +278,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         CReserveKey *keyChange = transaction.getPossibleKeyChange();
 
         if(recipients[0].fUseInstantSend && total > sporkManager.GetSporkValue(SPORK_5_INSTANTSEND_MAX_VALUE)*COIN){
-            Q_EMIT message(tr("Send Coins"), tr("InstantPay doesn't support sending values that high yet. Transactions are currently limited to %1 SMART.").arg(sporkManager.GetSporkValue(SPORK_5_INSTANTSEND_MAX_VALUE)),
+            Q_EMIT message(tr("Send Coins"), tr("InstantPay limits the total coins that can be locked in a transaction to %1 SMART.  You may need to use a normal transaction to split large deposits before you can send with InstantPay.").arg(sporkManager.GetSporkValue(SPORK_5_INSTANTSEND_MAX_VALUE)),
                          CClientUIInterface::MSG_ERROR);
             return TransactionCreationFailed;
         }
@@ -295,7 +295,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
                 return TransactionCreationFailed;
             }
             if(newTx->vin.size() > CTxLockRequest::WARN_MANY_INPUTS) {
-                Q_EMIT message(tr("Send Coins"), tr("Used way too many inputs (>%1) for this InstantPay transaction, fees could be huge.").arg(CTxLockRequest::WARN_MANY_INPUTS),
+                Q_EMIT message(tr("Send Coins"), tr("Used too many inputs (>%1) for this InstantPay transaction, fees could be high.").arg(CTxLockRequest::WARN_MANY_INPUTS),
                              CClientUIInterface::MSG_WARNING);
             }
         }
