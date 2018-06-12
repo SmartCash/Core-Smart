@@ -345,7 +345,7 @@ void SmartnodeList::on_startButton_clicked()
 
     // Display message box
     QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm SmartNode start"),
-        tr("Are you sure you want to start SmartNode %1?").arg(QString::fromStdString(strAlias)),
+        tr("Are you sure you want to start SmartNode %1? This will reset your node in the payment queue.").arg(QString::fromStdString(strAlias)),
         QMessageBox::Yes | QMessageBox::Cancel,
         QMessageBox::Cancel);
 
