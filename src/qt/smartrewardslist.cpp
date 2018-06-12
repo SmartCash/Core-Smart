@@ -16,8 +16,6 @@
 #include "walletmodel.h"
 #include "coincontrol.h"
 #include "smartrewardslist.h"
-//#include "init.h"
-//#include "validation.h" // For minRelayTxFee
 #include "wallet/wallet.h"
 #include "clientmodel.h"
 #include "validation.h"
@@ -28,6 +26,7 @@
 #include <QMessageBox>
 #include <QSortFilterProxyModel>
 #include <QTableWidget>
+#include <QTableWidgetItem>
 #include <QDateTime>
 
 struct QSmartRewardField
@@ -41,6 +40,13 @@ struct QSmartRewardField
     QSmartRewardField() : label(QString()), address(QString()),
                           balance(0), eligible(0),reward(0){}
 };
+
+bool CSmartRewardWidgetItem::operator<(const QTableWidgetItem &other) const {
+    int column = other.column();
+    if (column == SmartrewardsList::COLUMN_AMOUNT || column == SmartrewardsList::COLUMN_ELIGIBLE || column == SmartrewardsList::COLUMN_REWARD)
+        return data(Qt::UserRole).toLongLong() < other.data(Qt::UserRole).toLongLong();
+    return QTableWidgetItem::operator<(other);
+}
 
 SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
@@ -360,11 +366,18 @@ void SmartrewardsList::updateUI()
 
             ui->tableWidget->insertRow(nRow);
 
-            ui->tableWidget->setItem(nRow, 0, createItem(field.label));
-            ui->tableWidget->setItem(nRow, 1, createItem(field.address));
-            ui->tableWidget->setItem(nRow, 2, createItem(BitcoinUnits::format(nDisplayUnit, field.balance) + " " +  BitcoinUnits::name(nDisplayUnit)));
-            ui->tableWidget->setItem(nRow, 3, createItem(BitcoinUnits::format(nDisplayUnit, field.eligible) + " " +  BitcoinUnits::name(nDisplayUnit)));
-            ui->tableWidget->setItem(nRow, 4, createItem(BitcoinUnits::format(nDisplayUnit, field.reward) + " " +  BitcoinUnits::name(nDisplayUnit)));
+            CSmartRewardWidgetItem *balanceItem = new CSmartRewardWidgetItem(BitcoinUnits::format(nDisplayUnit, field.balance) + " " +  BitcoinUnits::name(nDisplayUnit));
+            CSmartRewardWidgetItem *eligibleItem = new CSmartRewardWidgetItem(BitcoinUnits::format(nDisplayUnit, field.eligible) + " " +  BitcoinUnits::name(nDisplayUnit));
+            CSmartRewardWidgetItem *rewardItem = new CSmartRewardWidgetItem(BitcoinUnits::format(nDisplayUnit, field.reward) + " " +  BitcoinUnits::name(nDisplayUnit));
+
+            ui->tableWidget->setItem(nRow, COLUMN_LABEL, createItem(field.label));
+            ui->tableWidget->setItem(nRow, COLUMN_ADDRESS, createItem(field.address));            
+            ui->tableWidget->setItem(nRow, COLUMN_AMOUNT, balanceItem);            
+            balanceItem->setData(Qt::UserRole, QVariant((qlonglong)field.balance));
+            ui->tableWidget->setItem(nRow, COLUMN_ELIGIBLE, eligibleItem);
+            eligibleItem->setData(Qt::UserRole, QVariant((qlonglong)field.eligible));
+            ui->tableWidget->setItem(nRow, COLUMN_REWARD, rewardItem);
+            rewardItem->setData(Qt::UserRole, QVariant((qlonglong)field.reward));
 
             nRow++;
             rewardSum += field.reward;

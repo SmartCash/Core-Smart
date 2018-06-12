@@ -362,26 +362,26 @@ void SmartnodeList::on_startButton_clicked()
     StartAlias(encStatus == walletModel->Locked, strAlias);
 }
 
-void SmartnodeList::on_startAllButton_clicked()
-{
-    // Display message box
-    QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm all SmartNodes start"),
-        tr("Are you sure you want to start ALL SmartNodes?"),
-        QMessageBox::Yes | QMessageBox::Cancel,
-        QMessageBox::Cancel);
+// void SmartnodeList::on_startAllButton_clicked()
+// {
+//     // Display message box
+//     QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm all SmartNodes start"),
+//         tr("Are you sure you want to start ALL SmartNodes?"),
+//         QMessageBox::Yes | QMessageBox::Cancel,
+//         QMessageBox::Cancel);
 
-    if(retval != QMessageBox::Yes) return;
+//     if(retval != QMessageBox::Yes) return;
 
-    WalletModel::EncryptionStatus encStatus = walletModel->getEncryptionStatus();
+//     WalletModel::EncryptionStatus encStatus = walletModel->getEncryptionStatus();
 
-    if(encStatus == walletModel->Locked || encStatus == walletModel->UnlockedForMixingOnly) {
-        WalletModel::UnlockContext ctx(walletModel->requestUnlock());
+//     if(encStatus == walletModel->Locked || encStatus == walletModel->UnlockedForMixingOnly) {
+//         WalletModel::UnlockContext ctx(walletModel->requestUnlock());
 
-        if(!ctx.isValid()) return; // Unlock wallet was cancelled
-    }
+//         if(!ctx.isValid()) return; // Unlock wallet was cancelled
+//     }
 
-    StartAll(encStatus == walletModel->Locked);
-}
+//     StartAll(encStatus == walletModel->Locked);
+// }
 
 void SmartnodeList::on_startMissingButton_clicked()
 {

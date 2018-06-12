@@ -14,10 +14,18 @@
 #include <QMenu>
 #include <QTimer>
 #include <QWidget>
+#include <QTableWidgetItem>
 
 namespace Ui {
     class SmartrewardsList;
 }
+
+class CSmartRewardWidgetItem : public QTableWidgetItem
+{
+public:
+    CSmartRewardWidgetItem(const QString &text, int type = Type) : QTableWidgetItem(text, type) {}
+    bool operator<(const QTableWidgetItem &other) const;
+};
 
 class WalletModel;
 class ClientModel;
@@ -45,11 +53,21 @@ public:
     void setModel(WalletModel *model);
     void setClientModel(ClientModel *model);
 
+    enum
+    {
+        COLUMN_LABEL = 0,
+        COLUMN_ADDRESS,
+        COLUMN_AMOUNT,
+        COLUMN_ELIGIBLE,
+        COLUMN_REWARD,
+    };
+
 private:
     Ui::SmartrewardsList *ui;
     WalletModel *model;
     ClientModel *clientModel;
     QMenu *contextMenu;
+    
 
 public Q_SLOTS:
     void contextualMenu(const QPoint &);
