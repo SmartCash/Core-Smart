@@ -229,14 +229,14 @@ static const unsigned int DEFAULT_CHECKLEVEL = 3;
 static const int SYNC_TRANSACTION_NOT_IN_BLOCK = -1;
 
 // Require that user allocate at least 550MB for block & undo files (blk???.dat and rev???.dat)
-// At 1MB per block, 288 blocks = 288MB.
+// At 4MB per block, 288 blocks = 1152MB.
 // Add 15% for Undo data = 331MB
 // Add 20% for Orphan block rate = 397MB
 // We want the low water mark after pruning to be at least 397 MB and since we prune in
 // full block file chunks, we need the high water mark which triggers the prune to be
 // one 128MB block file + added 15% undo data = 147MB greater for a total of 545MB
-// Setting the target to > than 550MB will make it likely we can respect the target.
-static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
+// Setting the target to > than 1414MB will make it likely we can respect the target.
+static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 1414 * 1024 * 1024;
 
 /** 
  * Process an incoming block. This only returns after the best known valid
