@@ -18,12 +18,14 @@ CSporkManager sporkManager;
 
 std::map<uint256, CSporkMessage> mapSporks;
 std::map<int, int64_t> mapSporkDefaults = {
-    {SPORK_2_INSTANTSEND_ENABLED,            0},             // ON
-    {SPORK_3_INSTANTSEND_BLOCK_FILTERING,    0},             // ON
-    {SPORK_5_INSTANTSEND_MAX_VALUE,          1000},          // 1000 SMART
-    {SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT,  4070908800ULL}, // OFF - TBD => Set the correct date
-    {SPORK_10_SMARTNODE_PAY_UPDATED_NODES,   4070908800ULL}, // OFF - TBD => Set the correct date
-    {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,   0}, // ON
+    {SPORK_2_INSTANTSEND_ENABLED,               0},             // ON
+    {SPORK_3_INSTANTSEND_BLOCK_FILTERING,       0},             // ON
+    {SPORK_5_INSTANTSEND_MAX_VALUE,             1000},          // 1000 SMART
+    {SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT,     4070908800ULL}, // OFF - TBD => Set the correct date
+    {SPORK_10_SMARTNODE_PAY_UPDATED_NODES,      4070908800ULL}, // OFF - TBD => Set the correct date
+    {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,      0}, // ON
+    {SPORK_16_MINING_SIGNATURE_ENFORCEMENT,     4070908800ULL}, // OFF
+    {SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED, 0xFFFFFFFFFFFFFFFF}, // All enabled
 };
 
 
@@ -142,6 +144,8 @@ int CSporkManager::GetSporkIDByName(std::string strName)
     if (strName == "SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT")     return SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT;
     if (strName == "SPORK_10_SMARTNODE_PAY_UPDATED_NODES")      return SPORK_10_SMARTNODE_PAY_UPDATED_NODES;
     if (strName == "SPORK_15_SMARTREWARDS_BLOCKS_ENABLED")      return SPORK_15_SMARTREWARDS_BLOCKS_ENABLED;
+    if (strName == "SPORK_16_MINING_SIGNATURE_ENFORCEMENT")     return SPORK_16_MINING_SIGNATURE_ENFORCEMENT;
+    if (strName == "SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED") return SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED;
 
     LogPrint("spork", "CSporkManager::GetSporkIDByName -- Unknown Spork name '%s'\n", strName);
     return -1;
@@ -156,6 +160,8 @@ std::string CSporkManager::GetSporkNameByID(int nSporkID)
         case SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT:     return "SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT";
         case SPORK_10_SMARTNODE_PAY_UPDATED_NODES:      return "SPORK_10_SMARTNODE_PAY_UPDATED_NODES";
         case SPORK_15_SMARTREWARDS_BLOCKS_ENABLED:      return "SPORK_15_SMARTREWARDS_BLOCKS_ENABLED";
+        case SPORK_16_MINING_SIGNATURE_ENFORCEMENT:     return "SPORK_16_MINING_SIGNATURE_ENFORCEMENT";
+        case SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED: return "SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED";
         default:
             LogPrint("spork", "CSporkManager::GetSporkNameByID -- Unknown Spork ID %d\n", nSporkID);
             return "Unknown";
