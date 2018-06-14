@@ -120,7 +120,7 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
     coinbaseTx.vout[0].nValue = GetMiningReward(pindexPrev, blockReward);
 }
 
-bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidationState& state, CAmount nFees)
+bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidationState& state, CAmount nFees, bool fJustCheck)
 {
     const CChainParams& chainparams = Params();
     CAmount coinbase = block.vtx[0].GetValueOut();
@@ -128,7 +128,7 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
     CAmount miningReward = GetMiningReward(pindex, blockReward);
     CAmount hiveReward = 0, nodeReward = 0, smartReward = 0;
 
-    if( !CheckSignature(block, pindex) ){
+    if( !fJustCheck && !CheckSignature(block, pindex) ){
         return state.DoS(0, error("SmartMining::Validate - signature enforcement enabled and no valid signature found."),
                                 REJECT_INVALID, "invalid-mining-signature");
     }

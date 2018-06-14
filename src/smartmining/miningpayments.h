@@ -18,7 +18,7 @@ const int nMiningSignatureScriptLength = 70;
 
 namespace SmartMining{
 
-bool Validate(const CBlock& block, CBlockIndex *pindex, CValidationState& state, CAmount nFees);
+bool Validate(const CBlock& block, CBlockIndex *pindex, CValidationState& state, CAmount nFees, bool fJustCheck = false);
 void FillPayment(CMutableTransaction& txNew, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward);
 
 
