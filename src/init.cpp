@@ -1622,7 +1622,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     CBlockIndex *pLastIndex = chainActive.Tip();
     CSmartRewardsDB * prewardsdb = nullptr;
-    bool fResetRewards = GetBoolArg("-reset-rewards", false);
+    bool fResetRewards = fReindex;
     fLoaded = false;
 
     while (!fLoaded) {
