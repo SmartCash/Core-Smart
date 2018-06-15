@@ -138,7 +138,13 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
                 }
             }
 
-            return false;
+            if(sporkManager.IsSporkActive(SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT)) {
+                LogPrint("mnpayments", "SmartNodePayments::IsPaymetValid -- ERROR: Invalid smartnode payment detected at height %d: %s", nHeight, txNew.ToString());
+                return false;
+            }
+
+            return true;
+
         }else if( nHeight >= HF_V1_2_MULTINODE_HEIGHT ){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return true;
         }
@@ -186,6 +192,11 @@ void SmartNodePayments::FillPayments(CMutableTransaction& txNew, int nBlockHeigh
 std::string SmartNodePayments::GetRequiredPaymentsString(int nBlockHeight)
 {
     return mnpayments.GetRequiredPaymentsString(nBlockHeight);
+}
+
+UniValue SmartNodePayments::GetPaymentBlockObject(int nBlockHeight)
+{
+    return mnpayments.GetPaymentBlockObject(nBlockHeight);
 }
 
 void CSmartnodePayments::Clear()
@@ -474,7 +485,7 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     CScriptVector payees;
     int interval = SmartNodePayments::PayoutInterval(nCachedBlockHeight);
 
-    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + 8 + interval; h++){
+    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + MNPAYMENTS_FUTURE_VOTES - interval; h++){
         interval = SmartNodePayments::PayoutInterval(h);
         if(h == nNotBlockHeight) continue;
         if(mapSmartnodeBlocks.count(h) &&
@@ -663,6 +674,48 @@ std::string CSmartnodeBlockPayees::GetRequiredPaymentsString()
     return strRequiredPayments;
 }
 
+UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
+{
+    LOCK(cs_vecPayees);
+
+    UniValue obj(UniValue::VOBJ);
+    UniValue votes(UniValue::VARR);
+
+    int interval = SmartNodePayments::PayoutInterval(nBlockHeight);
+
+    if( !interval || nBlockHeight % interval ){
+        obj.pushKV("state", "No reward block");
+        obj.pushKV("voteSum", 0);
+        obj.pushKV("votes", votes);
+        return obj;
+    }
+
+    int nVoteSum = 0;
+
+    BOOST_FOREACH(CSmartnodePayee& payee, vecPayees)
+    {
+        CTxDestination address1;
+        ExtractDestination(payee.GetPayee(), address1);
+        CBitcoinAddress address2(address1);
+
+        nVoteSum += payee.GetVoteCount();
+        votes.pushKV(address2.ToString(), payee.GetVoteCount());
+    }
+
+    if( !obj.size() ){
+        obj.pushKV("state", "No votes");
+        obj.pushKV("voteSum", 0);
+        obj.pushKV("votes", votes);
+        return obj;
+    }
+
+    obj.pushKV("state", "Valid");
+    obj.pushKV("voteSum", nVoteSum);
+    obj.pushKV("votes", votes);
+
+    return obj;
+}
+
 std::string CSmartnodePayments::GetRequiredPaymentsString(int nHeight)
 {
     int interval = SmartNodePayments::PayoutInterval(nHeight);
@@ -676,6 +729,27 @@ std::string CSmartnodePayments::GetRequiredPaymentsString(int nHeight)
     }
 
     return "Unknown";
+}
+
+UniValue CSmartnodePayments::GetPaymentBlockObject(int nHeight)
+{
+    int interval = SmartNodePayments::PayoutInterval(nHeight);
+
+    if( !interval || nHeight % interval ) return "NoRewardBlock";
+
+    LOCK(cs_mapSmartnodeBlocks);
+
+    if(mapSmartnodeBlocks.count(nHeight)){
+        return mapSmartnodeBlocks[nHeight].GetPaymentBlockObject();
+    }
+
+    UniValue obj(UniValue::VOBJ);
+
+    obj.pushKV("state", "No votes");
+    obj.pushKV("voteSum", 0);
+    obj.pushKV("votes", UniValue(UniValue::VARR));
+
+    return obj;
 }
 
 bool CSmartnodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CAmount expectedNodeReward)
@@ -1085,7 +1159,7 @@ void CSmartnodePayments::UpdatedBlockTip(const CBlockIndex *pindex, CConnman& co
     LogPrint("mnpayments", "CSmartnodePayments::UpdatedBlockTip -- nCachedBlockHeight=%d\n", nCachedBlockHeight);
 
     int interval = SmartNodePayments::PayoutInterval(nCachedBlockHeight);
-    int nFutureBlock = nCachedBlockHeight + 10 + interval;
+    int nFutureBlock = nCachedBlockHeight + MNPAYMENTS_FUTURE_VOTES + interval;
 
 //    CheckPreviousBlockVotes(nFutureBlock - 1);
     if( interval && !(nFutureBlock % interval) ) ProcessBlock(nFutureBlock, connman);

@@ -18,7 +18,8 @@ class CSmartnodeBlockPayees;
 
 static const int MNPAYMENTS_SIGNATURES_REQUIRED         = 6;
 static const int MNPAYMENTS_SIGNATURES_TOTAL            = 10;
-static const int MNPAYMENTS_NO_RANK                    = INT_MAX;
+static const int MNPAYMENTS_NO_RANK                     = INT_MAX;
+static const int MNPAYMENTS_FUTURE_VOTES                = 20;
 
 //! minimum peer version that can receive and send smartnode payment messages,
 //  vote for smartnode and be elected as a payment winner
@@ -43,6 +44,7 @@ bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount blockRewar
 bool IsPaymentValid(const CTransaction& txNew, int nBlockHeight, CAmount blockReward, CAmount& nodeReward);
 void FillPayments(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartNodes);
 std::string GetRequiredPaymentsString(int nBlockHeight);
+UniValue GetPaymentBlockObject(int nBlockHeight);
 
 }
 
@@ -128,6 +130,7 @@ public:
     bool IsTransactionValid(const CTransaction& txNew, CAmount expectedNodeReward);
 
     std::string GetRequiredPaymentsString();
+    UniValue GetPaymentBlockObject();
 };
 
 // vote for the winning payment
@@ -251,6 +254,7 @@ public:
     int GetMinSmartnodePaymentsProto();
     void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman);
     std::string GetRequiredPaymentsString(int nBlockHeight);
+    UniValue GetPaymentBlockObject(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartNodes);
     std::string ToString() const;
 

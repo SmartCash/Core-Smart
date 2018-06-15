@@ -417,25 +417,19 @@ UniValue smartnode(const UniValue& params, bool fHelp)
         }
 
         int nLast = 10;
-        std::string strFilter = "";
 
         if (params.size() >= 2) {
             nLast = atoi(params[1].get_str());
         }
 
-        if (params.size() == 3) {
-            strFilter = params[2].get_str();
-        }
-
-        if (params.size() > 3)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartnode winners ( \"count\" \"filter\" )'");
+        if (params.size() > 2)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartnode winners ( \"count\" )'");
 
         UniValue obj(UniValue::VOBJ);
 
-        for(int i = nHeight - nLast; i < nHeight + 20 + SmartNodePayments::PayoutInterval(nHeight); i++) {
-            std::string strPayment = SmartNodePayments::GetRequiredPaymentsString(i);
-            if (strFilter !="" && strPayment.find(strFilter) == std::string::npos) continue;
-            obj.push_back(Pair(strprintf("%d", i), strPayment));
+        for(int i = nHeight - nLast; i < nHeight + MNPAYMENTS_FUTURE_VOTES + SmartNodePayments::PayoutInterval(nHeight); i++) {
+            UniValue payment = SmartNodePayments::GetPaymentBlockObject(i);
+            obj.push_back(Pair(strprintf("%d", i), payment));
         }
 
         return obj;
