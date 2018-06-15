@@ -25,6 +25,7 @@
 #include "utilstrencodings.h"
 #include "validationinterface.h"
 #include "warnings.h"
+#include "smartmining/miningpayments.h"
 #include "smartnode/smartnodepayments.h"
 #include "smartnode/smartnodesync.h"
 #include "smarthive/hive.h"
@@ -398,6 +399,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
             "{\n"
             "  \"version\" : n,                     (numeric) The preferred block version\n"
             "  \"previousblockhash\" : \"xxxx\",    (string) The hash of current highest block\n"
+            "  \"signing_required\" : \"xxxx\",     (bool) If this is true block signing is currently enforced.\n"
             "  \"coinbase\" : {                     (object) contents of the coinbase transaction that should be included in the next block\n"
             "       \"mining\": n,                  (numeric) value of the SmartMining reward\n"
             "       \"smarthives\": [               (array) contains all SmartHive payouts required for the next block\n"
@@ -628,6 +630,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     result.pushKV("chain", Params().NetworkIDString());
     result.pushKV("version", pblock->nVersion);
     result.pushKV("previousblockhash", pblock->hashPrevBlock.GetHex());
+    result.pushKV("signing_required", SmartMining::IsSignatureRequired(pblocktemplate->block));
     result.pushKV("coinbase", coinbase);
     result.pushKV("transactions", transactions);
     result.pushKV("longpollid", chainActive.Tip()->GetBlockHash().GetHex() + i64tostr(nTransactionsUpdatedLast));

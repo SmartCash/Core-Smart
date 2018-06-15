@@ -12,7 +12,6 @@
 #include "validation.h"
 
 const uint8_t OP_DATA_MINING_FLAG = 0x01;
-const int nMiningSignatureEnforceDelay = 300; // 5 minutes
 const int nMiningSignaturePastTimeCutoff = 7200; // 2 hours
 const int nMiningSignatureScriptLength = 70;
 
@@ -20,7 +19,7 @@ namespace SmartMining{
 
 bool Validate(const CBlock& block, CBlockIndex *pindex, CValidationState& state, CAmount nFees, bool fJustCheck = false);
 void FillPayment(CMutableTransaction& txNew, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward);
-
+bool IsSignatureRequired(const CBlock &block);
 
 }
 

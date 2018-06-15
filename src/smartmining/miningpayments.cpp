@@ -30,19 +30,29 @@ static std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet = {
   This is a workaroud to avoid hashrate attacks from bad pools until we have a proper solution.
   It allows us to force pools to sign the blocks with a private key which a pool can receive from us.
 */
+
+bool SmartMining::IsSignatureRequired(const CBlock &block){
+
+    // If the blocktime is > the time the enforcement has become enabled + a delay to give time for the spork sharing.
+    if( block.GetBlockTime() < sporkManager.GetSporkValue(SPORK_16_MINING_SIGNATURE_ENFORCEMENT)){
+        return false;
+    }
+
+    // If we are syncing dont check the signatures of blocks nMiningSignaturePastTimeCutoff seconds in the past.
+    if( GetAdjustedTime() > block.GetBlockTime() + nMiningSignaturePastTimeCutoff ){
+        return false;
+    }
+
+    return true;
+}
+
 static bool CheckSignature(const CBlock &block, CBlockIndex *pindex)
 {
 
     // We dont check the signatures in the litemode, just accept the longest chain.
     if( fLiteMode ) return true;
 
-    // If the blocktime is > the time the enforcement has become enabled + a delay to give time for the spork sharing.
-    if( block.GetBlockTime() < sporkManager.GetSporkValue(SPORK_16_MINING_SIGNATURE_ENFORCEMENT)){
-        return true;
-    }
-
-    // If we are syncing dont check the signatures of blocks nMiningSignaturePastTimeCutoff seconds in the past.
-    if( GetAdjustedTime() > block.GetBlockTime() + nMiningSignaturePastTimeCutoff ){
+    if( !SmartMining::IsSignatureRequired(block) ){
         return true;
     }
 
