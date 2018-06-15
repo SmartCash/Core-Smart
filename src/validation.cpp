@@ -2283,7 +2283,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // to recognize that block is actually invalid.
     // TODO: resync data (both ways?) and try to reprocess this block later.
 
-    if( !SmartMining::Validate(block, pindex, state, nFees, fJustCheck) ){
+    if( !SmartMining::Validate(block, pindex, state, nFees) ){
         mapRejectedBlocks.insert(make_pair(block.GetHash(), GetTime()));
         return false;
     }

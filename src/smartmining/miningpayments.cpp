@@ -6,6 +6,7 @@
 #include "consensus/consensus.h"
 #include "consensus/validation.h"
 #include "messagesigner.h"
+#include "wallet/wallet.h"
 
 #include "smartnode/smartnodeman.h"
 #include "smartnode/smartnodepayments.h"
@@ -79,15 +80,14 @@ static std::map<uint8_t, CSmartAddress> mapMiningKeysMainnet = {
     {60, CSmartAddress("SimxfrTk5V8F8UT9eDJxfV8yt1mrXwnx1X")},
     {61, CSmartAddress("Sch2EY1y3ozu2WgFUtxBojRmKUwWgxyUSx")},
     {62, CSmartAddress("SZqwUufMavPQRNtft9LbStqnQxPT2sgxn3")},
-    {63, CSmartAddress("SicJ4xb7gguvFRUBraAezDtjoHsUQ3qymZ")},
-
+    {63, CSmartAddress("SicJ4xb7gguvFRUBraAezDtjoHsUQ3qymZ")}
 };
 
 static std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet = {
     {0,  CSmartAddress("TUcdknEDtqM5cRf6YFM5xRNzcAbQuNpJoA")},
     {1,  CSmartAddress("TGwRnVCEBouA75mkfgwZ5XGH66sjXJj2iq")},
     {2,  CSmartAddress("TYkeHMSS3VBfnH8i9yRqxnR3uxjavrSpoQ")},
-    {63, CSmartAddress("TFDgrpTFGUL9NZgEjTMxuF5v6pw2tKSuRu")},
+    {63, CSmartAddress("TFDgrpTFGUL9NZgEjTMxuF5v6pw2tKSuRu")}
 };
 
 /**
@@ -129,28 +129,28 @@ static bool CheckSignature(const CBlock &block, CBlockIndex *pindex)
     const CScript &sigScript = block.vtx[0].vout[1].scriptPubKey;
 
     // Check if it is an OP_RETURN and if the startvalue is OP_DATA_MINING_FLAG
-    if( sigScript.size() == nMiningSignatureScriptLength &&
-        sigScript[0] == OP_RETURN && sigScript[1] == OP_DATA_MINING_FLAG ){
+    if( sigScript.size() > nMiningSignatureMinScriptLength &&
+        sigScript[0] == OP_RETURN && sigScript[2] == OP_DATA_MINING_FLAG ){
 
         auto *pKeyMap = &mapMiningKeysMainnet;
 
         if( TestNet() ) pKeyMap = &mapMiningKeysTestnet;
 
         int64_t nEnabledKeys = sporkManager.GetSporkValue(SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED);
-        uint8_t nKeyIdx = sigScript[2];
+        uint8_t nKeyIdx = sigScript[3];
 
         if( nEnabledKeys & (1 << nKeyIdx) && nKeyIdx <= pKeyMap->size() - 1 ){
 
             CSmartAddress signAddress = pKeyMap->at(nKeyIdx);
             CKeyID keyId;
 
-            std::vector<unsigned char> vchSig(sigScript.begin() + 3, sigScript.end() );
+            std::vector<unsigned char> vchSig(sigScript.begin() + 4, sigScript.end() );
 
             if( signAddress.IsValid() && signAddress.GetKeyID(keyId) ){
 
                 CDataStream ss(SER_GETHASH, 0);
                 ss << strMessageMagic;
-                ss << std::to_string(pindex->nHeight);
+                ss << pindex->nHeight;
 
                 CPubKey pubkey;
                 if (!pubkey.RecoverCompact(Hash(ss.begin(), ss.end()), vchSig)){
@@ -189,12 +189,73 @@ CAmount GetMiningReward(CBlockIndex * pindex, CAmount blockReward)
     return blockReward / 20; // 5%
 }
 
-void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward)
+void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward, CTxOut &outSignature, const CSmartAddress &signingAddress)
 {
     coinbaseTx.vout[0].nValue = GetMiningReward(pindexPrev, blockReward);
+
+    if( pwalletMain ){
+
+        if (!signingAddress.IsValid())
+        {
+            LogPrintf("SmartMining::FillPayment -- The given signingAddress is invalid.");
+            return;
+        }
+
+        auto *pKeyMap = &mapMiningKeysMainnet;
+
+        if( TestNet() ) pKeyMap = &mapMiningKeysTestnet;
+
+        auto searchAddress = std::find_if(pKeyMap->begin(), pKeyMap->end(), [signingAddress](const std::pair<int, CSmartAddress> &pair)
+        {
+            return pair.second == signingAddress;
+        });
+
+        if( searchAddress == pKeyMap->end() ){
+            LogPrintf("SmartMining::FillPayment -- The given signingAddress is no official one.");
+            return;
+        }
+
+        CKeyID keyID;
+        if (!signingAddress.GetKeyID(keyID))
+        {
+            LogPrintf("SmartMining::FillPayment -- The given signingAddress does not refer to a key.");
+            return;
+        }
+
+        CKey key;
+        if (!pwalletMain->GetKey(keyID, key))
+        {
+            LogPrintf("SmartMining::FillPayment -- Private key for the given signingAddresss is not available.");
+            return;
+        }
+
+        CDataStream ss(SER_GETHASH, 0);
+        ss << strMessageMagic;
+        ss << nHeight;
+
+        std::vector<unsigned char> vchSig;
+        if (!key.SignCompact(Hash(ss.begin(), ss.end()), vchSig))
+        {
+            LogPrintf("SmartMining::FillPayment -- Message signing failed.");
+            return;
+        }
+
+        std::vector<unsigned char> vSigData = {
+            OP_DATA_MINING_FLAG,
+            searchAddress->first
+        };
+
+        vSigData.insert(vSigData.end(), vchSig.begin(), vchSig.end());
+
+        CScript signingScript = CScript() << OP_RETURN << vSigData;
+
+        outSignature = CTxOut(0, signingScript);
+        coinbaseTx.vout.push_back(outSignature);
+    }
+
 }
 
-bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidationState& state, CAmount nFees, bool fJustCheck)
+bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidationState& state, CAmount nFees)
 {
     const CChainParams& chainparams = Params();
     CAmount coinbase = block.vtx[0].GetValueOut();
@@ -202,7 +263,7 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
     CAmount miningReward = GetMiningReward(pindex, blockReward);
     CAmount hiveReward = 0, nodeReward = 0, smartReward = 0;
 
-    if( !fJustCheck && !CheckSignature(block, pindex) ){
+    if( !CheckSignature(block, pindex) ){
         return state.DoS(0, error("SmartMining::Validate - signature enforcement enabled and no valid signature found."),
                                 REJECT_INVALID, "invalid-mining-signature");
     }

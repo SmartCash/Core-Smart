@@ -103,7 +103,7 @@ UniValue getnetworkhashps(const UniValue& params, bool fHelp)
     return GetNetworkHashPS(params.size() > 0 ? params[0].get_int() : 120, params.size() > 1 ? params[1].get_int() : -1);
 }
 
-UniValue generateBlocks(boost::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
+UniValue generateBlocks(boost::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript, const CSmartAddress &signingAddress)
 {
     static const int nInnerLoopCount = 0x10000;
     int nHeightStart = 0;
@@ -120,7 +120,7 @@ UniValue generateBlocks(boost::shared_ptr<CReserveScript> coinbaseScript, int nG
     UniValue blockHashes(UniValue::VARR);
     while (nHeight < nHeightEnd)
     {
-        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, signingAddress));
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
         CBlock *pblock = &pblocktemplate->block;
@@ -174,24 +174,31 @@ UniValue getgenerate(const UniValue& params, bool fHelp)
 
 UniValue generate(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
             "generate numblocks ( maxtries )\n"
             "\nMine up to numblocks blocks immediately (before the RPC call returns)\n"
             "\nArguments:\n"
-            "1. numblocks    (numeric, required) How many blocks are generated immediately.\n"
-            "2. maxtries     (numeric, optional) How many iterations to try (default = 1000000).\n"
+            "1. numblocks       (numeric, required) How many blocks are generated immediately.\n"
+            "2. maxtries        (numeric, required) How many iterations to try (default = 1000000).\n"
+            "3. signingAddress  (string, optional) The address being used to sign the block.\n"
             "\nResult\n"
             "[ blockhashes ]     (array) hashes of blocks generated\n"
             "\nExamples:\n"
             "\nGenerate 11 blocks\n"
-            + HelpExampleCli("generate", "11")
+            + HelpExampleCli("generate", "11 1000 \"signingaddress\"")
         );
 
     int nGenerate = params[0].get_int();
     uint64_t nMaxTries = 1000000;
     if (params.size() > 1) {
         nMaxTries = params[1].get_int();
+    }
+
+    CSmartAddress signingAddress;
+
+    if (params.size() > 2) {
+        signingAddress = CSmartAddress(params[2].get_str());
     }
 
     boost::shared_ptr<CReserveScript> coinbaseScript;
@@ -205,30 +212,37 @@ UniValue generate(const UniValue& params, bool fHelp)
     if (coinbaseScript->reserveScript.empty())
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available (mining requires a wallet)");
 
-    return generateBlocks(coinbaseScript, nGenerate, nMaxTries, true);
+    return generateBlocks(coinbaseScript, nGenerate, nMaxTries, true, signingAddress);
 }
 
 UniValue generatetoaddress(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() < 2 || params.size() > 3)
+    if (fHelp || params.size() < 3 || params.size() > 4)
         throw runtime_error(
             "generatetoaddress numblocks address (maxtries)\n"
             "\nMine blocks immediately to a specified address (before the RPC call returns)\n"
             "\nArguments:\n"
-            "1. numblocks    (numeric, required) How many blocks are generated immediately.\n"
-            "2. address    (string, required) The address to send the newly generated smartcash to.\n"
-            "3. maxtries     (numeric, optional) How many iterations to try (default = 1000000).\n"
+            "1. numblocks      (numeric, required) How many blocks are generated immediately.\n"
+            "2. address        (string, required) The address to send the newly generated smartcash to.\n"
+            "3. maxtries       (numeric, required) How many iterations to try (default = 1000000).\n"
+            "4. signingAddress (string, optional) The address being used to sign the block.\n"
             "\nResult\n"
             "[ blockhashes ]     (array) hashes of blocks generated\n"
             "\nExamples:\n"
             "\nGenerate 11 blocks to myaddress\n"
-            + HelpExampleCli("generatetoaddress", "11 \"myaddress\"")
+            + HelpExampleCli("generatetoaddress", "11 \"myaddress\" 1000 \"signingaddress\"")
         );
 
     int nGenerate = params[0].get_int();
     uint64_t nMaxTries = 1000000;
     if (params.size() > 2) {
         nMaxTries = params[2].get_int();
+    }
+
+    CSmartAddress signingAddress;
+
+    if (params.size() > 3) {
+        signingAddress = CSmartAddress(params[3].get_str());
     }
 
     CBitcoinAddress address(params[1].get_str());
@@ -238,7 +252,7 @@ UniValue generatetoaddress(const UniValue& params, bool fHelp)
     boost::shared_ptr<CReserveScript> coinbaseScript(new CReserveScript());
     coinbaseScript->reserveScript = GetScriptForDestination(address.Get());
 
-    return generateBlocks(coinbaseScript, nGenerate, nMaxTries, false);
+    return generateBlocks(coinbaseScript, nGenerate, nMaxTries, false, signingAddress);
 }
 
 UniValue setgenerate(const UniValue& params, bool fHelp)
@@ -390,9 +404,9 @@ std::string gbt_vb_name(const Consensus::DeploymentPos pos) {
 UniValue getblocktemplate(const UniValue& params, bool fHelp)
 {
 
-    if (fHelp || params.size() > 0)
+    if (fHelp || params.size() > 1)
         throw std::runtime_error(
-            "getblocktemplate ( TemplateRequest )\n"
+            "getblocktemplate ( SigningAddress )\n"
             "\nReturns a block template miners must comply with to create blocks that will become accepted by"
             " the SmartCash network.\n"
             "\nResult:\n"
@@ -402,6 +416,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
             "  \"signing_required\" : \"xxxx\",     (bool) If this is true block signing is currently enforced.\n"
             "  \"coinbase\" : {                     (object) contents of the coinbase transaction that should be included in the next block\n"
             "       \"mining\": n,                  (numeric) value of the SmartMining reward\n"
+            "       \"signature\": \"xxxx\",        (string) signature script encoded in hexadecimal if a valid SigningAddress was provided.\n"
             "       \"smarthives\": [               (array) contains all SmartHive payouts required for the next block\n"
             "         {\n"
             "           \"payee\": \"xxx\",         (string) payee's public address as string.\n"
@@ -459,8 +474,8 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
             "  \"height\" : n                          (numeric) The height of the next block\n"
             "}\n"
             "\nExamples:\n"
-            + HelpExampleCli("getblocktemplate", "")
-            + HelpExampleRpc("getblocktemplate", "")
+            + HelpExampleCli("getblocktemplate", "\"signingaddress\"")
+            + HelpExampleRpc("getblocktemplate", "\"signingaddress\"")
          );
 
     LOCK(cs_main);
@@ -477,6 +492,12 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     if (MainNet() && !smartnodeSync.IsSynced())
          throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is syncing with network...");
         
+    CSmartAddress signingAddress;
+
+    if (params.size() == 1) {
+        signingAddress = CSmartAddress(params[0].get_str());
+    }
+
     static unsigned int nTransactionsUpdatedLast;
 
     // Update block
@@ -501,13 +522,14 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
             pblocktemplate = NULL;
         }
         CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy);
-        if (!pblocktemplate)
-            throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, signingAddress);
+        if (!pblocktemplate) throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
         // Need to update only after we know CreateNewBlock succeeded
         pindexPrev = pindexPrevNew;
+
     }
+
     CBlock* pblock = &pblocktemplate->block; // pointer for convenience
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
@@ -558,6 +580,16 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
 
     UniValue coinbase(UniValue::VOBJ);
     coinbase.pushKV("mining", (int64_t)pblock->vtx[0].vout[0].nValue);
+
+    std::string signature = "";
+
+    if( !pblock->outSignature.IsNull() ){
+        CScript signingScript = pblock->outSignature.scriptPubKey;
+        signature = HexStr(signingScript.begin(), signingScript.end());
+    }
+
+    coinbase.pushKV("signature",signature);
+
     {
         UniValue smartHivePayouts(UniValue::VARR);
         if(pblock->voutSmartHives.size()) {

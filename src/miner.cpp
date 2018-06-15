@@ -128,7 +128,7 @@ void BlockAssembler::resetBlock()
     blockFinished = false;
 }
 
-CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
+CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, const CSmartAddress &signingAddress)
 {
     resetBlock();
     pblocktemplate.reset(new CBlockTemplate());
@@ -150,7 +150,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
     CAmount blockReward = GetBlockValue(nHeight, 0, pindexPrev->GetBlockTime());
 
     // Add the SmartMining payout for the current block.
-    SmartMining::FillPayment(coinbaseTx, nHeight, pindexPrev,blockReward);
+    SmartMining::FillPayment(coinbaseTx, nHeight, pindexPrev, blockReward, pblock->outSignature, signingAddress);
 
     // Add the SmartHive payout for the current block.
     SmartHivePayments::FillPayments(coinbaseTx,nHeight, pindexPrev->GetBlockTime(), blockReward, pblock->voutSmartHives);
@@ -909,7 +909,7 @@ void static BitcoinMiner(const CChainParams& chainparams, CConnman& connman)
             CBlockIndex* pindexPrev = chainActive.Tip();
             if(!pindexPrev) break;
 
-            static CBlockTemplate* pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript);
+            static CBlockTemplate* pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, nullptr);
             if (!pblocktemplate)
             {
                 LogPrintf("SmartcashMiner -- Keypool ran out, please call keypoolrefill before restarting the mining thread\n");

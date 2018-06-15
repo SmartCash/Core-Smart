@@ -13,6 +13,7 @@
 #include <memory>
 #include "boost/multi_index_container.hpp"
 #include "boost/multi_index/ordered_index.hpp"
+#include "smarthive/hive.h"
 
 class CBlockIndex;
 class CChainParams;
@@ -171,7 +172,7 @@ private:
 public:
     BlockAssembler(const CChainParams& chainparams);
     /** Construct a new block template with coinbase to scriptPubKeyIn */
-    CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn);
+    CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, const CSmartAddress &signingAddress);
 
 private:
     // utility functions

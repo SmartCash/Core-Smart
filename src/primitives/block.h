@@ -84,6 +84,7 @@ public:
 
     // memory only
     mutable bool fChecked;
+    mutable CTxOut outSignature;
     mutable std::vector<CTxOut> voutSmartNodes;
     mutable std::vector<CTxOut> voutSmartHives;
     mutable std::vector<CTxOut> voutSmartRewards;
