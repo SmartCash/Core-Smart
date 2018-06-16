@@ -679,18 +679,25 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
     LOCK(cs_vecPayees);
 
     UniValue obj(UniValue::VOBJ);
-    UniValue votes(UniValue::VARR);
+    UniValue votes(UniValue::VOBJ);
 
-    int interval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    int nInterval = SmartNodePayments::PayoutInterval(nBlockHeight);
 
-    if( !interval || nBlockHeight % interval ){
+    if( !nInterval || nBlockHeight % nInterval ){
         obj.pushKV("state", "No reward block");
+        obj.pushKV("validPayees", 0);
         obj.pushKV("voteSum", 0);
         obj.pushKV("votes", votes);
         return obj;
     }
 
     int nVoteSum = 0;
+    int nValidPayees = 0;
+    int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
+
+    std::sort(vecPayees.begin(), vecPayees.end(), [](CSmartnodePayee& a, CSmartnodePayee& b) {
+        return a.GetVoteCount() > b.GetVoteCount();
+    });
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees)
     {
@@ -700,16 +707,26 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
 
         nVoteSum += payee.GetVoteCount();
         votes.pushKV(address2.ToString(), payee.GetVoteCount());
+
+        if( payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED ){
+            nValidPayees++;
+        }
     }
 
-    if( !obj.size() ){
+    if( !votes.size() ){
         obj.pushKV("state", "No votes");
+        obj.pushKV("validPayees", 0);
         obj.pushKV("voteSum", 0);
         obj.pushKV("votes", votes);
         return obj;
     }
 
-    obj.pushKV("state", "Valid");
+    if( nValidPayees == nExpectedPayees ){
+        obj.pushKV("state", "Valid");
+    }else{
+        obj.pushKV("state", "Not enough valid payees");
+    }
+    obj.pushKV("validPayees", nValidPayees);
     obj.pushKV("voteSum", nVoteSum);
     obj.pushKV("votes", votes);
 
@@ -746,6 +763,7 @@ UniValue CSmartnodePayments::GetPaymentBlockObject(int nHeight)
     UniValue obj(UniValue::VOBJ);
 
     obj.pushKV("state", "No votes");
+    obj.pushKV("validPayees", 0);
     obj.pushKV("voteSum", 0);
     obj.pushKV("votes", UniValue(UniValue::VARR));
 
