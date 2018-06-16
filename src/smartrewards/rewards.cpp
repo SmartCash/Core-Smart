@@ -109,7 +109,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 int required = ParseScript(rOut.scriptPubKey ,ids);
 
                 if( !required || required > 1 || ids.size() > 1 ){
-                    LogPrintf("Process Inputs: Could't parse CSmartAddress: %s",rOut.ToString());
+                    LogPrint("smartrewards", "Process Inputs: Could't parse CSmartAddress: %s",rOut.ToString());
                     continue;
                 }
 
@@ -153,7 +153,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
             int required = ParseScript(out.scriptPubKey ,ids);
 
             if( !required || required > 1 || ids.size() > 1 ){
-                LogPrintf("Process Outputs: Could't parse CSmartAddress: %s",out.ToString());
+                LogPrint("smartrewards", "Process Outputs: Could't parse CSmartAddress: %s",out.ToString());
                 continue;
             }else{
                 if(!GetCachedRewardEntry(ids.at(0),rEntry)){
