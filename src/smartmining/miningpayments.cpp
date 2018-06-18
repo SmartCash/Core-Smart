@@ -155,7 +155,7 @@ static bool CheckSignature(const CBlock &block, CBlockIndex *pindex)
                 CPubKey pubkey;
                 if (!pubkey.RecoverCompact(Hash(ss.begin(), ss.end()), vchSig)){
 
-                    LogPrintf("SmartMining::CheckSignature -- The signature did not match the message digest.");
+                    LogPrintf("SmartMining::CheckSignature -- The signature did not match the message digest.\n");
                     return false;
                 }
 
@@ -197,7 +197,7 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
 
         if (!signingAddress.IsValid())
         {
-            LogPrintf("SmartMining::FillPayment -- The given signingAddress is invalid.");
+            LogPrintf("SmartMining::FillPayment -- The given signingAddress is invalid.\n");
             return;
         }
 
@@ -211,21 +211,21 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
         });
 
         if( searchAddress == pKeyMap->end() ){
-            LogPrintf("SmartMining::FillPayment -- The given signingAddress is no official one.");
+            LogPrintf("SmartMining::FillPayment -- The given signingAddress is no official one.\n");
             return;
         }
 
         CKeyID keyID;
         if (!signingAddress.GetKeyID(keyID))
         {
-            LogPrintf("SmartMining::FillPayment -- The given signingAddress does not refer to a key.");
+            LogPrintf("SmartMining::FillPayment -- The given signingAddress does not refer to a key.\n");
             return;
         }
 
         CKey key;
         if (!pwalletMain->GetKey(keyID, key))
         {
-            LogPrintf("SmartMining::FillPayment -- Private key for the given signingAddresss is not available.");
+            LogPrintf("SmartMining::FillPayment -- Private key for the given signingAddresss is not available.\n");
             return;
         }
 
@@ -236,7 +236,7 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
         std::vector<unsigned char> vchSig;
         if (!key.SignCompact(Hash(ss.begin(), ss.end()), vchSig))
         {
-            LogPrintf("SmartMining::FillPayment -- Message signing failed.");
+            LogPrintf("SmartMining::FillPayment -- Message signing failed.\n");
             return;
         }
 

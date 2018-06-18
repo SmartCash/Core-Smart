@@ -4,6 +4,7 @@
 
 #include "smarthive/hivepayments.h"
 #include "smarthive/hive.h"
+#include "smartnode/spork.h"
 #include "consensus/consensus.h"
 #include "consensus/validation.h"
 #include "validation.h"
@@ -14,6 +15,8 @@ static CSmartHiveSplit *hiveSplit_1_1 = nullptr;
 static CSmartHiveSplit *hiveSplit_1_2 = nullptr;
 static CSmartHiveSplit *hiveSplitDisabled = nullptr;
 static CSmartHiveSplit *hiveSplitInvalid_1_0 = nullptr;
+
+static int nPayoutInterval_1_2;
 
 void SmartHivePayments::Init()
 {
@@ -53,14 +56,12 @@ void SmartHivePayments::Init()
         }
     );
 
-    int trigger_1_2;
-
-    if(MainNet()) trigger_1_2 = 1000;
-    else          trigger_1_2 = 25;
+    if(MainNet()) nPayoutInterval_1_2 = 1000;
+    else          nPayoutInterval_1_2 = 25;
 
     hiveSplit_1_2 = new CSmartHiveBatchSplit(
         70, // Split 70% of the block reward as followed.
-        trigger_1_2, // Trigger the payouts every n blocks
+        nPayoutInterval_1_2, // Trigger the payouts every n blocks
         {
             new CSmartHiveClassic(SmartHive::Outreach, 0.04),
             new CSmartHiveClassic(SmartHive::Support, 0.04),
@@ -93,7 +94,60 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
         }else if ( nHeight >= HF_V1_1_SMARTNODE_HEIGHT && nHeight < HF_V1_2_SMARTREWARD_HEIGHT ) {
             return hiveSplit_1_1;
         }else if ( (nHeight >= HF_V1_2_SMARTREWARD_HEIGHT) && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
+
+            static int64_t nLastPayNewHives = -1;
+            static CSmartHiveSplit* sporked_Split_1_2 = nullptr;
+
+            int64_t nPayNewHives = sporkManager.GetSporkValue(SPORK_18_PAY_NEW_HIVES);
+
+            // If one of the hives is disabled.
+            if( (nPayNewHives & SmartHivePayments::NEW_HIVES_ENABLED) != SmartHivePayments::NEW_HIVES_ENABLED ){
+
+                if( nLastPayNewHives == -1 ||  nLastPayNewHives != nPayNewHives ){
+
+                    nLastPayNewHives = nPayNewHives;
+
+                    delete sporked_Split_1_2;
+
+                    std::vector<CSmartHiveRewardBase*> sporkedHives_1_2;
+
+                    sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::ProjectTreasury, 0.46));
+
+                    if( nPayNewHives & SmartHivePayments::OUTREACH2_ENABLED ){
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach, 0.04));
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach2, 0.04));
+                    }else{
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach, 0.08));
+                    }
+
+                    if( nPayNewHives & SmartHivePayments::WEB_ENABLED ){
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Development, 0.04));
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Web, 0.04));
+                    }else{
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Development, 0.08));
+                    }
+
+                    if( nPayNewHives & SmartHivePayments::QUALITY_ENABLED ){
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Support, 0.04));
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Quality, 0.04));
+                    }else{
+                        sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Support, 0.08));
+                    }
+
+                    sporked_Split_1_2 = new CSmartHiveBatchSplit(
+                        70, // Split 70% of the block reward as followed.
+                        nPayoutInterval_1_2, // Trigger the payouts every n blocks
+                        sporkedHives_1_2
+                    );
+
+                }
+
+                return sporked_Split_1_2;
+            }
+
+            // Else us the normal 1.2 split.
             return hiveSplit_1_2;
+
         }else if(nHeight <= 1 || nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
             return hiveSplitDisabled;
         }

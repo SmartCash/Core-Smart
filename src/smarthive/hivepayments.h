@@ -10,6 +10,11 @@
 
 namespace SmartHivePayments{
 
+const int64_t OUTREACH2_ENABLED = 1 << 0;
+const int64_t WEB_ENABLED       = 1 << 1;
+const int64_t QUALITY_ENABLED   = 1 << 2;
+const int64_t NEW_HIVES_ENABLED = OUTREACH2_ENABLED | WEB_ENABLED | QUALITY_ENABLED;
+
 typedef enum{
     Valid,
     TransactionTooEarly,
@@ -82,6 +87,7 @@ struct CSmartHiveSplit
 
         if( abs(percent - ratioCheck) > 0.00001 ) throw std::runtime_error(strprintf("Invalid hive allocation! %f <> %f",percent, ratioCheck));
     }
+    virtual ~CSmartHiveSplit(){hives.clear();}
 };
 
 struct CSmartHiveClassicSplit : public CSmartHiveSplit
@@ -90,6 +96,7 @@ struct CSmartHiveClassicSplit : public CSmartHiveSplit
     void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final;
     CSmartHiveClassicSplit() : CSmartHiveSplit() {}
     CSmartHiveClassicSplit(int allocation, std::vector<CSmartHiveRewardBase*> hives) : CSmartHiveSplit(allocation, hives) {}
+    ~CSmartHiveClassicSplit(){}
 };
 
 struct CSmartHiveRotationSplit : public CSmartHiveSplit
@@ -98,6 +105,7 @@ struct CSmartHiveRotationSplit : public CSmartHiveSplit
     void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final;
     CSmartHiveRotationSplit() : CSmartHiveSplit() {}
     CSmartHiveRotationSplit(int allocation, std::vector<CSmartHiveRewardBase*> hives) : CSmartHiveSplit(allocation, hives) {}
+    ~CSmartHiveRotationSplit(){}
 };
 
 struct CSmartHiveBatchSplit : public CSmartHiveSplit
@@ -108,6 +116,7 @@ struct CSmartHiveBatchSplit : public CSmartHiveSplit
     CAmount GetBatchReward(int nHeight) const;
     CSmartHiveBatchSplit() : CSmartHiveSplit() {}
     CSmartHiveBatchSplit(int allocation, int trigger, std::vector<CSmartHiveRewardBase*> hives) : CSmartHiveSplit(allocation, hives), trigger(trigger) {}
+    ~CSmartHiveBatchSplit(){}
 };
 
 struct CSmartHiveSplitDisabled : public CSmartHiveSplit
@@ -115,6 +124,7 @@ struct CSmartHiveSplitDisabled : public CSmartHiveSplit
     bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const final {hiveReward = 0; return true;}
     void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final {voutSmartHives.clear();}
     CSmartHiveSplitDisabled() : CSmartHiveSplit() {}
+    ~CSmartHiveSplitDisabled(){}
 };
 
 struct CSmartHiveSplitInvalid : public CSmartHiveSplit
@@ -122,6 +132,7 @@ struct CSmartHiveSplitInvalid : public CSmartHiveSplit
     bool Valididate(const std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, CAmount& hiveReward) const final {hiveReward = blockReward * percent; return true;}
     void FillPayment(std::vector<CTxOut> &outputs, int nHeight, CAmount blockReward, std::vector<CTxOut>& voutSmartHives) const final {voutSmartHives.clear();}
     CSmartHiveSplitInvalid(double percent) : CSmartHiveSplit() {this->percent = percent;}
+    ~CSmartHiveSplitInvalid() {}
 };
 
 #endif // HIVEPAYMENTS_H

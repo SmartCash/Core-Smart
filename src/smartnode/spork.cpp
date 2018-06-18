@@ -26,6 +26,7 @@ std::map<int, int64_t> mapSporkDefaults = {
     {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,      0}, // ON
     {SPORK_16_MINING_SIGNATURE_ENFORCEMENT,     4070908800ULL}, // OFF
     {SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED, 0xFFFFFFFFFFFFFFFF}, // All enabled
+    {SPORK_18_PAY_NEW_HIVES,                    0x07}, // All enabled
 };
 
 
@@ -146,6 +147,7 @@ int CSporkManager::GetSporkIDByName(std::string strName)
     if (strName == "SPORK_15_SMARTREWARDS_BLOCKS_ENABLED")      return SPORK_15_SMARTREWARDS_BLOCKS_ENABLED;
     if (strName == "SPORK_16_MINING_SIGNATURE_ENFORCEMENT")     return SPORK_16_MINING_SIGNATURE_ENFORCEMENT;
     if (strName == "SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED") return SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED;
+    if (strName == "SPORK_18_PAY_NEW_HIVES")                    return SPORK_18_PAY_NEW_HIVES;
 
     LogPrint("spork", "CSporkManager::GetSporkIDByName -- Unknown Spork name '%s'\n", strName);
     return -1;
@@ -162,6 +164,7 @@ std::string CSporkManager::GetSporkNameByID(int nSporkID)
         case SPORK_15_SMARTREWARDS_BLOCKS_ENABLED:      return "SPORK_15_SMARTREWARDS_BLOCKS_ENABLED";
         case SPORK_16_MINING_SIGNATURE_ENFORCEMENT:     return "SPORK_16_MINING_SIGNATURE_ENFORCEMENT";
         case SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED: return "SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED";
+        case SPORK_18_PAY_NEW_HIVES:                    return "SPORK_18_PAY_NEW_HIVES";
         default:
             LogPrint("spork", "CSporkManager::GetSporkNameByID -- Unknown Spork ID %d\n", nSporkID);
             return "Unknown";
