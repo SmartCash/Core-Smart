@@ -383,7 +383,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         int nFirstBlock = nCachedBlockHeight - GetStorageLimit();
         int interval = SmartNodePayments::PayoutInterval(vote.nBlockHeight);
 
-        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight + 20 + interval) {
+        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight + MNPAYMENTS_FUTURE_VOTES * 2 + interval) {
             LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- vote out of range: nFirstBlock=%d, nBlockHeight=%d, nHeight=%d\n", nFirstBlock, vote.nBlockHeight, nCachedBlockHeight);
             return;
         }
@@ -695,7 +695,7 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
     int nValidPayees = 0;
     int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
-    std::sort(vecPayees.begin(), vecPayees.end(), [](CSmartnodePayee& a, CSmartnodePayee& b) {
+    std::sort(vecPayees.begin(), vecPayees.end(), [](const CSmartnodePayee& a, const CSmartnodePayee& b) {
         return a.GetVoteCount() > b.GetVoteCount();
     });
 

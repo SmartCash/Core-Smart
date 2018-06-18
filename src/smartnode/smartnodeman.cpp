@@ -521,6 +521,12 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
         Make a vector with all of the last paid times
     */
 
+    // If we are not yet at the multipayment height use legacy metrics.
+    size_t nPayoutInterval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    if( !nPayoutInterval ) nPayoutInterval = 1;
+    size_t nPayoutsPerBlock = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
+    if( !nPayoutsPerBlock ) nPayoutsPerBlock = 1;
+
     int nMnCount = CountSmartnodes();
 
     for (auto& mnpair : mapSmartnodes) {
@@ -533,10 +539,10 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
         if(mnpayments.IsScheduled(mnpair.second, nBlockHeight)) continue;
 
         //it's too new, wait for a cycle
-        if(fFilterSigTime && mnpair.second.sigTime + (nMnCount* 55 / 5) > GetAdjustedTime()) continue;
+        if(fFilterSigTime && mnpair.second.sigTime + (nMnCount * 55 / int( nPayoutsPerBlock / nPayoutInterval ) ) > GetAdjustedTime()) continue;
 
         //make sure it has at least as many confirmations as the smartnode cycle time
-        if(GetUTXOConfirmations(mnpair.first) < (nMnCount / 5)) continue;
+        if(GetUTXOConfirmations(mnpair.first) < (nMnCount / int( nPayoutsPerBlock / nPayoutInterval ) ) ) continue;
 
         vecSmartnodeLastPaid.push_back(std::make_pair(mnpair.second.GetLastPaidBlock(), &mnpair.second));
     }
@@ -561,7 +567,6 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
     //  -- (chance per block * chances before IsScheduled will fire)
     int nTenthNetwork = nMnCount/10;
     int nCountTenth = 0;
-    size_t requiredPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
     std::vector<std::pair<arith_uint256, CSmartnode*>> vecTopTenthScores;
 
@@ -574,13 +579,13 @@ bool CSmartnodeMan::GetNextSmartnodesInQueueForPayment(int nBlockHeight, bool fF
 
     std::sort(vecTopTenthScores.begin(), vecTopTenthScores.end(), CompareScoreMN());
 
-    if( vecTopTenthScores.size() >= requiredPayees ){
+    if( vecTopTenthScores.size() >= nPayoutsPerBlock ){
 
         for (const auto& s : vecTopTenthScores) {
 
             mnInfoRet.push_back(s.second->GetInfo());
 
-            if( mnInfoRet.size() >= requiredPayees )
+            if( mnInfoRet.size() >= nPayoutsPerBlock )
                 return true;
         }
 
