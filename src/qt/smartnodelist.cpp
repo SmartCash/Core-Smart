@@ -331,6 +331,12 @@ void SmartnodeList::on_filterLineEdit_textChanged(const QString &strFilterIn)
 
 void SmartnodeList::on_startButton_clicked()
 {
+    if(!smartnodeSync.IsSmartnodeListSynced()) {
+        QMessageBox::critical(this, tr("Command is not available right now"),
+            tr("You can't use this command until the SmartNode list is synced"));
+        return;
+    }
+
     std::string strAlias;
     {
         LOCK(cs_mymnlist);
