@@ -98,7 +98,22 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
             static int64_t nLastPayNewHives = -1;
             static CSmartHiveSplit* sporked_Split_1_2 = nullptr;
 
-            int64_t nPayNewHives = sporkManager.GetSporkValue(SPORK_18_PAY_NEW_HIVES);
+            int64_t nPayNewHives = 0;
+            int64_t nPayOutreachSpork = sporkManager.GetSporkValue(SPORK_18_PAY_OUTREACH2);
+            int64_t nPayWebSpork = sporkManager.GetSporkValue(SPORK_19_PAY_WEB);
+            int64_t nPayQualitySpork = sporkManager.GetSporkValue(SPORK_20_PAY_QUALITY);
+
+            if( !nPayOutreachSpork || nHeight < nPayOutreachSpork ){
+                nPayNewHives |= SmartHivePayments::OUTREACH2_ENABLED;
+            }
+
+            if( !nPayWebSpork || nHeight < nPayWebSpork ){
+                nPayNewHives |= SmartHivePayments::WEB_ENABLED;
+            }
+
+            if( !nPayQualitySpork || nHeight < nPayQualitySpork ){
+                nPayNewHives |= SmartHivePayments::QUALITY_ENABLED;
+            }
 
             // If one of the hives is disabled.
             if( (nPayNewHives & SmartHivePayments::NEW_HIVES_ENABLED) != SmartHivePayments::NEW_HIVES_ENABLED ){

@@ -26,7 +26,9 @@ std::map<int, int64_t> mapSporkDefaults = {
     {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,      0}, // ON
     {SPORK_16_MINING_SIGNATURE_ENFORCEMENT,     4070908800ULL}, // OFF
     {SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED, 0xFFFFFFFFFFFFFFFF}, // All enabled
-    {SPORK_18_PAY_NEW_HIVES,                    0x07}, // All enabled
+    {SPORK_18_PAY_OUTREACH2,                    0}, // ON
+    {SPORK_19_PAY_WEB,                          0}, // ON
+    {SPORK_20_PAY_QUALITY,                      0}, // ON
 };
 
 
@@ -147,7 +149,9 @@ int CSporkManager::GetSporkIDByName(std::string strName)
     if (strName == "SPORK_15_SMARTREWARDS_BLOCKS_ENABLED")      return SPORK_15_SMARTREWARDS_BLOCKS_ENABLED;
     if (strName == "SPORK_16_MINING_SIGNATURE_ENFORCEMENT")     return SPORK_16_MINING_SIGNATURE_ENFORCEMENT;
     if (strName == "SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED") return SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED;
-    if (strName == "SPORK_18_PAY_NEW_HIVES")                    return SPORK_18_PAY_NEW_HIVES;
+    if (strName == "SPORK_18_PAY_OUTREACH2")                    return SPORK_18_PAY_OUTREACH2;
+    if (strName == "SPORK_19_PAY_WEB")                          return SPORK_19_PAY_WEB;
+    if (strName == "SPORK_20_PAY_QUALITY")                      return SPORK_20_PAY_QUALITY;
 
     LogPrint("spork", "CSporkManager::GetSporkIDByName -- Unknown Spork name '%s'\n", strName);
     return -1;
@@ -164,7 +168,9 @@ std::string CSporkManager::GetSporkNameByID(int nSporkID)
         case SPORK_15_SMARTREWARDS_BLOCKS_ENABLED:      return "SPORK_15_SMARTREWARDS_BLOCKS_ENABLED";
         case SPORK_16_MINING_SIGNATURE_ENFORCEMENT:     return "SPORK_16_MINING_SIGNATURE_ENFORCEMENT";
         case SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED: return "SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED";
-        case SPORK_18_PAY_NEW_HIVES:                    return "SPORK_18_PAY_NEW_HIVES";
+        case SPORK_18_PAY_OUTREACH2:                    return "SPORK_18_PAY_OUTREACH2";
+        case SPORK_19_PAY_WEB:                          return "SPORK_19_PAY_WEB";
+        case SPORK_20_PAY_QUALITY:                      return "SPORK_20_PAY_QUALITY";
         default:
             LogPrint("spork", "CSporkManager::GetSporkNameByID -- Unknown Spork ID %d\n", nSporkID);
             return "Unknown";
