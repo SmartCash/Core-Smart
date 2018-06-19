@@ -928,7 +928,7 @@ void CSmartnodeMan::SyncAll(CNode* pnode, CConnman& connman)
     for (const auto& mnpair : mapSmartnodes) {
         if (mnpair.second.addr.IsRFC1918() || ( MainNet() && mnpair.second.addr.IsLocal())) continue; // do not send local network masternode
         // NOTE: send masternode regardless of its current state, the other node will need it to verify old votes.
-        LogPrint("masternode", "CMasternodeMan::%s -- Sending Smartnode entry: smartnode=%s  addr=%s\n", __func__, mnpair.first.ToStringShort(), mnpair.second.addr.ToString());
+        LogPrint("smartnode", "CSmartnodeMan::%s -- Sending Smartnode entry: smartnode=%s  addr=%s\n", __func__, mnpair.first.ToStringShort(), mnpair.second.addr.ToString());
         PushDsegInvs(pnode, mnpair.second);
         nInvCount++;
     }

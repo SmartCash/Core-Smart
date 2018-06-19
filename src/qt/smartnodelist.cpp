@@ -113,8 +113,9 @@ void SmartnodeList::StartAlias(bool lockedBefore, std::string strAlias)
             bool fSuccess = CSmartnodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
 
             if(fSuccess) {
+                int nDos;
                 strStatusHtml += "<br>Successfully started smartnode.";
-                mnodeman.UpdateSmartnodeList(mnb, *g_connman);
+                mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman);
                 mnb.Relay(*g_connman);
                 mnodeman.NotifySmartnodeUpdates(*g_connman);
             } else {
@@ -156,8 +157,9 @@ void SmartnodeList::StartAll(bool lockedBefore, std::string strCommand)
         bool fSuccess = CSmartnodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
 
         if(fSuccess) {
+            int nDos;
             nCountSuccessful++;
-            mnodeman.UpdateSmartnodeList(mnb, *g_connman);
+            mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman);
             mnb.Relay(*g_connman);
             mnodeman.NotifySmartnodeUpdates(*g_connman);
         } else {

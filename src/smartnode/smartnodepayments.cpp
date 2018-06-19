@@ -7,12 +7,14 @@
 #include "smartnodepayments.h"
 #include "smartnodesync.h"
 #include "smartnodeman.h"
+#include "smarthive/hive.h"
 #include "../messagesigner.h"
 #include "netfulfilledman.h" 
 #include "script/standard.h" 
 #include "spork.h"
 #include "../util.h"
 #include "consensus/consensus.h"
+#include "consensus/validation.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -28,7 +30,7 @@ struct CompareBlockPayees
     bool operator()(const CSmartnodePayee& t1,
                     const CSmartnodePayee& t2) const
     {
-        return t1.GetVoteCount() > t2.GetVoteCount();
+        return t1.GetVoteCount() != t2.GetVoteCount() ? t1.GetVoteCount() > t2.GetVoteCount() : CSmartAddress(t1.GetPayee()).Compare(CSmartAddress(t2.GetPayee()));
     }
 };
 
@@ -335,10 +337,18 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         // but this is a heavy one so it's better to finish sync first.
         if (!smartnodeSync.IsSynced()) return;
 
+        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
+            LogPrint("mnpayments", "SMARTNODEPAYMENTSYNC - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
+            connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
+                               strprintf("Version must be %d or greater", MIN_PEER_PROTO_VERSION));
+            return;
+        }
+
         int nCountNeeded;
         vRecv >> nCountNeeded;
 
         if(netfulfilledman.HasFulfilledRequest(pfrom->addr, NetMsgType::SMARTNODEPAYMENTSYNC)) {
+            LOCK(cs_main);
             // Asking for the payments list multiple times in a short period of time is no good
             LogPrintf("SMARTNODEPAYMENTSYNC -- peer already asked me for the list, peer=%d\n", pfrom->id);
             Misbehaving(pfrom->GetId(), 20);
@@ -351,7 +361,12 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
 
     } else if (strCommand == NetMsgType::SMARTNODEPAYMENTVOTE) { // Smartnode Payments Vote for the Winner
 
-        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION) return;
+        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
+            LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
+            connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
+                               strprintf("Version must be %d or greater", MIN_PEER_PROTO_VERSION));
+            return;
+        }
 
         CSmartnodePaymentVote vote;
         vRecv >> vote;
@@ -381,9 +396,8 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         }
 
         int nFirstBlock = nCachedBlockHeight - GetStorageLimit();
-        int interval = SmartNodePayments::PayoutInterval(vote.nBlockHeight);
 
-        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight + MNPAYMENTS_FUTURE_VOTES * 2 + interval) {
+        if(vote.nBlockHeight < nFirstBlock || vote.nBlockHeight > nCachedBlockHeight + MNPAYMENTS_FUTURE_VOTES * 2) {
             LogPrint("mnpaymentvote", "SMARTNODEPAYMENTVOTE -- vote out of range: nFirstBlock=%d, nBlockHeight=%d, nHeight=%d\n", nFirstBlock, vote.nBlockHeight, nCachedBlockHeight);
             return;
         }
@@ -464,11 +478,10 @@ bool CSmartnodePaymentVote::Sign()
 
 bool CSmartnodePayments::GetBlockPayees(int nBlockHeight, CScriptVector& payees)
 {
-    if(mapSmartnodeBlocks.count(nBlockHeight)){
-        return mapSmartnodeBlocks[nBlockHeight].GetBestPayees(payees);
-    }
+    LOCK(cs_mapSmartnodeBlocks);
 
-    return false;
+    auto it = mapSmartnodeBlocks.find(nBlockHeight);
+    return it != mapSmartnodeBlocks.end() && it->second.GetBestPayees(payees);
 }
 
 // Is this smartnode scheduled to get paid soon?
@@ -485,7 +498,7 @@ bool CSmartnodePayments::IsScheduled(CSmartnode& mn, int nNotBlockHeight)
     CScriptVector payees;
     int interval = SmartNodePayments::PayoutInterval(nCachedBlockHeight);
 
-    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + MNPAYMENTS_FUTURE_VOTES - interval; h++){
+    for(int64_t h = nCachedBlockHeight; h <= nCachedBlockHeight + MNPAYMENTS_FUTURE_VOTES + interval - 1; h++){
         interval = SmartNodePayments::PayoutInterval(h);
         if(h == nNotBlockHeight) continue;
         if(mapSmartnodeBlocks.count(h) &&
@@ -514,7 +527,7 @@ bool CSmartnodePayments::AddOrUpdatePaymentVote(const CSmartnodePaymentVote& vot
     auto it = mapSmartnodeBlocks.emplace(vote.nBlockHeight, CSmartnodeBlockPayees(vote.nBlockHeight)).first;
     it->second.AddPayees(vote);
 
-    LogPrint("mnpayments", "CSmartnodePayments::AddOrUpdatePaymentVote -- added, hash=%s\n", nVoteHash.ToString());
+    LogPrint("mnpayments", "CSmartnodePayments::AddOrUpdatePaymentVote -- added, nHeight=%d, hash=%s\n",it->second.nBlockHeight, nVoteHash.ToString());
 
     return true;
 }
@@ -693,9 +706,7 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
     int nValidPayees = 0;
     int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
-    std::sort(vecPayees.begin(), vecPayees.end(), [](const CSmartnodePayee& a, const CSmartnodePayee& b) {
-        return a.GetVoteCount() > b.GetVoteCount();
-    });
+    std::sort(vecPayees.begin(), vecPayees.end(), CompareBlockPayees());
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees)
     {
@@ -719,7 +730,7 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
         return obj;
     }
 
-    if( nValidPayees == nExpectedPayees ){
+    if( nValidPayees >= nExpectedPayees ){
         obj.pushKV("state", "Valid");
     }else{
         obj.pushKV("state", "Not enough valid payees");
@@ -1078,7 +1089,8 @@ void CSmartnodePayments::RequestLowDataPaymentBlocks(CNode* pnode, CConnman& con
     const CBlockIndex *pindex = chainActive.Tip();
 
     while(nCachedBlockHeight - pindex->nHeight < nLimit) {
-        if(!mapSmartnodeBlocks.count(pindex->nHeight)) {
+        const auto it = mapSmartnodeBlocks.find(pindex->nHeight);
+        if(it == mapSmartnodeBlocks.end()) {
             // We have no idea about this block height, let's ask
             vToFetch.push_back(CInv(MSG_SMARTNODE_PAYMENT_BLOCK, pindex->GetBlockHash()));
             // We should not violate GETDATA rules
@@ -1157,7 +1169,8 @@ std::string CSmartnodePayments::ToString() const
 
 bool CSmartnodePayments::IsEnoughData()
 {
-    float nAverageVotes = (MNPAYMENTS_SIGNATURES_TOTAL + MNPAYMENTS_SIGNATURES_REQUIRED) / 2;
+    int expectedPayees = SmartNodePayments::PayoutsPerBlock(nCachedBlockHeight);
+    float nAverageVotes = ((MNPAYMENTS_SIGNATURES_TOTAL + MNPAYMENTS_SIGNATURES_REQUIRED) * expectedPayees) / 2;
     int nStorageLimit = GetStorageLimit();
     return GetBlockCount() > nStorageLimit && GetVoteCount() > nStorageLimit * nAverageVotes;
 }

@@ -249,8 +249,11 @@ void PrepareShutdown()
     g_connman.reset();
 
     // STORE DATA CACHES INTO SERIALIZED DAT FILES
-    CFlatDB<CSmartnodeMan> flatdb1("sncache.dat", "magicSmartnodeCache");
-    flatdb1.Dump(mnodeman);
+    bool fCacheNodes = GetBoolArg("-cachenodelist", false);
+    if( fCacheNodes ){
+        CFlatDB<CSmartnodeMan> flatdb1("sncache.dat", "magicSmartnodeCache");
+        flatdb1.Dump(mnodeman);
+    }
     CFlatDB<CSmartnodePayments> flatdb2("snpayments.dat", "magicSmartnodePaymentsCache");
     flatdb2.Dump(mnpayments);
     //CFlatDB<CGovernanceManager> flatdb3("governance.dat", "magicGovernanceCache");
@@ -1984,18 +1987,22 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 11b: Load cache data
 
     // LOAD SERIALIZED DAT FILES INTO DATA CACHES FOR INTERNAL USE
+    if (!fLiteMode) {
 
-    boost::filesystem::path pathDB = GetDataDir();
-    std::string strDBName;
+        boost::filesystem::path pathDB = GetDataDir();
+        std::string strDBName;
 
-    strDBName = "sncache.dat";
-    uiInterface.InitMessage(_("Loading smartnode cache..."));
-    CFlatDB<CSmartnodeMan> flatdb1(strDBName, "magicSmartnodeCache");
-    if(!flatdb1.Load(mnodeman)) {
-        return InitError(_("Failed to load smartnode cache from") + "\n" + (pathDB / strDBName).string());
-    }
+        bool fCacheNodes = GetBoolArg("-cachenodelist", false);
 
-    if(mnodeman.size()) {
+        if( fCacheNodes ){
+            strDBName = "sncache.dat";
+            uiInterface.InitMessage(_("Loading smartnode cache..."));
+            CFlatDB<CSmartnodeMan> flatdb1(strDBName, "magicSmartnodeCache");
+            if(!flatdb1.Load(mnodeman)) {
+                return InitError(_("Failed to load smartnode cache from") + "\n" + (pathDB / strDBName).string());
+            }
+        }
+
         strDBName = "snpayments.dat";
         uiInterface.InitMessage(_("Loading smartnode payment cache..."));
         CFlatDB<CSmartnodePayments> flatdb2(strDBName, "magicSmartnodePaymentsCache");
@@ -2003,23 +2010,16 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(_("Failed to load smartnode payments cache from") + "\n" + (pathDB / strDBName).string());
         }
 
-        // strDBName = "governance.dat";
-        // uiInterface.InitMessage(_("Loading governance cache..."));
-        // CFlatDB<CGovernanceManager> flatdb3(strDBName, "magicGovernanceCache");
-        // if(!flatdb3.Load(governance)) {
-        //     return InitError(_("Failed to load governance cache from") + "\n" + (pathDB / strDBName).string());
-        // }
-        // governance.InitOnLoad();
-    } else {
-        uiInterface.InitMessage(_("Smartnode cache is empty, skipping payments"));
+        strDBName = "netfulfilled.dat";
+        uiInterface.InitMessage(_("Loading fulfilled requests cache..."));
+        CFlatDB<CNetFulfilledRequestManager> flatdb4(strDBName, "magicFulfilledCache");
+        if(!flatdb4.Load(netfulfilledman)) {
+            return InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());
+        }
+
     }
 
-    strDBName = "netfulfilled.dat";
-    uiInterface.InitMessage(_("Loading fulfilled requests cache..."));
-    CFlatDB<CNetFulfilledRequestManager> flatdb4(strDBName, "magicFulfilledCache");
-    if(!flatdb4.Load(netfulfilledman)) {
-        return InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());
-    }
+
 
     // ********************************************************* Step 11c: update block tip in Smartcash modules
 

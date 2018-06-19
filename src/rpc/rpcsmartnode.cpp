@@ -264,13 +264,18 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
                 bool fResult = CSmartnodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
 
+                int nDoS;
+                if (fResult && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDoS, *g_connman)) {
+                    strError = "Failed to verify MNB";
+                    fResult = false;
+                }
+
                 statusObj.push_back(Pair("result", fResult ? "successful" : "failed"));
-                if(fResult) {
-                    mnodeman.UpdateSmartnodeList(mnb, *g_connman);
-                    mnb.Relay(*g_connman);
-                } else {
+
+                if(!fResult) {
                     statusObj.push_back(Pair("errorMessage", strError));
                 }
+
                 mnodeman.NotifySmartnodeUpdates(*g_connman);
                 break;
             }
@@ -314,14 +319,18 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
             bool fResult = CSmartnodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
 
+            int nDoS;
+            if (fResult && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDoS, *g_connman)) {
+                strError = "Failed to verify MNB";
+                fResult = false;
+            }
+
             UniValue statusObj(UniValue::VOBJ);
             statusObj.push_back(Pair("alias", mne.getAlias()));
             statusObj.push_back(Pair("result", fResult ? "successful" : "failed"));
 
             if (fResult) {
                 nSuccessful++;
-                mnodeman.UpdateSmartnodeList(mnb, *g_connman);
-                mnb.Relay(*g_connman);
             } else {
                 nFailed++;
                 statusObj.push_back(Pair("errorMessage", strError));
@@ -427,7 +436,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
         UniValue obj(UniValue::VOBJ);
 
-        for(int i = nHeight - nLast; i < nHeight + MNPAYMENTS_FUTURE_VOTES + SmartNodePayments::PayoutInterval(nHeight); i++) {
+        for(int i = nHeight - nLast; i < nHeight + MNPAYMENTS_FUTURE_VOTES + SmartNodePayments::PayoutInterval(nHeight) + 1; i++) {
             UniValue payment = SmartNodePayments::GetPaymentBlockObject(i);
             obj.push_back(Pair(strprintf("%d", i), payment));
         }
@@ -776,8 +785,7 @@ UniValue smartnodebroadcast(const UniValue& params, bool fHelp)
         if (params.size() < 2 || params.size() > 3)
             throw JSONRPCError(RPC_INVALID_PARAMETER,   "smartnodebroadcast relay \"hexstring\" ( fast )\n"
                                                         "\nArguments:\n"
-                                                        "1. \"hex\"      (string, required) Broadcast messages hex string\n"
-                                                        "2. fast       (string, optional) If none, using safe method\n");
+                                                        "1. \"hex\"      (string, required) Broadcast messages hex string\n");
 
         std::vector<CSmartnodeBroadcast> vecMnb;
 
@@ -786,7 +794,6 @@ UniValue smartnodebroadcast(const UniValue& params, bool fHelp)
 
         int nSuccessful = 0;
         int nFailed = 0;
-        bool fSafe = params.size() == 2;
         UniValue returnObj(UniValue::VOBJ);
 
         // verify all signatures first, bailout if any of them broken
@@ -799,13 +806,7 @@ UniValue smartnodebroadcast(const UniValue& params, bool fHelp)
             int nDos = 0;
             bool fResult;
             if (mnb.CheckSignature(nDos)) {
-                if (fSafe) {
-                    fResult = mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman);
-                } else {
-                    mnodeman.UpdateSmartnodeList(mnb, *g_connman);
-                    mnb.Relay(*g_connman);
-                    fResult = true;
-                }
+                fResult = mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman);
                 mnodeman.NotifySmartnodeUpdates(*g_connman);
             } else fResult = false;
 
@@ -814,7 +815,7 @@ UniValue smartnodebroadcast(const UniValue& params, bool fHelp)
                 resultObj.push_back(Pair(mnb.GetHash().ToString(), "successful"));
             } else {
                 nFailed++;
-                resultObj.push_back(Pair("errorMessage", "Smartnode broadcast signature verification failed"));
+                resultObj.push_back(Pair("errorMessage", "SmartNode broadcast signature verification failed"));
             }
 
             returnObj.push_back(Pair(mnb.GetHash().ToString(), resultObj));
