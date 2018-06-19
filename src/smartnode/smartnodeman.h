@@ -94,7 +94,7 @@ public:
     int64_t nDsqCount;
 
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -157,7 +157,9 @@ public:
 
     /// Count Smartnodes by network type - NET_IPV4, NET_IPV6, NET_TOR
     // int CountByIP(int nNetworkType);
-
+    void SyncAll(CNode* pnode, CConnman& connman);
+    void SyncSingle(CNode* pnode, const COutPoint& outpoint, CConnman& connman);
+    void PushDsegInvs(CNode* pnode, const CSmartnode& mn);
     void DsegUpdate(CNode* pnode, CConnman& connman);
 
     /// Versions of Find that are safe to use from outside the class

@@ -599,7 +599,8 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
 {
     LOCK(cs_vecPayees);
 
-    int found = 0;
+    int foundPayees = 0;
+    int foundMinVotes = 0;
     int expectedPayees =  SmartNodePayments::PayoutsPerBlock(nBlockHeight);
     std::string strPayeesPossible = "";
 
@@ -609,24 +610,21 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
         if( payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED )
-            found++;
+            foundMinVotes++;
     }
 
     // if we don't have at least expectedPayees with MNPAYMENTS_SIGNATURES_REQUIRED signatures, approve whichever is the longest chain
-    if(found < expectedPayees ){
-        LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- WARNING: Approve for too less payees with minimum signatures %d\n", found);
+    if(!foundMinVotes){
+        LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- WARNING: Approve for too less payees with minimum signatures\n");
         return true;
     }
-
-    // Reset to count the expected payees.
-    found = 0;
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
         if (payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED) {
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
                 if (txout.scriptPubKey == payee.GetPayee() && txout.nValue == expectedPerNode) {
                     LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment: %s\n",txout.ToString());
-                    found++;
+                    foundPayees++;
                     break;
                 }
             }
@@ -643,7 +641,7 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
         }
     }
 
-    if( found == expectedPayees ) return true;
+    if( foundPayees == foundMinVotes ) return true;
 
     LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- ERROR: Missing required payment, possible payees: '%s'\n", strPayeesPossible);
     return false;
@@ -1050,7 +1048,7 @@ void CSmartnodePayments::Sync(CNode* pnode, CConnman& connman)
 
     int nInvCount = 0;
 
-    for(int h = nCachedBlockHeight; h < nCachedBlockHeight + 100; h++) {
+    for(int h = nCachedBlockHeight; h < nCachedBlockHeight + (MNPAYMENTS_FUTURE_VOTES * 2); h++) {
         if(mapSmartnodeBlocks.count(h)) {
             BOOST_FOREACH(CSmartnodePayee& payee, mapSmartnodeBlocks[h].vecPayees) {
                 std::vector<uint256> vecVoteHashes = payee.GetVoteHashes();

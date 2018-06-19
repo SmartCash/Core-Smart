@@ -127,6 +127,7 @@ CSmartnode::CollateralStatus CSmartnode::CheckCollateral(const COutPoint& outpoi
 
 void CSmartnode::Check(bool fForce)
 {
+    AssertLockHeld(cs_main);
     LOCK(cs);
 
     if(ShutdownRequested()) return;
@@ -141,9 +142,6 @@ void CSmartnode::Check(bool fForce)
 
     int nHeight = 0;
     if(!fUnitTest) {
-        TRY_LOCK(cs_main, lockMain);
-        if(!lockMain) return;
-
         CollateralStatus err = CheckCollateral(vin.prevout);
         if (err == COLLATERAL_UTXO_NOT_FOUND) {
             nActiveState = SMARTNODE_OUTPOINT_SPENT;
@@ -483,6 +481,8 @@ bool CSmartnodeBroadcast::Update(CSmartnode* pmn, int& nDos, CConnman& connman)
 {
     nDos = 0;
 
+    AssertLockHeld(cs_main);
+
     if(pmn->sigTime == sigTime && !fRecovery) {
         // mapSeenSmartnodeBroadcast in CSmartnodeMan::CheckMnbAndUpdateSmartnodeList should filter legit duplicates
         // but this still can happen if we just started, which is ok, just do nothing here.
@@ -739,6 +739,8 @@ bool CSmartnodePing::SimpleCheck(int& nDos)
 
 bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int& nDos, CConnman& connman)
 {
+    AssertLockHeld(cs_main);
+
     // don't ban by default
     nDos = 0;
 
@@ -764,9 +766,8 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     }
 
     {
-        LOCK(cs_main);
         BlockMap::iterator mi = mapBlockIndex.find(blockHash);
-        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 125) {
+        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 135) {
             LogPrintf("CSmartnodePing::CheckAndUpdate -- Smartnode ping is invalid, block hash is too old: smartnode=%s  blockHash=%s\n", vin.prevout.ToStringShort(), blockHash.ToString());
             // nDos = 1;
             return false;
@@ -810,7 +811,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     // force update, ignoring cache
     pmn->Check(true);
     // relay ping for nodes in ENABLED/EXPIRED/WATCHDOG_EXPIRED state only, skip everyone else
-    if (!pmn->IsEnabled() && !pmn->IsExpired() && !pmn->IsWatchdogExpired()) return false;
+    if (!pmn->IsEnabled() && !pmn->IsExpired()) return false;
 
     LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping acceepted and relayed, smartnode=%s\n", vin.prevout.ToStringShort());
     Relay(connman);

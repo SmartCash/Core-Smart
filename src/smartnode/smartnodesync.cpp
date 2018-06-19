@@ -61,12 +61,10 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
             throw std::runtime_error("Can't switch to next asset from failed, should use Reset() first!");
             break;
         case(SMARTNODE_SYNC_INITIAL):
-            ClearFulfilledRequests(connman);
             nRequestedSmartnodeAssets = SMARTNODE_SYNC_WAITING;
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
             break;
         case(SMARTNODE_SYNC_WAITING):
-            ClearFulfilledRequests(connman);
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
             nRequestedSmartnodeAssets = SMARTNODE_SYNC_LIST;
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
@@ -129,20 +127,6 @@ void CSmartnodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
     }
 }
 
-void CSmartnodeSync::ClearFulfilledRequests(CConnman& connman)
-{
-//     //TODO: Find out whether we can just use LOCK instead of:
-//     TRY_LOCK(cs_vNodes, lockRecv);
-//     if(!lockRecv) return;
-
-    connman.ForEachNode(CConnman::AllNodes, [](CNode* pnode) {
-        netfulfilledman.RemoveFulfilledRequest(pnode->addr, "spork-sync");
-        netfulfilledman.RemoveFulfilledRequest(pnode->addr, "smartnode-list-sync");
-        netfulfilledman.RemoveFulfilledRequest(pnode->addr, "smartnode-payment-sync");
-        netfulfilledman.RemoveFulfilledRequest(pnode->addr, "full-sync");
-    });
-}
-
 void CSmartnodeSync::ProcessTick(CConnman& connman)
 {
     static int nTick = 0;
@@ -182,7 +166,7 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
     LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nRequestedSmartnodeAttempt %d nSyncProgress %f\n", nTick, nRequestedSmartnodeAssets, nRequestedSmartnodeAttempt, nSyncProgress);
     uiInterface.NotifyAdditionalDataSyncProgressChanged(nSyncProgress);
 
-    std::vector<CNode*> vNodesCopy = connman.CopyNodeVector();
+    std::vector<CNode*> vNodesCopy = connman.CopyNodeVector(CConnman::FullyConnectedOnly);
 
     BOOST_FOREACH(CNode* pnode, vNodesCopy)
     {
@@ -376,6 +360,11 @@ void CSmartnodeSync::UpdatedBlockTip(const CBlockIndex *pindexNew, bool fInitial
                 pindexNew->nHeight, pindexBestHeader->nHeight, fInitialDownload, fReachedBestHeader);
 
     if (!IsBlockchainSynced() && fReachedBestHeader) {
+        if (fLiteMode) {
+            // nothing to do in lite mode, just finish the process immediately
+            nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
+            return;
+        }
         // Reached best header while being in initial mode.
         // We must be at the tip already, let's move to the next asset.
         SwitchToNextAsset(connman);

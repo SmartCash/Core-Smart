@@ -11,6 +11,9 @@
 #include "smartnodesync.h"
 #include "smartnodeman.h"
 #include "netfulfilledman.h"
+#include "smartnodeman.h"
+#include "smartnodeman.h"
+#include "smartnodeman.h"
 #include "../util.h"
 
 /** Smartnode manager */
@@ -89,26 +92,26 @@ void CSmartnodeMan::AskForMN(CNode* pnode, const COutPoint& outpoint, CConnman& 
     if(!pnode) return;
 
     LOCK(cs);
-
+    CService addrSquashed = Params().AllowMultiplePorts() ? (CService)pnode->addr : CService(pnode->addr, 0);
     std::map<COutPoint, std::map<CNetAddr, int64_t> >::iterator it1 = mWeAskedForSmartnodeListEntry.find(outpoint);
     if (it1 != mWeAskedForSmartnodeListEntry.end()) {
-        std::map<CNetAddr, int64_t>::iterator it2 = it1->second.find(pnode->addr);
+        std::map<CNetAddr, int64_t>::iterator it2 = it1->second.find(addrSquashed);
         if (it2 != it1->second.end()) {
             if (GetTime() < it2->second) {
                 // we've asked recently, should not repeat too often or we could get banned
                 return;
             }
             // we asked this node for this outpoint but it's ok to ask again already
-            LogPrintf("CSmartnodeMan::AskForMN -- Asking same peer %s for missing smartnode entry again: %s\n", pnode->addr.ToString(), outpoint.ToStringShort());
+            LogPrintf("CSmartnodeMan::AskForMN -- Asking same peer %s for missing smartnode entry again: %s\n", addrSquashed.ToString(), outpoint.ToStringShort());
         } else {
             // we already asked for this outpoint but not this node
-            LogPrintf("CSmartnodeMan::AskForMN -- Asking new peer %s for missing smartnode entry: %s\n", pnode->addr.ToString(), outpoint.ToStringShort());
+            LogPrintf("CSmartnodeMan::AskForMN -- Asking new peer %s for missing smartnode entry: %s\n", addrSquashed.ToString(), outpoint.ToStringShort());
         }
     } else {
         // we never asked any node for this outpoint
-        LogPrintf("CSmartnodeMan::AskForMN -- Asking peer %s for missing smartnode entry for the first time: %s\n", pnode->addr.ToString(), outpoint.ToStringShort());
+        LogPrintf("CSmartnodeMan::AskForMN -- Asking peer %s for missing smartnode entry for the first time: %s\n", addrSquashed.ToString(), outpoint.ToStringShort());
     }
-    mWeAskedForSmartnodeListEntry[outpoint][pnode->addr] = GetTime() + DSEG_UPDATE_SECONDS;
+    mWeAskedForSmartnodeListEntry[outpoint][addrSquashed] = GetTime() + DSEG_UPDATE_SECONDS;
 
     connman.PushMessage(pnode, NetMsgType::DSEG, CTxIn(outpoint));
 }
@@ -153,8 +156,7 @@ bool CSmartnodeMan::PoSeBan(const COutPoint &outpoint)
 
 void CSmartnodeMan::Check()
 {
-    LOCK(cs);
-
+    LOCK2(cs_main, cs);
     LogPrint("smartnode", "CSmartnodeMan::Check -- nLastWatchdogVoteTime=%d, IsWatchdogActive()=%d\n", nLastWatchdogVoteTime, IsWatchdogActive());
 
     for (auto& mnpair : mapSmartnodes) {
@@ -415,11 +417,12 @@ void CSmartnodeMan::DsegUpdate(CNode* pnode, CConnman& connman)
 {
     LOCK(cs);
 
+    CService addrSquashed = Params().AllowMultiplePorts() ? (CService)pnode->addr : CService(pnode->addr, 0);
     if(Params().NetworkIDString() == CBaseChainParams::MAIN) {
         if(!(pnode->addr.IsRFC1918() || pnode->addr.IsLocal())) {
-            std::map<CNetAddr, int64_t>::iterator it = mWeAskedForSmartnodeList.find(pnode->addr);
+            auto it = mWeAskedForSmartnodeList.find(addrSquashed);
             if(it != mWeAskedForSmartnodeList.end() && GetTime() < (*it).second) {
-                LogPrintf("CSmartnodeMan::DsegUpdate -- we already asked %s for the list; skipping...\n", pnode->addr.ToString());
+                LogPrintf("CSmartnodeMan::DsegUpdate -- we already asked %s for the list; skipping...\n", addrSquashed.ToString());
                 return;
             }
         }
@@ -427,7 +430,7 @@ void CSmartnodeMan::DsegUpdate(CNode* pnode, CConnman& connman)
 
     connman.PushMessage(pnode, NetMsgType::DSEG, CTxIn());
     int64_t askAgain = GetTime() + DSEG_UPDATE_SECONDS;
-    mWeAskedForSmartnodeList[pnode->addr] = askAgain;
+    mWeAskedForSmartnodeList[addrSquashed] = askAgain;
 
     LogPrint("smartnode", "CSmartnodeMan::DsegUpdate -- asked %s for the list\n", pnode->addr.ToString());
 }
@@ -769,9 +772,9 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
         CSmartnodeBroadcast mnb;
         vRecv >> mnb;
 
-        pfrom->setAskFor.erase(mnb.GetHash());
-
         if(!smartnodeSync.IsBlockchainSynced()) return;
+
+        pfrom->setAskFor.erase(mnb.GetHash());
 
         LogPrint("smartnode", "MNANNOUNCE -- Smartnode announce, smartnode=%s\n", mnb.vin.prevout.ToStringShort());
 
@@ -847,54 +850,11 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
 
         LogPrint("smartnode", "DSEG -- Smartnode list, smartnode=%s\n", vin.prevout.ToStringShort());
 
-        if(vin == CTxIn()) { //only should ask for this once
-            //local network
-            bool isLocal = (pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal());
-
-            if(!isLocal && Params().NetworkIDString() == CBaseChainParams::MAIN) {
-                std::map<CNetAddr, int64_t>::iterator it = mAskedUsForSmartnodeList.find(pfrom->addr);
-                if (it != mAskedUsForSmartnodeList.end() && it->second > GetTime()) {
-                    Misbehaving(pfrom->GetId(), 34);
-                    LogPrintf("DSEG -- peer already asked me for the list, peer=%d\n", pfrom->id);
-                    return;
-                }
-                int64_t askAgain = GetTime() + DSEG_UPDATE_SECONDS;
-                mAskedUsForSmartnodeList[pfrom->addr] = askAgain;
-            }
-        } //else, asking for a specific node which is ok
-
-        int nInvCount = 0;
-
-        for (auto& mnpair : mapSmartnodes) {
-            if (vin != CTxIn() && vin != mnpair.second.vin) continue; // asked for specific vin but we are not there yet
-            if (mnpair.second.addr.IsRFC1918() || mnpair.second.addr.IsLocal()) continue; // do not send local network smartnode
-            if (mnpair.second.IsUpdateRequired()) continue; // do not send outdated smartnodes
-
-            LogPrint("smartnode", "DSEG -- Sending Smartnode entry: smartnode=%s  addr=%s\n", mnpair.first.ToStringShort(), mnpair.second.addr.ToString());
-            CSmartnodeBroadcast mnb = CSmartnodeBroadcast(mnpair.second);
-            CSmartnodePing mnp = mnpair.second.lastPing;
-            uint256 hashMNB = mnb.GetHash();
-            uint256 hashMNP = mnp.GetHash();
-            pfrom->PushInventory(CInv(MSG_SMARTNODE_ANNOUNCE, hashMNB));
-            pfrom->PushInventory(CInv(MSG_SMARTNODE_PING, hashMNP));
-            nInvCount++;
-
-            mapSeenSmartnodeBroadcast.insert(std::make_pair(hashMNB, std::make_pair(GetTime(), mnb)));
-            mapSeenSmartnodePing.insert(std::make_pair(hashMNP, mnp));
-
-            if (vin.prevout == mnpair.first) {
-                LogPrintf("DSEG -- Sent 1 Smartnode inv to peer %d\n", pfrom->id);
-                return;
-            }
-        }
-
         if(vin == CTxIn()) {
-            connman.PushMessage(pfrom, NetMsgType::SYNCSTATUSCOUNT, SMARTNODE_SYNC_LIST, nInvCount);
-            LogPrintf("DSEG -- Sent %d Smartnode invs to peer %d\n", nInvCount, pfrom->id);
-            return;
+            SyncAll(pfrom, connman);
+        } else {
+            SyncSingle(pfrom, vin.prevout, connman);
         }
-        // smth weird happen - someone asked us for vin we have no idea about?
-        LogPrint("smartnode", "DSEG -- No invs sent to peer %d\n", pfrom->id);
 
     } else if (strCommand == NetMsgType::MNVERIFY) { // Smartnode Verify
 
@@ -921,6 +881,76 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
     }
 }
 
+void CSmartnodeMan::SyncSingle(CNode* pnode, const COutPoint& outpoint, CConnman& connman)
+{
+    // do not provide any data until our node is synced
+    if (!smartnodeSync.IsSynced()) return;
+
+    LOCK(cs);
+
+    auto it = mapSmartnodes.find(outpoint);
+
+    if(it != mapSmartnodes.end()) {
+        if (it->second.addr.IsRFC1918() || (MainNet() && it->second.addr.IsLocal())) return; // do not send local network masternode
+        // NOTE: send masternode regardless of its current state, the other node will need it to verify old votes.
+        LogPrint("smartnode", "CSmartnodeMan::%s -- Sending Smartnode entry: smartnode=%s  addr=%s\n", __func__, outpoint.ToStringShort(), it->second.addr.ToString());
+        PushDsegInvs(pnode, it->second);
+        LogPrintf("CSmartnodeMan::%s -- Sent 1 Masternode inv to peer=%d\n", __func__, pnode->id);
+    }
+}
+
+void CSmartnodeMan::SyncAll(CNode* pnode, CConnman& connman)
+{
+    // do not provide any data until our node is synced
+    if (!smartnodeSync.IsSynced()) return;
+
+    // local network
+    bool isLocal = (pnode->addr.IsRFC1918() || (MainNet() && pnode->addr.IsLocal()));
+
+    CService addrSquashed = Params().AllowMultiplePorts() ? (CService)pnode->addr : CService(pnode->addr, 0);
+    // should only ask for this once
+    if(!isLocal && Params().NetworkIDString() == CBaseChainParams::MAIN) {
+        LOCK2(cs_main, cs);
+        auto it = mAskedUsForSmartnodeList.find(addrSquashed);
+        if (it != mAskedUsForSmartnodeList.end() && it->second > GetTime()) {
+            Misbehaving(pnode->GetId(), 34);
+            LogPrintf("CSmartnodeMan::%s -- peer already asked me for the list, peer=%d\n", __func__, pnode->id);
+            return;
+        }
+        int64_t askAgain = GetTime() + DSEG_UPDATE_SECONDS;
+        mAskedUsForSmartnodeList[addrSquashed] = askAgain;
+    }
+
+    int nInvCount = 0;
+
+    LOCK(cs);
+
+    for (const auto& mnpair : mapSmartnodes) {
+        if (mnpair.second.addr.IsRFC1918() || ( MainNet() && mnpair.second.addr.IsLocal())) continue; // do not send local network masternode
+        // NOTE: send masternode regardless of its current state, the other node will need it to verify old votes.
+        LogPrint("masternode", "CMasternodeMan::%s -- Sending Smartnode entry: smartnode=%s  addr=%s\n", __func__, mnpair.first.ToStringShort(), mnpair.second.addr.ToString());
+        PushDsegInvs(pnode, mnpair.second);
+        nInvCount++;
+    }
+
+    connman.PushMessage(pnode, NetMsgType::SYNCSTATUSCOUNT, SMARTNODE_SYNC_LIST, nInvCount);
+    LogPrintf("CSmartnodeMan::%s -- Sent %d Smartnode invs to peer=%d\n", __func__, nInvCount, pnode->id);
+}
+
+void CSmartnodeMan::PushDsegInvs(CNode* pnode, const CSmartnode& mn)
+{
+    AssertLockHeld(cs);
+
+    CSmartnodeBroadcast mnb(mn);
+    CSmartnodePing mnp = mnb.lastPing;
+    uint256 hashMNB = mnb.GetHash();
+    uint256 hashMNP = mnp.GetHash();
+    pnode->PushInventory(CInv(MSG_SMARTNODE_ANNOUNCE, hashMNB));
+    pnode->PushInventory(CInv(MSG_SMARTNODE_PING, hashMNP));
+    mapSeenSmartnodeBroadcast.insert(std::make_pair(hashMNB, std::make_pair(GetTime(), mnb)));
+    mapSeenSmartnodePing.insert(std::make_pair(hashMNP, mnp));
+}
+
 // Verification of smartnodes via unique direct requests.
 
 void CSmartnodeMan::DoFullVerificationStep(CConnman& connman)
@@ -937,7 +967,7 @@ void CSmartnodeMan::DoFullVerificationStep(CConnman& connman)
 
     int nCount = 0;
 
-    int nMyRank = -1;
+    int nMyRank = MNPAYMENTS_NO_RANK;
     int nRanksTotal = (int)vecSmartnodeRanks.size();
 
     // send verify requests only if we are in top MAX_POSE_RANK
@@ -958,7 +988,7 @@ void CSmartnodeMan::DoFullVerificationStep(CConnman& connman)
     }
 
     // edge case: list is too short and this smartnode is not enabled
-    if(nMyRank == -1) return;
+    if(nMyRank == MNPAYMENTS_NO_RANK) return;
 
     // send verify requests to up to MAX_POSE_CONNECTIONS smartnodes
     // starting from MAX_POSE_RANK + nMyRank and using MAX_POSE_CONNECTIONS as a step
@@ -1401,8 +1431,9 @@ void CSmartnodeMan::UpdateSmartnodeList(CSmartnodeBroadcast mnb, CConnman& connm
 bool CSmartnodeMan::CheckMnbAndUpdateSmartnodeList(CNode* pfrom, CSmartnodeBroadcast mnb, int& nDos, CConnman& connman)
 {
     // Need to lock cs_main here to ensure consistent locking order because the SimpleCheck call below locks cs_main
-    LOCK2(cs_main, cs);
+    LOCK(cs_main);
     {
+        LOCK(cs);
         nDos = 0;
         LogPrint("smartnode", "CSmartnodeMan::CheckMnbAndUpdateSmartnodeList -- smartnode=%s\n", mnb.vin.prevout.ToStringShort());
 

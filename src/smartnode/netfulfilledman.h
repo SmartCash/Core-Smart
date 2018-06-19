@@ -36,9 +36,9 @@ public:
         READWRITE(mapFulfilledRequests);
     }
 
-    void AddFulfilledRequest(CAddress addr, std::string strRequest); // expire after 1 hour by default
-    bool HasFulfilledRequest(CAddress addr, std::string strRequest);
-    void RemoveFulfilledRequest(CAddress addr, std::string strRequest);
+    void AddFulfilledRequest(const CService& addr, const std::string& strRequest); // expire after 1 hour by default
+    bool HasFulfilledRequest(const CService& addr, const std::string& strRequest);
+    void RemoveFulfilledRequest(const CService& addr, const std::string& strRequest);
 
     void CheckAndRemove();
     void Clear();

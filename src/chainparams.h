@@ -70,6 +70,8 @@ public:
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
     /** Allow multiple addresses to be selected from the same network group (e.g. 192.168.x.x) */
     bool AllowMultipleAddressesFromGroup() const { return fAllowMultipleAddressesFromGroup; }
+    /** Allow nodes with the same address and multiple ports */
+    bool AllowMultiplePorts() const { return fAllowMultiplePorts; }
     /** In the future use NetworkIDString() for RPC fields */
     bool TestnetToBeDeprecatedFieldRPC() const { return fTestnetToBeDeprecatedFieldRPC; }
     /** Return the BIP70 network string (main, test or regtest) */
@@ -106,6 +108,7 @@ protected:
     bool fRequireStandard;
     bool fMineBlocksOnDemand;
     bool fAllowMultipleAddressesFromGroup;
+    bool fAllowMultiplePorts;
     bool fTestnetToBeDeprecatedFieldRPC;
     CCheckpointData checkpointData;
     /** Smartnode params*/ 

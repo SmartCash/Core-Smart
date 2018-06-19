@@ -177,6 +177,7 @@ public:
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
         fAllowMultipleAddressesFromGroup = false;
+        fAllowMultiplePorts = false;
         fTestnetToBeDeprecatedFieldRPC = false;
 
         checkpointData = (CCheckpointData) {
@@ -279,6 +280,7 @@ public:
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
         fAllowMultipleAddressesFromGroup = true;
+        fAllowMultiplePorts = true;
         fMineBlocksOnDemand = false;
         fTestnetToBeDeprecatedFieldRPC = true;
 
@@ -355,6 +357,7 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = true;
         fAllowMultipleAddressesFromGroup = true;
+        fAllowMultiplePorts = true;
         fTestnetToBeDeprecatedFieldRPC = false;
 
         checkpointData = (CCheckpointData){
