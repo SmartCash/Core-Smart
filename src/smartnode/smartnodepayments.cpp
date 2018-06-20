@@ -30,7 +30,7 @@ struct CompareBlockPayees
     bool operator()(const CSmartnodePayee& t1,
                     const CSmartnodePayee& t2) const
     {
-        return t1.GetVoteCount() != t2.GetVoteCount() ? t1.GetVoteCount() > t2.GetVoteCount() : CSmartAddress(t1.GetPayee()).Compare(CSmartAddress(t2.GetPayee()));
+        return t1.GetVoteCount() != t2.GetVoteCount() ? t1.GetVoteCount() > t2.GetVoteCount() : t1.GetVoteHashes().front() < t2.GetVoteHashes().front();
     }
 };
 

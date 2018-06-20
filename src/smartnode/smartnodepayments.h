@@ -95,7 +95,7 @@ public:
     CScript GetPayee() const { return scriptPubKey; }
 
     void AddVoteHash(uint256 hashIn) { vecVoteHashes.push_back(hashIn); }
-    std::vector<uint256> GetVoteHashes() { return vecVoteHashes; }
+    std::vector<uint256> GetVoteHashes() const { return vecVoteHashes; }
     int GetVoteCount() const { return vecVoteHashes.size(); }
 };
 
