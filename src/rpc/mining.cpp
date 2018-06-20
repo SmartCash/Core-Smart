@@ -204,6 +204,9 @@ UniValue generate(const UniValue& params, bool fHelp)
     boost::shared_ptr<CReserveScript> coinbaseScript;
     GetMainSignals().ScriptForMining(coinbaseScript);
 
+    if (!smartnodeSync.IsSynced())
+         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is syncing with network...");
+
     // If the keypool is exhausted, no script is returned at all.  Catch this.
     if (!coinbaseScript)
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
