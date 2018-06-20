@@ -895,7 +895,7 @@ void CSmartnodeMan::SyncSingle(CNode* pnode, const COutPoint& outpoint, CConnman
         // NOTE: send masternode regardless of its current state, the other node will need it to verify old votes.
         LogPrint("smartnode", "CSmartnodeMan::%s -- Sending Smartnode entry: smartnode=%s  addr=%s\n", __func__, outpoint.ToStringShort(), it->second.addr.ToString());
         PushDsegInvs(pnode, it->second);
-        LogPrintf("CSmartnodeMan::%s -- Sent 1 Masternode inv to peer=%d\n", __func__, pnode->id);
+        LogPrintf("CSmartnodeMan::%s -- Sent 1 Smartnode inv to peer=%d\n", __func__, pnode->id);
     }
 }
 

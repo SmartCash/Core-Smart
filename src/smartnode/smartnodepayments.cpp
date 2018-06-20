@@ -859,6 +859,7 @@ bool CSmartnodePaymentVote::IsValid(CNode* pnode, int nValidationHeight, std::st
         strError = strprintf("Smartnode is not in the top %d (%d)", MNPAYMENTS_SIGNATURES_TOTAL, nRank);
         // Only ban for new mnw which is out of bounds, for old mnw MN list itself might be way too much off
         if(nRank != MNPAYMENTS_NO_RANK && nRank > MNPAYMENTS_SIGNATURES_TOTAL*2 && nBlockHeight > nValidationHeight) {
+            LOCK(cs_main);
             strError = strprintf("Smartnode is not in the top %d (%d)", MNPAYMENTS_SIGNATURES_TOTAL*2, nRank);
             LogPrint("mnpayments", "CSmartnodePaymentVote::IsValid -- Error: %s\n", strError);
             Misbehaving(pnode->GetId(), 10);
@@ -892,7 +893,6 @@ bool CSmartnodePayments::ProcessBlock(int nBlockHeight, CConnman& connman)
         LogPrint("mnpayments", "CSmartnodePayments::ProcessBlock -- Smartnode not in the top %d (%d)\n", MNPAYMENTS_SIGNATURES_TOTAL, nRank);
         return false;
     }
-
 
     // LOCATE THE NEXT SMARTNODE WHICH SHOULD BE PAID
 
@@ -1089,8 +1089,11 @@ void CSmartnodePayments::RequestLowDataPaymentBlocks(CNode* pnode, CConnman& con
     const CBlockIndex *pindex = chainActive.Tip();
 
     while(nCachedBlockHeight - pindex->nHeight < nLimit) {
+
+        int nInterval = SmartNodePayments::PayoutInterval(pindex->nHeight);
+
         const auto it = mapSmartnodeBlocks.find(pindex->nHeight);
-        if(it == mapSmartnodeBlocks.end()) {
+        if(it == mapSmartnodeBlocks.end() && nInterval && pindex->nHeight % nInterval) {
             // We have no idea about this block height, let's ask
             vToFetch.push_back(CInv(MSG_SMARTNODE_PAYMENT_BLOCK, pindex->GetBlockHash()));
             // We should not violate GETDATA rules
@@ -1108,18 +1111,21 @@ void CSmartnodePayments::RequestLowDataPaymentBlocks(CNode* pnode, CConnman& con
     std::map<int, CSmartnodeBlockPayees>::iterator it = mapSmartnodeBlocks.begin();
 
     while(it != mapSmartnodeBlocks.end()) {
-        int expectedPayees = SmartNodePayments::PayoutsPerBlock(it->first);
+        int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(it->first);
+        int nInterval = SmartNodePayments::PayoutInterval(it->first);
         int nTotalVotes = 0;
         int fFound = 0;
         BOOST_FOREACH(CSmartnodePayee& payee, it->second.vecPayees) {
             if(payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED) {
-                if( ++fFound == expectedPayees) break;
+                if( ++fFound == nExpectedPayees) break;
             }
             nTotalVotes += payee.GetVoteCount();
         }
         // A clear winner (MNPAYMENTS_SIGNATURES_REQUIRED+ votes) was found
         // or no clear winner was found but there are at least avg number of votes
-        if(fFound == expectedPayees || nTotalVotes >= ( (MNPAYMENTS_SIGNATURES_TOTAL + MNPAYMENTS_SIGNATURES_REQUIRED) * expectedPayees )/2) {
+        if(fFound == nExpectedPayees ||
+           nTotalVotes >= ( (MNPAYMENTS_SIGNATURES_TOTAL + MNPAYMENTS_SIGNATURES_REQUIRED) * nExpectedPayees )/2 ||
+           !nInterval || it->first % nInterval) {
             // so just move to the next block
             ++it;
             continue;

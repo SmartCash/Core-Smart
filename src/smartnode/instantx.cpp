@@ -444,7 +444,7 @@ void CInstantSend::UpdateVotedOutpoints(const CTxLockVote& vote, CTxLockCandidat
                 std::map<uint256, CTxLockCandidate>::iterator it2 = mapTxLockCandidates.find(hash);
                 if(it2 !=mapTxLockCandidates.end() && it2->second.HasSmartnodeVoted(vote.GetOutpoint(), vote.GetSmartnodeOutpoint())) {
                     // yes, it was the same masternode
-                    LogPrintf("CInstantSend::%s -- masternode sent conflicting votes! %s\n", __func__, vote.GetSmartnodeOutpoint().ToStringShort());
+                    LogPrintf("CInstantSend::%s -- smartnode sent conflicting votes! %s\n", __func__, vote.GetSmartnodeOutpoint().ToStringShort());
                     // mark both Lock Candidates as attacked, none of them should complete,
                     // or at least the new (current) one shouldn't even
                     // if the second one was already completed earlier
