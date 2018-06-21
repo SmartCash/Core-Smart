@@ -18,6 +18,8 @@
 
 CCriticalSection cs_miningkeys;
 
+static CSmartAddress globalSigningAddress;
+
 std::map<uint8_t, CSmartAddress> mapMiningKeysMainnet = {
     {0, CSmartAddress("SZFQHEYJ6tVZqW8QcV3GPJEaREfrkJbTYi")},
     {1, CSmartAddress("SeuLj3mmoSibWVqiNVt9UxUCPrUZKQe7G5")},
@@ -97,6 +99,27 @@ std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet = {
   It allows us to force pools to sign the blocks with a private key which a pool can receive from us.
 */
 
+bool SmartMining::SetMiningKey(string &address)
+{
+    LOCK(cs_miningkeys);
+
+    auto *pKeyMap = &mapMiningKeysMainnet;
+
+    if( TestNet() ) pKeyMap = &mapMiningKeysTestnet;
+
+    auto it = pKeyMap->begin();
+
+    while (it != pKeyMap->end()){
+        if( address == it->second.ToString()){
+            globalSigningAddress = it->second;
+            return true;
+        }
+        it++;
+    }
+
+    return false;
+}
+
 bool SmartMining::IsSignatureRequired(const CBlockIndex *pindex){
 
     // If the blockheight is less than the height the enforcement has been set to.
@@ -106,6 +129,16 @@ bool SmartMining::IsSignatureRequired(const CBlockIndex *pindex){
 
     // If we are syncing dont check the signatures of blocks nMiningSignaturePastTimeCutoff seconds in the past.
     if( GetAdjustedTime() > pindex->GetBlockTime() + nMiningSignaturePastTimeCutoff ){
+        return false;
+    }
+
+    return true;
+}
+
+bool SmartMining::IsSignatureRequired(const int nHeight){
+
+    // If the blockheight is less than the height the enforcement has been set to.
+    if( nHeight < sporkManager.GetSporkValue(SPORK_16_MINING_SIGNATURE_ENFORCEMENT)){
         return false;
     }
 
@@ -199,7 +232,15 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
 
     if( pwalletMain ){
 
-        if (!signingAddress.IsValid())
+        CSmartAddress validAddress;
+
+        if( globalSigningAddress.IsValid() ){
+            validAddress = globalSigningAddress;
+        }else if( signingAddress.IsValid() ){
+            validAddress = signingAddress;
+        }
+
+        if (!validAddress.IsValid())
         {
             LogPrintf("SmartMining::FillPayment -- The given signingAddress is invalid.\n");
             return;
@@ -211,9 +252,9 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
 
         if( TestNet() ) pKeyMap = &mapMiningKeysTestnet;
 
-        auto searchAddress = std::find_if(pKeyMap->begin(), pKeyMap->end(), [signingAddress](const std::pair<int, CSmartAddress> &pair)
+        auto searchAddress = std::find_if(pKeyMap->begin(), pKeyMap->end(), [validAddress](const std::pair<int, CSmartAddress> &pair)
         {
-            return pair.second == signingAddress;
+            return pair.second == validAddress;
         });
 
         if( searchAddress == pKeyMap->end() ){
@@ -222,7 +263,7 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
         }
 
         CKeyID keyID;
-        if (!signingAddress.GetKeyID(keyID))
+        if (!validAddress.GetKeyID(keyID))
         {
             LogPrintf("SmartMining::FillPayment -- The given signingAddress does not refer to a key.\n");
             return;
@@ -303,3 +344,4 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
 
     return true;
 }
+

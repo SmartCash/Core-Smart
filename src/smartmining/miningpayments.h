@@ -24,9 +24,11 @@ extern std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet;
 
 namespace SmartMining{
 
+bool SetMiningKey(std::string &address);
 bool Validate(const CBlock& block, CBlockIndex *pindex, CValidationState& state, CAmount nFees);
 void FillPayment(CMutableTransaction& txNew, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward, CTxOut &outSignature, const CSmartAddress &signingAddress);
 bool IsSignatureRequired(const CBlockIndex *pindex);
+bool IsSignatureRequired(const int nHeight);
 
 }
 

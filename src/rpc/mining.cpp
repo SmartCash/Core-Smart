@@ -251,7 +251,7 @@ UniValue generatetoaddress(const UniValue& params, bool fHelp)
     CBitcoinAddress address(params[1].get_str());
     if (!address.IsValid())
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
-    
+
     boost::shared_ptr<CReserveScript> coinbaseScript(new CReserveScript());
     coinbaseScript->reserveScript = GetScriptForDestination(address.Get());
 
@@ -494,7 +494,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
 
     if (!smartnodeSync.IsSynced())
          throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is syncing with network...");
-        
+
     CSmartAddress signingAddress;
 
     if (params.size() == 1) {
@@ -665,6 +665,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     result.pushKV("chain", Params().NetworkIDString());
     result.pushKV("version", pblock->nVersion);
     result.pushKV("previousblockhash", pblock->hashPrevBlock.GetHex());
+    result.pushKV("signing_required", SmartMining::IsSignatureRequired(pindexPrev->nHeight +1));
     result.pushKV("coinbase", coinbase);
     result.pushKV("transactions", transactions);
     result.pushKV("longpollid", chainActive.Tip()->GetBlockHash().GetHex() + i64tostr(nTransactionsUpdatedLast));

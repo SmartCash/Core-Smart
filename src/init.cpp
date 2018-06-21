@@ -25,6 +25,7 @@
 #include "netbase.h"
 #include "net.h"
 #include "smartnode/netfulfilledman.h"
+#include "smartmining/miningpayments.h"
 #include "net_processing.h"
 #include "policy/policy.h"
 #include "rpc/server.h"
@@ -1240,6 +1241,13 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     {
         if (!sporkManager.SetPrivKey(GetArg("-sporkkey", "")))
             return InitError(_("Unable to sign spork message, wrong key?"));
+    }
+
+    if (mapArgs.count("-miningaddress"))
+    {
+        std::string miningAddress = GetArg("-miningaddress", "");
+        if (!SmartMining::SetMiningKey(miningAddress))
+            return InitError(_("Given mining address is invalid!"));
     }
 
     // Start the lightweight task scheduler thread
