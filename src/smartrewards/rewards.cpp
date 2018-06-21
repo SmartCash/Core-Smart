@@ -546,7 +546,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
 
         // If just hit the next round threshold
         if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound && pNextIndex->GetBlockTime() > currentRound.endBlockTime ) ||
-            ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound ) && pNextIndex->nHeight >= currentRound.endBlockHeight ) ){
+            ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pNextIndex->nHeight >= currentRound.endBlockHeight ) ){
 
             if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
 
@@ -573,9 +573,20 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
 
             if( TestNet() ) next.endBlockTime = startTime + nRewardsBlocksPerRound_Testnet * 55;
 
-            // Estimate the block, gets updated on the end of the round to the real one.
-            if( MainNet() )  next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound - 1;
-            else             next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound_Testnet - 1;
+            if( MainNet() ){
+                if( next.number == nRewardsFirstAutomatedRound - 1 ){
+                    // Let the round 12 end at height 574099 so that round 13 starts at 574100
+                    next.endBlockHeight = HF_V1_2_SMARTREWARD_HEIGHT - 1;
+                    next.endBlockTime = startTime + ( (next.endBlockHeight - next.startBlockHeight) * 55 );
+                }else if(next.number >= nRewardsFirstAutomatedRound){
+                    next.endBlockTime = startTime + nRewardsBlocksPerRound * 55;
+                    next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound - 1;
+                }else{
+                    next.endBlockHeight = next.startBlockHeight + ( (next.endBlockTime - next.startBlockTime) / 55 );
+                }
+            }else{
+                next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound_Testnet - 1;
+            }
 
             if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
 

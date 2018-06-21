@@ -24,7 +24,7 @@ const int64_t nRewardsSyncDistance = nRewardsConfirmations + 10;
 const int64_t nRewardsUISyncUpdateRate = 500;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int64_t nRewardsBlocksPerRound = 47500;
-const int64_t nRewardsFirstAutomatedRound = 12;
+const int64_t nRewardsFirstAutomatedRound = 13;
 
 // Timestamps of the first round's start and end on mainnet
 const int64_t nFirstRoundStartTime = 1500966000;

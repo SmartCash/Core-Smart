@@ -27,7 +27,7 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
     }
 
     // If we are not yet at the 1.2 payout block time.
-    if( ( MainNet() && nHeight < HF_V1_2_SMARTREWARD_HEIGHT ) ||
+    if( ( MainNet() && nHeight < HF_V1_2_SMARTREWARD_HEIGHT + nRewardsBlocksPerRound ) ||
         ( TestNet() && nHeight < nFirstRoundEndBlock_Testnet ) ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
