@@ -24,13 +24,12 @@ std::map<int, int64_t> mapSporkDefaults = {
     {SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT,     1531206000}, // OFF until July 10 but will activate sooner
     {SPORK_10_SMARTNODE_PAY_UPDATED_NODES,      1531206000}, // OFF until July 10
     {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,      0}, // ON
-    {SPORK_16_MINING_SIGNATURE_ENFORCEMENT,     1531292400}, // OFF until July 11
+    {SPORK_16_MINING_SIGNATURE_ENFORCEMENT,     552300}, // OFF until block 552300
     {SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED, 0xFFFFFFFFFFFFFFFF}, // All enabled
     {SPORK_18_PAY_OUTREACH2,                    0}, // ON until block number  This fork cannot be reversed
     {SPORK_19_PAY_WEB,                          0}, // ON until block number  This fork cannot be reversed
     {SPORK_20_PAY_QUALITY,                      0}, // ON until block number  This fork cannot be reversed
 };
-
 
 void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {

@@ -16,7 +16,9 @@
 
 // Here is the place to later research with the possible mining adjustments.
 
-static std::map<uint8_t, CSmartAddress> mapMiningKeysMainnet = {
+CCriticalSection cs_miningkeys;
+
+std::map<uint8_t, CSmartAddress> mapMiningKeysMainnet = {
     {0, CSmartAddress("SZFQHEYJ6tVZqW8QcV3GPJEaREfrkJbTYi")},
     {1, CSmartAddress("SeuLj3mmoSibWVqiNVt9UxUCPrUZKQe7G5")},
     {2, CSmartAddress("SPwumTCoMsS3HLED2b4vvZGdpHpN246QvV")},
@@ -83,7 +85,7 @@ static std::map<uint8_t, CSmartAddress> mapMiningKeysMainnet = {
     {63, CSmartAddress("SicJ4xb7gguvFRUBraAezDtjoHsUQ3qymZ")}
 };
 
-static std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet = {
+std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet = {
     {0,  CSmartAddress("TUcdknEDtqM5cRf6YFM5xRNzcAbQuNpJoA")},
     {1,  CSmartAddress("TGwRnVCEBouA75mkfgwZ5XGH66sjXJj2iq")},
     {2,  CSmartAddress("TYkeHMSS3VBfnH8i9yRqxnR3uxjavrSpoQ")},
@@ -95,28 +97,28 @@ static std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet = {
   It allows us to force pools to sign the blocks with a private key which a pool can receive from us.
 */
 
-bool SmartMining::IsSignatureRequired(const CBlock &block){
+bool SmartMining::IsSignatureRequired(const CBlockIndex *pindex){
 
-    // If the blocktime is > the time the enforcement has become enabled + a delay to give time for the spork sharing.
-    if( block.GetBlockTime() < sporkManager.GetSporkValue(SPORK_16_MINING_SIGNATURE_ENFORCEMENT)){
+    // If the blockheight is less than the height the enforcement has been set to.
+    if( pindex->nHeight < sporkManager.GetSporkValue(SPORK_16_MINING_SIGNATURE_ENFORCEMENT)){
         return false;
     }
 
     // If we are syncing dont check the signatures of blocks nMiningSignaturePastTimeCutoff seconds in the past.
-    if( GetAdjustedTime() > block.GetBlockTime() + nMiningSignaturePastTimeCutoff ){
+    if( GetAdjustedTime() > pindex->GetBlockTime() + nMiningSignaturePastTimeCutoff ){
         return false;
     }
 
     return true;
 }
 
-static bool CheckSignature(const CBlock &block, CBlockIndex *pindex)
+static bool CheckSignature(const CBlock &block, const CBlockIndex *pindex)
 {
 
     // We dont check the signatures in the litemode, just accept the longest chain.
     if( fLiteMode ) return true;
 
-    if( !SmartMining::IsSignatureRequired(block) ){
+    if( !SmartMining::IsSignatureRequired(pindex) ){
         return true;
     }
 
@@ -131,6 +133,8 @@ static bool CheckSignature(const CBlock &block, CBlockIndex *pindex)
     // Check if it is an OP_RETURN and if the startvalue is OP_DATA_MINING_FLAG
     if( sigScript.size() > nMiningSignatureMinScriptLength &&
         sigScript[0] == OP_RETURN && sigScript[2] == OP_DATA_MINING_FLAG ){
+
+        LOCK(cs_miningkeys);
 
         auto *pKeyMap = &mapMiningKeysMainnet;
 
@@ -200,6 +204,8 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
             LogPrintf("SmartMining::FillPayment -- The given signingAddress is invalid.\n");
             return;
         }
+
+        LOCK(cs_miningkeys);
 
         auto *pKeyMap = &mapMiningKeysMainnet;
 

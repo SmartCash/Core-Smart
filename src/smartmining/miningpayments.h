@@ -14,14 +14,19 @@
 struct CSmartAddress;
 
 const uint8_t OP_DATA_MINING_FLAG = 0x01;
-const int nMiningSignaturePastTimeCutoff = 7200; // 2 hours
+const int nMiningSignaturePastTimeCutoff = 3600; // 1 hour
 const int nMiningSignatureMinScriptLength = 4;
+
+extern CCriticalSection cs_miningkeys;
+
+extern std::map<uint8_t, CSmartAddress> mapMiningKeysMainnet;
+extern std::map<uint8_t, CSmartAddress> mapMiningKeysTestnet;
 
 namespace SmartMining{
 
 bool Validate(const CBlock& block, CBlockIndex *pindex, CValidationState& state, CAmount nFees);
 void FillPayment(CMutableTransaction& txNew, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward, CTxOut &outSignature, const CSmartAddress &signingAddress);
-bool IsSignatureRequired(const CBlock &block);
+bool IsSignatureRequired(const CBlockIndex *pindex);
 
 }
 

@@ -665,7 +665,6 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     result.pushKV("chain", Params().NetworkIDString());
     result.pushKV("version", pblock->nVersion);
     result.pushKV("previousblockhash", pblock->hashPrevBlock.GetHex());
-    result.pushKV("signing_required", SmartMining::IsSignatureRequired(pblocktemplate->block));
     result.pushKV("coinbase", coinbase);
     result.pushKV("transactions", transactions);
     result.pushKV("longpollid", chainActive.Tip()->GetBlockHash().GetHex() + i64tostr(nTransactionsUpdatedLast));
