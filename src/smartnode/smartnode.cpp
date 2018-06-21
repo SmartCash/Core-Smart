@@ -4,6 +4,7 @@
 
 #include "activesmartnode.h"
 #include "consensus/validation.h"
+#include "consensus/consensus.h"
 #include "../init.h"
 #include "instantx.h"
 #include "../messagesigner.h"
@@ -307,6 +308,8 @@ std::string CSmartnode::GetStatus() const
 void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanBack)
 {
     if(!pindex) return;
+
+    if( pindex->nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT) return;
 
     const CBlockIndex *BlockReading = pindex;
 

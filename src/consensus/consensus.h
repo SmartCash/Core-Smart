@@ -25,8 +25,9 @@ static const int HF_V1_1_SMARTNODE_HEIGHT = 300000;
 /** Reject zerocoin in/outputs starting with this block */
 static const int HF_ZEROCOIN_DISABLE = 266765;
 /** 1.2 fork blocks*/
-static const int HF_V1_2_MULTINODE_HEIGHT = 545000; // STILL TBD - set the correct height
-static const int HF_V1_2_SMARTREWARD_HEIGHT = 575000; // STILL TBD - set the correct height
+static const int HF_V1_2_MULTINODE_VOTING_HEIGHT = 535000;
+static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545001;
+static const int HF_V1_2_SMARTREWARD_HEIGHT = 575001; // STILL TBD - set the correct height
 
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
 static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 2;

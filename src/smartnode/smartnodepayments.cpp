@@ -38,7 +38,7 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 {
     if( MainNet() ){
 
-        if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
+        if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){
             return HF_V1_2_NODES_PER_BLOCK;
         }
 
@@ -60,7 +60,7 @@ int SmartNodePayments::PayoutInterval(int nHeight)
 {
     if( MainNet() ){
 
-    if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
+    if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){
         return HF_V1_2_NODES_BLOCK_INTERVAL;
     }
 
@@ -87,9 +87,9 @@ CAmount SmartNodePayments::Payment(int nHeight)
         if( nHeight < HF_V1_1_SMARTNODE_HEIGHT ){
             blockValue = 0;
         }else if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT &&
-            nHeight < HF_V1_2_MULTINODE_HEIGHT ){
+            nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT ){
             blockValue = GetBlockValue(nHeight,0,INT_MAX);
-        }else if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
+        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
 
             int interval = SmartNodePayments::PayoutInterval(nHeight);
 
@@ -131,7 +131,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
     if( MainNet() ){
 
-        if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT + 7000 && nHeight < HF_V1_2_MULTINODE_HEIGHT ){
+        if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT + 7000 && nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT ){
 
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
                 if (abs(txout.nValue - nodeReward) < 2) {
@@ -147,7 +147,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
             return true;
 
-        }else if( nHeight >= HF_V1_2_MULTINODE_HEIGHT ){
+        }else if( nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT ){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return true;
         }
 
@@ -240,7 +240,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
         if( nHeight < HF_V1_1_SMARTNODE_HEIGHT ){
             return;
         }else if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT &&
-            nHeight < HF_V1_2_MULTINODE_HEIGHT ){
+            nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT ){
             int nCount;
             CSmartNodeWinners mnInfos;
             if(!mnodeman.GetNextSmartnodesInQueueForPayment(nHeight, true, nCount, mnInfos)) {
@@ -262,11 +262,8 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 
             return;
 
-        }else if(nHeight >= HF_V1_2_MULTINODE_HEIGHT){
-
-            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) )
-                return;
-
+        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
+            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return;
         }
 
     }else{
@@ -277,10 +274,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
             nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 ){
             return;
         }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1){
-
-            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) )
-                return;
-
+            if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return;
         }
 
     }
