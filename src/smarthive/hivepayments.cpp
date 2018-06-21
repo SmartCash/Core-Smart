@@ -112,8 +112,6 @@ const CSmartHiveSplit * Get_1_2_Split(int nHeight, int64_t blockTime)
 
             std::vector<CSmartHiveRewardBase*> sporkedHives_1_2;
 
-            sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::ProjectTreasury, 0.46));
-
             if( nPayNewHives & SmartHivePayments::OUTREACH2_ENABLED ){
                 sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach, 0.04));
                 sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach2, 0.04));
@@ -134,6 +132,8 @@ const CSmartHiveSplit * Get_1_2_Split(int nHeight, int64_t blockTime)
             }else{
                 sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Support, 0.08));
             }
+
+            sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::ProjectTreasury, 0.46));
 
             sporked_Split_1_2 = new CSmartHiveBatchSplit(
                 70, // Split 70% of the block reward as followed.
