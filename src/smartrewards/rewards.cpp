@@ -471,7 +471,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
     static int64_t nTimeUpdateRewardsTotal = 0;
     static int64_t nCountUpdateRewards = 0;
 
-    if(!sporkManager.IsSporkActive(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)){
+    if(pLastIndex->nHeight > sporkManager.GetSporkValue(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)){
         return;
     }
 

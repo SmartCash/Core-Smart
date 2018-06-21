@@ -23,7 +23,7 @@ std::map<int, int64_t> mapSporkDefaults = {
     {SPORK_5_INSTANTSEND_MAX_VALUE,             1000},          // 1000 SMART
     {SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT,     1531206000}, // OFF until July 10 but will activate sooner
     {SPORK_10_SMARTNODE_PAY_UPDATED_NODES,      1531206000}, // OFF until July 10 but will activate sooner
-    {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,      0}, // ON
+    {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,      INT_MAX}, // ON
     {SPORK_16_MINING_SIGNATURE_ENFORCEMENT,     552300}, // OFF until block 552300
     {SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED, 0xFFFFFFFFFFFFFFFF}, // All enabled
     {SPORK_18_PAY_OUTREACH2,                    0}, // ON until block number  This fork cannot be reversed

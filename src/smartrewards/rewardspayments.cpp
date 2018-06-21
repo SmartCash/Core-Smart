@@ -20,7 +20,7 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
 {
     result = SmartRewardPayments::Valid;
 
-    if(!sporkManager.IsSporkActive(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)) {
+    if(nHeight > sporkManager.GetSporkValue(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)) {
         LogPrint("smartrewards", "SmartRewardPayments::GetPaymentsForBlock -- Disabled");
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
