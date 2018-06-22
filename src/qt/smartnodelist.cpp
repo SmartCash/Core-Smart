@@ -414,6 +414,9 @@ void SmartnodeList::on_startMissingButton_clicked()
         WalletModel::UnlockContext ctx(walletModel->requestUnlock());
 
         if(!ctx.isValid()) return; // Unlock wallet was cancelled
+
+        StartAll("start-missing");
+        return;
     }
 
     StartAll("start-missing");
