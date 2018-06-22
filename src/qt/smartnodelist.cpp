@@ -100,7 +100,7 @@ void SmartnodeList::showContextMenu(const QPoint &point)
     if(item) contextMenu->exec(QCursor::pos());
 }
 
-void SmartnodeList::StartAlias(bool lockedBefore, std::string strAlias)
+void SmartnodeList::StartAlias(std::string strAlias)
 {
     std::string strStatusHtml;
     strStatusHtml += "<center>Alias: " + strAlias;
@@ -125,8 +125,6 @@ void SmartnodeList::StartAlias(bool lockedBefore, std::string strAlias)
         }
     }
     strStatusHtml += "</center>";
-
-    if( lockedBefore ) pwalletMain->Lock();
 
     QMessageBox msg;
     msg.setText(QString::fromStdString(strStatusHtml));
@@ -367,7 +365,7 @@ void SmartnodeList::on_startButton_clicked()
         if(!ctx.isValid()) return; // Unlock wallet was cancelled
     }
 
-    StartAlias(encStatus == walletModel->Locked, strAlias);
+    StartAlias(strAlias);
 }
 
 // void SmartnodeList::on_startAllButton_clicked()

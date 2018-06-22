@@ -36,7 +36,7 @@ public:
 
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);
-    void StartAlias(bool lockedBefore, std::string strAlias);
+    void StartAlias(std::string strAlias);
     void StartAll(bool lockedBefore, std::string strCommand = "start-all");
 
 private:
