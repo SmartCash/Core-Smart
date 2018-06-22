@@ -133,7 +133,7 @@ void SmartnodeList::StartAlias(std::string strAlias)
     updateMyNodeList(true);
 }
 
-void SmartnodeList::StartAll(bool lockedBefore, std::string strCommand)
+void SmartnodeList::StartAll(std::string strCommand)
 {
     int nCountSuccessful = 0;
     int nCountFailed = 0;
@@ -165,8 +165,6 @@ void SmartnodeList::StartAll(bool lockedBefore, std::string strCommand)
             strFailedHtml += "\nFailed to start " + mne.getAlias() + ". Error: " + strError;
         }
     }
-
-    if( lockedBefore ) pwalletMain->Lock();
 
     std::string returnObj;
     returnObj = strprintf("Successfully started %d smartnodes, failed to start %d, total %d", nCountSuccessful, nCountFailed, nCountFailed + nCountSuccessful);
@@ -363,6 +361,9 @@ void SmartnodeList::on_startButton_clicked()
         WalletModel::UnlockContext ctx(walletModel->requestUnlock());
 
         if(!ctx.isValid()) return; // Unlock wallet was cancelled
+
+        StartAlias(strAlias);
+        return;
     }
 
     StartAlias(strAlias);
@@ -415,7 +416,7 @@ void SmartnodeList::on_startMissingButton_clicked()
         if(!ctx.isValid()) return; // Unlock wallet was cancelled
     }
 
-    StartAll(encStatus == walletModel->Locked, "start-missing");
+    StartAll("start-missing");
 }
 
 void SmartnodeList::on_tableWidgetMySmartnodes_itemSelectionChanged()
