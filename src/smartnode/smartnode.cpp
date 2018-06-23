@@ -309,7 +309,7 @@ void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanB
 {
     if(!pindex) return;
 
-    if( pindex->nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT) return;
+    if( pindex->nHeight < HF_V1_2_MULTINODE_VOTING_HEIGHT) return;
 
     const CBlockIndex *BlockReading = pindex;
 
