@@ -484,7 +484,7 @@ UniValue smartnodelist(const UniValue& params, bool fHelp)
                 "  protocol       - Print protocol of a smartnode (can be additionally filtered, exact match)\n"
                 "  pubkey         - Print the smartnode (not collateral) public key\n"
                 "  rank           - Print rank of a smartnode based on current block\n"
-                "  status         - Print smartnode status: PRE_ENABLED / ENABLED / EXPIRED / WATCHDOG_EXPIRED / NEW_START_REQUIRED /\n"
+                "  status         - Print smartnode status: PRE_ENABLED / ENABLED / EXPIRED / NEW_START_REQUIRED /\n"
                 "                   UPDATE_REQUIRED / POSE_BAN / OUTPOINT_SPENT (can be additionally filtered, partial match)\n"
                 );
     }

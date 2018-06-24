@@ -96,9 +96,7 @@ bool CActiveSmartnode::SendSmartnodePing(CConnman& connman)
     }
 
     CSmartnodePing mnp(outpoint);
-    mnp.nSentinelVersion = nSentinelVersion;
-    mnp.fSentinelIsCurrent =
-            (abs(GetAdjustedTime() - nSentinelPingTime) < SMARTNODE_WATCHDOG_MAX_SECONDS);
+
     if(!mnp.Sign(keySmartnode, pubKeySmartnode)) {
         LogPrintf("CActiveSmartnode::SendSmartnodePing -- ERROR: Couldn't sign Smartnode Ping\n");
         return false;

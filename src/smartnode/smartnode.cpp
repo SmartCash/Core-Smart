@@ -189,7 +189,7 @@ void CSmartnode::Check(bool fForce)
 
     if(fWaitForPing && !fOurSmartnode) {
         // ...but if it was already expired before the initial check - return right away
-        if(IsExpired() || IsWatchdogExpired() || IsNewStartRequired()) {
+        if(IsExpired() || IsNewStartRequired()) {
             LogPrint("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state, waiting for ping\n", vin.prevout.ToStringShort(), GetStateString());
             return;
         }
@@ -206,19 +206,6 @@ void CSmartnode::Check(bool fForce)
             return;
         }
 
-        bool fWatchdogActive = smartnodeSync.IsSynced() && mnodeman.IsWatchdogActive();
-        bool fWatchdogExpired = (fWatchdogActive && ((GetAdjustedTime() - nTimeLastWatchdogVote) > SMARTNODE_WATCHDOG_MAX_SECONDS));
-
-        LogPrint("smartnode", "CSmartnode::Check -- outpoint=%s, nTimeLastWatchdogVote=%d, GetAdjustedTime()=%d, fWatchdogExpired=%d\n",
-                vin.prevout.ToStringShort(), nTimeLastWatchdogVote, GetAdjustedTime(), fWatchdogExpired);
-
-        if(fWatchdogExpired) {
-            nActiveState = SMARTNODE_WATCHDOG_EXPIRED;
-            if(nActiveStatePrev != nActiveState) {
-                LogPrint("smartnode", "CSmartnode::Check -- Smartnode %s is in %s state now\n", vin.prevout.ToStringShort(), GetStateString());
-            }
-            return;
-        }
 
         if(!IsPingedWithin(SMARTNODE_EXPIRATION_SECONDS)) {
             nActiveState = SMARTNODE_EXPIRED;

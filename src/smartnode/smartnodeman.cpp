@@ -815,12 +815,6 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
         // see if we have this Smartnode
         CSmartnode* pmn = Find(mnp.vin.prevout);
 
-        // if smartnode uses sentinel ping instead of watchdog
-        // we shoud update nTimeLastWatchdogVote here if sentinel
-        // ping flag is actual
-        if(pmn && mnp.fSentinelIsCurrent)
-            UpdateWatchdogVoteTime(mnp.vin.prevout, mnp.sigTime);
-
         // too late, new MNANNOUNCE is required
         if(pmn && pmn->IsNewStartRequired()) return;
 
@@ -1604,12 +1598,7 @@ void CSmartnodeMan::SetSmartnodeLastPing(const COutPoint& outpoint, const CSmart
         return;
     }
     pmn->lastPing = mnp;
-    // if smartnode uses sentinel ping instead of watchdog
-    // we shoud update nTimeLastWatchdogVote here if sentinel
-    // ping flag is actual
-    if(mnp.fSentinelIsCurrent) {
-        UpdateWatchdogVoteTime(mnp.vin.prevout, mnp.sigTime);
-    }
+
     mapSeenSmartnodePing.insert(std::make_pair(mnp.GetHash(), mnp));
 
     CSmartnodeBroadcast mnb(*pmn);
