@@ -338,7 +338,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
             LogPrint("mnpayments", "SMARTNODEPAYMENTSYNC - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
             connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-                               strprintf("Version must be %d or greater", MIN_PEER_PROTO_VERSION));
+                               strprintf("Version must be %d or greater", MIN_MULTIPAYMENT_PROTO_VERSION));
             return;
         }
 
@@ -362,7 +362,7 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
             LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
             connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-                               strprintf("Version must be %d or greater", MIN_PEER_PROTO_VERSION));
+                               strprintf("Version must be %d or greater", MIN_MULTIPAYMENT_PROTO_VERSION));
             return;
         }
 

@@ -11,7 +11,7 @@
 #include <QWidget>
 
 #define MY_SMARTNODELIST_UPDATE_SECONDS                 60
-#define SMARTNODELIST_UPDATE_SECONDS                    120
+#define SMARTNODELIST_UPDATE_SECONDS                    60
 #define SMARTNODELIST_FILTER_COOLDOWN_SECONDS            3
 
 namespace Ui {
