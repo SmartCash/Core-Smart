@@ -122,8 +122,8 @@
         <translation>Address king pamag-Tanggap</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
-        <translation>Magpadalang barya king Smartcash address</translation>
+        <source>Send coins to a SmartCash address</source>
+        <translation>Magpadalang barya king SmartCash address</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -311,8 +311,8 @@
         <translation>&amp;Network</translation>
     </message>
     <message>
-        <source>Automatically open the Smartcash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Ibuklat yang antimanu ing Smartcash client port king router. Gagana yamu ini istung ing router mu susuporta yang UPnP at magsilbi ya.</translation>
+        <source>Automatically open the SmartCash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Ibuklat yang antimanu ing SmartCash client port king router. Gagana yamu ini istung ing router mu susuporta yang UPnP at magsilbi ya.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -386,8 +386,8 @@
         <translation>Form</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Smartcash network after a connection is established, but this process has not completed yet.</source>
-        <translation>Ing makaltong impormasion mapalyaring luma ne. Ing kekang wallet otomatiku yang mag-synchronize keng Smartcash network istung mekakonekta ne king network, oneng ing prosesung ini ali ya pa kumpletu.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the SmartCash network after a connection is established, but this process has not completed yet.</source>
+        <translation>Ing makaltong impormasion mapalyaring luma ne. Ing kekang wallet otomatiku yang mag-synchronize keng SmartCash network istung mekakonekta ne king network, oneng ing prosesung ini ali ya pa kumpletu.</translation>
     </message>
     <message>
         <source>Your current spendable balance</source>
@@ -641,8 +641,8 @@
         <translation>Kopyan ing kasalungsungan pirma king system clipboard</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Smartcash address</source>
-        <translation>Pirman ing mensayi ban patune na keka ya ining Smartcash address</translation>
+        <source>Sign the message to prove you own this SmartCash address</source>
+        <translation>Pirman ing mensayi ban patune na keka ya ining SmartCash address</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -661,8 +661,8 @@
         <translation>&amp;Beripikan ing Mensayi</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Smartcash address</source>
-        <translation>Beripikan ing mensayi ban asiguradu a me pirma ya ini gamit ing mepiling Smartcash address</translation>
+        <source>Verify the message to ensure it was signed with the specified SmartCash address</source>
+        <translation>Beripikan ing mensayi ban asiguradu a me pirma ya ini gamit ing mepiling SmartCash address</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -742,7 +742,7 @@
         <translation>Tumanggap koneksion menibat king kilwal (default: 1 if no -proxy or -connect)</translation>
     </message>
     <message>
-        <source>Smartcash Core</source>
+        <source>SmartCash Core</source>
         <translation>Kapilubluban ning Bitcoin</translation>
     </message>
     <message>

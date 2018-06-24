@@ -142,7 +142,7 @@
         <translation>Deschide &amp;URI...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
+        <source>Send coins to a SmartCash address</source>
         <translation>Trimite monedele către o adresă Bitcoin</translation>
     </message>
     <message>
@@ -194,12 +194,12 @@
         <translation>Criptează cheile private care aparțin portofelului tău.</translation>
     </message>
     <message>
-        <source>Sign messages with your Smartcash addresses to prove you own them</source>
-        <translation>Semnează mesajele cu adresa ta de Smartcash pentru a face dovada că îți aparțin.</translation>
+        <source>Sign messages with your SmartCash addresses to prove you own them</source>
+        <translation>Semnează mesajele cu adresa ta de SmartCash pentru a face dovada că îți aparțin.</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Smartcash addresses</source>
-        <translation>Verifică mesajele cu scopul de a asigura faptul că au fost semnate cu adresa de Smartcash specificată.</translation>
+        <source>Verify messages to ensure they were signed with specified SmartCash addresses</source>
+        <translation>Verifică mesajele cu scopul de a asigura faptul că au fost semnate cu adresa de SmartCash specificată.</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -746,8 +746,8 @@
 <context>
     <name>bitcoin-core</name>
     <message>
-        <source>Smartcash Core</source>
-        <translation>Smartcash Core</translation>
+        <source>SmartCash Core</source>
+        <translation>SmartCash Core</translation>
     </message>
     <message>
         <source>Information</source>

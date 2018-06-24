@@ -48,9 +48,9 @@ static const int MAX_URI_LENGTH = 255;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-#define QAPP_ORG_NAME "Smartcash"
+#define QAPP_ORG_NAME "SmartCash"
 #define QAPP_ORG_DOMAIN "smartcash.cc"
-#define QAPP_APP_NAME_DEFAULT "Smartcash-Qt"
-#define QAPP_APP_NAME_TESTNET "Smartcash-Qt-testnet"
+#define QAPP_APP_NAME_DEFAULT "SmartCash-Qt"
+#define QAPP_APP_NAME_TESTNET "SmartCash-Qt-testnet"
 
 #endif // BITCOIN_QT_GUICONSTANTS_H

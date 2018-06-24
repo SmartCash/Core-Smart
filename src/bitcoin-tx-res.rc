@@ -16,8 +16,8 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
-            VALUE "CompanyName",        "Smartcash"
-            VALUE "FileDescription",    "smartcash-tx (CLI Smartcash transaction editor utility)"
+            VALUE "CompanyName",        "SmartCash"
+            VALUE "FileDescription",    "smartcash-tx (CLI SmartCash transaction editor utility)"
             VALUE "FileVersion",        VER_FILEVERSION_STR
             VALUE "InternalName",       "smartcash-tx"
             VALUE "LegalCopyright",     COPYRIGHT_STR

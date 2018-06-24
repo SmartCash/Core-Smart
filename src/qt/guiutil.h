@@ -30,7 +30,7 @@ class QUrl;
 class QWidget;
 QT_END_NAMESPACE
 
-/** Utility functions used by the Smartcash Qt UI.
+/** Utility functions used by the SmartCash Qt UI.
  */
 namespace GUIUtil
 {

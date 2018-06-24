@@ -166,7 +166,7 @@
         <translation>Reindekserer blokker på harddisk...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
+        <source>Send coins to a SmartCash address</source>
         <translation>Send til en SmartCash-adresse</translation>
     </message>
     <message>
@@ -218,11 +218,11 @@
         <translation>Krypter de private nøklene som tilhører lommeboken din</translation>
     </message>
     <message>
-        <source>Sign messages with your Smartcash addresses to prove you own them</source>
+        <source>Sign messages with your SmartCash addresses to prove you own them</source>
         <translation>Signer en melding med SmartCash-adressene dine for å bevise at du eier dem</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Smartcash addresses</source>
+        <source>Verify messages to ensure they were signed with specified SmartCash addresses</source>
         <translation>Bekreft meldinger for å være sikker på at de ble signert av en angitt SmartCash-adresse</translation>
     </message>
     <message>
@@ -262,7 +262,7 @@
         <translation>&amp;Kommandolinjevalg</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Smartcash network</source>
+        <source>%n active connection(s) to SmartCash network</source>
         <translation><numerusform>%n aktiv forbindelse til SmartCash-nettverket</numerusform><numerusform>%n aktive forbindelser til SmartCash-nettverket</numerusform></translation>
     </message>
     <message>
@@ -693,15 +693,15 @@
         <translation>&amp;Bruk ubekreftet veksel</translation>
     </message>
     <message>
-        <source>Automatically open the Smartcash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Åpne automatisk Smartcash klientporten på ruteren. Dette virker kun om din ruter støtter UPnP og dette er påslått.</translation>
+        <source>Automatically open the SmartCash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Åpne automatisk SmartCash klientporten på ruteren. Dette virker kun om din ruter støtter UPnP og dette er påslått.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
         <translation>Sett opp port ved hjelp av &amp;UPnP</translation>
     </message>
     <message>
-        <source>Connect to the Smartcash network through a SOCKS5 proxy.</source>
+        <source>Connect to the SmartCash network through a SOCKS5 proxy.</source>
         <translation>Koble til SmartCash-nettverket gjennom en SOCKS5 proxy.</translation>
     </message>
     <message>
@@ -741,7 +741,7 @@
         <translation>Tor</translation>
     </message>
     <message>
-        <source>Connect to the Smartcash network through a separate SOCKS5 proxy for Tor hidden services.</source>
+        <source>Connect to the SmartCash network through a separate SOCKS5 proxy for Tor hidden services.</source>
         <translation>Koble til SmartCash-nettverket gjennom en separat SOCKS5 mellomtjener for Tor skjulte tjenester.</translation>
     </message>
     <message>
@@ -832,7 +832,7 @@
         <translation>Skjema</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Smartcash network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the SmartCash network after a connection is established, but this process has not completed yet.</source>
         <translation>Informasjonen som vises kan være foreldet. Din lommebok synkroniseres automatisk med SmartCash-nettverket etter at tilkobling er opprettet, men denne prosessen er ikke ferdig enda.</translation>
     </message>
     <message>
@@ -925,7 +925,7 @@
         <translation>Beløp</translation>
     </message>
     <message>
-        <source>Enter a Smartcash address (e.g. %1)</source>
+        <source>Enter a SmartCash address (e.g. %1)</source>
         <translation>Oppgi en SmartCash-adresse (f.eks. %1)</translation>
     </message>
     <message>
@@ -1262,7 +1262,7 @@
         <translation>Gj&amp;enbruk en eksisterende mottaksadresse (ikke anbefalt)</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Smartcash network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the SmartCash network.</source>
         <translation>En valgfri melding å tilknytte betalingsetterspørringen, som vil bli vist når forespørselen er åpnet. Meldingen vil ikke bli sendt med betalingen over SmartCash-nettverket.</translation>
     </message>
     <message>
@@ -1419,7 +1419,7 @@
         <translation>minstebeløp</translation>
     </message>
     <message>
-        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for Smartcash transactions than the network can process.</source>
+        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for SmartCash transactions than the network can process.</source>
         <translation>Betaling av bare minimumsavgiften går helt fint så lenge det er mindre transaksjonsvolum enn plass i blokkene. Men vær klar over at dette kan ende opp i en transaksjon som aldri blir bekreftet når det er mer etterspørsel etter SmartCash-transaksjoner enn nettverket kan behandle.</translation>
     </message>
     <message>
@@ -1506,7 +1506,7 @@
         <translation>Dette er en normal betaling.</translation>
     </message>
     <message>
-        <source>The Smartcash address to send the payment to</source>
+        <source>The SmartCash address to send the payment to</source>
         <translation>SmartCash-adressen betalingen skal sendes til</translation>
     </message>
     <message>
@@ -1550,7 +1550,7 @@
         <translation>Skriv inn en merkelapp for denne adressen for å legge den til listen av brukte adresser</translation>
     </message>
     <message>
-        <source>A message that was attached to the smartcash: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Smartcash network.</source>
+        <source>A message that was attached to the smartcash: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the SmartCash network.</source>
         <translation>En melding som var tilknyttet smartcash: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over SmartCash-nettverket.</translation>
     </message>
     <message>
@@ -1587,7 +1587,7 @@
         <translation>Du kan signere meldinger/avtaler med adresser for å bevise at du kan motta SmartCash sendt til dem. Vær forsiktig med å signere noe vagt eller tilfeldig, siden phishing-angrep kan prøve å lure deg til å signere din identitet over til dem. Bare signer fullt detaljerte utsagn som du er enig i.</translation>
     </message>
     <message>
-        <source>The Smartcash address to sign the message with</source>
+        <source>The SmartCash address to sign the message with</source>
         <translation>SmartCash-adressen meldingen skal signeres med</translation>
     </message>
     <message>
@@ -1619,7 +1619,7 @@
         <translation>Kopier valgt signatur til utklippstavle</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Smartcash address</source>
+        <source>Sign the message to prove you own this SmartCash address</source>
         <translation>Signer meldingen for å bevise at du eier denne SmartCash-adressen</translation>
     </message>
     <message>
@@ -1643,11 +1643,11 @@
         <translation>Skriv inn mottakerens adresse, melding (forsikre deg om at du kopier linjeskift, mellomrom, faner osv. nøyaktig) og underskrift nedenfor for å bekrefte meldingen. Vær forsiktig så du ikke leser mer ut av signaturen enn hva som er i den signerte meldingen i seg selv, for å unngå å bli lurt av et man-in-the-middle-angrep. Merk at dette bare beviser at den som signerer kan motta med adressen, dette beviser ikke hvem som har sendt transaksjoner!</translation>
     </message>
     <message>
-        <source>The Smartcash address the message was signed with</source>
+        <source>The SmartCash address the message was signed with</source>
         <translation>SmartCash-adressen meldingen ble signert med</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Smartcash address</source>
+        <source>Verify the message to ensure it was signed with the specified SmartCash address</source>
         <translation>Verifiser meldingen for å være sikker på at den ble signert av den angitte SmartCash-adressen</translation>
     </message>
     <message>
@@ -1772,8 +1772,8 @@
         <translation>Ta imot tilkoblinger fra utsiden (standardverdi: 1 hvis uten -proxy eller -connect)</translation>
     </message>
     <message>
-        <source>Smartcash Core</source>
-        <translation>Smartcash Core</translation>
+        <source>SmartCash Core</source>
+        <translation>SmartCash Core</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

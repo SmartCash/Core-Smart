@@ -158,8 +158,8 @@
         <translation>Otvori &amp;URI...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
-        <translation>Pošalji novčiće na Smartcash adresu</translation>
+        <source>Send coins to a SmartCash address</source>
+        <translation>Pošalji novčiće na SmartCash adresu</translation>
     </message>
     <message>
         <source>&amp;Verify message...</source>
@@ -412,8 +412,8 @@
 <context>
     <name>bitcoin-core</name>
     <message>
-        <source>Smartcash Core</source>
-        <translation>Smartcash Core</translation>
+        <source>SmartCash Core</source>
+        <translation>SmartCash Core</translation>
     </message>
     <message>
         <source>Information</source>

@@ -130,7 +130,7 @@
         <translation>Reindexando bloques no disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
+        <source>Send coins to a SmartCash address</source>
         <translation>Enviar moedas a unha dirección Bitcoin</translation>
     </message>
     <message>
@@ -182,12 +182,12 @@
         <translation>Encriptar as claves privadas que pertencen ao teu moedeiro</translation>
     </message>
     <message>
-        <source>Sign messages with your Smartcash addresses to prove you own them</source>
-        <translation>Asina mensaxes coas túas direccións Smartcash para probar que te pertencen</translation>
+        <source>Sign messages with your SmartCash addresses to prove you own them</source>
+        <translation>Asina mensaxes coas túas direccións SmartCash para probar que te pertencen</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Smartcash addresses</source>
-        <translation>Verificar mensaxes para asegurar que foron asinados con direccións Smartcash dadas.</translation>
+        <source>Verify messages to ensure they were signed with specified SmartCash addresses</source>
+        <translation>Verificar mensaxes para asegurar que foron asinados con direccións SmartCash dadas.</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -467,8 +467,8 @@
         <translation>Moedeiro</translation>
     </message>
     <message>
-        <source>Automatically open the Smartcash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Abrir automáticamente o porto do cliente Smartcash no router. Esto so funciona se o teu router soporta UPnP e está habilitado.</translation>
+        <source>Automatically open the SmartCash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Abrir automáticamente o porto do cliente SmartCash no router. Esto so funciona se o teu router soporta UPnP e está habilitado.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -546,8 +546,8 @@
         <translation>Formulario</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Smartcash network after a connection is established, but this process has not completed yet.</source>
-        <translation>A información amosada por estar desactualizada. O teu moedeiro sincronízase automáticamente coa rede Smartcash despois de que se estableza unha conexión, pero este proceso non está todavía rematado.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the SmartCash network after a connection is established, but this process has not completed yet.</source>
+        <translation>A información amosada por estar desactualizada. O teu moedeiro sincronízase automáticamente coa rede SmartCash despois de que se estableza unha conexión, pero este proceso non está todavía rematado.</translation>
     </message>
     <message>
         <source>Your current spendable balance</source>
@@ -929,7 +929,7 @@
         <translation>Copiar a sinatura actual ao portapapeis do sistema</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Smartcash address</source>
+        <source>Sign the message to prove you own this SmartCash address</source>
         <translation>Asina a mensaxe para probar que posees esta dirección Bitcoin</translation>
     </message>
     <message>
@@ -949,8 +949,8 @@
         <translation>&amp;Verificar Mensaxe</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Smartcash address</source>
-        <translation>Verificar a mensaxe para asegurar que foi asinada coa dirección Smartcash especificada</translation>
+        <source>Verify the message to ensure it was signed with the specified SmartCash address</source>
+        <translation>Verificar a mensaxe para asegurar que foi asinada coa dirección SmartCash especificada</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1034,7 +1034,7 @@
         <translation>Aceptar conexións de fóra (por defecto: 1 se non -proxy ou -connect)</translation>
     </message>
     <message>
-        <source>Smartcash Core</source>
+        <source>SmartCash Core</source>
         <translation>Core de Bitcoin</translation>
     </message>
     <message>

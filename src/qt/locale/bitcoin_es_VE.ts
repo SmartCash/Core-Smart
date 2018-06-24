@@ -114,7 +114,7 @@
         <translation>Reindexando bloques en el disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
+        <source>Send coins to a SmartCash address</source>
         <translation>Enviar monedas a una dirección SmartCasn</translation>
     </message>
     <message>
@@ -158,12 +158,12 @@
         <translation>Encriptar las llaves privadas que pertenecen a tu billetera</translation>
     </message>
     <message>
-        <source>Sign messages with your Smartcash addresses to prove you own them</source>
-        <translation>Firma mensajes con tus direcciones Smartcash para probar que eres dueño de ellas</translation>
+        <source>Sign messages with your SmartCash addresses to prove you own them</source>
+        <translation>Firma mensajes con tus direcciones SmartCash para probar que eres dueño de ellas</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Smartcash addresses</source>
-        <translation>Verificar mensajes para asegurar que estaban firmados con direcciones Smartcash especificas</translation>
+        <source>Verify messages to ensure they were signed with specified SmartCash addresses</source>
+        <translation>Verificar mensajes para asegurar que estaban firmados con direcciones SmartCash especificas</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -614,8 +614,8 @@
         <translation>Correr en segundo plano como daemon y aceptar comandos</translation>
     </message>
     <message>
-        <source>Smartcash Core</source>
-        <translation>Smartcash Core</translation>
+        <source>SmartCash Core</source>
+        <translation>SmartCash Core</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

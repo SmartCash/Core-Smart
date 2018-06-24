@@ -166,7 +166,7 @@
         <translation>Đánh chỉ số (indexing) lại các khối (blocks) trên ổ đĩa ...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
+        <source>Send coins to a SmartCash address</source>
         <translation>Gửi coins đến tài khoản Bitcoin</translation>
     </message>
     <message>
@@ -214,12 +214,12 @@
         <translation>Mã hoá các khoá bí mật trong Ví của bạn.</translation>
     </message>
     <message>
-        <source>Sign messages with your Smartcash addresses to prove you own them</source>
-        <translation>Dùng địa chỉ Smartcash của bạn ký các tin nhắn để xác minh những nội dung tin nhắn đó là của bạn.</translation>
+        <source>Sign messages with your SmartCash addresses to prove you own them</source>
+        <translation>Dùng địa chỉ SmartCash của bạn ký các tin nhắn để xác minh những nội dung tin nhắn đó là của bạn.</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Smartcash addresses</source>
-        <translation>Kiểm tra các tin nhắn để chắc chắn rằng chúng được ký bằng các địa chỉ Smartcash xác định.</translation>
+        <source>Verify messages to ensure they were signed with specified SmartCash addresses</source>
+        <translation>Kiểm tra các tin nhắn để chắc chắn rằng chúng được ký bằng các địa chỉ SmartCash xác định.</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -533,8 +533,8 @@
         <translation>Ví</translation>
     </message>
     <message>
-        <source>Connect to the Smartcash network through a SOCKS5 proxy.</source>
-        <translation>Kết nối đến máy chủ Smartcash thông qua SOCKS5 proxy.</translation>
+        <source>Connect to the SmartCash network through a SOCKS5 proxy.</source>
+        <translation>Kết nối đến máy chủ SmartCash thông qua SOCKS5 proxy.</translation>
     </message>
     <message>
         <source>Proxy &amp;IP:</source>
@@ -1008,8 +1008,8 @@
         <translation>Lựa chọn:</translation>
     </message>
     <message>
-        <source>Smartcash Core</source>
-        <translation>Smartcash Core</translation>
+        <source>SmartCash Core</source>
+        <translation>SmartCash Core</translation>
     </message>
     <message>
         <source>(default: %u)</source>

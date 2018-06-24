@@ -166,7 +166,7 @@
         <translation>Réindexer les blocs sur le disque...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
+        <source>Send coins to a SmartCash address</source>
         <translation>Envoyer des pièces à une adresse SmartCash</translation>
     </message>
     <message>
@@ -218,8 +218,8 @@
         <translation>Crypter les clé privées qui appartiennent votre portefeuille</translation>
     </message>
     <message>
-        <source>Sign messages with your Smartcash addresses to prove you own them</source>
-        <translation>Signer vos messages avec vos adresses Smartcash pour prouver que vous les détenez</translation>
+        <source>Sign messages with your SmartCash addresses to prove you own them</source>
+        <translation>Signer vos messages avec vos adresses SmartCash pour prouver que vous les détenez</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -254,7 +254,7 @@
         <translation>&amp;Options de ligne de commande</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Smartcash network</source>
+        <source>%n active connection(s) to SmartCash network</source>
         <translation><numerusform>%n connexion active au réseau SmartCash</numerusform><numerusform>%n connexions actives au réseau SmartCash</numerusform></translation>
     </message>
     <message>
@@ -617,8 +617,8 @@
         <translation>Expert</translation>
     </message>
     <message>
-        <source>Automatically open the Smartcash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Ouvrir le port du client Smartcash automatiquement sur le routeur. Cela ne fonctionne que si votre routeur supporte l'UPnP et si la fonctionnalité est activée.</translation>
+        <source>Automatically open the SmartCash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Ouvrir le port du client SmartCash automatiquement sur le routeur. Cela ne fonctionne que si votre routeur supporte l'UPnP et si la fonctionnalité est activée.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -781,8 +781,8 @@
         <translation>Montant</translation>
     </message>
     <message>
-        <source>Enter a Smartcash address (e.g. %1)</source>
-        <translation>Entrer une adresse Smartcash (e.g. %1)</translation>
+        <source>Enter a SmartCash address (e.g. %1)</source>
+        <translation>Entrer une adresse SmartCash (e.g. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1380,8 +1380,8 @@
         <translation>Impossible de démarrer le serveur HTTP. Voir le journal de débogage pour plus de détails.</translation>
     </message>
     <message>
-        <source>Smartcash Core</source>
-        <translation>Smartcash Core</translation>
+        <source>SmartCash Core</source>
+        <translation>SmartCash Core</translation>
     </message>
     <message>
         <source>&lt;category&gt; can be:</source>

@@ -51,9 +51,9 @@ QString BitcoinUnits::description(int unit)
 {
     switch(unit)
     {
-    case SMART: return QString("Smartcash");
-    case mSMART: return QString("Milli-Smartcash (1 / 1" THIN_SP_UTF8 "000)");
-    case uSMART: return QString("Micro-Smartcash (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case SMART: return QString("SmartCash");
+    case mSMART: return QString("Milli-SmartCash (1 / 1" THIN_SP_UTF8 "000)");
+    case uSMART: return QString("Micro-SmartCash (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }
 }

@@ -154,7 +154,7 @@
         <translation>Se reindexează blocurile pe disc...</translation>
     </message>
     <message>
-        <source>Send coins to a Smartcash address</source>
+        <source>Send coins to a SmartCash address</source>
         <translation>Trimite monede către o adresă SmartCash</translation>
     </message>
     <message>
@@ -206,12 +206,12 @@
         <translation>Criptează cheile private ale portofelului dvs.</translation>
     </message>
     <message>
-        <source>Sign messages with your Smartcash addresses to prove you own them</source>
-        <translation>Semnaţi mesaje cu adresa dvs. Smartcash pentru a dovedi că vă aparţin</translation>
+        <source>Sign messages with your SmartCash addresses to prove you own them</source>
+        <translation>Semnaţi mesaje cu adresa dvs. SmartCash pentru a dovedi că vă aparţin</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Smartcash addresses</source>
-        <translation>Verificaţi mesaje pentru a vă asigura că au fost semnate cu adresa Smartcash specificată</translation>
+        <source>Verify messages to ensure they were signed with specified SmartCash addresses</source>
+        <translation>Verificaţi mesaje pentru a vă asigura că au fost semnate cu adresa SmartCash specificată</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -250,7 +250,7 @@
         <translation>Opţiuni linie de &amp;comandă</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Smartcash network</source>
+        <source>%n active connection(s) to SmartCash network</source>
         <translation><numerusform>%n conexiune activă către reţeaua SmartCash</numerusform><numerusform>%n conexiuni active către reţeaua SmartCash</numerusform><numerusform>%n de conexiuni active către reţeaua SmartCash</numerusform></translation>
     </message>
     <message>
@@ -673,7 +673,7 @@
         <translation>Cheltuire rest neconfirmat</translation>
     </message>
     <message>
-        <source>Automatically open the Smartcash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <source>Automatically open the SmartCash client port on the router. This only works when your router supports UPnP and it is enabled.</source>
         <translation>Deschide automat în router portul aferent clientului SmartCash. Funcţionează doar dacă routerul duportă UPnP şi e activat.</translation>
     </message>
     <message>
@@ -681,8 +681,8 @@
         <translation>Mapare port folosind &amp;UPnP</translation>
     </message>
     <message>
-        <source>Connect to the Smartcash network through a SOCKS5 proxy.</source>
-        <translation>Conectare la reţeaua Smartcash printr-un proxy SOCKS.</translation>
+        <source>Connect to the SmartCash network through a SOCKS5 proxy.</source>
+        <translation>Conectare la reţeaua SmartCash printr-un proxy SOCKS.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -782,7 +782,7 @@
     </message>
     <message>
         <source>The supplied proxy address is invalid.</source>
-        <translation>Adresa Smartcash pe care aţi specificat-o nu este validă.</translation>
+        <translation>Adresa SmartCash pe care aţi specificat-o nu este validă.</translation>
     </message>
 </context>
 <context>
@@ -792,8 +792,8 @@
         <translation>Form</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Smartcash network after a connection is established, but this process has not completed yet.</source>
-        <translation>Informaţiile afişate pot fi neactualizate. Portofelul dvs. se sincronizează automat cu reţeaua Smartcash după ce o conexiune este stabilită, dar acest proces nu a fost finalizat încă.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the SmartCash network after a connection is established, but this process has not completed yet.</source>
+        <translation>Informaţiile afişate pot fi neactualizate. Portofelul dvs. se sincronizează automat cu reţeaua SmartCash după ce o conexiune este stabilită, dar acest proces nu a fost finalizat încă.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -885,8 +885,8 @@
         <translation>Cantitate</translation>
     </message>
     <message>
-        <source>Enter a Smartcash address (e.g. %1)</source>
-        <translation>Introduceţi o adresă Smartcash (de exemplu %1)</translation>
+        <source>Enter a SmartCash address (e.g. %1)</source>
+        <translation>Introduceţi o adresă SmartCash (de exemplu %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1178,7 +1178,7 @@
         <translation>R&amp;efoloseşte o adresă de primire (nu este recomandat)</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Smartcash network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the SmartCash network.</source>
         <translation>Un mesaj opţional de ataşat la cererea de plată, care va fi afişat cînd cererea este deschisă. Notă: Acest mesaj nu va fi trimis cu plata către reţeaua SmartCash.</translation>
     </message>
     <message>
@@ -1402,8 +1402,8 @@
         <translation>Aceasta este o tranzacţie normală.</translation>
     </message>
     <message>
-        <source>The Smartcash address to send the payment to</source>
-        <translation>Adresa Smartcash către care se face plata</translation>
+        <source>The SmartCash address to send the payment to</source>
+        <translation>Adresa SmartCash către care se face plata</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -1430,7 +1430,7 @@
         <translation>Introduceţi eticheta pentru ca această adresa să fie introdusă în lista de adrese folosite</translation>
     </message>
     <message>
-        <source>A message that was attached to the smartcash: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Smartcash network.</source>
+        <source>A message that was attached to the smartcash: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the SmartCash network.</source>
         <translation>un mesaj a fost ataşat la smartcash: URI care va fi stocat cu tranzacţia pentru referinţa dvs. Notă: Acest mesaj nu va fi trimis către reţeaua SmartCash.</translation>
     </message>
     <message>
@@ -1467,7 +1467,7 @@
         <translation>&amp;Semnează mesaj</translation>
     </message>
     <message>
-        <source>The Smartcash address to sign the message with</source>
+        <source>The SmartCash address to sign the message with</source>
         <translation>Adresa cu care semnaţi mesajul</translation>
     </message>
     <message>
@@ -1499,7 +1499,7 @@
         <translation>Copiază semnatura curentă în clipboard-ul sistemului</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Smartcash address</source>
+        <source>Sign the message to prove you own this SmartCash address</source>
         <translation>Semnează mesajul pentru a dovedi ca deţineţi acestă adresă SmartCash</translation>
     </message>
     <message>
@@ -1519,12 +1519,12 @@
         <translation>&amp;Verifică mesaj</translation>
     </message>
     <message>
-        <source>The Smartcash address the message was signed with</source>
+        <source>The SmartCash address the message was signed with</source>
         <translation>Introduceţi o adresă SmartCash</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Smartcash address</source>
-        <translation>Verificaţi mesajul pentru a vă asigura că a fost semnat cu adresa Smartcash specificată</translation>
+        <source>Verify the message to ensure it was signed with the specified SmartCash address</source>
+        <translation>Verificaţi mesajul pentru a vă asigura că a fost semnat cu adresa SmartCash specificată</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1612,7 +1612,7 @@
         <translation>Acceptă conexiuni din afară (implicit: 1 dacă nu se foloseşte -proxy sau -connect)</translation>
     </message>
     <message>
-        <source>Smartcash Core</source>
+        <source>SmartCash Core</source>
         <translation>Nucleul SmartCash</translation>
     </message>
     <message>

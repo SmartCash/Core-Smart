@@ -255,11 +255,11 @@ UniValue stop(const UniValue& params, bool fHelp)
     if (fHelp || params.size() > 1)
         throw runtime_error(
             "stop\n"
-            "\nStop Smartcash server.");
+            "\nStop SmartCash server.");
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
     StartShutdown();
-    return "Smartcash server stopping";
+    return "SmartCash server stopping";
 }
 
 /**
@@ -355,7 +355,7 @@ static const CRPCCommand vRPCCommands[] =
     { "hidden",             "resendwallettransactions", &resendwallettransactions, true},
 #endif
 
-    /* Smartcash features */
+    /* SmartCash features */
     { "smartcash",               "smartnode",             &smartnode,             true  },
     { "smartcash",               "smartnodelist",         &smartnodelist,         true  },
     { "smartcash",               "smartnodebroadcast",    &smartnodebroadcast,    true  },

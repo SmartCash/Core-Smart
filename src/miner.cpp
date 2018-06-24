@@ -873,7 +873,7 @@ static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainpar
 // ***TODO*** that part changed in bitcoin, we are using a mix with old one here for now
 void static BitcoinMiner(const CChainParams& chainparams, CConnman& connman)
 {
-    LogPrintf("SmartcashMiner -- started\n");
+    LogPrintf("SmartCashMiner -- started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
     RenameThread("smartcash-miner");
 
@@ -912,13 +912,13 @@ void static BitcoinMiner(const CChainParams& chainparams, CConnman& connman)
             static CBlockTemplate* pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, nullptr);
             if (!pblocktemplate)
             {
-                LogPrintf("SmartcashMiner -- Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
+                LogPrintf("SmartCashMiner -- Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
                 return;
             }
             CBlock *pblock = &pblocktemplate->block;
             IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
 
-            LogPrintf("SmartcashMiner -- Running miner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
+            LogPrintf("SmartCashMiner -- Running miner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
                 ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
 
             //
@@ -938,7 +938,7 @@ void static BitcoinMiner(const CChainParams& chainparams, CConnman& connman)
                     {
                         // Found a solution
                         SetThreadPriority(THREAD_PRIORITY_NORMAL);
-                        LogPrintf("SmartcashMiner:\n  proof-of-work found\n  hash: %s\n  target: %s\n", hash.GetHex(), hashTarget.GetHex());
+                        LogPrintf("SmartCashMiner:\n  proof-of-work found\n  hash: %s\n  target: %s\n", hash.GetHex(), hashTarget.GetHex());
                         ProcessBlockFound(pblock, chainparams);
                         SetThreadPriority(THREAD_PRIORITY_LOWEST);
                         coinbaseScript->KeepScript();
@@ -982,12 +982,12 @@ void static BitcoinMiner(const CChainParams& chainparams, CConnman& connman)
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("SmartcashMiner -- terminated\n");
+        LogPrintf("SmartCashMiner -- terminated\n");
         throw;
     }
     catch (const std::runtime_error &e)
     {
-        LogPrintf("SmartcashMiner -- runtime error: %s\n", e.what());
+        LogPrintf("SmartCashMiner -- runtime error: %s\n", e.what());
         return;
     }
 }

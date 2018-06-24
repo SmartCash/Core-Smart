@@ -326,7 +326,7 @@ int CSmartnodePayments::GetMinSmartnodePaymentsProto() {
 
 void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
-    if(fLiteMode) return; // disable all Smartcash specific functionality
+    if(fLiteMode) return; // disable all SmartCash specific functionality
 
     if (strCommand == NetMsgType::SMARTNODEPAYMENTSYNC) { //Smartnode Payments Request Sync
 

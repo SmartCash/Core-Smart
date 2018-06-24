@@ -253,7 +253,7 @@ extern const char *BLOCKTXN;
     
 extern const char *TXLOCKVOTE;
 
-// Smartcash message types
+// SmartCash message types
 // NOTE: do NOT declare non-implmented here, we don't want them to be exposed to the outside
 // TODO: add description
 extern const char *TXLOCKREQUEST;
@@ -288,15 +288,15 @@ enum ServiceFlags : uint64_t {
     // Nothing
     NODE_NONE = 0,
     // NODE_NETWORK means that the node is capable of serving the block chain. It is currently
-    // set by all Smartcash Core nodes, and is unset by SPV clients or other peers that just want
+    // set by all SmartCash Core nodes, and is unset by SPV clients or other peers that just want
     // network services but don't provide them.
     NODE_NETWORK = (1 << 0),
     // NODE_GETUTXO means the node is capable of responding to the getutxo protocol request.
-    // Smartcash Core does not support this but a patch set called Bitcoin XT does.
+    // SmartCash Core does not support this but a patch set called Bitcoin XT does.
     // See BIP 64 for details on how this is implemented.
     NODE_GETUTXO = (1 << 1),
     // NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
-    // Smartcash Core nodes used to support this by default, without advertising this bit,
+    // SmartCash Core nodes used to support this by default, without advertising this bit,
     // but no longer do as of protocol version 70201 (= NO_BLOOM_VERSION)
     NODE_BLOOM = (1 << 2),
 
@@ -389,7 +389,7 @@ enum {
     MSG_WITNESS_BLOCK = MSG_BLOCK | MSG_WITNESS_FLAG,
     MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG,
     MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,
-    // Smartcash message types
+    // SmartCash message types
     // NOTE: declare non-implmented here, we must keep this enum consistent and backwards compatible
     MSG_TXLOCK_REQUEST,
     MSG_TXLOCK_VOTE,

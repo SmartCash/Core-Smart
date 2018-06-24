@@ -33,7 +33,7 @@ std::map<int, int64_t> mapSporkDefaults = {
 
 void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
-    if(fLiteMode) return; // disable all Smartcash specific functionality
+    if(fLiteMode) return; // disable all SmartCash specific functionality
 
     if (strCommand == NetMsgType::SPORK) {
 

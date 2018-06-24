@@ -872,7 +872,7 @@ void CSmartnode::FlagGovernanceItemsAsDirty()
 
 void ThreadSmartnode(CConnman& connman)
 {
-    if(fLiteMode) return; // disable all Smartcash specific functionality
+    if(fLiteMode) return; // disable all SmartCash specific functionality
 
     static bool fOneThread;
     if(fOneThread) return;

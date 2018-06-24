@@ -40,7 +40,7 @@ const char *SENDCMPCT="sendcmpct";
 const char *CMPCTBLOCK="cmpctblock"; 
 const char *GETBLOCKTXN="getblocktxn"; 
 const char *BLOCKTXN="blocktxn";
-// Smartcash message types
+// SmartCash message types
 const char *TXLOCKREQUEST="ix";
 const char *TXLOCKVOTE="txlvote";
 const char *SPORK="spork";
@@ -78,7 +78,7 @@ static const char* ppszTypeName[] =
     NetMsgType::TX,
     NetMsgType::BLOCK,
     "filtered block", // Should never occur
-    // Smartcash message types
+    // SmartCash message types
     // NOTE: include non-implmented here, we must keep this list in sync with enum in protocol.h
     NetMsgType::CMPCTBLOCK,
     NetMsgType::TXLOCKREQUEST,
@@ -130,7 +130,7 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::CMPCTBLOCK, 
     NetMsgType::GETBLOCKTXN, 
     NetMsgType::BLOCKTXN,
-    // Smartcash message types
+    // SmartCash message types
     // NOTE: do NOT include non-implmented here, we want them to be "Unknown command" in ProcessMessage()
     NetMsgType::TXLOCKREQUEST,
     NetMsgType::TXLOCKVOTE,

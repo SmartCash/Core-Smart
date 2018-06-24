@@ -61,7 +61,7 @@ void ThreadSendAlert(CConnman& connman)
     alert.strStatusBar  = "URGENT: Upgrade required: see https://smartcash.cc";
 
     // Set specific client version/versions here. If setSubVer is empty, no filtering on subver is done:
-    // alert.setSubVer.insert(std::string("/Smartcash Core:1.2.0.0/"));
+    // alert.setSubVer.insert(std::string("/SmartCash Core:1.2.0.0/"));
 
     // Sign
     if(!alert.Sign())

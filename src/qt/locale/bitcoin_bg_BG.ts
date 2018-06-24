@@ -262,7 +262,7 @@
 <context>
     <name>bitcoin-core</name>
     <message>
-        <source>Smartcash Core</source>
+        <source>SmartCash Core</source>
         <translation>Биткойн ядро</translation>
     </message>
     </context>

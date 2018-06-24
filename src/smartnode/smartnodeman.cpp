@@ -777,7 +777,7 @@ void CSmartnodeMan::ProcessPendingMnbRequests(CConnman& connman)
 
 void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
-    if(fLiteMode) return; // disable all Smartcash specific functionality
+    if(fLiteMode) return; // disable all SmartCash specific functionality
 
     if (strCommand == NetMsgType::MNANNOUNCE) { //Smartnode Broadcast
 
