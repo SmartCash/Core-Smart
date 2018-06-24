@@ -440,7 +440,6 @@ void CSmartnodeMan::DsegUpdate(CNode* pnode, CConnman& connman)
         connman.PushMessage(pnode, NetMsgType::DSEG, COutPoint());
     }
 
-    connman.PushMessage(pnode, NetMsgType::DSEG, CTxIn());
     int64_t askAgain = GetTime() + DSEG_UPDATE_SECONDS;
     mWeAskedForSmartnodeList[addrSquashed] = askAgain;
 
