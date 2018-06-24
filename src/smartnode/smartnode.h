@@ -33,7 +33,7 @@ static const int SMARTNODE_POSE_BAN_MAX_SCORE          = 5;
 class CSmartnodePing
 {
 public:
-    CTxIn vin{};
+    COutPoint outpoint{};
     uint256 blockHash{};
     int64_t sigTime{}; //mnb message times
     std::vector<unsigned char> vchSig{};
@@ -45,11 +45,22 @@ public:
 
     CSmartnodePing(const COutPoint& outpoint);
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(vin);
+        if (nType & SER_NETWORK) {
+            CTxIn txin{};
+            if (ser_action.ForRead()) {
+                READWRITE(txin);
+                outpoint = txin.prevout;
+            } else {
+                txin = CTxIn(outpoint);
+                READWRITE(txin);
+            }
+        } else {
+            READWRITE(outpoint);
+        }
         READWRITE(blockHash);
         READWRITE(sigTime);
         READWRITE(vchSig);
@@ -66,6 +77,7 @@ public:
     uint256 GetHash() const
     {
         CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
+        CTxIn vin(outpoint);
         ss << vin;
         ss << sigTime;
         return ss.GetHash();
@@ -82,7 +94,7 @@ public:
 
 inline bool operator==(const CSmartnodePing& a, const CSmartnodePing& b)
 {
-    return a.vin == b.vin && a.blockHash == b.blockHash;
+    return a.outpoint == b.outpoint && a.blockHash == b.blockHash;
 }
 inline bool operator!=(const CSmartnodePing& a, const CSmartnodePing& b)
 {
@@ -172,7 +184,7 @@ public:
     CSmartnode(const CSmartnodeBroadcast& mnb);
     CSmartnode(CService addrNew, COutPoint outpointNew, CPubKey pubKeyCollateralAddressNew, CPubKey pubKeySmartnodeNew, int nProtocolVersionIn);
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {

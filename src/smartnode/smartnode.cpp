@@ -664,7 +664,7 @@ CSmartnodePing::CSmartnodePing(const COutPoint& outpoint)
     LOCK(cs_main);
     if (!chainActive.Tip() || chainActive.Height() < 12) return;
 
-    vin = CTxIn(outpoint);
+    this->outpoint = outpoint;
     blockHash = chainActive[chainActive.Height() - 12]->GetBlockHash();
     sigTime = GetAdjustedTime();
 }
@@ -676,7 +676,7 @@ bool CSmartnodePing::Sign(const CKey& keySmartnode, const CPubKey& pubKeySmartno
 
     // TODO: add sentinel data
     sigTime = GetAdjustedTime();
-    std::string strMessage = vin.ToString() + blockHash.ToString() + boost::lexical_cast<std::string>(sigTime);
+    std::string strMessage = CTxIn(outpoint).ToString() + blockHash.ToString() + boost::lexical_cast<std::string>(sigTime);
 
     if(!CMessageSigner::SignMessage(strMessage, vchSig, keySmartnode)) {
         LogPrintf("CSmartnodePing::Sign -- SignMessage() failed\n");
@@ -694,12 +694,12 @@ bool CSmartnodePing::Sign(const CKey& keySmartnode, const CPubKey& pubKeySmartno
 bool CSmartnodePing::CheckSignature(CPubKey& pubKeySmartnode, int &nDos)
 {
     // TODO: add sentinel data
-    std::string strMessage = vin.ToString() + blockHash.ToString() + boost::lexical_cast<std::string>(sigTime);
+    std::string strMessage = CTxIn(outpoint).ToString() + blockHash.ToString() + boost::lexical_cast<std::string>(sigTime);
     std::string strError = "";
     nDos = 0;
 
     if(!CMessageSigner::VerifyMessage(pubKeySmartnode, vchSig, strMessage, strError)) {
-        LogPrintf("CSmartnodePing::CheckSignature -- Got bad Smartnode ping signature, smartnode=%s, error: %s\n", vin.prevout.ToStringShort(), strError);
+        LogPrintf("CSmartnodePing::CheckSignature -- Got bad Smartnode ping signature, smartnode=%s, error: %s\n", outpoint.ToStringShort(), strError);
         nDos = 33;
         return false;
     }
@@ -712,7 +712,7 @@ bool CSmartnodePing::SimpleCheck(int& nDos)
     nDos = 0;
 
     if (sigTime > GetAdjustedTime() + 60 * 60) {
-        LogPrintf("CSmartnodePing::SimpleCheck -- Signature rejected, too far into the future, smartnode=%s\n", vin.prevout.ToStringShort());
+        LogPrintf("CSmartnodePing::SimpleCheck -- Signature rejected, too far into the future, smartnode=%s\n", outpoint.ToStringShort());
         nDos = 1;
         return false;
     }
@@ -721,13 +721,13 @@ bool CSmartnodePing::SimpleCheck(int& nDos)
         AssertLockHeld(cs_main);
         BlockMap::iterator mi = mapBlockIndex.find(blockHash);
         if (mi == mapBlockIndex.end()) {
-            LogPrint("smartnode", "CSmartnodePing::SimpleCheck -- Smartnode ping is invalid, unknown block hash: smartnode=%s blockHash=%s\n", vin.prevout.ToStringShort(), blockHash.ToString());
+            LogPrint("smartnode", "CSmartnodePing::SimpleCheck -- Smartnode ping is invalid, unknown block hash: smartnode=%s blockHash=%s\n", outpoint.ToStringShort(), blockHash.ToString());
             // maybe we stuck or forked so we shouldn't ban this node, just fail to accept this ping
             // TODO: or should we also request this block?
             return false;
         }
     }
-    LogPrint("smartnode", "CSmartnodePing::SimpleCheck -- Smartnode ping verified: smartnode=%s  blockHash=%s  sigTime=%d\n", vin.prevout.ToStringShort(), blockHash.ToString(), sigTime);
+    LogPrint("smartnode", "CSmartnodePing::SimpleCheck -- Smartnode ping verified: smartnode=%s  blockHash=%s  sigTime=%d\n", outpoint.ToStringShort(), blockHash.ToString(), sigTime);
     return true;
 }
 
@@ -743,18 +743,18 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     }
 
     if (pmn == NULL) {
-        LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Couldn't find Smartnode entry, smartnode=%s\n", vin.prevout.ToStringShort());
+        LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Couldn't find Smartnode entry, smartnode=%s\n", outpoint.ToStringShort());
         return false;
     }
 
     if(!fFromNewBroadcast) {
         if (pmn->IsUpdateRequired()) {
-            LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- smartnode protocol is outdated, smartnode=%s\n", vin.prevout.ToStringShort());
+            LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- smartnode protocol is outdated, smartnode=%s\n", outpoint.ToStringShort());
             return false;
         }
 
         if (pmn->IsNewStartRequired()) {
-            LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- smartnode is completely expired, new start is required, smartnode=%s\n", vin.prevout.ToStringShort());
+            LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- smartnode is completely expired, new start is required, smartnode=%s\n", outpoint.ToStringShort());
             return false;
         }
     }
@@ -762,19 +762,19 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     {
         BlockMap::iterator mi = mapBlockIndex.find(blockHash);
         if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 135) {
-            LogPrintf("CSmartnodePing::CheckAndUpdate -- Smartnode ping is invalid, block hash is too old: smartnode=%s  blockHash=%s\n", vin.prevout.ToStringShort(), blockHash.ToString());
+            LogPrintf("CSmartnodePing::CheckAndUpdate -- Smartnode ping is invalid, block hash is too old: smartnode=%s  blockHash=%s\n", outpoint.ToStringShort(), blockHash.ToString());
             // nDos = 1;
             return false;
         }
     }
 
-    LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- New ping: smartnode=%s  blockHash=%s  sigTime=%d\n", vin.prevout.ToStringShort(), blockHash.ToString(), sigTime);
+    LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- New ping: smartnode=%s  blockHash=%s  sigTime=%d\n", outpoint.ToStringShort(), blockHash.ToString(), sigTime);
 
     // LogPrintf("mnping - Found corresponding mn for vin: %s\n", vin.prevout.ToStringShort());
     // update only if there is no known ping for this smartnode or
     // last ping was more then SMARTNODE_MIN_MNP_SECONDS-120 ago comparing to this one
     if (pmn->IsPingedWithin(SMARTNODE_MIN_MNP_SECONDS - 120, sigTime)) {
-        LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping arrived too early, smartnode=%s\n", vin.prevout.ToStringShort());
+        LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping arrived too early, smartnode=%s\n", outpoint.ToStringShort());
         //nDos = 1; //disable, this is happening frequently and causing banned peers
         return false;
     }
@@ -787,12 +787,12 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     // (NOTE: assuming that SMARTNODE_EXPIRATION_SECONDS/2 should be enough to finish mn list sync)
     if(!smartnodeSync.IsSmartnodeListSynced() && !pmn->IsPingedWithin(SMARTNODE_EXPIRATION_SECONDS/2)) {
         // let's bump sync timeout
-        LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- bumping sync timeout, smartnode=%s\n", vin.prevout.ToStringShort());
+        LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- bumping sync timeout, smartnode=%s\n", outpoint.ToStringShort());
         smartnodeSync.BumpAssetLastTime("CSmartnodePing::CheckAndUpdate");
     }
 
     // let's store this ping as the last one
-    LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping accepted, smartnode=%s\n", vin.prevout.ToStringShort());
+    LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping accepted, smartnode=%s\n", outpoint.ToStringShort());
     pmn->lastPing = *this;
 
     // and update mnodeman.mapSeenSmartnodeBroadcast.lastPing which is probably outdated
@@ -807,7 +807,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     // relay ping for nodes in ENABLED/EXPIRED/WATCHDOG_EXPIRED state only, skip everyone else
     if (!pmn->IsEnabled() && !pmn->IsExpired()) return false;
 
-    LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping acceepted and relayed, smartnode=%s\n", vin.prevout.ToStringShort());
+    LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping acceepted and relayed, smartnode=%s\n", outpoint.ToStringShort());
     Relay(connman);
 
     return true;

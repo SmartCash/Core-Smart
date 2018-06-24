@@ -111,9 +111,15 @@ void CSmartnodeMan::AskForMN(CNode* pnode, const COutPoint& outpoint, CConnman& 
         // we never asked any node for this outpoint
         LogPrintf("CSmartnodeMan::AskForMN -- Asking peer %s for missing smartnode entry for the first time: %s\n", addrSquashed.ToString(), outpoint.ToStringShort());
     }
+
     mWeAskedForSmartnodeListEntry[outpoint][addrSquashed] = GetTime() + DSEG_UPDATE_SECONDS;
 
-    connman.PushMessage(pnode, NetMsgType::DSEG, CTxIn(outpoint));
+    if (pnode->GetSendVersion() == 90025) {
+        connman.PushMessage(pnode, NetMsgType::DSEG, CTxIn(outpoint));
+    } else {
+        connman.PushMessage(pnode, NetMsgType::DSEG, outpoint);
+    }
+
 }
 
 bool CSmartnodeMan::AllowMixing(const COutPoint &outpoint)
@@ -426,6 +432,12 @@ void CSmartnodeMan::DsegUpdate(CNode* pnode, CConnman& connman)
                 return;
             }
         }
+    }
+
+    if (pnode->GetSendVersion() == 90025) {
+        connman.PushMessage(pnode, NetMsgType::DSEG, CTxIn());
+    } else {
+        connman.PushMessage(pnode, NetMsgType::DSEG, COutPoint());
     }
 
     connman.PushMessage(pnode, NetMsgType::DSEG, CTxIn());
@@ -802,7 +814,7 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
 
         if(!smartnodeSync.IsBlockchainSynced()) return;
 
-        LogPrint("smartnode", "MNPING -- Smartnode ping, smartnode=%s\n", mnp.vin.prevout.ToStringShort());
+        LogPrint("smartnode", "MNPING -- Smartnode ping, smartnode=%s\n", mnp.outpoint.ToStringShort());
 
         // Need LOCK2 here to ensure consistent locking order because the CheckAndUpdate call below locks cs_main
         LOCK2(cs_main, cs);
@@ -810,10 +822,10 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
         if(mapSeenSmartnodePing.count(nHash)) return; //seen
         mapSeenSmartnodePing.insert(std::make_pair(nHash, mnp));
 
-        LogPrint("smartnode", "MNPING -- Smartnode ping, smartnode=%s new\n", mnp.vin.prevout.ToStringShort());
+        LogPrint("smartnode", "MNPING -- Smartnode ping, smartnode=%s new\n", mnp.outpoint.ToStringShort());
 
         // see if we have this Smartnode
-        CSmartnode* pmn = Find(mnp.vin.prevout);
+        CSmartnode* pmn = Find(mnp.outpoint);
 
         // too late, new MNANNOUNCE is required
         if(pmn && pmn->IsNewStartRequired()) return;
@@ -831,7 +843,7 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
 
         // something significant is broken or mn is unknown,
         // we might have to ask for a smartnode entry once
-        AskForMN(pfrom, mnp.vin.prevout, connman);
+        AskForMN(pfrom, mnp.outpoint, connman);
 
     } else if (strCommand == NetMsgType::DSEG) { //Get Smartnode list or specific entry
         // Ignore such requests until we are fully synced.
@@ -839,15 +851,22 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
         // but this is a heavy one so it's better to finish sync first.
         if (!smartnodeSync.IsSynced()) return;
 
-        CTxIn vin;
-        vRecv >> vin;
+        COutPoint outpoint;
 
-        LogPrint("smartnode", "DSEG -- Smartnode list, smartnode=%s\n", vin.prevout.ToStringShort());
+        if (pfrom->nVersion == 90025) {
+            CTxIn vin;
+            vRecv >> vin;
+            outpoint = vin.prevout;
+        } else {
+            vRecv >> outpoint;
+        }
 
-        if(vin == CTxIn()) {
+        LogPrint("smartnode", "DSEG -- Smartnode list, smartnode=%s\n", outpoint.ToStringShort());
+
+        if(outpoint.IsNull()) {
             SyncAll(pfrom, connman);
         } else {
-            SyncSingle(pfrom, vin.prevout, connman);
+            SyncSingle(pfrom, outpoint, connman);
         }
 
     } else if (strCommand == NetMsgType::MNVERIFY) { // Smartnode Verify

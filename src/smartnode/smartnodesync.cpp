@@ -279,7 +279,12 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                 if(netfulfilledman.HasFulfilledRequest(pnode->addr, "smartnode-payment-sync")) continue;
                 netfulfilledman.AddFulfilledRequest(pnode->addr, "smartnode-payment-sync");
 
-                if(pnode->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION) continue;
+                if(pnode->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
+                    if( !sporkManager.IsSporkActive(SPORK_10_SMARTNODE_PAY_UPDATED_NODES) ){
+                        nRequestedSmartnodeAttempt++;
+                    }
+                    continue;
+                }
                 nRequestedSmartnodeAttempt++;
 
                 // ask node for all payment votes it has (new nodes will only return votes for future payments)

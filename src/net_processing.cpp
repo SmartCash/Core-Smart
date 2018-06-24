@@ -1299,8 +1299,18 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             {
                 if (fBlocksOnly)
                     LogPrint("net", "transaction (%s) inv sent in violation of protocol peer=%d\n", inv.hash.ToString(), pfrom->id);
-                else if (!fAlreadyHave && !fImporting && !fReindex && !IsInitialBlockDownload())
-                    pfrom->AskFor(inv);
+                else if (!fAlreadyHave && !fImporting && !fReindex && !IsInitialBlockDownload()){
+
+                    bool fAskFor = true;
+
+                    if( pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION &&
+                         (inv.type == MSG_SMARTNODE_PAYMENT_VOTE || inv.type == MSG_SMARTNODE_PAYMENT_BLOCK)){
+                        LogPrint("mnpayments", "Old peer offered payment message %s - peer=%d\n", inv.hash.ToString(), pfrom->id);
+                        fAskFor = false;
+                    }
+
+                    if(fAskFor) pfrom->AskFor(inv);
+                }
             }
 
             // Track requests for our stuff
