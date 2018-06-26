@@ -1306,10 +1306,19 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     if( pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION &&
                          (inv.type == MSG_SMARTNODE_PAYMENT_VOTE || inv.type == MSG_SMARTNODE_PAYMENT_BLOCK)){
 
+                        if( !pfrom->nTimeOfLastPaymentMessage ) pfrom->nTimeOfLastPaymentMessage = GetTime();
+
+                        if( (GetTime() - pfrom->nTimeOfLastPaymentMessage) > 10 ) pfrom->nPaymentMessagesInSync = 0;
+
+                        pfrom->nTimeOfLastPaymentMessage = GetTime();
+
                         LogPrint("mnpayments", "Old peer offered payment message %s - peer=%d\n", inv.hash.ToString(), pfrom->id);
                         fAskFor = false;
 
-                        if( !smartnodeSync.IsSynced() && g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) > 4 ){
+                        if( !smartnodeSync.IsSynced() &&
+                            g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) > 4 &&
+                            ++pfrom->nPaymentMessagesInSync > 100){
+                            LogPrint("mnpayments", "Old disconnected due to fequent payment messages - peer=%d\n", pfrom->id);
                             pfrom->fDisconnect = true;
                         }
                     }

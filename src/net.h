@@ -778,6 +778,8 @@ public:
     std::set<uint256> setAskFor;
     std::multimap<int64_t, CInv> mapAskFor;
     int64_t nNextInvSend;
+    int64_t nPaymentMessagesInSync;
+    int64_t nTimeOfLastPaymentMessage;
     // Used for headers announcements - unfiltered blocks to relay
     // Also protected by cs_inventory
     std::vector<uint256> vBlockHashesToAnnounce;
