@@ -19,6 +19,9 @@ CSmartnodeSync smartnodeSync;
 
 std::map<int, int> mapSmartnodeListCounts;
 
+CCriticalSection cs_unknownpings;
+std::map<COutPoint,int> mapTryUnknownPings;
+
 int GetMeanListCount()
 {
     int nTotal = 0;
@@ -83,6 +86,10 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
         case(SMARTNODE_SYNC_WAITING):
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
             nRequestedSmartnodeAssets = SMARTNODE_SYNC_LIST;
+            {
+                LOCK(cs_unknownpings);
+                mapTryUnknownPings.clear();
+            }
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
             break;
         case(SMARTNODE_SYNC_LIST):
@@ -94,6 +101,11 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
             nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
             uiInterface.NotifyAdditionalDataSyncProgressChanged(1);
+
+            {
+                LOCK(cs_unknownpings);
+                mapTryUnknownPings.clear();
+            }
 
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Sync has finished\n");
 

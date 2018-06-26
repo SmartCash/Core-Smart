@@ -24,6 +24,8 @@ static const int SMARTNODE_SYNC_TIMEOUT_SECONDS = 20; // our blocks are 2.5 minu
 static const int SMARTNODE_SYNC_ENOUGH_PEERS    = 3;
 
 extern CSmartnodeSync smartnodeSync;
+extern CCriticalSection cs_unknownpings;
+extern std::map<COutPoint,int> mapTryUnknownPings;
 
 //
 // CSmartnodeSync : Sync smartnode assets in stages

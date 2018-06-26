@@ -21,7 +21,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-
 CSmartnode::CSmartnode() :
     smartnode_info_t{ SMARTNODE_ENABLED, PROTOCOL_VERSION, GetAdjustedTime()},
     fAllowMixingTx(true)
@@ -742,9 +741,28 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
         return false;
     }
 
-    if (pmn == NULL) {
-        LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Couldn't find Smartnode entry, smartnode=%s\n", outpoint.ToStringShort());
-        return false;
+    {
+        // Use the following unknown ping tries stuff to avoid sync fails
+        // in case a node does not respond properly on a node request
+        // if we asked for node related to an unknown ping.
+        LOCK(cs_unknownpings);
+
+        if (pmn == NULL) {
+
+            int& nTries = mapTryUnknownPings[outpoint];
+
+            if( nTries++ < 20 ){
+                smartnodeSync.BumpAssetLastTime(strprintf("CSmartnodePing::CheckAndUpdate - unknown ping %d",nTries));
+            }
+
+            LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Couldn't find Smartnode entry, smartnode=%s\n", outpoint.ToStringShort());
+            return false;
+        }
+
+        if( mapTryUnknownPings.find(outpoint) != mapTryUnknownPings.end() ){
+            mapTryUnknownPings.erase(outpoint);
+        }
+
     }
 
     if(!fFromNewBroadcast) {
