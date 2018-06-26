@@ -319,7 +319,7 @@ void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanB
             CAmount nSmartnodePayment = SmartNodePayments::Payment(BlockReading->nHeight) / nExpectedPayees;
 
             BOOST_FOREACH(CTxOut txout, block.vtx[0].vout)
-                if(mnpayee == txout.scriptPubKey && nSmartnodePayment == txout.nValue) {
+                if(mnpayee == txout.scriptPubKey && abs( nSmartnodePayment - txout.nValue ) < 2) {
                     nBlockLastPaid = BlockReading->nHeight;
                     nTimeLastPaid = BlockReading->nTime;
                     LogPrint("smartnode", "CSmartnode::UpdateLastPaidBlock -- searching for block with payment to %s -- found new %d\n", vin.prevout.ToStringShort(), nBlockLastPaid);
