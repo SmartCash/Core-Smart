@@ -139,6 +139,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
                 if (abs(txout.nValue - nodeReward) < 2) {
+                    nodeReward = txout.nValue;
                     LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment: %s\n",txout.ToString());
                     return true;
                 }

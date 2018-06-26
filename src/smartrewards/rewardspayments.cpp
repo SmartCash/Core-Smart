@@ -167,7 +167,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     // We could return here..But lets print which payments else are missing.
                     // return result;
                 }else{
-                    smartReward += payout.reward;
+                    smartReward += isInOutputs->nValue;
                 }
             }
 
