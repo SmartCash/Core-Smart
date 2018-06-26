@@ -17,6 +17,21 @@
 class CSmartnodeSync;
 CSmartnodeSync smartnodeSync;
 
+std::map<int, int> mapSmartnodeListCounts;
+
+int GetMeanListCount()
+{
+    int nTotal = 0;
+    auto it = mapSmartnodeListCounts.begin();
+
+    while(it != mapSmartnodeListCounts.end() ){
+        nTotal += it->second;
+        ++it;
+    }
+
+    return mapSmartnodeListCounts.size() ? nTotal / mapSmartnodeListCounts.size() : 0;
+}
+
 void CSmartnodeSync::Fail()
 {
     nTimeLastFailure = GetTime();
@@ -25,6 +40,7 @@ void CSmartnodeSync::Fail()
 
 void CSmartnodeSync::Reset()
 {
+    mapSmartnodeListCounts.clear();
     nRequestedSmartnodeAssets = SMARTNODE_SYNC_INITIAL;
     nRequestedSmartnodeAttempt = 0;
     nTimeAssetSyncStarted = GetTime();
@@ -123,6 +139,9 @@ void CSmartnodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         int nCount;
         vRecv >> nItemID >> nCount;
 
+        if( nItemID == SMARTNODE_SYNC_LIST && !mapSmartnodeListCounts.count(pfrom->id))
+            mapSmartnodeListCounts.insert(std::make_pair(pfrom->id,nCount));
+
         LogPrintf("SYNCSTATUSCOUNT -- got inventory count: nItemID=%d  nCount=%d  peer=%d\n", nItemID, nCount, pfrom->id);
     }
 }
@@ -218,8 +237,9 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                 LogPrint("smartnode", "CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nTimeLastBumped %lld GetTime() %lld diff %lld\n", nTick, nRequestedSmartnodeAssets, nTimeLastBumped, GetTime(), GetTime() - nTimeLastBumped);
                 // check for timeout first
                 if(GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS) {
+                    int nMeanListCount = GetMeanListCount();
                     LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- timeout\n", nTick, nRequestedSmartnodeAssets);
-                    if (nRequestedSmartnodeAttempt == 0) {
+                    if (nRequestedSmartnodeAttempt == 0 || !nMeanListCount || mnodeman.size() < nMeanListCount * 0.9 ) {
                         LogPrintf("CSmartnodeSync::ProcessTick -- ERROR: failed to sync %s\n", GetAssetName());
                         // there is no way we can continue without smartnode list, fail here and try later
                         Fail();

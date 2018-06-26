@@ -354,7 +354,7 @@ bool CSmartnodeBroadcast::Create(std::string strService, std::string strKeySmart
     };
 
     //need correct blocks to send ping
-    if (!fOffline && !smartnodeSync.IsBlockchainSynced())
+    if (!fOffline && !smartnodeSync.IsSynced())
         return Log("Sync in progress. Must wait until sync is complete to start Smartnode");
 
     if (!CMessageSigner::GetKeysFromSecret(strKeySmartnode, keySmartnodeNew, pubKeySmartnodeNew))
@@ -435,8 +435,8 @@ bool CSmartnodeBroadcast::SimpleCheck(int& nDos)
     }
 
     if(nProtocolVersion < mnpayments.GetMinSmartnodePaymentsProto()) {
-        LogPrintf("CSmartnodeBroadcast::SimpleCheck -- ignoring outdated Smartnode: smartnode=%s  nProtocolVersion=%d\n", vin.prevout.ToStringShort(), nProtocolVersion);
-        return false;
+        LogPrintf("CSmartnodeBroadcast::SimpleCheck -- outdated Smartnode: smartnode=%s  nProtocolVersion=%d\n", vin.prevout.ToStringShort(), nProtocolVersion);
+        nActiveState = SMARTNODE_UPDATE_REQUIRED;
     }
 
     CScript pubkeyScript;
