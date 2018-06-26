@@ -1305,8 +1305,13 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
                     if( pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION &&
                          (inv.type == MSG_SMARTNODE_PAYMENT_VOTE || inv.type == MSG_SMARTNODE_PAYMENT_BLOCK)){
+
                         LogPrint("mnpayments", "Old peer offered payment message %s - peer=%d\n", inv.hash.ToString(), pfrom->id);
                         fAskFor = false;
+
+                        if( !smartnodeSync.IsSynced() && g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) > 4 ){
+                            pfrom->fDisconnect = true;
+                        }
                     }
 
                     if(fAskFor) pfrom->AskFor(inv);
@@ -2485,7 +2490,7 @@ bool SendMessages(CNode* pto, CConnman& connman, std::atomic<bool>& interruptMsg
 
                 LogPrint("net", "SendMessages -- queued inv: %s  index=%d peer=%d\n", inv.ToString(), vInv.size(), pto->id);
                 vInv.push_back(inv);
-                if (vInv.size() >= 1000)
+                if (vInv.size() >= MAX_INV_SZ)
                 {
                     LogPrint("net", "SendMessages -- pushing inv's: count=%d peer=%d\n", vInv.size(), pto->id);
                     connman.PushMessage(pto, NetMsgType::INV, vInv);
