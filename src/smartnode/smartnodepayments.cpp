@@ -135,7 +135,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
     if( MainNet() ){
 
-        if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT + 7000 && nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT ){
+        if( nHeight >= HF_V1_1_SMARTNODE_HEIGHT + 7000 && nHeight < HF_V1_2_MULTINODE_VOTING_HEIGHT ){
 
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
                 if (abs(txout.nValue - nodeReward) < 2) {
@@ -151,7 +151,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
             return true;
 
-        }else if( nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT ){
+        }else if( nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT ){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return true;
         }
 
@@ -620,8 +620,10 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     //require at least MNPAYMENTS_SIGNATURES_REQUIRED signatures
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
-        if( payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED )
+        if( payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED ){
             foundMinVotes++;
+            if( foundMinVotes == expectedPayees ) break;
+        }
     }
 
     // if we don't have at least expectedPayees with MNPAYMENTS_SIGNATURES_REQUIRED signatures, approve whichever is the longest chain
