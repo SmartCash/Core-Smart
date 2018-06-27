@@ -890,8 +890,6 @@ void CSmartnode::FlagGovernanceItemsAsDirty()
 
 void ThreadSmartnode(CConnman& connman)
 {
-    if(fLiteMode) return; // disable all SmartCash specific functionality
-
     static bool fOneThread;
     if(fOneThread) return;
     fOneThread = true;
@@ -908,7 +906,12 @@ void ThreadSmartnode(CConnman& connman)
         // try to sync from all available nodes, one step at a time
         smartnodeSync.ProcessTick(connman);
 
-        if(smartnodeSync.IsBlockchainSynced() && !ShutdownRequested()) {
+        if( fLiteMode ){
+            if(smartnodeSync.IsSynced() ) return;
+            else continue;
+        }
+
+        if(smartnodeSync.IsSmartNodeSyncStarted() && !ShutdownRequested()) {
 
             nTick++;
 

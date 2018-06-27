@@ -1127,6 +1127,14 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             assert(pfrom->fInbound == false);
             pfrom->fDisconnect = true;
         }
+
+        if(!smartnodeSync.IsSynced()) {
+            // always get sporks first, only request once from each peer
+            // get current network sporks
+            connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::GETSPORKS);
+            LogPrintf("CNode::CNode -- requesting sporks from peer %d\n", pfrom->id);
+        }
+
         return true;
     }
 

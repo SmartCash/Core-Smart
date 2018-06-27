@@ -53,7 +53,8 @@ public:
     CSmartnodeSync() { Reset(); }
 
     bool IsFailed() { return nRequestedSmartnodeAssets == SMARTNODE_SYNC_FAILED; }
-    bool IsBlockchainSynced() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_WAITING; }
+    bool IsBlockchainSynced() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_INITIAL; }
+    bool IsSmartNodeSyncStarted() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_WAITING; }
     bool IsSmartnodeListSynced() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_LIST; }
     bool IsWinnersListSynced() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_MNW; }
     bool IsSynced() { return nRequestedSmartnodeAssets == SMARTNODE_SYNC_FINISHED; }

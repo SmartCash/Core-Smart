@@ -94,6 +94,7 @@ void CSmartnodeMan::AskForMN(CNode* pnode, const COutPoint& outpoint, CConnman& 
     LOCK(cs);
     CService addrSquashed = Params().AllowMultiplePorts() ? (CService)pnode->addr : CService(pnode->addr, 0);
     std::map<COutPoint, std::map<CNetAddr, int64_t> >::iterator it1 = mWeAskedForSmartnodeListEntry.find(outpoint);
+    LogPrint("smartnode", "CSmartnodeMan::AskForMN -- address=%s, weAsked %d, for this %d\n", addrSquashed.ToString(), mWeAskedForSmartnodeListEntry.size(), it1 != mWeAskedForSmartnodeListEntry.end() ? it1->second.size() : 0 );
     if (it1 != mWeAskedForSmartnodeListEntry.end()) {
         std::map<CNetAddr, int64_t>::iterator it2 = it1->second.find(addrSquashed);
         if (it2 != it1->second.end()) {
@@ -783,7 +784,7 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
         CSmartnodeBroadcast mnb;
         vRecv >> mnb;
 
-        if(!smartnodeSync.IsBlockchainSynced()) return;
+        if(!smartnodeSync.IsSmartNodeSyncStarted()) return;
 
         pfrom->setAskFor.erase(mnb.GetHash());
 
@@ -811,7 +812,7 @@ void CSmartnodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataS
 
         pfrom->setAskFor.erase(nHash);
 
-        if(!smartnodeSync.IsBlockchainSynced()) return;
+        if(!smartnodeSync.IsSmartNodeSyncStarted()) return;
 
         LogPrint("smartnode", "MNPING -- Smartnode ping, smartnode=%s\n", mnp.outpoint.ToStringShort());
 

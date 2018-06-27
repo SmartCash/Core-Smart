@@ -883,7 +883,7 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
     }
 #endif // ENABLE_WALLET
 
-    if(!smartnodeSync.IsBlockchainSynced())
+    if(!smartnodeSync.IsSmartNodeSyncStarted())
     {
         QString timeBehindText = GUIUtil::formatNiceTimeOffset(secs);
 
@@ -930,7 +930,7 @@ void BitcoinGUI::setAdditionalDataSyncProgress(double nSyncProgress)
         return;
 
     // No additional data sync should be happening while blockchain is not synced, nothing to update
-    if(!smartnodeSync.IsBlockchainSynced())
+    if(!smartnodeSync.IsSmartNodeSyncStarted())
         return;
 
     // Prevent orphan statusbar messages (e.g. hover Quit in main menu, wait until chain-sync starts -> garbelled text)

@@ -20,7 +20,7 @@ void CActiveSmartnode::ManageState(CConnman& connman)
         return;
     }
 
-    if(Params().NetworkIDString() != CBaseChainParams::REGTEST && !smartnodeSync.IsBlockchainSynced()) {
+    if(Params().NetworkIDString() != CBaseChainParams::REGTEST && !smartnodeSync.IsSmartnodeListSynced()) {
         nState = ACTIVE_SMARTNODE_SYNC_IN_PROCESS;
         LogPrintf("CActiveSmartnode::ManageState -- %s: %s\n", GetStateString(), GetStatus());
         return;

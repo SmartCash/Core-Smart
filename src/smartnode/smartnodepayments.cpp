@@ -793,7 +793,7 @@ bool CSmartnodePayments::IsTransactionValid(const CTransaction& txNew, int nBloc
 
 void CSmartnodePayments::CheckAndRemove()
 {
-    if(!smartnodeSync.IsBlockchainSynced()) return;
+    if(!smartnodeSync.IsSmartNodeSyncStarted()) return;
 
     LOCK2(cs_mapSmartnodeBlocks, cs_mapSmartnodePaymentVotes);
 

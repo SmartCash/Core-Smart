@@ -378,6 +378,7 @@ UniValue snsync(const UniValue& params, bool fHelp)
         objStatus.push_back(Pair("AssetName", smartnodeSync.GetAssetName()));
         objStatus.push_back(Pair("Attempt", smartnodeSync.GetAttempt()));
         objStatus.push_back(Pair("IsBlockchainSynced", smartnodeSync.IsBlockchainSynced()));
+        objStatus.push_back(Pair("IsSmartNodeSyncStarted", smartnodeSync.IsSmartNodeSyncStarted()));
         objStatus.push_back(Pair("IsSmartnodeListSynced", smartnodeSync.IsSmartnodeListSynced()));
         objStatus.push_back(Pair("IsWinnersListSynced", smartnodeSync.IsWinnersListSynced()));
         objStatus.push_back(Pair("IsSynced", smartnodeSync.IsSynced()));

@@ -148,9 +148,6 @@ bool SmartMining::IsSignatureRequired(const int nHeight){
 static bool CheckSignature(const CBlock &block, const CBlockIndex *pindex)
 {
 
-    // We dont check the signatures in the litemode, just accept the longest chain.
-    if( fLiteMode ) return true;
-
     if( !SmartMining::IsSignatureRequired(pindex) ){
         return true;
     }

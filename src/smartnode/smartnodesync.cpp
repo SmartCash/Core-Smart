@@ -85,6 +85,13 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
             break;
         case(SMARTNODE_SYNC_WAITING):
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
+
+            if(fLiteMode){
+                nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
+                uiInterface.NotifyAdditionalDataSyncProgressChanged(1);
+                break;
+            }
+
             nRequestedSmartnodeAssets = SMARTNODE_SYNC_LIST;
             {
                 LOCK(cs_unknownpings);
@@ -215,16 +222,6 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                 pnode->fDisconnect = true;
                 LogPrintf("CSmartnodeSync::ProcessTick -- disconnecting from recently synced peer %d\n", pnode->id);
                 continue;
-            }
-
-            // SPORK : ALWAYS ASK FOR SPORKS AS WE SYNC
-
-            if(!netfulfilledman.HasFulfilledRequest(pnode->addr, "spork-sync")) {
-                // always get sporks first, only request once from each peer
-                netfulfilledman.AddFulfilledRequest(pnode->addr, "spork-sync");
-                // get current network sporks
-                connman.PushMessageWithVersion(pnode, INIT_PROTO_VERSION, NetMsgType::GETSPORKS);
-                LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- requesting sporks from peer %d\n", nTick, nRequestedSmartnodeAssets, pnode->id);
             }
 
             // INITIAL TIMEOUT
@@ -397,11 +394,6 @@ void CSmartnodeSync::UpdatedBlockTip(const CBlockIndex *pindexNew, bool fInitial
                 pindexNew->nHeight, pindexBestHeader->nHeight, fInitialDownload, fReachedBestHeader);
 
     if (!IsBlockchainSynced() && fReachedBestHeader) {
-        if (fLiteMode) {
-            // nothing to do in lite mode, just finish the process immediately
-            nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
-            return;
-        }
         // Reached best header while being in initial mode.
         // We must be at the tip already, let's move to the next asset.
         SwitchToNextAsset(connman);
