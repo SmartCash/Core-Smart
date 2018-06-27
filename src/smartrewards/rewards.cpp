@@ -283,6 +283,7 @@ bool CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &e
 
     if( GetCachedRewardEntry(id,pReadEntry) ){
         entry = *pReadEntry;
+        return true;
     }
 
     return ReadRewardEntry(id,entry);

@@ -222,7 +222,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         CSmartRewardEntry entry;
 
-        if( !prewards->GetRewardEntry(id, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SMART address in the databse!");
+        if( !prewards->GetRewardEntry(id, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SMART address in the database!");
 
         UniValue obj(UniValue::VOBJ);
 
