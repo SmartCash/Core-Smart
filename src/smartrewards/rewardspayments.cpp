@@ -66,7 +66,15 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
             }
         }
 
+        // If we have no eligible addresses. Just to make sure...wont happen.
+        if( round.eligibleEntries == round.disqualifiedEntries ||
+            round.disqualifiedEntries > round.eligibleEntries ){
+            result = SmartRewardPayments::NoRewardBlock;
+            return CSmartRewardSnapshotList();
+        }
+
         size_t eligibleEntries = round.eligibleEntries - round.disqualifiedEntries;
+
         int rewardBlocks = eligibleEntries / nPayoutsPerBlock;
         // If we dont match nRewardPayoutsPerBlock add one more block for the remaining payments.
         if( eligibleEntries % nPayoutsPerBlock ) rewardBlocks += 1;
@@ -130,9 +138,11 @@ void SmartRewardPayments::FillPayments(CMutableTransaction &coinbaseTx, int nHei
 
             BOOST_FOREACH(CSmartRewardSnapshot s, rewards)
             {
-                CTxOut out = CTxOut(s.reward, s.id.GetScript());
-                coinbaseTx.vout.push_back(out);
-                voutSmartRewards.push_back(out);
+                if( s.reward > 0){
+                    CTxOut out = CTxOut(s.reward, s.id.GetScript());
+                    coinbaseTx.vout.push_back(out);
+                    voutSmartRewards.push_back(out);
+                }
             }
     }
 }
@@ -154,6 +164,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
             BOOST_FOREACH(const CSmartRewardSnapshot &payout, rewards)
             {
+                if( payout.reward == 0 ) continue;
 
                 // Search for the reward payment in the transactions outputs.
                 auto isInOutputs = std::find_if(txCoinbase.vout.begin(), txCoinbase.vout.end(), [payout](const CTxOut &txout) -> bool {
