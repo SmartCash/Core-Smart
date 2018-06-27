@@ -661,10 +661,10 @@ void CSmartnodeBroadcast::Relay(CConnman& connman)
 CSmartnodePing::CSmartnodePing(const COutPoint& outpoint)
 {
     LOCK(cs_main);
-    if (!chainActive.Tip() || chainActive.Height() < 12) return;
+    if (!chainActive.Tip() || chainActive.Height() < 67) return;
 
     this->outpoint = outpoint;
-    blockHash = chainActive[chainActive.Height() - 12]->GetBlockHash();
+    blockHash = chainActive[chainActive.Height() - 67]->GetBlockHash();
     sigTime = GetAdjustedTime();
 }
 
