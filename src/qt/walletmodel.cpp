@@ -282,6 +282,12 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         CWalletTx *newTx = transaction.getTransaction();
         CReserveKey *keyChange = transaction.getPossibleKeyChange();
 
+        if(recipients[0].fUseInstantSend && !sporkManager.IsSporkActive(SPORK_2_INSTANTSEND_ENABLED)){
+            Q_EMIT message(tr("Send Coins"), tr("InstantPay is currently disabled."),
+                         CClientUIInterface::MSG_ERROR);
+            return TransactionCreationFailed;
+        }
+
         if(recipients[0].fUseInstantSend && total > sporkManager.GetSporkValue(SPORK_5_INSTANTSEND_MAX_VALUE)*COIN){
             Q_EMIT message(tr("Send Coins"), tr("InstantPay limits the total coins that can be locked in a transaction to %1 SMART.  You may need to use a normal transaction to split large deposits before you can send with InstantPay.").arg(sporkManager.GetSporkValue(SPORK_5_INSTANTSEND_MAX_VALUE)),
                          CClientUIInterface::MSG_ERROR);
