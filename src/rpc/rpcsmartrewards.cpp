@@ -34,7 +34,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
          strCommand != "current" && strCommand != "snapshot" && strCommand != "history" && strCommand != "check" && strCommand != "payouts"))
             throw std::runtime_error(
                 "smartrewards \"command\"...\n"
-                "Set of commands to execute smartreward related actions\n"
+                "Set of commands to execute smartrewards related actions\n"
                 "\nArguments:\n"
                 "1. \"command\"        (string or set of strings, required) The command to execute\n"
                 "\nAvailable commands:\n"
@@ -213,16 +213,16 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if (strCommand == "check")
     {
-        if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, "SMART address required.");
+        if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, "SmartCash address required.");
 
         std::string addressString = params[1].get_str();
         CSmartAddress id = CSmartAddress(addressString);
 
-        if( !id.IsValid() ) throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Invalid SMART address provided: %s",addressString));
+        if( !id.IsValid() ) throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Invalid SmartCash address provided: %s",addressString));
 
         CSmartRewardEntry entry;
 
-        if( !prewards->GetRewardEntry(id, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SMART address in the database!");
+        if( !prewards->GetRewardEntry(id, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SmartCash address in the database.");
 
         UniValue obj(UniValue::VOBJ);
 
