@@ -215,14 +215,14 @@ bool CSporkManager::SetPrivKey(std::string strPrivKey)
 
 bool CSporkMessage::Sign(const CKey& key)
 {
-    CKeyID pubKeyId = key.GetPubKey().GetID();
-    std::string strError = "";
-    std::string strMessage = boost::lexical_cast<std::string>(nSporkID) + boost::lexical_cast<std::string>(nValue) + boost::lexical_cast<std::string>(nTimeSigned);
-
     if (!key.IsValid()) {
         LogPrintf("CSporkMessage::Sign -- tried to sign with invalid sporkkey.\n");
         return false;
      }
+
+    CKeyID pubKeyId = key.GetPubKey().GetID();
+    std::string strError = "";
+    std::string strMessage = boost::lexical_cast<std::string>(nSporkID) + boost::lexical_cast<std::string>(nValue) + boost::lexical_cast<std::string>(nTimeSigned);
 
     if(!CMessageSigner::SignMessage(strMessage, vchSig, key)) {
         LogPrintf("CSporkMessage::Sign -- SignMessage() failed\n");
