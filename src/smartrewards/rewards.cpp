@@ -546,7 +546,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
         }
 
         // If just hit the next round threshold
-        if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound && pNextIndex->GetBlockTime() > currentRound.endBlockTime ) ||
+        if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pNextIndex->GetBlockTime() > currentRound.endBlockTime ) ||
             ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pNextIndex->nHeight >= currentRound.endBlockHeight ) ){
 
             if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
@@ -580,8 +580,8 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
                     next.endBlockHeight = HF_V1_2_SMARTREWARD_HEIGHT - 1;
                     next.endBlockTime = startTime + ( (next.endBlockHeight - next.startBlockHeight) * 55 );
                 }else if(next.number >= nRewardsFirstAutomatedRound){
-                    next.endBlockTime = startTime + nRewardsBlocksPerRound * 55;
                     next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound - 1;
+                    next.endBlockTime = startTime + nRewardsBlocksPerRound * 55;
                 }else{
                     next.endBlockHeight = next.startBlockHeight + ( (next.endBlockTime - next.startBlockTime) / 55 );
                 }
