@@ -4170,7 +4170,10 @@ bool InitBlockIndex(const CChainParams& chainparams)
     LOCK(cs_main);
 
     // Use the provided setting for -txindex in the new database
-    fTxIndex = GetBoolArg("-txindex", DEFAULT_TXINDEX);
+
+    // #####   SMARTCASH  ######
+    // txindex option is currently disabled, defaults to true.
+    //fTxIndex = GetBoolArg("-txindex", DEFAULT_TXINDEX);
     pblocktree->WriteFlag("txindex", fTxIndex);
 
     // Use the provided setting for -addressindex in the new database
