@@ -7,6 +7,8 @@
 #define BITCOIN_INIT_H
 
 #include <string>
+#include "serialize.h"
+#include "tinyformat.h"
 
 class CScheduler;
 class CWallet;
@@ -40,5 +42,46 @@ enum HelpMessageMode {
 std::string HelpMessage(HelpMessageMode mode);
 /** Returns licensing information (for -version) */
 std::string LicenseInfo();
+
+class CVersionInfo
+{
+private:
+    //keep track of what node has/was asked for and when
+    int clientVersion;
+    int protocolVersion;
+
+public:
+    CVersionInfo(){}
+    CVersionInfo(int client, int protocol): clientVersion(client), protocolVersion(protocol) {}
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(clientVersion);
+        READWRITE(protocolVersion);
+    }
+
+    int GetClientVersion(){return clientVersion;}
+    int GetProtocolVersion(){return protocolVersion;}
+
+    friend bool operator==(const CVersionInfo& a, const CVersionInfo& b)
+    {
+        return (a.clientVersion == b.clientVersion && a.protocolVersion == b.protocolVersion);
+    }
+
+    friend bool operator!=(const CVersionInfo& a, const CVersionInfo& b)
+    {
+        return !(a == b);
+    }
+
+    std::string ToString() const{return strprintf("CVersionInfo(client: %d, protocol: %d)",clientVersion,protocolVersion);}
+
+    // Dummies..for the flatDB.
+    void CheckAndRemove(){}
+    void Clear(){}
+};
+
+extern CVersionInfo versionInfo;
 
 #endif // BITCOIN_INIT_H

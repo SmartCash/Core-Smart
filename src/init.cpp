@@ -99,6 +99,8 @@ using namespace std;
 
 extern void ThreadSendAlert(CConnman& connman);
 
+CVersionInfo versionInfo;
+
 #ifdef ENABLE_WALLET
 CWallet* pwalletMain = NULL;
 #endif
@@ -250,17 +252,28 @@ void PrepareShutdown()
     g_connman.reset();
 
     // STORE DATA CACHES INTO SERIALIZED DAT FILES
-    bool fCacheNodes = GetBoolArg("-cachenodelist", false);
-    if( fCacheNodes ){
+
+    bool fCache;
+
+    fCache = GetBoolArg("-cachenodelist", false);
+    if( fCache ){
         CFlatDB<CSmartnodeMan> flatdb1("sncache.dat", "magicSmartnodeCache");
         flatdb1.Dump(mnodeman);
     }
-    CFlatDB<CSmartnodePayments> flatdb2("snpayments.dat", "magicSmartnodePaymentsCache");
-    flatdb2.Dump(mnpayments);
+
+    fCache = GetBoolArg("-cachewinners", true);
+    if( fCache ){
+        CFlatDB<CSmartnodePayments> flatdb2("snpayments.dat", "magicSmartnodePaymentsCache");
+        flatdb2.Dump(mnpayments);
+    }
+
     //CFlatDB<CGovernanceManager> flatdb3("governance.dat", "magicGovernanceCache");
     //flatdb3.Dump(governance);
-    CFlatDB<CNetFulfilledRequestManager> flatdb4("netfulfilled.dat", "magicFulfilledCache");
-    flatdb4.Dump(netfulfilledman);
+    fCache = GetBoolArg("-cachefulfilled", true);
+    if( fCache ){
+        CFlatDB<CNetFulfilledRequestManager> flatdb4("netfulfilled.dat", "magicFulfilledCache");
+        flatdb4.Dump(netfulfilledman);
+    }
 
     UnregisterNodeSignals(GetNodeSignals());
 
@@ -965,6 +978,44 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 2: parameter interactions
 
     const CChainParams& chainparams = Params();
+
+    CVersionInfo currentVersionInfo = CVersionInfo(CLIENT_VERSION,PROTOCOL_VERSION);
+
+    bool fDeleteCaches = false;
+
+    CFlatDB<CVersionInfo> flatdb0("version.dat", "magicVersionInfo");
+    if(!flatdb0.Load(versionInfo)) {
+        LogPrintf("Version file reading error. Create a new one.");
+        fDeleteCaches = true;
+    }
+
+    if( versionInfo != currentVersionInfo){
+        LogPrintf("\n\nVersion changed:\n  OLD: %s\n  NEW: %s\n\n",versionInfo.ToString(), currentVersionInfo.ToString());
+        fDeleteCaches = true;
+    }
+
+    if( fDeleteCaches ){
+
+        LogPrintf("Clearing caches...");
+
+        versionInfo = currentVersionInfo;
+        flatdb0.Dump(currentVersionInfo);
+
+        std::vector<std::string> vecCachesToRemove = {
+            "peers.dat",
+            "netfulfilled.dat",
+            "sncache.dat",
+            "snpayments.dat",
+            "banlist.dat",
+            "fee_estimates.dat"
+        };
+
+        for( auto file : vecCachesToRemove ){
+            LogPrintf("  => delete cache file: %s\n",file);
+            boost::filesystem::remove((cachePath / file).string());
+        }
+
+    }
 
     // Initialize SmartHive addresses
     SmartHive::Init();
@@ -2000,9 +2051,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         boost::filesystem::path pathDB = GetDataDir();
         std::string strDBName;
 
-        bool fCacheNodes = GetBoolArg("-cachenodelist", false);
+        bool fCache;
 
-        if( fCacheNodes ){
+        fCache= GetBoolArg("-cachenodelist", false);
+        if( fCache ){
             strDBName = "sncache.dat";
             uiInterface.InitMessage(_("Loading smartnode cache..."));
             CFlatDB<CSmartnodeMan> flatdb1(strDBName, "magicSmartnodeCache");
@@ -2011,20 +2063,25 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             }
         }
 
-        strDBName = "snpayments.dat";
-        uiInterface.InitMessage(_("Loading smartnode payment cache..."));
-        CFlatDB<CSmartnodePayments> flatdb2(strDBName, "magicSmartnodePaymentsCache");
-        if(!flatdb2.Load(mnpayments)) {
-            return InitError(_("Failed to load smartnode payments cache from") + "\n" + (pathDB / strDBName).string());
+        fCache= GetBoolArg("-cachewinners", true);
+        if( fCache ){
+            strDBName = "snpayments.dat";
+            uiInterface.InitMessage(_("Loading smartnode payment cache..."));
+            CFlatDB<CSmartnodePayments> flatdb2(strDBName, "magicSmartnodePaymentsCache");
+            if(!flatdb2.Load(mnpayments)) {
+                return InitError(_("Failed to load smartnode payments cache from") + "\n" + (pathDB / strDBName).string());
+            }
         }
 
-        strDBName = "netfulfilled.dat";
-        uiInterface.InitMessage(_("Loading fulfilled requests cache..."));
-        CFlatDB<CNetFulfilledRequestManager> flatdb4(strDBName, "magicFulfilledCache");
-        if(!flatdb4.Load(netfulfilledman)) {
-            return InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());
+        fCache= GetBoolArg("-cachefulfilled", true);
+        if( fCache ){
+            strDBName = "netfulfilled.dat";
+            uiInterface.InitMessage(_("Loading fulfilled requests cache..."));
+            CFlatDB<CNetFulfilledRequestManager> flatdb4(strDBName, "magicFulfilledCache");
+            if(!flatdb4.Load(netfulfilledman)) {
+                return InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());
+            }
         }
-
     }
 
 
