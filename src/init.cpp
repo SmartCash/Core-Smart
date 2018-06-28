@@ -1010,9 +1010,18 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             "fee_estimates.dat"
         };
 
-        for( auto file : vecCachesToRemove ){
-            LogPrintf("  => delete cache file: %s\n",file);
-            boost::filesystem::remove((cachePath / file).string());
+        boost::filesystem::path cachePath = GetDataDir();
+
+        for( auto cache : vecCachesToRemove ){
+
+            LogPrintf("  => delete cache file: %s\n",cache);
+
+            try {
+                boost::filesystem::remove((cachePath / cache).string());
+            } catch (const boost::filesystem::filesystem_error& e) {
+                LogPrintf("Unable to remove cache file: %s\n", e.what());
+            }
+
         }
 
     }

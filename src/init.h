@@ -43,10 +43,12 @@ std::string HelpMessage(HelpMessageMode mode);
 /** Returns licensing information (for -version) */
 std::string LicenseInfo();
 
+
+// Used to keep track of the client and protocol version.
+// If one changes the caches will become cleared on startup.
 class CVersionInfo
 {
 private:
-    //keep track of what node has/was asked for and when
     int clientVersion;
     int protocolVersion;
 
