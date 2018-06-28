@@ -1320,7 +1320,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
                         pfrom->nTimeOfLastPaymentMessage = GetTime();
 
-                        LogPrint("mnpayments", "Old peer offered payment message %s - peer=%d\n", inv.hash.ToString(), pfrom->id);
+                        LogPrint("mnpayments", "Old peer (%d) offered payment message %s - peer=%d\n", pfrom->nVersion, inv.hash.ToString(), pfrom->id);
                         fAskFor = false;
 
                         if( !smartnodeSync.IsSynced() &&
