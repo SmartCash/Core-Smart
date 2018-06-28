@@ -636,7 +636,7 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees) {
         if (payee.GetVoteCount() >= MNPAYMENTS_SIGNATURES_REQUIRED) {
             BOOST_FOREACH(CTxOut txout, txNew.vout) {
-                if (txout.scriptPubKey == payee.GetPayee() && txout.nValue == expectedPerNode) {
+                if (txout.scriptPubKey == payee.GetPayee() && abs(txout.nValue - expectedPerNode) < 2 ) {
                     LogPrint("mnpayments", "CSmartnodeBlockPayees::IsTransactionValid -- Found required payment: %s\n",txout.ToString());
                     foundPayees++;
                     break;
