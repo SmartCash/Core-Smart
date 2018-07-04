@@ -15,6 +15,38 @@
 #include "wallet/wallet.h"
 #include <univalue.h>
 
+
+int64_t GetKeyForBlock(const CBlockIndex * pIndex){
+
+    CBlock block;
+    if(pIndex && ReadBlockFromDisk(block, pIndex, Params().GetConsensus())){
+
+        if( block.vtx.size() >= 1 ){
+
+            if( block.vtx[0].vout.size() >= 2){
+
+                // Second output of the coinbase needs to be the signature.
+                const CScript &sigScript = block.vtx[0].vout[1].scriptPubKey;
+
+                // Check if it is an OP_RETURN and if the startvalue is OP_DATA_MINING_FLAG
+                if( sigScript.size() > nMiningSignatureMinScriptLength &&
+                    sigScript[0] == OP_RETURN && sigScript[2] == OP_DATA_MINING_FLAG ){
+                    return sigScript[3];
+                }
+
+            }else{
+                return -3;
+            }
+
+        }else{
+            return -2;
+        }
+
+    }
+
+    return -1;
+}
+
 UniValue smartmining(const UniValue& params, bool fHelp)
 {
 
@@ -25,7 +57,7 @@ UniValue smartmining(const UniValue& params, bool fHelp)
 
     if (fHelp  ||
         (
-         strCommand != "status" && strCommand != "keys" && strCommand != "blocks" && strCommand != "disable" && strCommand != "enable" && strCommand != "warnings"))
+         strCommand != "status" && strCommand != "keys" && strCommand != "blocks" && strCommand != "count" && strCommand != "block" && strCommand != "disable" && strCommand != "enable" && strCommand != "warnings"))
             throw std::runtime_error(
                 "smartmining \"command\"...\n"
                 "Set of commands to execute smartmining related actions\n"
@@ -33,8 +65,10 @@ UniValue smartmining(const UniValue& params, bool fHelp)
                 "1. \"command\"        (string or set of strings, required) The command to execute\n"
                 "\nAvailable commands:\n"
                 "  status                - Print the current status of the enforcement and the keys.\n"
-                "  blocks :count         - Print a list of the keys used in the latest :count blocks.\n"
-                "  warnings :count       - Check the last :count blocks for strange abnormalities.\n"
+                "  block :height         - Print the key used at :height.\n"
+                "  blocks :blocks        - Print a list of the keys used in the latest :blocks blocks.\n"
+                "  count :blocks         - Print a summary of the keys used in the latest :blocks blocks.\n"
+                //"  warnings :count       - Check the last :count blocks for strange abnormalities.\n"
                 );
 
     if (strCommand == "status")
@@ -185,9 +219,101 @@ UniValue smartmining(const UniValue& params, bool fHelp)
 
     }
 
+    if (strCommand == "block")
+    {
+
+        UniValue obj = UniValue(UniValue::VOBJ);
+
+        if (params.size() == 2 && params[1].get_int64() > 0){
+
+            LOCK(cs_main);
+
+            int64_t nHeight = params[1].get_int64();
+            CBlockIndex * pIndex = chainActive[nHeight];
+
+            if( !pIndex ) throw JSONRPCError(RPC_INVALID_PARAMETER,"Index out of range");
+
+            obj.pushKV(std::to_string(pIndex->nHeight),GetKeyForBlock(pIndex));
+
+            return obj;
+        }
+
+        throw runtime_error(
+            "smartmining block <blockHeight>\n"
+            "<blockHeight> is the height of the block to check.\n");
+
+    }
+
     if (strCommand == "blocks")
     {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Not available!");
+
+        UniValue obj = UniValue(UniValue::VOBJ);
+
+        if (params.size() == 2 && params[1].get_int64() > 0){
+
+            LOCK(cs_main);
+
+            CBlockIndex * pIndex = chainActive.Tip();
+
+            int64_t nCount = params[1].get_int64();
+            int64_t nStartHeight = pIndex->nHeight - nCount + 1;
+
+            pIndex = chainActive[nStartHeight];
+
+            while( pIndex ){
+
+                int64_t nKey = GetKeyForBlock(pIndex);
+
+                obj.pushKV(std::to_string(pIndex->nHeight),nKey);
+
+                pIndex = chainActive.Next(pIndex);
+            }
+
+            return obj;
+        }
+
+        throw runtime_error(
+            "smartmining blocks <blockCount>\n"
+            "<blockCount> is the number of past blocks to check.\n");
+    }
+
+    if (strCommand == "count")
+    {
+
+        UniValue obj = UniValue(UniValue::VOBJ);
+
+        if (params.size() == 2 && params[1].get_int64() > 0){
+
+            LOCK(cs_main);
+
+            std::map<int64_t,int64_t> mapUsage;
+
+            CBlockIndex * pIndex = chainActive.Tip();
+
+            int64_t nCount = params[1].get_int64();
+            int64_t nStartHeight = pIndex->nHeight - nCount + 1;
+
+            pIndex = chainActive[nStartHeight];
+
+            while( pIndex ){
+                mapUsage[GetKeyForBlock(pIndex)]++;
+                pIndex = chainActive.Next(pIndex);
+            }
+
+            auto it = mapUsage.begin();
+
+            while( it != mapUsage.end() ){
+                obj.pushKV(std::to_string(it->first), it->second);
+                it++;
+            }
+
+
+            return obj;
+        }
+
+        throw runtime_error(
+            "smartmining blocks <blockCount>\n"
+            "<blockCount> is the number of past blocks to check.\n");
     }
 
     if (strCommand == "warnings")
