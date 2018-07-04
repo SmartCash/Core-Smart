@@ -207,7 +207,7 @@ void CActiveSmartnode::ManageStateRemote()
     if(mnodeman.GetSmartnodeInfo(pubKeySmartnode, infoMn)) {
         if(infoMn.nProtocolVersion != PROTOCOL_VERSION) {
             nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
-            strNotCapableReason = "Invalid protocol version";
+            strNotCapableReason = "Remote node version does not match current network or local wallet. Update both and issue a start.";
             LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
             return;
         }
