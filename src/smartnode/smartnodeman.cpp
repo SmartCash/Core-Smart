@@ -403,6 +403,17 @@ int CSmartnodeMan::CountEnabled(int nProtocolVersion)
     return (enabled = nCount);
 }
 
+void CSmartnodeMan::CountStates(std::map<std::string,int64_t> &mapStates)
+{
+    LOCK(cs);
+
+    mapStates.clear();
+
+    for (auto& mnpair : mapSmartnodes) {
+        mapStates[mnpair.second.GetStatus()]++;
+    }
+}
+
 /* Only IPv4 smartnodes are allowed in 12.1, saving this for later
 int CSmartnodeMan::CountByIP(int nNetworkType)
 {

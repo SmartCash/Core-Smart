@@ -154,6 +154,8 @@ public:
     /// Count enabled Smartnodes filtered by nProtocolVersion.
     /// Smartnode nProtocolVersion should match or be above the one specified in param here.
     int CountEnabled(int nProtocolVersion = -1);
+    //// Create a map with a list of how many nodes we have in which state.
+    void CountStates(std::map<std::string, int64_t> &mapStates);
 
     /// Count Smartnodes by network type - NET_IPV4, NET_IPV6, NET_TOR
     // int CountByIP(int nNetworkType);

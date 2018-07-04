@@ -129,7 +129,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
                 "\nArguments:\n"
                 "1. \"command\"        (string or set of strings, required) The command to execute\n"
                 "\nAvailable commands:\n"
-                "  count        - Print number of all known smartnodes (optional: 'ps', 'enabled', 'all', 'qualify')\n"
+                "  count        - Print number of all known smartnodes (optional: 'ps', 'enabled', 'all', 'qualify', 'states')\n"
                 "  current      - Print info on current smartnode winner to be paid the next block (calculated locally)\n"
                 "  genkey       - Generate new smartnodeprivkey\n"
 #ifdef ENABLE_WALLET
@@ -196,6 +196,21 @@ UniValue smartnode(const UniValue& params, bool fHelp)
         if (strMode == "all")
             return strprintf("Total: %d ( Enabled: %d / Qualify: %d)",
                 mnodeman.size(), mnodeman.CountEnabled(), nCount);
+
+        if (strMode == "states"){
+
+            UniValue obj = UniValue(UniValue::VOBJ);
+
+            std::map<std::string, int64_t> mapStates;
+
+            mnodeman.CountStates(mapStates);
+
+            for (auto& state : mapStates) {
+                obj.pushKV(state.first, state.second);
+            }
+
+            return obj;
+        }
     }
 
     if (strCommand == "current" || strCommand == "winner")
