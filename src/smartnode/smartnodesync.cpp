@@ -43,7 +43,6 @@ void CSmartnodeSync::Fail()
 
 void CSmartnodeSync::Reset()
 {
-    mapSmartnodeListCounts.clear();
     nRequestedSmartnodeAssets = SMARTNODE_SYNC_INITIAL;
     nRequestedSmartnodeAttempt = 0;
     nTimeAssetSyncStarted = GetTime();
@@ -204,6 +203,10 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
     LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nRequestedSmartnodeAttempt %d nSyncProgress %f\n", nTick, nRequestedSmartnodeAssets, nRequestedSmartnodeAttempt, nSyncProgress);
     uiInterface.NotifyAdditionalDataSyncProgressChanged(nSyncProgress);
 
+    if( nRequestedSmartnodeAssets == SMARTNODE_SYNC_LIST ){
+        LogPrintf("CSmartnodeSync::ProcessTick -- mean node count: %d, received nodes %d\n", GetMeanListCount(), mnodeman.size());
+    }
+
     std::vector<CNode*> vNodesCopy = connman.CopyNodeVector(CConnman::FullyConnectedOnly);
 
     BOOST_FOREACH(CNode* pnode, vNodesCopy)
@@ -243,7 +246,7 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
             // MNLIST : SYNC SMARTNODE LIST FROM OTHER CONNECTED CLIENTS
 
             if(nRequestedSmartnodeAssets == SMARTNODE_SYNC_LIST) {
-                LogPrint("smartnode", "CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nTimeLastBumped %lld GetTime() %lld diff %lld\n", nTick, nRequestedSmartnodeAssets, nTimeLastBumped, GetTime(), GetTime() - nTimeLastBumped);
+                LogPrint("mnsync", "CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nTimeLastBumped %lld GetTime() %lld diff %lld\n", nTick, nRequestedSmartnodeAssets, nTimeLastBumped, GetTime(), GetTime() - nTimeLastBumped);
                 // check for timeout first
                 if(GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS) {
                     int nMeanListCount = GetMeanListCount();
@@ -368,6 +371,7 @@ void CSmartnodeSync::UpdatedBlockTip(const CBlockIndex *pindexNew, bool fInitial
     if (fInitialDownload) {
         // switched too early
         if (IsBlockchainSynced()) {
+            LogPrint("mnsync", "CSmartnodeSync::UpdatedBlockTip -- Reset, switched too early!\n");
             Reset();
         }
 
@@ -384,6 +388,7 @@ void CSmartnodeSync::UpdatedBlockTip(const CBlockIndex *pindexNew, bool fInitial
         // probably initial timeout was not enough,
         // because there is no way we can update tip not having best header
         Reset();
+        LogPrint("mnsync", "CSmartnodeSync::UpdatedBlockTip -- Reset, stucked on header sync?\n");
         fReachedBestHeader = false;
         return;
     }

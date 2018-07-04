@@ -751,6 +751,7 @@ void CSmartnodeMan::ProcessPendingMnbRequests(CConnman& connman)
         if (connman.IsSmartnodeOrDisconnectRequested(p.first)) return;
         mapPendingMNB.insert(std::make_pair(p.first, std::make_pair(GetTime(), p.second)));
         connman.AddPendingSmartnode(p.first);
+        LogPrint("smartnode", "CSmartnodeMan::%s -- add mnb requests %d for addr=%s\n", __func__, p.second.size(), p.first.ToString());
     }
 
     std::map<CService, std::pair<int64_t, std::set<uint256> > >::iterator itPendingMNB = mapPendingMNB.begin();
@@ -763,7 +764,7 @@ void CSmartnodeMan::ProcessPendingMnbRequests(CConnman& connman)
             while(it != setHashes.end()) {
                 if(*it != uint256()) {
                     vToFetch.push_back(CInv(MSG_SMARTNODE_ANNOUNCE, *it));
-                    LogPrint("smartnode", "-- asking for mnb %s from addr=%s\n", it->ToString(), pnode->addr.ToString());
+                    LogPrint("smartnode", "CSmartnodeMan::%s -- asking for mnb %s from addr=%s\n", __func__, it->ToString(), pnode->addr.ToString());
                 }
                 ++it;
             }
@@ -777,6 +778,8 @@ void CSmartnodeMan::ProcessPendingMnbRequests(CConnman& connman)
         if (fDone || (GetTime() - nTimeAdded > 15)) {
             if (!fDone) {
                 LogPrint("smartnode", "CSmartnodeMan::%s -- failed to connect to %s\n", __func__, itPendingMNB->first.ToString());
+            }else{
+                LogPrint("smartnode", "CSmartnodeMan::%s -- connected to %s\n", __func__, itPendingMNB->first.ToString());
             }
             mapPendingMNB.erase(itPendingMNB++);
         } else {
