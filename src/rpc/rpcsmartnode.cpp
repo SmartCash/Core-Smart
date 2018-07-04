@@ -195,7 +195,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
         if (strMode == "all")
             return strprintf("Total: %d ( Enabled: %d / Qualify: %d)",
-                mnodeman.CountEnabled(), nCount);
+                mnodeman.size(), mnodeman.CountEnabled(), nCount);
     }
 
     if (strCommand == "current" || strCommand == "winner")
