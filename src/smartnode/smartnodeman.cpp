@@ -775,7 +775,7 @@ void CSmartnodeMan::ProcessPendingMnbRequests(CConnman& connman)
         });
 
         int64_t nTimeAdded = itPendingMNB->second.first;
-        if (fDone || (GetTime() - nTimeAdded > 15)) {
+        if (fDone || (GetTime() - nTimeAdded > 30)) {
             if (!fDone) {
                 LogPrint("smartnode", "CSmartnodeMan::%s -- failed to connect to %s\n", __func__, itPendingMNB->first.ToString());
             }else{
