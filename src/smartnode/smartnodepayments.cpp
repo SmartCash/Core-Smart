@@ -629,7 +629,7 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
 
     // if we don't have at least expectedPayees with MNPAYMENTS_SIGNATURES_REQUIRED signatures, approve whichever is the longest chain
     if(!foundMinVotes){
-        LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- WARNING: Approve for too less payees with minimum signatures\n");
+        LogPrintf("CSmartnodeBlockPayees::IsTransactionValid -- WARNING: Approve for too few payees with minimum votes\n");
         return true;
     }
 
