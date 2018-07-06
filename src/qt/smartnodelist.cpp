@@ -12,6 +12,7 @@
 #include "sync.h"
 #include "wallet/wallet.h"
 #include "walletmodel.h"
+#include "nodecontroldialog.h"
 
 #include <QTimer>
 #include <QMessageBox>
@@ -31,7 +32,8 @@ SmartnodeList::SmartnodeList(const PlatformStyle *platformStyle, QWidget *parent
     QWidget(parent),
     ui(new Ui::SmartnodeList),
     clientModel(0),
-    walletModel(0)
+    walletModel(0),
+    platformStyle(platformStyle)
 {
     ui->setupUi(this);
 
@@ -105,7 +107,7 @@ void SmartnodeList::StartAlias(std::string strAlias)
     std::string strStatusHtml;
     strStatusHtml += "<center>Alias: " + strAlias;
 
-    BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+    BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
         if(mne.getAlias() == strAlias) {
             std::string strError;
             CSmartnodeBroadcast mnb;
@@ -139,7 +141,7 @@ void SmartnodeList::StartAll(std::string strCommand)
     int nCountFailed = 0;
     std::string strFailedHtml;
 
-    BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+    BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
         std::string strError;
         CSmartnodeBroadcast mnb;
 
@@ -209,13 +211,13 @@ void SmartnodeList::updateMySmartnodeInfo(QString strAlias, QString strAddr, con
                                                                                                    fFound ? infoMn.nTimeLastPing + GetOffsetFromUtc() : 0)));
     QTableWidgetItem *pubkeyItem = new QTableWidgetItem(QString::fromStdString(fFound ? CBitcoinAddress(infoMn.pubKeyCollateralAddress.GetID()).ToString() : ""));
 
-    ui->tableWidgetMySmartnodes->setItem(nNewRow, 0, aliasItem);
-    ui->tableWidgetMySmartnodes->setItem(nNewRow, 1, addrItem);
-    ui->tableWidgetMySmartnodes->setItem(nNewRow, 2, protocolItem);
-    ui->tableWidgetMySmartnodes->setItem(nNewRow, 3, statusItem);
-    ui->tableWidgetMySmartnodes->setItem(nNewRow, 4, activeSecondsItem);
-    ui->tableWidgetMySmartnodes->setItem(nNewRow, 5, lastSeenItem);
-    ui->tableWidgetMySmartnodes->setItem(nNewRow, 6, pubkeyItem);
+    ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_ALIAS, aliasItem);
+    ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_ADDRESS, addrItem);
+    ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_PROTOCOL, protocolItem);
+    ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_STATUS, statusItem);
+    ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_ACTIVE, activeSecondsItem);
+    ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_LASTSEEN, lastSeenItem);
+    ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_PUBKEY, pubkeyItem);
 }
 
 void SmartnodeList::updateMyNodeList(bool fForce)
@@ -234,8 +236,14 @@ void SmartnodeList::updateMyNodeList(bool fForce)
     if(nSecondsTillUpdate > 0 && !fForce) return;
     nTimeMyListUpdated = GetTime();
 
-    ui->tableWidgetSmartnodes->setSortingEnabled(false);
-    BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+    if( fForce ){
+        ui->tableWidgetMySmartnodes->clearContents();
+        ui->tableWidgetMySmartnodes->setRowCount(0);
+    }
+
+    ui->tableWidgetMySmartnodes->setSortingEnabled(false);
+
+    BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
         int32_t nOutputIndex = 0;
         if(!ParseInt32(mne.getOutputIndex(), &nOutputIndex)) {
             continue;
@@ -243,7 +251,7 @@ void SmartnodeList::updateMyNodeList(bool fForce)
 
         updateMySmartnodeInfo(QString::fromStdString(mne.getAlias()), QString::fromStdString(mne.getIp()), COutPoint(uint256S(mne.getTxHash()), nOutputIndex));
     }
-    ui->tableWidgetSmartnodes->setSortingEnabled(true);
+    ui->tableWidgetMySmartnodes->setSortingEnabled(true);
 
     // reset "timer"
     ui->secondsLabel->setText("0");
@@ -426,10 +434,132 @@ void SmartnodeList::on_tableWidgetMySmartnodes_itemSelectionChanged()
 {
     if(ui->tableWidgetMySmartnodes->selectedItems().count() > 0) {
         ui->startButton->setEnabled(true);
+        ui->EditButton->setEnabled(true);
+        ui->RemoveButton->setEnabled(true);
+        ui->ViewButton->setEnabled(true);
+    }else{
+        ui->startButton->setEnabled(false);
+        ui->EditButton->setEnabled(false);
+        ui->RemoveButton->setEnabled(false);
+        ui->ViewButton->setEnabled(false);
     }
 }
 
 void SmartnodeList::on_UpdateButton_clicked()
 {
     updateMyNodeList(true);
+}
+
+void SmartnodeList::showControlDialog(SmartnodeControlMode mode)
+{
+    SmartnodeControlDialog dlg(platformStyle, mode);
+
+    if( mode != SmartnodeControlMode::Create ){
+
+        int entryIndex = 0;
+        QString alias, ip, smartnodeKey, txHash, txIndex;
+
+        QItemSelectionModel *select = ui->tableWidgetMySmartnodes->selectionModel();
+        int row = select->selectedIndexes()[0].row();
+
+        alias = ui->tableWidgetMySmartnodes->item(row, COLUMN_ALIAS)->text();
+
+        auto aliasExists = std::find_if(smartnodeConfig.getEntries().begin(),
+                                        smartnodeConfig.getEntries().end(),
+                                        [alias](const CSmartnodeConfigEntry &entry) -> bool {
+            return entry.getAlias() == alias.toStdString();
+        });
+
+        if( aliasExists == smartnodeConfig.getEntries().end() ){
+            QMessageBox::critical(this, tr("Error"),
+                tr("Could not find the selected alias. Restart your wallet and try it again."));
+            return;
+        }
+
+        for( auto entry : smartnodeConfig.getEntries() ){
+            if( entry.getPrivKey() == aliasExists->getPrivKey() ){
+                break;
+            }
+            entryIndex++;
+        }
+
+        alias = QString::fromStdString(aliasExists->getAlias());
+        ip = QString::fromStdString(aliasExists->getIp());
+        smartnodeKey = QString::fromStdString(aliasExists->getPrivKey());
+        txHash = QString::fromStdString(aliasExists->getTxHash());
+        txIndex = QString::fromStdString(aliasExists->getOutputIndex());
+
+        dlg.setSmartnodeData(entryIndex, alias, ip, smartnodeKey, txHash, txIndex);
+    }
+
+    dlg.setModel(walletModel);
+    dlg.exec();
+}
+
+void SmartnodeList::on_CreateButton_clicked()
+{
+    showControlDialog(SmartnodeControlMode::Create);
+    updateMyNodeList(true);
+}
+
+void SmartnodeList::on_EditButton_clicked()
+{
+    showControlDialog(SmartnodeControlMode::Edit);
+    updateMyNodeList(true);
+}
+
+void SmartnodeList::on_RemoveButton_clicked()
+{
+    QString alias;
+    std::string smartnodeKey, txHash, txIndex;
+
+    QItemSelectionModel *select = ui->tableWidgetMySmartnodes->selectionModel();
+    int row = select->selectedIndexes()[0].row();
+
+    alias = ui->tableWidgetMySmartnodes->item(row, COLUMN_ALIAS)->text();
+
+    auto aliasExists = std::find_if(smartnodeConfig.getEntries().begin(),
+                                    smartnodeConfig.getEntries().end(),
+                                    [alias](const CSmartnodeConfigEntry &entry) -> bool {
+        return entry.getAlias() == alias.toStdString();
+    });
+
+    if( aliasExists == smartnodeConfig.getEntries().end() ){
+        QMessageBox::critical(this, tr("Error"),
+            tr("Could not find the selected alias. Restart your wallet and try it again."));
+        return;
+    }
+
+    alias = QString::fromStdString(aliasExists->getAlias());
+    smartnodeKey = aliasExists->getPrivKey();
+    txHash = aliasExists->getTxHash();
+    txIndex = aliasExists->getOutputIndex();
+
+    if(QMessageBox::question(this, "Remove Smarnode entry", QString("Remove Smartnode %1?").arg(alias),
+                             QMessageBox::Yes|QMessageBox::No) == QMessageBox::Yes){
+
+        std::string strErr;
+
+        if(!smartnodeConfig.Remove(smartnodeKey, strErr)){
+            QMessageBox::critical(this, tr("Error"),
+                tr("Could not remove the selected alias. Restart your wallet and try it again.\n\n") +
+                QString::fromStdString(strErr));
+            return;
+        }
+
+    }
+
+    QMessageBox::information(this, tr("Success"),
+                                   QString("Smartnode %1 removed!").arg(alias),
+                                   QMessageBox::Ok);
+
+    COutPoint collateral(uint256S(txHash), std::atoi(txIndex.c_str()));
+    walletModel->unlockCoin(collateral);
+
+    updateMyNodeList(true);
+}
+
+void SmartnodeList::on_ViewButton_clicked()
+{
+    showControlDialog(SmartnodeControlMode::View);
 }

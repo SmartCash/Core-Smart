@@ -659,7 +659,7 @@ int main(int argc, char *argv[])
 #ifdef ENABLE_WALLET
     /// 7a. parse smartnode.conf
     std::string strErr;
-    if(!smartnodeConfig.read(strErr)) {
+    if(!smartnodeConfig.Read(strErr)) {
         QMessageBox::critical(0, QObject::tr("SmartCash Core"),
                               QObject::tr("Error reading smartnode configuration file: %1").arg(strErr.c_str()));
         return EXIT_FAILURE;

@@ -271,7 +271,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
         UniValue statusObj(UniValue::VOBJ);
         statusObj.push_back(Pair("alias", strAlias));
 
-        BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+        BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
             if(mne.getAlias() == strAlias) {
                 fFound = true;
                 std::string strError;
@@ -321,7 +321,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
         UniValue resultsObj(UniValue::VOBJ);
 
-        BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+        BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
             std::string strError;
 
             COutPoint outpoint = COutPoint(uint256S(mne.getTxHash()), uint32_t(atoi(mne.getOutputIndex().c_str())));
@@ -375,7 +375,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
     {
         UniValue resultObj(UniValue::VOBJ);
 
-        BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+        BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
             COutPoint outpoint = COutPoint(uint256S(mne.getTxHash()), uint32_t(atoi(mne.getOutputIndex().c_str())));
             CSmartnode mn;
             bool fFound = mnodeman.Get(outpoint, mn);
@@ -409,7 +409,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
             UniValue entry(UniValue::VOBJ);
 
-            BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+            BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
 
                 COutPoint outpoint = COutPoint(uint256S(mne.getTxHash()), uint32_t(atoi(mne.getOutputIndex().c_str())));
 
@@ -692,7 +692,7 @@ UniValue smartnodebroadcast(const UniValue& params, bool fHelp)
 
         statusObj.push_back(Pair("alias", strAlias));
 
-        BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+        BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
             if(mne.getAlias() == strAlias) {
                 fFound = true;
                 std::string strError;
@@ -733,7 +733,7 @@ UniValue smartnodebroadcast(const UniValue& params, bool fHelp)
             EnsureWalletIsUnlocked();
         }
 
-        std::vector<CSmartnodeConfig::CSmartnodeEntry> mnEntries;
+        std::vector<CSmartnodeConfigEntry> mnEntries;
         mnEntries = smartnodeConfig.getEntries();
 
         int nSuccessful = 0;
@@ -742,7 +742,7 @@ UniValue smartnodebroadcast(const UniValue& params, bool fHelp)
         UniValue resultsObj(UniValue::VOBJ);
         std::vector<CSmartnodeBroadcast> vecMnb;
 
-        BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+        BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
             std::string strError;
             CSmartnodeBroadcast mnb;
 

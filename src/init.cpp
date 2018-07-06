@@ -2015,7 +2015,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         LogPrintf("Locking Smartnodes:\n");
         uint256 mnTxHash;
         int outputIndex;
-        BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+        BOOST_FOREACH(CSmartnodeConfigEntry mne, smartnodeConfig.getEntries()) {
             mnTxHash.SetHex(mne.getTxHash());
             outputIndex = boost::lexical_cast<unsigned int>(mne.getOutputIndex());
             COutPoint outpoint = COutPoint(mnTxHash, outputIndex);

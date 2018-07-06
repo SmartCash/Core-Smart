@@ -121,7 +121,7 @@ bool AppInit(int argc, char* argv[])
 
         // parse smartnode.conf
         std::string strErr;
-        if(!smartnodeConfig.read(strErr)) {
+        if(!smartnodeConfig.Read(strErr)) {
             fprintf(stderr,"Error reading smartnode configuration file: %s\n", strErr.c_str());
             return false;
         }

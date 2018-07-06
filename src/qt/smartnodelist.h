@@ -4,6 +4,7 @@
 #include "primitives/transaction.h"
 #include "platformstyle.h"
 #include "sync.h"
+#include "nodecontroldialog.h"
 #include "util.h"
 
 #include <QMenu>
@@ -34,10 +35,21 @@ public:
     explicit SmartnodeList(const PlatformStyle *platformStyle, QWidget *parent = 0);
     ~SmartnodeList();
 
+    void showControlDialog(SmartnodeControlMode mode);
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);
     void StartAlias(std::string strAlias);
     void StartAll(std::string strCommand = "start-all");
+
+    enum{
+        COLUMN_ALIAS = 0,
+        COLUMN_ADDRESS ,
+        COLUMN_PROTOCOL ,
+        COLUMN_STATUS ,
+        COLUMN_ACTIVE ,
+        COLUMN_LASTSEEN ,
+        COLUMN_PUBKEY
+    };
 
 private:
     QMenu *contextMenu;
@@ -57,6 +69,8 @@ private:
     ClientModel *clientModel;
     WalletModel *walletModel;
 
+    const PlatformStyle *platformStyle;
+
     // Protects tableWidgetSmartnodes
     CCriticalSection cs_mnlist;
 
@@ -73,5 +87,9 @@ private Q_SLOTS:
     void on_startMissingButton_clicked();
     void on_tableWidgetMySmartnodes_itemSelectionChanged();
     void on_UpdateButton_clicked();
+    void on_CreateButton_clicked();
+    void on_EditButton_clicked();
+    void on_RemoveButton_clicked();
+    void on_ViewButton_clicked();
 };
 #endif // SMARTNODELIST_H
