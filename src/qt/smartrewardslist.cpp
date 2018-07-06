@@ -356,8 +356,9 @@ void SmartrewardsList::updateUI()
         ui->tableWidget->clearContents();
         ui->tableWidget->setRowCount(0);
 
-        std::function<QTableWidgetItem * (QString)> createItem = [](QString title) {
-            QTableWidgetItem * item = new QTableWidgetItem(title);
+        ui->tableWidget->setSortingEnabled(false);
+        std::function<CSmartRewardWidgetItem * (QString)> createItem = [](QString title) {
+            CSmartRewardWidgetItem * item = new CSmartRewardWidgetItem(title);
             item->setTextAlignment(Qt::AlignCenter);
             return item;
         };
@@ -387,6 +388,7 @@ void SmartrewardsList::updateUI()
 
         if( ui->stackedWidget->currentIndex() != 2) ui->stackedWidget->setCurrentIndex(2);
 
+        ui->tableWidget->setSortingEnabled(true);
     }else{
         double progress = prewards->GetProgress() * ui->loadingProgress->maximum();
         ui->loadingProgress->setValue(progress);
