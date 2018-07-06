@@ -170,7 +170,7 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
     }
 
-    if(!smartnodeSync.IsSynced()) {
+    if(!smartnodeSync.IsSynced() || fLiteMode ) {
         //there is no budget data to use to check anything, let's just accept the longest chain
         LogPrint("mnpayments", "SmartNodePayments::IsPaymetValid -- WARNING: Client not synced, skipping block payee checks\n");
         return true;
