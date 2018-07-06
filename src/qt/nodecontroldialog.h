@@ -14,11 +14,13 @@
 #include <QString>
 #include <QTableWidgetItem>
 
+#include "primitives/transaction.h"
+
 class PlatformStyle;
 class WalletModel;
 
-class CCoinControl;
 class CTxMemPool;
+class COutPoint;
 
 namespace Ui {
     class SmartnodeControlDialog;
@@ -47,10 +49,11 @@ public:
     explicit SmartnodeControlDialog(const PlatformStyle *platformStyle, SmartnodeControlMode mode, QWidget *parent = 0);
     ~SmartnodeControlDialog();
 
+    void showError(QString message);
     void setSmartnodeData(int entryIndex, QString alias, QString ip, QString smartnodeKey, QString txHash, QString txIndex);
     void setModel(WalletModel *model);
 
-    static CCoinControl *coinControl;
+    COutPoint unlockedForEdit;
 
     std::string GetAlias(){return alias;}
     std::string GetIpAddress(){return ip;}

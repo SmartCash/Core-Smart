@@ -43,6 +43,7 @@ bool CSmartnodeControlWidgetItem::operator<(const QTableWidgetItem &other) const
 SmartnodeControlDialog::SmartnodeControlDialog(const PlatformStyle *platformStyle, SmartnodeControlMode mode, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SmartnodeControlDialog),
+    unlockedForEdit(COutPoint()),
     model(0),
     mode(mode),
     platformStyle(platformStyle)
@@ -125,6 +126,18 @@ void SmartnodeControlDialog::setModel(WalletModel *model)
     }
 }
 
+void SmartnodeControlDialog::showError(QString message){
+    model->lockCoin(unlockedForEdit);
+    QMessageBox::critical(this, tr("Error"),
+                                tr(message.toStdString().c_str()),
+                                QMessageBox::Ok);
+
+    if( !unlockedForEdit.IsNull() ){
+        model->unlockCoin(unlockedForEdit);
+    }
+
+}
+
 void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
 {
     if (ui->defaultButtonBox->buttonRole(button) == QDialogButtonBox::ApplyRole){
@@ -138,18 +151,14 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
         // Do basic tests for name and IP
 
         if( alias == "" ){
-            QMessageBox::critical(this, tr("Error"),
-                                           tr("Alias missing."),
-                                           QMessageBox::Ok);
+            showError("Alias missing.");
             return;
         }
 
         if( ip == "" || !std::regex_match(ip, std::regex(matchIpStr))){
-            QMessageBox::critical(this, tr("Error"),
-                                           tr("Invalid IP-Address") +
-                                           QString::fromStdString("\n\n") +
-                                           tr("Required format: xxx.xxx.xxx.xxx or xxx.xxx.xxx.xxx:port"),
-                                           QMessageBox::Ok);
+            showError(tr("Invalid IP-Address") +
+                      QString::fromStdString("\n\n") +
+                      tr("Required format: xxx.xxx.xxx.xxx or xxx.xxx.xxx.xxx:port"));
             return;
         }
 
@@ -174,27 +183,21 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
                     strErr = "Invalid port\n" +
                             strprintf("Port: %d", port) + "\n" +
                             strprintf("(must be %d for mainnet)", mainnetDefaultPort);
-                    QMessageBox::critical(this, tr("Error"),
-                                                   QString::fromStdString(strErr),
-                                                   QMessageBox::Ok);
+                    showError(QString::fromStdString(strErr));
                     return;
                 }
             } else if(port == mainnetDefaultPort) {
                 strErr = "Invalid port\n" +
                         strprintf("(%d could be used only on mainnet)", mainnetDefaultPort);
-                QMessageBox::critical(this, tr("Error"),
-                                               QString::fromStdString(strErr),
-                                               QMessageBox::Ok);
+                showError(QString::fromStdString(strErr));
                 return;
             }
         }
 
         QItemSelectionModel *select = ui->collateralTable->selectionModel();
 
-        if( !select->hasSelection() ){
-            QMessageBox::critical(this, tr("Error"),
-                                           tr("You need to select a collateral."),
-                                           QMessageBox::Ok);
+        if( !select || !select->hasSelection() ){
+            showError("You need to select a collateral.");
             return;
         }
 
@@ -209,20 +212,16 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
             modeStr = tr("created");
 
             if( !smartnodeConfig.Create(alias, ip, smartnodeKey, txHash, txIndex, strErr) ){
-                QMessageBox::critical(this, tr("Error"),
-                                            tr("Could not create smartnode entry:\n\n") +
-                                            QString::fromStdString(strErr),
-                                            QMessageBox::Ok);
+                showError(tr("Could not create smartnode entry:\n\n") +
+                          QString::fromStdString(strErr));
                 return;
             }
         }else if( mode == SmartnodeControlMode::Edit ){
             modeStr = tr("updated");
 
             if( !smartnodeConfig.Edit(entryIndex, alias, ip, smartnodeKey, txHash, txIndex, strErr) ){
-                QMessageBox::critical(this, tr("Error"),
-                                            tr("Could not edit smartnode entry:\n\n") +
-                                            QString::fromStdString(strErr),
-                                            QMessageBox::Ok);
+                showError(tr("Could not edit smartnode entry:\n\n") +
+                          QString::fromStdString(strErr));
                 return;
             }
         }
@@ -236,6 +235,8 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
                                        QMessageBox::Ok);
 
         done(QDialog::Accepted);
+    }else if(!unlockedForEdit.IsNull()){
+        model->lockCoin(unlockedForEdit);
     }
 
     done(QDialog::Rejected);
@@ -332,8 +333,8 @@ void SmartnodeControlDialog::updateView()
                     addressLabelViewStr = sWalletLabel;
 
                     if( mode == SmartnodeControlMode::Edit ){
-                        COutPoint collateral(coinTxHash, out.i);
-                        model->unlockCoin(collateral);
+                        unlockedForEdit = COutPoint(coinTxHash, out.i);
+                        model->unlockCoin(unlockedForEdit);
                     }
                 }
 
