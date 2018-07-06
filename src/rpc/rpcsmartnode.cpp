@@ -402,9 +402,37 @@ UniValue smartnode(const UniValue& params, bool fHelp)
         pwalletMain->AvailableCoins(vPossibleCoins, true, NULL, false, ONLY_10000);
 
         UniValue obj(UniValue::VOBJ);
+        UniValue used(UniValue::VARR);
+        UniValue unused(UniValue::VARR);
+
         BOOST_FOREACH(COutput& out, vPossibleCoins) {
-            obj.push_back(Pair(out.tx->GetHash().ToString(), strprintf("%d", out.i)));
+
+            UniValue entry(UniValue::VOBJ);
+
+            BOOST_FOREACH(CSmartnodeConfig::CSmartnodeEntry mne, smartnodeConfig.getEntries()) {
+
+                COutPoint outpoint = COutPoint(uint256S(mne.getTxHash()), uint32_t(atoi(mne.getOutputIndex().c_str())));
+
+                if( out.tx->GetHash() == outpoint.hash && out.i == (int)outpoint.n){
+                    entry.pushKV("alias", mne.getAlias());
+                    entry.pushKV("collateral_output_txid", outpoint.hash.ToString());
+                    entry.pushKV("collateral_output_index", (int)outpoint.n);
+                    break;
+                }
+            }
+
+            if( entry.size() ){
+                used.push_back(entry);
+            }else{
+                entry.pushKV("collateral_output_txid", out.tx->GetHash().ToString());
+                entry.pushKV("collateral_output_index", out.i);
+                unused.push_back(entry);
+            }
+
         }
+
+        obj.pushKV("used_collaterals", used);
+        obj.pushKV("new_collaterals", unused);
 
         return obj;
     }
