@@ -13,6 +13,7 @@
 #include "init.h"
 #include "smartnode/smartnodeconfig.h"
 #include "messagesigner.h"
+#include "util.h"
 
 #include <regex>
 
@@ -26,8 +27,9 @@
 #include <QIcon>
 #include <QSettings>
 #include <QString>
+#include <QRegularExpression>
 
-std::string matchIpStr = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){3}((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\:|$)){1}(\\d){0,5}$";
+QRegularExpression ipRegex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){3}((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\:|$)){1}(\\d){0,5}$");
 
 bool CSmartnodeControlWidgetItem::operator<(const QTableWidgetItem &other) const {
     int column = other.column();
@@ -42,8 +44,8 @@ bool CSmartnodeControlWidgetItem::operator<(const QTableWidgetItem &other) const
 
 SmartnodeControlDialog::SmartnodeControlDialog(const PlatformStyle *platformStyle, SmartnodeControlMode mode, QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::SmartnodeControlDialog),
     unlockedForEdit(COutPoint()),
+    ui(new Ui::SmartnodeControlDialog),
     model(0),
     mode(mode),
     platformStyle(platformStyle)
@@ -103,6 +105,11 @@ SmartnodeControlDialog::SmartnodeControlDialog(const PlatformStyle *platformStyl
 
 SmartnodeControlDialog::~SmartnodeControlDialog()
 {
+
+    if( !unlockedForEdit.IsNull() ){
+        model->lockCoin(unlockedForEdit);
+    }
+
     delete ui;
 }
 
@@ -127,13 +134,12 @@ void SmartnodeControlDialog::setModel(WalletModel *model)
 }
 
 void SmartnodeControlDialog::showError(QString message){
-    model->lockCoin(unlockedForEdit);
     QMessageBox::critical(this, tr("Error"),
                                 tr(message.toStdString().c_str()),
                                 QMessageBox::Ok);
 
     if( !unlockedForEdit.IsNull() ){
-        model->unlockCoin(unlockedForEdit);
+        model->lockCoin(unlockedForEdit);
     }
 
 }
@@ -144,39 +150,57 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
 
         std::string strErr;
 
-        alias = ui->aliasField->text().toStdString();
-        ip = ui->ipField->text().toStdString();
+        QString qalias = ui->aliasField->text();
+        QString qip = ui->ipField->text();
+
         smartnodeKey = ui->smartnodeKeyLabel->text().toStdString();
 
         // Do basic tests for name and IP
 
-        if( alias == "" ){
+        if( qalias == "" ){
             showError("Alias missing.");
             return;
+        }else{
+            LogPrintf("SmartnodeControlDialog -- valid alias: %s\n",qalias.toStdString());
         }
 
-        if( ip == "" || !std::regex_match(ip, std::regex(matchIpStr))){
+        QRegularExpressionMatch ipMatch = ipRegex.match(qip);
+
+        if( qip == "" || !ipMatch.hasMatch() ){
             showError(tr("Invalid IP-Address") +
                       QString::fromStdString("\n\n") +
                       tr("Required format: xxx.xxx.xxx.xxx or xxx.xxx.xxx.xxx:port"));
             return;
+        }else{
+            LogPrintf("SmartnodeControlDialog -- valid ip: %s\n",qip.toStdString());
         }
 
-        // Remove whitespaces to avoid parsing errors on start.
-        alias.erase(std::remove(alias.begin(), alias.end(), ' '), alias.end());
-        ip.erase(std::remove(ip.begin(), ip.end(), ' '), ip.end());
+        LogPrintf("SmartnodeControlDialog -- remove whitespaces\n");
 
+        // Remove whitespaces to avoid parsing errors on start.
+        qalias.replace(QRegularExpression("\\s+"), QString());
+        qip.replace(QRegularExpression("\\s+"), QString());
+
+        alias = qalias.toStdString();
+        ip = qip.toStdString();
+
+        LogPrintf("SmartnodeControlDialog -- search port\n");
         auto portStart = ip.find(":");
 
         if( portStart == std::string::npos ){
 
+            LogPrintf("SmartnodeControlDialog -- use default port\n");
             int port = Params().GetDefaultPort();
             ip += ":" + std::to_string(port);
 
         }else{
 
+            LogPrintf("SmartnodeControlDialog -- parse custom port\n");
+
             int mainnetDefaultPort = Params(CBaseChainParams::MAIN).GetDefaultPort();
             int port = atoi(ip.substr(portStart + 1).c_str());
+
+            LogPrintf("SmartnodeControlDialog -- validate custom port\n");
 
             if(MainNet()) {
                 if(port != mainnetDefaultPort) {
@@ -194,12 +218,16 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
             }
         }
 
+        LogPrintf("SmartnodeControlDialog -- check for collateral\n");
+
         QItemSelectionModel *select = ui->collateralTable->selectionModel();
 
-        if( !select || !select->hasSelection() ){
+        if( !select || !select->hasSelection() || !select->selectedIndexes().size() ){
             showError("You need to select a collateral.");
             return;
         }
+
+        LogPrintf("SmartnodeControlDialog -- use selected collateral\n");
 
         int row = select->selectedIndexes()[0].row();
 
@@ -207,6 +235,8 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
         txIndex = ui->collateralTable->item(row, COLUMN_TXID)->text().toStdString();
 
         QString modeStr;
+
+        LogPrintf("SmartnodeControlDialog -- process request\n");
 
         if( mode == SmartnodeControlMode::Create ){
             modeStr = tr("created");
