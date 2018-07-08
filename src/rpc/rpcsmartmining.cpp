@@ -262,9 +262,12 @@ UniValue smartmining(const UniValue& params, bool fHelp)
 
             while( pIndex ){
 
-                int64_t nKey = GetKeyForBlock(pIndex);
+                UniValue block(UniValue::VOBJ);
 
-                obj.pushKV(std::to_string(pIndex->nHeight),nKey);
+                int64_t nKey = GetKeyForBlock(pIndex);
+                block.pushKV("key", nKey);
+                block.pushKV("time", pIndex->GetBlockTime());
+                obj.pushKV(std::to_string(pIndex->nHeight),block);
 
                 pIndex = chainActive.Next(pIndex);
             }
