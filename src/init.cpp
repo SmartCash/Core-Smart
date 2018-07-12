@@ -2070,7 +2070,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
         bool fCache;
 
-        fCache= GetBoolArg("-cachenodelist", false);
+        fCache= GetBoolArg("-cachenodelist", true);
         if( fCache ){
             strDBName = "sncache.dat";
             uiInterface.InitMessage(_("Loading smartnode cache..."));
