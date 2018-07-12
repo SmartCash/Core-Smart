@@ -8,6 +8,7 @@
 #include "amount.h"
 #include "smartnodelist.h"
 #include "smartrewardslist.h"
+#include "smartvoting.h"
 
 #include <QStackedWidget>
 
@@ -72,6 +73,7 @@ private:
     TransactionView *transactionView;
     SmartnodeList *smartnodeListPage;
     SmartrewardsList *smartrewardsListPage;
+    SmartVotingPage *smartvotingPage;
 
     QProgressDialog *progressDialog;
     QLabel *transactionSum;
@@ -86,6 +88,8 @@ public Q_SLOTS:
     void gotoSmartnodePage();
     /** Switch to smartrewards page */
     void gotoSmartrewardsPage();
+    /** Switch to smartrewards page */
+    void gotoSmartvotingPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

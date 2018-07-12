@@ -164,6 +164,7 @@ private:
 
 
 public:
+    CFlatDB(){}
     CFlatDB(std::string strFilenameIn, std::string strMagicMessageIn)
     {
         pathDB = GetDataDir() / strFilenameIn;

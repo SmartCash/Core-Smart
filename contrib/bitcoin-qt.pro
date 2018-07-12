@@ -2,6 +2,7 @@ FORMS += \
     ../src/qt/forms/aboutdialog.ui \
     ../src/qt/forms/addressbookpage.ui \
     ../src/qt/forms/askpassphrasedialog.ui \
+    ../src/qt/forms/castvotesdialog.ui \
     ../src/qt/forms/coincontroldialog.ui \
     ../src/qt/forms/nodecontroldialog.ui \
     ../src/qt/forms/editaddressdialog.ui \
@@ -18,6 +19,8 @@ FORMS += \
     ../src/qt/forms/signverifymessagedialog.ui \
     ../src/qt/forms/smartnodelist.ui \
     ../src/qt/forms/smartrewardslist.ui \
+    ../src/qt/forms/smartvoting.ui \
+    ../src/qt/forms/smartproposal.ui \
     ../src/qt/forms/transactiondescdialog.ui \
     ../src/qt/forms/zerocoinpage.ui \
 

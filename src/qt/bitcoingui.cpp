@@ -107,6 +107,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *platformStyle, const NetworkStyle *n
     aboutQtAction(0),
     smartnodeAction(0),
     smartrewardsAction(0),
+    smartvotingAction(0),
     openRPCConsoleAction(0),
     openAction(0),
     showHelpMessageAction(0),
@@ -337,6 +338,13 @@ void BitcoinGUI::createActions()
     smartrewardsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
     tabGroup->addAction(smartrewardsAction);
 
+    smartvotingAction = new QAction(platformStyle->SingleColorIcon(":/icons/smartrewards"), tr("&SmartHive"), this);
+    smartvotingAction->setStatusTip(tr("Vote for SmartHive proposals"));
+    smartvotingAction->setToolTip(smartvotingAction->statusTip());
+    smartvotingAction->setCheckable(true);
+    smartvotingAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
+    tabGroup->addAction(smartvotingAction);
+
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
     // can be triggered from the tray menu, and need to show the GUI to be useful.    
@@ -344,6 +352,8 @@ void BitcoinGUI::createActions()
     connect(smartnodeAction, SIGNAL(triggered()), this, SLOT(gotoSmartnodePage()));
     connect(smartrewardsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(smartrewardsAction, SIGNAL(triggered()), this, SLOT(gotoSmartrewardsPage()));
+    connect(smartvotingAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(smartvotingAction, SIGNAL(triggered()), this, SLOT(gotoSmartvotingPage()));
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
     connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
@@ -498,6 +508,7 @@ void BitcoinGUI::createToolBars()
         //toolbar->addAction(zerocoinAction);
         toolbar->addAction(smartnodeAction);
         toolbar->addAction(smartrewardsAction);
+        toolbar->addAction(smartvotingAction);
         overviewAction->setChecked(true);
     }
 }
@@ -602,6 +613,7 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     //zerocoinAction->setEnabled(enabled);
     smartnodeAction->setEnabled(enabled);
     smartrewardsAction->setEnabled(enabled);
+    smartvotingAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
@@ -744,6 +756,13 @@ void BitcoinGUI::gotoSmartrewardsPage()
     QSettings settings;
     smartrewardsAction->setChecked(true);
     if (walletFrame) walletFrame->gotoSmartrewardsPage();
+}
+
+void BitcoinGUI::gotoSmartvotingPage()
+{
+    QSettings settings;
+    smartvotingAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoSmartvotingPage();
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()
