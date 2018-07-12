@@ -57,7 +57,7 @@ UniValue smartmining(const UniValue& params, bool fHelp)
 
     if (fHelp  ||
         (
-         strCommand != "status" && strCommand != "keys" && strCommand != "blocks" && strCommand != "count" && strCommand != "block" && strCommand != "disable" && strCommand != "enable" && strCommand != "warnings"))
+         strCommand != "status" && strCommand != "keys" && strCommand != "blocks" && strCommand != "count" && strCommand != "block" && strCommand != "blocktime" && strCommand != "disable" && strCommand != "enable" && strCommand != "warnings"))
             throw std::runtime_error(
                 "smartmining \"command\"...\n"
                 "Set of commands to execute smartmining related actions\n"
@@ -66,8 +66,9 @@ UniValue smartmining(const UniValue& params, bool fHelp)
                 "\nAvailable commands:\n"
                 "  status                - Print the current status of the enforcement and the keys.\n"
                 "  block :height         - Print the key used at :height.\n"
-                "  blocks :blocks        - Print a list of the keys used in the latest :blocks blocks.\n"
-                "  count :blocks         - Print a summary of the keys used in the latest :blocks blocks.\n"
+                "  blocks :blocks        - Print a list of the keys used in the last :blocks blocks.\n"
+                "  count :blocks         - Print a summary of the keys used in the last :blocks blocks.\n"
+                "  blocktime :blocks     - Print the avg blocktime of the last :blocks blocks.\n"
                 //"  warnings :count       - Check the last :count blocks for strange abnormalities.\n"
                 );
 
@@ -277,6 +278,71 @@ UniValue smartmining(const UniValue& params, bool fHelp)
 
         throw runtime_error(
             "smartmining blocks <blockCount>\n"
+            "<blockCount> is the number of past blocks to check.\n");
+
+    }
+
+    if (strCommand == "blocktime")
+    {
+
+        UniValue obj = UniValue(UniValue::VOBJ);
+
+        if (params.size() == 2 && params[1].get_int64() > 0){
+
+            LOCK(cs_main);
+
+            CBlockIndex *pIndex = chainActive.Tip();
+            CBlockIndex *pLastIndex = NULL;
+            int64_t nCount = params[1].get_int64();
+            int64_t nStartHeight = pIndex->nHeight - nCount + 1;
+            int64_t nBlockTime = 0;
+            int64_t nOddCount = 0;
+            int64_t nOddSum = 0;
+            int64_t nEvenCount = 0;
+            int64_t nEvenSum = 0;
+            int64_t nMinBlockTime = INT_MAX;
+            int64_t nMaxBlockTime = INT_MIN;
+
+            pIndex = chainActive[nStartHeight];
+            pLastIndex = chainActive[nStartHeight - 1 ];
+
+            if( pLastIndex ){
+
+                while( pIndex ){
+
+                    nBlockTime = pIndex->GetBlockTime() - pLastIndex->GetBlockTime();
+
+                    if( pIndex->nHeight % 2 ){
+                        ++nOddCount;
+                        nOddSum += nBlockTime;
+                    }else{
+                        ++nEvenCount;
+                        nEvenSum += nBlockTime;
+                    }
+
+                    if( nBlockTime < nMinBlockTime ) nMinBlockTime = nBlockTime;
+                    if( nBlockTime > nMaxBlockTime ) nMaxBlockTime = nBlockTime;
+
+                    pLastIndex = pIndex;
+                    pIndex = chainActive.Next(pIndex);
+                }
+
+                obj.pushKV("shortest", nMinBlockTime);
+                obj.pushKV("longest", nMaxBlockTime);
+                if( nCount > 1 ){
+                    obj.pushKV("odd", nOddSum / nOddCount );
+                    obj.pushKV("even", nEvenSum / nEvenCount );
+                }
+
+                obj.pushKV("average", (nOddSum + nEvenSum) / (nOddCount + nEvenCount));
+
+            }
+
+            return obj;
+        }
+
+        throw runtime_error(
+            "smartmining blocktime <blockCount>\n"
             "<blockCount> is the number of past blocks to check.\n");
     }
 
