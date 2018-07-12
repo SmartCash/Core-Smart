@@ -35,10 +35,14 @@ int GetMeanListCount()
     return mapSmartnodeListCounts.size() ? nTotal / mapSmartnodeListCounts.size() : 0;
 }
 
-void CSmartnodeSync::Fail()
+void CSmartnodeSync::Fail(CConnman& connman)
 {
     nTimeLastFailure = GetTime();
     nRequestedSmartnodeAssets = SMARTNODE_SYNC_FAILED;
+
+    g_connman->ForEachNode(CConnman::FullyConnectedOnly, [](CNode* pnode) {
+        pnode->fDisconnect = true;
+    });
 }
 
 void CSmartnodeSync::Reset()
@@ -122,7 +126,7 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
             // TRY_LOCK(cs_vNodes, lockRecv);
             // if(lockRecv) { ... }
 
-            connman.ForEachNode(CConnman::AllNodes, [](CNode* pnode) {
+            connman.ForEachNode(CConnman::FullyConnectedOnly, [](CNode* pnode) {
                 netfulfilledman.AddFulfilledRequest(pnode->addr, "full-sync");
             });
 
@@ -251,10 +255,10 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                 if(GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS) {
                     int nMeanListCount = GetMeanListCount();
                     LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- timeout\n", nTick, nRequestedSmartnodeAssets);
-                    if (nRequestedSmartnodeAttempt == 0 || !nMeanListCount || mnodeman.size() < nMeanListCount * 0.9 ) {
+                    if (nRequestedSmartnodeAttempt == 0 || (nMeanListCount && mnodeman.size() < nMeanListCount * 0.9) ) {
                         LogPrintf("CSmartnodeSync::ProcessTick -- ERROR: failed to sync %s\n", GetAssetName());
                         // there is no way we can continue without smartnode list, fail here and try later
-                        Fail();
+                        Fail(connman);
                         connman.ReleaseNodeVector(vNodesCopy);
                         return;
                     }
@@ -288,7 +292,7 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                     if (nRequestedSmartnodeAttempt == 0) {
                         LogPrintf("CSmartnodeSync::ProcessTick -- ERROR: failed to sync %s\n", GetAssetName());
                         // probably not a good idea to proceed without winner list
-                        Fail();
+                        Fail(connman);
                         connman.ReleaseNodeVector(vNodesCopy);
                         return;
                     }

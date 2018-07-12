@@ -255,13 +255,13 @@ void PrepareShutdown()
 
     bool fCache;
 
-    fCache = GetBoolArg("-cachenodelist", false);
+    fCache = GetBoolArg("-cachenodelist", DEFAULT_CACHE_NODES);
     if( fCache ){
         CFlatDB<CSmartnodeMan> flatdb1("sncache.dat", "magicSmartnodeCache");
         flatdb1.Dump(mnodeman);
     }
 
-    fCache = GetBoolArg("-cachewinners", true);
+    fCache = GetBoolArg("-cachewinners", DEFAULT_CACHE_WINNERS);
     if( fCache ){
         CFlatDB<CSmartnodePayments> flatdb2("snpayments.dat", "magicSmartnodePaymentsCache");
         flatdb2.Dump(mnpayments);
@@ -269,7 +269,7 @@ void PrepareShutdown()
 
     //CFlatDB<CGovernanceManager> flatdb3("governance.dat", "magicGovernanceCache");
     //flatdb3.Dump(governance);
-    fCache = GetBoolArg("-cachefulfilled", true);
+    fCache = GetBoolArg("-cachefulfilled", DEFAULT_CACHE_NETFULLFILLED);
     if( fCache ){
         CFlatDB<CNetFulfilledRequestManager> flatdb4("netfulfilled.dat", "magicFulfilledCache");
         flatdb4.Dump(netfulfilledman);
@@ -2070,33 +2070,48 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
         bool fCache;
 
-        fCache= GetBoolArg("-cachenodelist", true);
+        fCache = GetBoolArg("-cachenodelist", DEFAULT_CACHE_NODES);
         if( fCache ){
             strDBName = "sncache.dat";
             uiInterface.InitMessage(_("Loading smartnode cache..."));
             CFlatDB<CSmartnodeMan> flatdb1(strDBName, "magicSmartnodeCache");
             if(!flatdb1.Load(mnodeman)) {
-                return InitError(_("Failed to load smartnode cache from") + "\n" + (pathDB / strDBName).string());
+                InitError(_("Failed to load smartnode cache from") + "\n" + (pathDB / strDBName).string());
+                try {
+                    boost::filesystem::remove((pathDB / strDBName).string());
+                } catch (const boost::filesystem::filesystem_error& e) {
+                    LogPrintf("Unable to remove sncache.dat: %s\n", e.what());
+                }
             }
         }
 
-        fCache= GetBoolArg("-cachewinners", true);
+        fCache = GetBoolArg("-cachewinners", DEFAULT_CACHE_WINNERS);
         if( fCache ){
             strDBName = "snpayments.dat";
             uiInterface.InitMessage(_("Loading smartnode payment cache..."));
             CFlatDB<CSmartnodePayments> flatdb2(strDBName, "magicSmartnodePaymentsCache");
             if(!flatdb2.Load(mnpayments)) {
-                return InitError(_("Failed to load smartnode payments cache from") + "\n" + (pathDB / strDBName).string());
+                InitWarning(_("Failed to load smartnode payments cache from") + "\n" + (pathDB / strDBName).string());
+                try {
+                    boost::filesystem::remove((pathDB / strDBName).string());
+                } catch (const boost::filesystem::filesystem_error& e) {
+                    LogPrintf("Unable to remove snpayments.dat: %s\n", e.what());
+                }
             }
         }
 
-        fCache= GetBoolArg("-cachefulfilled", true);
+        fCache = GetBoolArg("-cachefulfilled", DEFAULT_CACHE_NETFULLFILLED);
         if( fCache ){
             strDBName = "netfulfilled.dat";
             uiInterface.InitMessage(_("Loading fulfilled requests cache..."));
             CFlatDB<CNetFulfilledRequestManager> flatdb4(strDBName, "magicFulfilledCache");
             if(!flatdb4.Load(netfulfilledman)) {
-                return InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());
+                InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());
+                try {
+                    boost::filesystem::remove((pathDB / strDBName).string());
+                } catch (const boost::filesystem::filesystem_error& e) {
+                    LogPrintf("Unable to remove netfulfilled.dat: %s\n", e.what());
+                }
             }
         }
     }

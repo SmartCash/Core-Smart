@@ -9,6 +9,10 @@
 
 #include <univalue.h>
 
+static const bool DEFAULT_CACHE_NODES = true;
+static const bool DEFAULT_CACHE_WINNERS= true;
+static const bool DEFAULT_CACHE_NETFULLFILLED = true;
+
 class CSmartnodeSync;
 
 static const int SMARTNODE_SYNC_FAILED          = -1;
@@ -46,7 +50,7 @@ private:
     // ... or failed
     int64_t nTimeLastFailure;
 
-    void Fail();
+    void Fail(CConnman& connman);
     void ClearFulfilledRequests(CConnman& connman);
 
 public:
