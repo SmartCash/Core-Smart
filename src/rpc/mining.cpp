@@ -204,7 +204,7 @@ UniValue generate(const UniValue& params, bool fHelp)
     boost::shared_ptr<CReserveScript> coinbaseScript;
     GetMainSignals().ScriptForMining(coinbaseScript);
 
-    if (!smartnodeSync.IsSynced())
+    if (!smartnodeSync.IsSynced() && !fDebug)
          throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is syncing with network...");
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
@@ -492,7 +492,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is downloading blocks...");
 
-    if (!smartnodeSync.IsSynced())
+    if (!smartnodeSync.IsSynced() && !fDebug)
          throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is syncing with network...");
 
     CSmartAddress signingAddress;
