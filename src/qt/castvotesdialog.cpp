@@ -142,23 +142,34 @@ void CastVotesDialog::voted(const SmartProposalVote &vote, const QJsonArray &res
 
         ui->results->append(QString("<br>Result for proposal <b>#%1</b>").arg(vote.GetProposalId()));
 
+        SmartProposalVote storeVote(vote);
+
+        storeVote.ResetVotingPower();
+
         for( auto result : results ){
             QJsonObject obj = result.toObject();
 
             QString status = obj["status"].toString();
+            QString address = obj["smartAddress"].toString();
+            double amount = obj["amount"].toDouble();
+
             QString resultString;
 
             if( status == "OK" ){
                 resultString = SuccessText(status);
+                storeVote.IncreaseVotingPower(amount * COIN);
             }else{
                 resultString = ErrorText(status);
             }
 
-            ui->results->append(QString("  -> %1 -- <b>%2<b>").arg(obj["smartAddress"].toString(),resultString ));
+            ui->results->append(QString("  -> %1 | %2 SMART <b>%3<b>").arg(address).arg((int)amount).arg(resultString));
         }
 
-        votingManager->Cache().AddVote(vote);
-        votingManager->SyncCache();
+        if( storeVote.GetVotingPower() ){
+            votingManager->Cache().AddVote(storeVote);
+            votingManager->SyncCache();
+        }
+
     }
 
     voteOne();

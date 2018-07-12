@@ -133,7 +133,6 @@ public:
         mapSignatures.clear();
     }
 
-
     ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
@@ -160,6 +159,8 @@ public:
     }
 
     void AddVote(std::string address, std::string message);
+    void ResetVotingPower(){nVotingPower = 0;}
+    void IncreaseVotingPower( CAmount amount ){nVotingPower += amount;}
 
     int GetProposalId() const {return proposalId;}
     CAmount GetVotingPower() const {return nVotingPower;}
