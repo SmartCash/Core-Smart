@@ -19,6 +19,19 @@ namespace Ui {
     class SmartnodeList;
 }
 
+class SmartnodeWidgetItem : public QTableWidgetItem
+{
+    int intValue;
+public:
+    SmartnodeWidgetItem(const QString &title) : QTableWidgetItem(title, Type){
+        this->intValue = -1;
+    }
+    SmartnodeWidgetItem(const QString &title, const int intValue) : QTableWidgetItem(title, Type){
+        this->intValue = intValue;
+    }
+    bool operator<(const QTableWidgetItem &other) const;
+};
+
 class ClientModel;
 class WalletModel;
 

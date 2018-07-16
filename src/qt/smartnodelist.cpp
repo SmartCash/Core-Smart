@@ -17,6 +17,18 @@
 #include <QTimer>
 #include <QMessageBox>
 
+
+bool SmartnodeWidgetItem::operator<(const QTableWidgetItem &other) const {
+
+    const SmartnodeWidgetItem *otherSN = static_cast<const SmartnodeWidgetItem*>(&other);
+
+    if (intValue != -1 && otherSN->intValue != -1){
+        return intValue < otherSN->intValue;
+    }
+
+    return QTableWidgetItem::operator<(other);
+}
+
 int GetOffsetFromUtc()
 {
 #if QT_VERSION < 0x050200
@@ -202,14 +214,22 @@ void SmartnodeList::updateMySmartnodeInfo(QString strAlias, QString strAddr, con
     smartnode_info_t infoMn;
     bool fFound = mnodeman.GetSmartnodeInfo(outpoint, infoMn);
 
-    QTableWidgetItem *aliasItem = new QTableWidgetItem(strAlias);
-    QTableWidgetItem *addrItem = new QTableWidgetItem(fFound ? QString::fromStdString(infoMn.addr.ToString()) : strAddr);
-    QTableWidgetItem *protocolItem = new QTableWidgetItem(QString::number(fFound ? infoMn.nProtocolVersion : -1));
-    QTableWidgetItem *statusItem = new QTableWidgetItem(QString::fromStdString(fFound ? CSmartnode::StateToString(infoMn.nActiveState) : "MISSING"));
-    QTableWidgetItem *activeSecondsItem = new QTableWidgetItem(QString::fromStdString(DurationToDHMS(fFound ? (infoMn.nTimeLastPing - infoMn.sigTime) : 0)));
-    QTableWidgetItem *lastSeenItem = new QTableWidgetItem(QString::fromStdString(DateTimeStrFormat("%Y-%m-%d %H:%M",
-                                                                                                   fFound ? infoMn.nTimeLastPing + GetOffsetFromUtc() : 0)));
-    QTableWidgetItem *pubkeyItem = new QTableWidgetItem(QString::fromStdString(fFound ? CBitcoinAddress(infoMn.pubKeyCollateralAddress.GetID()).ToString() : ""));
+    SmartnodeWidgetItem *aliasItem = new SmartnodeWidgetItem(strAlias);
+    SmartnodeWidgetItem *addrItem = new SmartnodeWidgetItem(fFound ? QString::fromStdString(infoMn.addr.ToString()) : strAddr);
+    SmartnodeWidgetItem *protocolItem = new SmartnodeWidgetItem(QString::number(fFound ? infoMn.nProtocolVersion : -1));
+    SmartnodeWidgetItem *statusItem = new SmartnodeWidgetItem(QString::fromStdString(fFound ? CSmartnode::StateToString(infoMn.nActiveState) : "MISSING"));
+
+    int activeSeconds = fFound ? (infoMn.nTimeLastPing - infoMn.sigTime) : 0;
+    activeSeconds = activeSeconds < 0 ? 0: activeSeconds;
+
+    QString activeSecondsTitle = QString::fromStdString(DurationToDHMS(activeSeconds));
+    SmartnodeWidgetItem *activeSecondsItem = new SmartnodeWidgetItem(activeSecondsTitle, activeSeconds);
+
+    int lastSeen = fFound ? infoMn.nTimeLastPing + GetOffsetFromUtc() : 0;
+    QString lastSeenTitle = QString::fromStdString(DateTimeStrFormat("%Y-%m-%d %H:%M",lastSeen));
+    SmartnodeWidgetItem *lastSeenItem = new SmartnodeWidgetItem(lastSeenTitle, lastSeen);
+
+    SmartnodeWidgetItem *pubkeyItem = new SmartnodeWidgetItem(QString::fromStdString(fFound ? CBitcoinAddress(infoMn.pubKeyCollateralAddress.GetID()).ToString() : ""));
 
     ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_ALIAS, aliasItem);
     ui->tableWidgetMySmartnodes->setItem(nNewRow, COLUMN_ADDRESS, addrItem);
@@ -294,12 +314,21 @@ void SmartnodeList::updateNodeList()
         CSmartnode mn = mnpair.second;
         // populate list
         // Address, Protocol, Status, Active Seconds, Last Seen, Pub Key
-        QTableWidgetItem *addressItem = new QTableWidgetItem(QString::fromStdString(mn.addr.ToString()));
-        QTableWidgetItem *protocolItem = new QTableWidgetItem(QString::number(mn.nProtocolVersion));
-        QTableWidgetItem *statusItem = new QTableWidgetItem(QString::fromStdString(mn.GetStatus()));
-        QTableWidgetItem *activeSecondsItem = new QTableWidgetItem(QString::fromStdString(DurationToDHMS(mn.lastPing.sigTime - mn.sigTime)));
-        QTableWidgetItem *lastSeenItem = new QTableWidgetItem(QString::fromStdString(DateTimeStrFormat("%Y-%m-%d %H:%M", mn.lastPing.sigTime + offsetFromUtc)));
-        QTableWidgetItem *pubkeyItem = new QTableWidgetItem(QString::fromStdString(CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString()));
+        SmartnodeWidgetItem *addressItem = new SmartnodeWidgetItem(QString::fromStdString(mn.addr.ToString()));
+        SmartnodeWidgetItem *protocolItem = new SmartnodeWidgetItem(QString::number(mn.nProtocolVersion));
+        SmartnodeWidgetItem *statusItem = new SmartnodeWidgetItem(QString::fromStdString(mn.GetStatus()));
+
+        int activeSeconds = mn.lastPing.sigTime - mn.sigTime;
+        activeSeconds = activeSeconds < 0 ? 0: activeSeconds;
+
+        QString activeSecondsTitle = QString::fromStdString(DurationToDHMS(activeSeconds));
+        SmartnodeWidgetItem *activeSecondsItem = new SmartnodeWidgetItem(activeSecondsTitle, activeSeconds);
+
+        int lastSeen = mn.lastPing.sigTime + offsetFromUtc;
+        QString lastSeenTitle = QString::fromStdString(DateTimeStrFormat("%Y-%m-%d %H:%M",lastSeen));
+        SmartnodeWidgetItem *lastSeenItem = new SmartnodeWidgetItem(lastSeenTitle, lastSeen);
+
+        SmartnodeWidgetItem *pubkeyItem = new SmartnodeWidgetItem(QString::fromStdString(CBitcoinAddress(mn.pubKeyCollateralAddress.GetID()).ToString()));
 
         if (strCurrentFilter != "")
         {
