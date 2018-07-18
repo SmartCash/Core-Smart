@@ -12,9 +12,6 @@ SmartProposalWidget::SmartProposalWidget(SmartProposal * proposal, QWidget *pare
 {
     ui->setupUi(this);
 
-    ui->votedTypeLabel->setHidden(false);
-    ui->votedAmountLabel->setHidden(true);
-
     voteSelection.addButton(ui->disabledButton, 0);
     voteSelection.addButton(ui->yesButton, 1);
     voteSelection.addButton(ui->noButton, 2);
@@ -53,15 +50,8 @@ SmartProposalWidget::SmartProposalWidget(SmartProposal * proposal, QWidget *pare
     QString smartString = QString::number((int)proposal->getAmountSmart());
     QString usdString = QString::number((int)proposal->getAmountUSD());
 
-    QChar thin_sp(THIN_SP_CP);
-
-    int q_size = smartString.size();
-    for (int i = 3; i < q_size; i += 3)
-        smartString.insert(q_size - i, thin_sp);
-
-    q_size = usdString.size();
-    for (int i = 3; i < q_size; i += 3)
-        usdString.insert(q_size - i, thin_sp);
+    AddThousandsSpaces(smartString);
+    AddThousandsSpaces(usdString);
 
     ui->amountSmartLabel->setText(QString("%1 USD").arg(usdString));
     ui->amountUSDLabel->setText(QString("%1 SMART").arg(smartString));
@@ -73,6 +63,41 @@ SmartProposalWidget::SmartProposalWidget(SmartProposal * proposal, QWidget *pare
     ui->progressYes->setValue( (int)proposal->getPercentYes() );
     ui->progressNo->setValue( (int)proposal->getPercentNo() );
     ui->progressAbstain->setValue( (int)proposal->getPercentAbstain() );
+
+    int yesVoted = proposal->getVotedAmount(SmartHiveVoting::Yes);
+    int noVoted = proposal->getVotedAmount(SmartHiveVoting::No);
+    int abstainVoted = proposal->getVotedAmount(SmartHiveVoting::Abstain);
+    int invalidVotes = proposal->getVotedAmount(SmartHiveVoting::Disabled);
+
+    QString votedString = "";
+
+    if( yesVoted ){
+        QString yesString = QString::number(yesVoted);
+        AddThousandsSpaces(yesString);
+        votedString += "YES - " + yesString + "\n";
+    }
+
+    if( noVoted ){
+        QString noString = QString::number(noVoted);
+        AddThousandsSpaces(noString);
+        votedString +=  "NO - " + noString + "\n";
+    }
+
+    if( abstainVoted ){
+        QString abstainString = QString::number(abstainVoted);
+        AddThousandsSpaces(abstainString);
+        votedString += "ABSTAIN - " + abstainString + "\n";
+    }
+
+    if( invalidVotes ){
+        QString invalidString = QString::number(invalidVotes);
+        AddThousandsSpaces(invalidString);
+        votedString += "INVALIDATED - " + invalidString + "\n";
+    }
+
+    if( votedString != "" ){
+        ui->votedLabel->setText(votedString);
+    }
 
     connect(ui->viewProposalButton, SIGNAL(clicked()),this, SLOT(viewProposal()));
     connect(ui->disabledButton, SIGNAL(clicked()), this, SLOT(voteButtonClicked()));
@@ -104,23 +129,8 @@ SmartHiveVoting::Type SmartProposalWidget::getVoteType()
     return SmartHiveVoting::Disabled;
 }
 
-void SmartProposalWidget::setVoted(const SmartProposalVote &vote)
+bool SmartProposalWidget::voted()
 {
-
-    if( vote.GetVotingPower() ){
-        ui->votedTypeLabel->setHidden(false);
-        ui->votedAmountLabel->setHidden(false);
-        ui->votedTypeLabel->setText(QString::fromStdString(vote.GetVoteType()));
-
-        QString votedText = QString::number((int)(vote.GetVotingPower() / COIN));
-
-        QChar thin_sp(THIN_SP_CP);
-
-        int q_size = votedText.size();
-        for (int i = 3; i < q_size; i += 3)
-            votedText.insert(q_size - i, thin_sp);
-
-        ui->votedAmountLabel->setText(votedText + QString(" SMART"));
-    }
-
+    return ui->votedLabel->text() != "Nothing";
 }
+

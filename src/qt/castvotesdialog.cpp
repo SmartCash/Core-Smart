@@ -83,12 +83,12 @@ void CastVotesDialog::start()
     vecVotes.clear();
 
     ui->results->append(QString("<br>Signing overall <b>%1</b> message%2 for <b>%3</b> proposal%4.<br>")
-                        .arg(vecAddresses.size() * mapVotings.size())
-                        .arg(vecAddresses.size() * mapVotings.size() > 1 ? "s" : "")
+                        .arg(votingManager->GetEnabledAddressCount() * mapVotings.size())
+                        .arg(votingManager->GetEnabledAddressCount() * mapVotings.size() > 1 ? "s" : "")
                         .arg(mapVotings.size())
                         .arg(mapVotings.size() > 1 ? "s" : ""));
 
-    votingManager->CreateVotes(mapVotings, vecAddresses, nVotingPower, mapResults);
+    votingManager->CreateVotes(mapVotings, mapResults);
 
     for( auto result : mapResults ){
         if( result.second == "" ){
@@ -111,7 +111,7 @@ void CastVotesDialog::voteOne()
 
         ui->results->append(QString("<br>Vote <b>%1</b> with <b>%2 SMART</b> for proposal <b>#%3</b><br>")
                             .arg(QString::fromStdString(vote.GetVoteType()))
-                            .arg(vote.GetVotingPower()/COIN)
+                            .arg(vote.GetVotingPower())
                             .arg(vote.GetProposalId()));
 
         ui->results->append("Wait for response");
@@ -142,10 +142,6 @@ void CastVotesDialog::voted(const SmartProposalVote &vote, const QJsonArray &res
 
         ui->results->append(QString("<br>Result for proposal <b>#%1</b>").arg(vote.GetProposalId()));
 
-        SmartProposalVote storeVote(vote);
-
-        storeVote.ResetVotingPower();
-
         for( auto result : results ){
             QJsonObject obj = result.toObject();
 
@@ -157,17 +153,11 @@ void CastVotesDialog::voted(const SmartProposalVote &vote, const QJsonArray &res
 
             if( status == "OK" ){
                 resultString = SuccessText(status);
-                storeVote.IncreaseVotingPower(amount * COIN);
             }else{
                 resultString = ErrorText(status);
             }
 
             ui->results->append(QString("  -> %1 | %2 SMART <b>%3<b>").arg(address).arg((int)amount).arg(resultString));
-        }
-
-        if( storeVote.GetVotingPower() ){
-            votingManager->Cache().AddVote(storeVote);
-            votingManager->SyncCache();
         }
 
     }

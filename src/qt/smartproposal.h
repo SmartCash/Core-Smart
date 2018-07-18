@@ -21,6 +21,7 @@ public:
 
     SmartHiveVoting::Type getVoteType();
     void setVoted(const SmartProposalVote &vote);
+    bool voted();
 private:
     Ui::SmartProposalWidget *ui;
 

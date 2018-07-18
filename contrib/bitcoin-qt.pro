@@ -22,6 +22,7 @@ FORMS += \
     ../src/qt/forms/smartvoting.ui \
     ../src/qt/forms/smartproposal.ui \
     ../src/qt/forms/transactiondescdialog.ui \
+    ../src/qt/forms/voteaddressesdialog.ui \
     ../src/qt/forms/zerocoinpage.ui \
 
 RESOURCES += \

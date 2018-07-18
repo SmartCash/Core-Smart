@@ -31,11 +31,7 @@ public:
     explicit CastVotesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, QWidget *parent = 0);
     ~CastVotesDialog();
 
-    void setVoting(std::map<SmartProposal, SmartHiveVoting::Type> mapVotings, CAmount nVotingPower){
-        this->mapVotings = mapVotings;
-        this->nVotingPower = nVotingPower;
-    }
-    void setAddresses(std::vector<std::string> &vecAddresses){this->vecAddresses = vecAddresses;}
+    void setVoting(std::map<SmartProposal, SmartHiveVoting::Type> mapVotings){this->mapVotings = mapVotings;}
 
 private:
     Ui::CastVotesDialog *ui;
@@ -44,8 +40,6 @@ private:
 
     SmartVotingManager * votingManager;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVotings;
-    CAmount nVotingPower;
-    std::vector<std::string> vecAddresses;
     std::vector<SmartProposalVote> vecVotes;
     QTimer waitTimer;
 

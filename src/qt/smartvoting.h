@@ -59,14 +59,13 @@ private:
     SmartVotingManager *votingManager;
     std::vector<SmartProposalWidget*> vecProposalWidgets;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
-    std::vector<std::string> vecAddresses;
-    int64_t nVotingPower = 0;
     
 public Q_SLOTS:
     void updateUI();
     void updateProposalUI();
     void proposalsUpdated(const std::string &strErr);
     void voteChanged();
+    void selectAddresses();
     void castVotes();
     void updateRefreshLock();
     void refreshProposals(bool fForce = false);

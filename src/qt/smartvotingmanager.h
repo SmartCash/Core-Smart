@@ -19,6 +19,10 @@
 #include "amount.h"
 #include "util.h"
 #include "serialize.h"
+#include "sync.h"
+
+class WalletModel;
+class SmartVotingAddress;
 
 namespace SmartHiveVoting {
 
@@ -63,6 +67,9 @@ class SmartProposal{
     double percentYes;
     double percentNo;
     double percentAbstain;
+    std::vector <SmartVotingAddress> yesVotes;
+    std::vector <SmartVotingAddress> noVotes;
+    std::vector <SmartVotingAddress> abstainVotes;
 
 public:
 
@@ -100,13 +107,14 @@ public:
     double getPercentYes() const {return percentYes;}
     double getPercentNo() const {return percentNo;}
     double getPercentAbstain() const {return percentAbstain;}
+    int getVotedAmount(SmartHiveVoting::Type type);
 };
 
 class SmartProposalVote{
 
     int proposalId;
     std::string voteType;
-    std::map<std::string, std::string> mapSignatures;
+    std::map<SmartVotingAddress, std::string> mapSignatures;
     CAmount nVotingPower;
 
 public:
@@ -158,39 +166,11 @@ public:
         return a.proposalId < b.proposalId;
     }
 
-    void AddVote(std::string address, std::string message);
-    void ResetVotingPower(){nVotingPower = 0;}
-    void IncreaseVotingPower( CAmount amount ){nVotingPower += amount;}
-
+    void AddVote(const SmartVotingAddress &address, const std::string &message);
     int GetProposalId() const {return proposalId;}
     CAmount GetVotingPower() const {return nVotingPower;}
     std::string GetVoteType() const {return voteType;}
-    std::string ToJson() const;
-};
-
-class SmartVotingCache
-{
-private:
-    std::map<int, SmartProposalVote> mapVoted;
-
-public:
-    SmartVotingCache(){}
-
-    ADD_SERIALIZE_METHODS
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(mapVoted);
-    }
-
-    void AddVote(const SmartProposalVote &vote){mapVoted[vote.GetProposalId()] = vote;}
-    bool HasVote(int proposalId) {return mapVoted.count(proposalId) > 0;}
-    SmartProposalVote GetVote(int proposalId) {return mapVoted[proposalId];}
-    std::string ToString() const{return strprintf("SmartVotingCache(stored votes: %d)",mapVoted.size());}
-
-    // Dummies..for the flatDB.
-    void CheckAndRemove(){}
-    void Clear(){}
+    QString ToJson() const;
 };
 
 class SmartHiveRequest: public QNetworkRequest
@@ -205,6 +185,38 @@ public:
     SmartHiveRequest(QString endpoint, const SmartProposalVote &vote);
 };
 
+class SmartVotingAddress
+{
+    QString address;
+    int nVotingPower;
+    bool fEnabled;
+
+public:
+    SmartVotingAddress(const std::string &address, const CAmount nAmount, const bool fEnabled = true):
+        address(QString::fromStdString(address)), nVotingPower(nAmount / COIN){}
+
+    friend bool operator==(const SmartVotingAddress& a, const SmartVotingAddress& b)
+    {
+        return (a.address == b.address);
+    }
+
+    friend bool operator!=(const SmartVotingAddress& a, const SmartVotingAddress& b)
+    {
+        return !(a == b);
+    }
+
+    friend bool operator<(const SmartVotingAddress& a, const SmartVotingAddress& b)
+    {
+        return a.address < b.address;
+    }
+
+    void SetEnabled(bool fState){fEnabled = fState;}
+    void SetVotingPower(CAmount nAmount){nVotingPower = nAmount / COIN;}
+    bool IsEnabled() const {return fEnabled;}
+    QString GetAddress() const {return address;}
+    int GetVotingPower() const {return nVotingPower;}
+};
+
 class SmartVotingManager: public QObject
 {
 
@@ -214,26 +226,34 @@ public:
 
     SmartVotingManager();
 
-    QNetworkCookie * session;
+    CCriticalSection cs_addresses;
 
-    void CreateVotes(const std::map<SmartProposal, SmartHiveVoting::Type> &mapProposals, const std::vector<std::string> &vecAddresses, CAmount nVotingPower, std::map<SmartProposalVote, std::string> &mapVotes);
+    void setWalletModel(WalletModel *model);
+
+    void CreateVotes(const std::map<SmartProposal, SmartHiveVoting::Type> &mapProposals, std::map<SmartProposalVote, std::string> &mapVotes);
     void CastVote(const SmartProposalVote &vote);
     void UpdateProposals();
-    void SyncCache();
     const std::vector<SmartProposal *> &GetProposals();
-    SmartVotingCache& Cache(){return votingCache;}
+    std::vector<SmartVotingAddress> &GetAddresses(){return vecAddresses;}
+    int GetEnabledAddressCount();
+    int GetVotingPower();
 
 private:
 
+    WalletModel * walletModel;
     QNetworkAccessManager * networkManager;
     QHash<QNetworkReply * ,SmartHiveRequest*> replies;
+    std::vector<SmartVotingAddress> vecAddresses;
     std::vector<SmartProposal*> vecProposals;
-    SmartVotingCache votingCache;
+
+    void updateAddresses();
 
 private Q_SLOTS:
     void replyFinished(QNetworkReply* reply);
+    void balanceChanged(const CAmount &balance, const CAmount &unconfirmedBalance, const CAmount &immatureBalance, const CAmount &watchOnlyBalance, const CAmount &watchUnconfBalance, const CAmount &watchImmatureBalance);
 
 Q_SIGNALS:
+    void addressesUpdated();
     void proposalsUpdated(const std::string &strErr);
     void voted(const SmartProposalVote &vote, const QJsonArray &result, const std::string &strErr);
 };

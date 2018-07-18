@@ -18,6 +18,7 @@
 #include "clientmodel.h"
 #include "castvotesdialog.h"
 #include "validation.h"
+#include "voteaddressesdialog.h"
 
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 
@@ -55,6 +56,8 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
     votingManager = new SmartVotingManager();
 
     connect(votingManager, SIGNAL(proposalsUpdated(const std::string&)),this,SLOT(proposalsUpdated(const std::string&)));
+    connect(votingManager, SIGNAL(addressesUpdated()), this, SLOT(updateUI()));
+    connect(ui->selectAddressesButton, SIGNAL(clicked()),this,SLOT(selectAddresses()));
     connect(ui->castVotesButton, SIGNAL(clicked()),this,SLOT(castVotes()));
     connect(ui->refreshButton, SIGNAL(clicked()),this,SLOT(refreshProposals()));
     connect(ui->scrollArea->verticalScrollBar(), SIGNAL(valueChanged(int)),this,SLOT(scrollChanged(int)));
@@ -71,12 +74,10 @@ SmartVotingPage::~SmartVotingPage()
 
 void SmartVotingPage::setWalletModel(WalletModel *model)
 {
-    this->walletModel = model;
+    if( walletModel ) return;
 
-    connect(this->walletModel, SIGNAL(balanceChanged(CAmount,CAmount,CAmount,CAmount,CAmount,CAmount)),
-            this,SLOT(balanceChanged(CAmount,CAmount,CAmount,CAmount,CAmount,CAmount)));
-
-    updateUI();
+    walletModel = model;
+    votingManager->setWalletModel(model);
 }
 
 void SmartVotingPage::showEvent(QShowEvent *event)
@@ -116,17 +117,17 @@ void SmartVotingPage::updateProposalUI()
 
     vecProposalWidgets.clear();
 
+    int voted = 0;
+
     for( SmartProposal *proposal : votingManager->GetProposals() ){
 
         SmartProposalWidget * proposalWidget = new SmartProposalWidget(proposal);
 
-        if( votingManager->Cache().HasVote(proposal->getProposalId())){
-            proposalWidget->setVoted(votingManager->Cache().GetVote(proposal->getProposalId()));
-        }
-
         ui->proposalList->layout()->addWidget(proposalWidget);
         vecProposalWidgets.push_back(proposalWidget);
         connect(proposalWidget,SIGNAL(voteChanged()), this, SLOT(voteChanged()));
+
+        if( proposalWidget->voted() ) voted++;
 
         LogPrint("smartvoting", "SmartVotingPage::updateUI -- added proposal %s", proposal->getTitle().toStdString());
     }
@@ -134,7 +135,7 @@ void SmartVotingPage::updateProposalUI()
     voteChanged();
 
     ui->openProposalsLabel->setText(QString("%1").arg(votingManager->GetProposals().size()));
-
+    ui->votedForLabel->setText(QString("%1").arg(voted));
 }
 
 void SmartVotingPage::updateUI()
@@ -145,39 +146,23 @@ void SmartVotingPage::updateUI()
         return;
     }
 
-    int nDisplayUnit = walletModel->getOptionsModel()->getDisplayUnit();
+    QString votingPowerString = QString::number(votingManager->GetVotingPower());
 
-    vecAddresses.clear();
-    nVotingPower = 0;
+    AddThousandsSpaces(votingPowerString);
 
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    ui->votingPowerLabel->setText(votingPowerString  + " SMART" );
+    ui->addressesLabel->setText( QString("%1 addresses").arg(votingManager->GetEnabledAddressCount()));
 
-    map<CTxDestination, CAmount> balances = pwalletMain->GetAddressBalances();
-    BOOST_FOREACH(set<CTxDestination> grouping, pwalletMain->GetAddressGroupings())
-    {
-        BOOST_FOREACH(CTxDestination address, grouping)
-        {
-            if( balances[address] >= COIN ){
-                vecAddresses.push_back(CBitcoinAddress(address).ToString());
-                nVotingPower += balances[address];
-            }
-        }
-    }
-
-    QString votingPowerString = QString::number(nVotingPower / COIN);
-
-    QChar thin_sp(THIN_SP_CP);
-    int q_size = votingPowerString.size();
-
-    for (int i = 3; i < q_size; i += 3)
-        votingPowerString.insert(q_size - i, thin_sp);
-
-    ui->votingPowerLabel->setText(votingPowerString  + " " +  BitcoinUnits::name(nDisplayUnit) );
-    ui->addressesLabel->setText( QString("%1 addresses").arg(vecAddresses.size()));
+    voteChanged();
 }
 
 void SmartVotingPage::proposalsUpdated(const string &strErr)
 {
+    if( strErr != ""){
+        QMessageBox::warning(this, "Error", QString("Could not update proposal list\n\n%1").arg(QString::fromStdString(strErr)));
+        return;
+    }
+
     updateProposalUI();
 }
 
@@ -185,21 +170,30 @@ void SmartVotingPage::voteChanged(){
 
     mapVoteProposals.clear();
 
-    for( SmartProposalWidget * proposalWidget : vecProposalWidgets)
+    for( SmartProposalWidget * proposalWidget : vecProposalWidgets){
         if( proposalWidget->getVoteType() != SmartHiveVoting::Disabled ){
             mapVoteProposals.insert(make_pair(proposalWidget->proposal, proposalWidget->getVoteType()));
         };
+    }
 
-    ui->castVotesButton->setEnabled(mapVoteProposals.size() > 0 && nVotingPower);
+    ui->castVotesButton->setEnabled(mapVoteProposals.size() && votingManager->GetVotingPower());
     ui->castVotesButton->setText(QString("Vote for %1 proposals").arg(mapVoteProposals.size()));
+
     this->repaint();
+}
+
+void SmartVotingPage::selectAddresses(){
+
+    VoteAddressesDialog dialog(platformStyle, votingManager);
+    dialog.exec();
+
+    updateUI();
 }
 
 void SmartVotingPage::castVotes(){
 
     CastVotesDialog dialog(platformStyle, votingManager);
-    dialog.setVoting(mapVoteProposals, nVotingPower);
-    dialog.setAddresses(vecAddresses);
+    dialog.setVoting(mapVoteProposals);
 
     WalletModel::EncryptionStatus encStatus = walletModel->getEncryptionStatus();
 

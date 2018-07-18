@@ -4,16 +4,15 @@
 
 #include "smartvotingmanager.h"
 #include "base58.h"
-#include "smartnode/flat-database.h"
 #include "util.h"
 #include "validation.h"
 #include "wallet/wallet.h"
+#include "walletmodel.h"
 
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QStandardPaths>
-
-CFlatDB<SmartVotingCache> flatdb;
+#include <QSslConfiguration>
 
 const QString urlHiveVotingPortal = "https://vote.smartcash.cc/api/v1/";
 
@@ -23,32 +22,23 @@ SmartHiveRequest::SmartHiveRequest(QString endpoint):
 {
     setUrl(QUrl(urlHiveVotingPortal + endpoint));
     setHeader(QNetworkRequest::ContentTypeHeader,
-                "application/x-www-form-urlencoded");
+                "application/json");
 }
 
 SmartHiveRequest::SmartHiveRequest(QString endpoint, const SmartProposalVote &vote):
     SmartHiveRequest(endpoint)
 {
     this->vote = vote;
-    setHeader(QNetworkRequest::ContentTypeHeader,
-                "application/json");
 }
 
-SmartVotingManager::SmartVotingManager()
+SmartVotingManager::SmartVotingManager(): walletModel(0), networkManager(0)
 {
     networkManager = new QNetworkAccessManager;
 
     connect(networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
-
-    flatdb = CFlatDB<SmartVotingCache>("vote.dat", "magicVotingCache");
-    if(!flatdb.Load(votingCache)) {
-        flatdb.Dump(votingCache);
-    }
-
-    LogPrintf("SmartVotingManager init -- %s", votingCache.ToString());
 }
 
-void SmartVotingManager::CreateVotes(const std::map<SmartProposal, SmartHiveVoting::Type> &mapProposals, const std::vector<std::string> &vecAddresses, CAmount nVotingPower, std::map<SmartProposalVote, std::string> &mapVotes)
+void SmartVotingManager::CreateVotes(const std::map<SmartProposal, SmartHiveVoting::Type> &mapProposals, std::map<SmartProposalVote, std::string> &mapVotes)
 {
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
@@ -57,30 +47,34 @@ void SmartVotingManager::CreateVotes(const std::map<SmartProposal, SmartHiveVoti
 
     for( auto proposal : mapProposals ){
 
-        SmartProposalVote vote(proposal.first, proposal.second, nVotingPower);
+        SmartProposalVote vote(proposal.first, proposal.second, 0);
         std::string result = "";
 
-        for( auto address : vecAddresses ){
+        for( auto voteAddress : vecAddresses ){
+
+            if( !voteAddress.IsEnabled() ) continue;
+
+            std::string address = voteAddress.GetAddress().toStdString();
 
             CBitcoinAddress addr(address);
             if (!addr.IsValid()){
                 std::string errStr = strprintf("Invalid address %s\n",address);
                 result += errStr;
-                LogPrint("smartvoting", "SmartVotingManager::Vote -- %s", errStr);
+                LogPrint("smartvoting", "SmartVotingManager::Vote -- %s\n", errStr);
             }else{
 
                 CKeyID keyID;
                 if (!addr.GetKeyID(keyID)){
                     std::string errStr = strprintf("Address does not refer to key %s\n",address);
                     result += errStr;
-                    LogPrint("smartvoting", "SmartVotingManager::Vote -- %s", errStr);
+                    LogPrint("smartvoting", "SmartVotingManager::Vote -- %s\n", errStr);
                 }else{
 
                     CKey key;
                     if (!pwalletMain->GetKey(keyID, key)){
                         std::string errStr = strprintf("Private key not available for address %s\n",address);
                         result += errStr;
-                        LogPrint("smartvoting", "SmartVotingManager::Vote -- %s", errStr);
+                        LogPrint("smartvoting", "SmartVotingManager::Vote -- %s\n", errStr);
                     }else{
 
                         CDataStream ss(SER_GETHASH, 0);
@@ -91,11 +85,11 @@ void SmartVotingManager::CreateVotes(const std::map<SmartProposal, SmartHiveVoti
                         if (!key.SignCompact(Hash(ss.begin(), ss.end()), vchSig)){
                             std::string errStr = strprintf("Sign failed for address %s\n",address);
                             result += errStr;
-                            LogPrint("smartvoting", "SmartVotingManager::Vote -- %s", errStr);
+                            LogPrint("smartvoting", "SmartVotingManager::Vote -- %s\n", errStr);
                         }else{
 
                             std::string votingMessage = EncodeBase64(&vchSig[0], vchSig.size());
-                            vote.AddVote(address, votingMessage);
+                            vote.AddVote(voteAddress, votingMessage);
                         }
                     }
                 }
@@ -112,7 +106,7 @@ void SmartVotingManager::CastVote(const SmartProposalVote &vote)
     QNetworkReply * qReply;
 
     SmartHiveRequest *castVote = new SmartHiveRequest("VoteProposals/CastVoteList", vote);
-    qReply = networkManager->post(*castVote, QString::fromStdString(vote.ToJson()).toUtf8());
+    qReply = networkManager->post(*castVote, vote.ToJson().toUtf8());
 
     if( qReply ){
         replies.insert(qReply,castVote);
@@ -123,27 +117,27 @@ void SmartVotingManager::replyFinished(QNetworkReply* reply)
 {
 
     if( !replies.contains(reply)  ){
-        LogPrint("smartvoting", "SmartVotingManager::replyFinished -- unexpected request: %s", reply->request().url().toString().toStdString());
+        LogPrint("smartvoting", "SmartVotingManager::replyFinished -- unexpected request: %s\n", reply->request().url().toString().toStdString());
         return;
     }
-
-    LogPrint("smartvoting", "SmartVotingManager::replyFinished -- status: %d",reply->error());
 
     SmartHiveRequest *request = replies.take(reply);
 
     QString&& resultString = reply->readAll();
 
+    LogPrint("smartvoting", "SmartVotingManager::replyFinished -- status: %d, result: %s\n",reply->error(), resultString.toStdString());
+
     std::string strErr = "";
 
-    if( request->endpoint == "voteproposals" ){
-        LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- voteproposals");
+    if( request->endpoint == "voteproposals/checkaddresses" ){
+        LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- voteproposals/checkaddresses\n");
+
+        QJsonObject obj = QJsonObject(QJsonDocument::fromJson(resultString.toUtf8()).object());
 
         if(reply->error() == QNetworkReply::NoError){
 
-            QJsonObject obj = QJsonObject(QJsonDocument::fromJson(resultString.toUtf8()).object());
-
             if( !obj.contains("status") && !obj.contains("result") ){
-                LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- voteproposals: invalid response");
+                LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- voteproposals/checkaddresses: invalid response\n");
                 strErr = "Invalid response received";
             }else{
 
@@ -151,7 +145,7 @@ void SmartVotingManager::replyFinished(QNetworkReply* reply)
                 QString status = obj["status"].toString();
 
                 if( status != "OK" ){
-                    LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- voteproposals: invalid status %s",status.toStdString());
+                    LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- voteproposals/checkaddresses: invalid status %s\n",status.toStdString());
                     strErr = "Invalid response received";
                 }else{
 
@@ -171,7 +165,13 @@ void SmartVotingManager::replyFinished(QNetworkReply* reply)
 
             }
         }else{
-            strErr = "Request failed";
+
+            if(!obj.contains("ERROR")){
+                strErr = strprintf("Request failed with %d",reply->error());
+            }else{
+                strErr = strprintf("Request failed - %s",obj["ERROR"].toString().toStdString());
+            }
+
         }
 
         proposalsUpdated(strErr);
@@ -180,21 +180,21 @@ void SmartVotingManager::replyFinished(QNetworkReply* reply)
 
         QJsonArray result;
 
-        LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- VoteProposals/CastVoteList");
+        LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- VoteProposals/CastVoteList\n");
 
         QJsonObject obj = QJsonObject(QJsonDocument::fromJson(resultString.toUtf8()).object());
 
         if(reply->error() == QNetworkReply::NoError){
 
             if( !obj.contains("status") && !obj.contains("result") ){
-                LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- VoteProposals/CastVoteList: invalid response");
+                LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- VoteProposals/CastVoteList: invalid response\n");
                 strErr = "Invalid response received";
             }else{
 
                 QString status = obj["status"].toString();
 
                 if( status != "OK" ){
-                    LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- VoteProposals/CastVoteList: invalid status %s",status.toStdString());
+                    LogPrint("smartvoting", "SmartVotingPage::hiveRequestDone -- VoteProposals/CastVoteList: invalid status %s\n",status.toStdString());
                     strErr = strprintf("Vote request failed %s",status.toStdString());
                 }else{
 
@@ -220,23 +220,104 @@ void SmartVotingManager::replyFinished(QNetworkReply* reply)
 
 void SmartVotingManager::UpdateProposals()
 {
-    SmartHiveRequest *getProposals = new SmartHiveRequest("voteproposals");
+    SmartHiveRequest *getProposals = new SmartHiveRequest("voteproposals/checkaddresses");
 
-    QNetworkReply * qReply = networkManager->get(*getProposals);
+    QJsonArray data;
+
+    for( auto address : vecAddresses ){
+        data.append( address.GetAddress() );
+    }
+
+    QNetworkReply * qReply = networkManager->post(*getProposals, QJsonDocument(data).toJson());
 
     if( qReply ){
         replies.insert(qReply,getProposals);
     }
 }
 
-void SmartVotingManager::SyncCache()
-{
-    flatdb.Dump(votingCache);
-}
-
 const std::vector<SmartProposal *> &SmartVotingManager::GetProposals()
 {
     return vecProposals;
+}
+
+int SmartVotingManager::GetEnabledAddressCount()
+{
+    int nCount = 0;
+
+    for( auto address : vecAddresses ){
+        if( address.IsEnabled() ) nCount++;
+    }
+
+    return nCount;
+}
+
+int SmartVotingManager::GetVotingPower()
+{
+    int nVotingPower = 0;
+
+    for( auto address : vecAddresses ){
+        if( address.IsEnabled() ) nVotingPower += address.GetVotingPower();
+    }
+
+    return nVotingPower;
+}
+
+void SmartVotingManager::setWalletModel(WalletModel *model)
+{
+    if( walletModel ) return;
+
+    walletModel = model;
+
+    connect(walletModel, SIGNAL(balanceChanged(CAmount,CAmount,CAmount,CAmount,CAmount,CAmount)),
+            this,SLOT(balanceChanged(CAmount,CAmount,CAmount,CAmount,CAmount,CAmount)));
+
+    updateAddresses();
+}
+
+
+void SmartVotingManager::balanceChanged(const CAmount &balance, const CAmount &unconfirmedBalance, const CAmount &immatureBalance, const CAmount &watchOnlyBalance, const CAmount &watchUnconfBalance, const CAmount &watchImmatureBalance)
+{
+    updateAddresses();
+}
+
+void SmartVotingManager::updateAddresses()
+{
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    LOCK(cs_addresses);
+
+    map<CTxDestination, CAmount> balances = pwalletMain->GetAddressBalances();
+    BOOST_FOREACH(set<CTxDestination> grouping, pwalletMain->GetAddressGroupings())
+    {
+        BOOST_FOREACH(CTxDestination destination, grouping)
+        {
+
+            std::string address = CBitcoinAddress(destination).ToString();
+
+            std::vector<SmartVotingAddress>::iterator inVect = std::find_if(vecAddresses.begin(), vecAddresses.end(),
+            [address](const SmartVotingAddress& voteAddress) -> bool{
+                if( address == voteAddress.GetAddress().toStdString() ) return true;
+                return false;
+            });
+
+            CAmount nAmount = balances[destination];
+            bool fEligible = nAmount >= COIN;
+            bool fKnown = inVect != vecAddresses.end();
+
+            if( fKnown && !fEligible ){
+                vecAddresses.erase(inVect);
+            }else if( fKnown ){
+                inVect->SetVotingPower(nAmount);
+            }else if( fEligible ){
+                SmartVotingAddress newAddress(address,nAmount);
+                vecAddresses.push_back(newAddress);
+            }
+
+        }
+    }
+
+    addressesUpdated();
 }
 
 SmartProposal * SmartProposal::fromJsonObject(QJsonObject &object){
@@ -255,7 +336,8 @@ SmartProposal * SmartProposal::fromJsonObject(QJsonObject &object){
        !object.contains("voteAbstain") ||
        !object.contains("percentYes") ||
        !object.contains("percentNo") ||
-       !object.contains("percentAbstain"))
+       !object.contains("percentAbstain") ||
+       !object.contains("addressStates"))
         return nullptr;
 
     SmartProposal * proposal = new SmartProposal();
@@ -276,17 +358,96 @@ SmartProposal * SmartProposal::fromJsonObject(QJsonObject &object){
     proposal->percentNo = object["percentNo"].toDouble();
     proposal->percentAbstain = object["percentAbstain"].toDouble();
 
+    QJsonArray addressStates = object["addressStates"].toArray();
+
+    for( auto state : addressStates ){
+
+        QJsonObject s = state.toObject();
+
+        LogPrint("smartvoting", "SmartProposal::fromJsonObject -- addressState %s\n", QJsonDocument(s).toJson().toStdString());
+
+        if(!s.contains("address") ||
+           !s.contains("amount") ||
+           !s.contains("type") ||
+           !s.contains("valid") )
+            continue;
+
+        QString address = s["address"].toString();
+        double amount = s["amount"].toDouble();
+        QString type = s["type"].toString();
+        bool valid = s["valid"].toBool();
+
+        LogPrint("smartvoting", "address field type %d\n",s["address"].type());
+        LogPrint("smartvoting", "amount field type %d\n",s["amount"].type());
+        LogPrint("smartvoting", "type field type %d\n",s["type"].type());
+        LogPrint("smartvoting", "valid field type %d\n",s["valid"].type());
+
+        SmartVotingAddress voteAddress(address.toStdString(),(int)amount * COIN,valid);
+
+        if( type == "YES"){
+            proposal->yesVotes.push_back(voteAddress);
+        }else if( type == "NO"){
+            proposal->noVotes.push_back(voteAddress);
+        }else if( type == "ABSTAIN"){
+            proposal->abstainVotes.push_back(voteAddress);
+        }
+
+    }
+
     return proposal;
 }
 
-void SmartProposalVote::AddVote(std::string address, std::string message)
+int SmartProposal::getVotedAmount(SmartHiveVoting::Type type)
+{
+
+    int nAmount = 0;
+
+    if( type == SmartHiveVoting::Yes ){
+
+        for( auto address : yesVotes ){
+            if( address.IsEnabled() ) nAmount += address.GetVotingPower();
+        }
+
+    }else if( type == SmartHiveVoting::No ){
+
+        for( auto address : noVotes ){
+            if( address.IsEnabled() ) nAmount += address.GetVotingPower();
+        }
+
+    }else if( type == SmartHiveVoting::Abstain ){
+
+        for( auto address : abstainVotes ){
+            if( address.IsEnabled() ) nAmount += address.GetVotingPower();
+        }
+
+    }else{
+
+        for( auto address : yesVotes ){
+            if( !address.IsEnabled() ) nAmount += address.GetVotingPower();
+        }
+
+        for( auto address : noVotes ){
+            if( !address.IsEnabled() ) nAmount += address.GetVotingPower();
+        }
+
+        for( auto address : abstainVotes ){
+            if( !address.IsEnabled() ) nAmount += address.GetVotingPower();
+        }
+
+    }
+
+    return nAmount;
+}
+
+void SmartProposalVote::AddVote(const SmartVotingAddress &address, const std::string &message)
 {
     if( !mapSignatures.count(address)){
         mapSignatures.insert(make_pair(address,message));
+        nVotingPower += address.GetVotingPower();
     }
 }
 
-string SmartProposalVote::ToJson() const
+QString SmartProposalVote::ToJson() const
 {
     QJsonObject root;
     QJsonArray votes;
@@ -297,7 +458,7 @@ string SmartProposalVote::ToJson() const
 
         QJsonObject vote;
 
-        vote["smartAddress"] = QString::fromStdString(signature.first);
+        vote["smartAddress"] = signature.first.GetAddress();
         vote["signature"] = QString::fromStdString(signature.second);
         vote["voteType"] = QString::fromStdString(voteType);
 
@@ -306,5 +467,5 @@ string SmartProposalVote::ToJson() const
 
     root["votes"] = votes;
 
-    return QJsonDocument(root).toJson().toStdString();
+    return QJsonDocument(root).toJson();
 }

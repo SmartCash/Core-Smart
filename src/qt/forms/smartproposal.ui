@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>764</width>
+    <width>768</width>
     <height>203</height>
    </rect>
   </property>
@@ -21,15 +21,12 @@ background-color: #FBFCFC;
 }
 
 QProgressBar {
-    background-color:grey;
+	background-color: rgb(201, 199, 202);
 	max-height:5px;
     border-radius: 2px;
 	height:6px;
 }
 
-QProgressBar::chunk {
-    background-color: #FEC60D;
-}
 </string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -175,6 +172,11 @@ QProgressBar::chunk {
           </item>
           <item>
            <widget class="QProgressBar" name="deadlineProgress">
+            <property name="styleSheet">
+             <string notr="true">QProgressBar::chunk {
+    background-color: #FEC60D;
+}</string>
+            </property>
             <property name="value">
              <number>24</number>
             </property>
@@ -204,6 +206,12 @@ QProgressBar::chunk {
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="font">
           <font>
            <weight>75</weight>
@@ -227,16 +235,12 @@ QProgressBar::chunk {
            <number>6</number>
           </property>
           <item>
-           <widget class="QLabel" name="votedTypeLabel">
+           <widget class="QLabel" name="votedLabel">
             <property name="text">
              <string>Nothing</string>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="votedAmountLabel">
-            <property name="text">
-             <string>Σ 245,145.93</string>
+            <property name="wordWrap">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -279,7 +283,7 @@ QProgressBar::chunk {
        <item>
         <widget class="QPushButton" name="viewProposalButton">
          <property name="text">
-          <string>View proposal</string>
+          <string>View in browser</string>
          </property>
          <property name="autoDefault">
           <bool>false</bool>
@@ -365,7 +369,7 @@ QProgressBar::chunk {
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="sizeType">
-      <enum>QSizePolicy::Minimum</enum>
+      <enum>QSizePolicy::MinimumExpanding</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -386,6 +390,11 @@ QProgressBar::chunk {
      </item>
      <item>
       <widget class="QProgressBar" name="progressYes">
+       <property name="styleSheet">
+        <string notr="true">QProgressBar::chunk {
+    background-color: rgb(156, 194, 85)
+}</string>
+       </property>
        <property name="value">
         <number>24</number>
        </property>
@@ -403,6 +412,11 @@ QProgressBar::chunk {
      </item>
      <item>
       <widget class="QProgressBar" name="progressNo">
+       <property name="styleSheet">
+        <string notr="true">QProgressBar::chunk {
+    background-color: rgb(179, 2, 0)
+}</string>
+       </property>
        <property name="value">
         <number>24</number>
        </property>
@@ -420,6 +434,11 @@ QProgressBar::chunk {
      </item>
      <item>
       <widget class="QProgressBar" name="progressAbstain">
+       <property name="styleSheet">
+        <string notr="true">QProgressBar::chunk {
+    background-color: rgb(131, 142, 162)
+}</string>
+       </property>
        <property name="value">
         <number>24</number>
        </property>
