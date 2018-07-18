@@ -47,6 +47,23 @@ int64_t GetKeyForBlock(const CBlockIndex * pIndex){
     return -1;
 }
 
+std::pair<int64_t,int64_t> GetBlockRange(const UniValue& params)
+{
+    int64_t nStart, nStop;
+
+    CBlockIndex *pIndex = chainActive.Tip();
+
+    if( params.size() > 2 ){
+        nStart = params[1].get_int64();
+        nStop = params[2].get_int64();
+    }else{
+        nStart = pIndex->nHeight - params[1].get_int64();
+        nStop = pIndex->nHeight;
+    }
+
+    return make_pair(nStart, nStop);
+}
+
 UniValue smartmining(const UniValue& params, bool fHelp)
 {
 
@@ -250,27 +267,33 @@ UniValue smartmining(const UniValue& params, bool fHelp)
 
         UniValue obj = UniValue(UniValue::VOBJ);
 
-        if (params.size() == 2 && params[1].get_int64() > 0){
+        if (params.size() >= 2 && params.size() <= 3){
 
             LOCK(cs_main);
 
-            CBlockIndex * pIndex = chainActive.Tip();
+            auto range = GetBlockRange(params);
 
-            int64_t nCount = params[1].get_int64();
-            int64_t nStartHeight = pIndex->nHeight - nCount + 1;
+            CBlockIndex *pIndex = NULL;
+            CBlockIndex *pLastIndex = NULL;
 
-            pIndex = chainActive[nStartHeight];
+            pIndex = chainActive[range.first];
+            pLastIndex = chainActive[range.first - 1 ];
 
-            while( pIndex ){
+            if( pLastIndex && range.first < range.second ){
 
-                UniValue block(UniValue::VOBJ);
+                while( pIndex && pIndex->nHeight != range.second ){
 
-                int64_t nKey = GetKeyForBlock(pIndex);
-                block.pushKV("key", nKey);
-                block.pushKV("time", pIndex->GetBlockTime());
-                obj.pushKV(std::to_string(pIndex->nHeight),block);
+                    UniValue block(UniValue::VOBJ);
 
-                pIndex = chainActive.Next(pIndex);
+                    int64_t nKey = GetKeyForBlock(pIndex);
+                    block.pushKV("key", nKey);
+                    block.pushKV("blocktime", pIndex->GetBlockTime() - pLastIndex->GetBlockTime());
+                    obj.pushKV(std::to_string(pIndex->nHeight),block);
+
+                    pLastIndex = pIndex;
+                    pIndex = chainActive.Next(pIndex);
+                }
+
             }
 
             return obj;
@@ -287,14 +310,15 @@ UniValue smartmining(const UniValue& params, bool fHelp)
 
         UniValue obj = UniValue(UniValue::VOBJ);
 
-        if (params.size() == 2 && params[1].get_int64() > 0){
+        if (params.size() >= 2 && params.size() <= 3){
 
             LOCK(cs_main);
 
-            CBlockIndex *pIndex = chainActive.Tip();
+            auto range = GetBlockRange(params);
+
+            CBlockIndex *pIndex = NULL;
             CBlockIndex *pLastIndex = NULL;
-            int64_t nCount = params[1].get_int64();
-            int64_t nStartHeight = pIndex->nHeight - nCount + 1;
+            int64_t nCount = range.second - range.first;
             int64_t nBlockTime = 0;
             int64_t nOddCount = 0;
             int64_t nOddSum = 0;
@@ -303,12 +327,12 @@ UniValue smartmining(const UniValue& params, bool fHelp)
             int64_t nMinBlockTime = INT_MAX;
             int64_t nMaxBlockTime = INT_MIN;
 
-            pIndex = chainActive[nStartHeight];
-            pLastIndex = chainActive[nStartHeight - 1 ];
+            pIndex = chainActive[range.first];
+            pLastIndex = chainActive[range.first - 1 ];
 
-            if( pLastIndex ){
+            if( pLastIndex && range.first < range.second){
 
-                while( pIndex ){
+                while( pIndex && pIndex->nHeight != range.second ){
 
                     nBlockTime = pIndex->GetBlockTime() - pLastIndex->GetBlockTime();
 
