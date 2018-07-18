@@ -262,6 +262,7 @@ private Q_SLOTS:
     void toggleNetworkActive();
 
     void showModalOverlay();
+    void showPeers();
 };
 
 class UnitDisplayStatusBarControl : public QLabel
