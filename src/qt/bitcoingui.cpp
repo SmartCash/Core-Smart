@@ -338,7 +338,7 @@ void BitcoinGUI::createActions()
     smartrewardsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
     tabGroup->addAction(smartrewardsAction);
 
-    smartvotingAction = new QAction(platformStyle->SingleColorIcon(":/icons/smartrewards"), tr("&SmartHive"), this);
+    smartvotingAction = new QAction(platformStyle->SingleColorIcon(":/icons/smarthive"), tr("&SmartVote"), this);
     smartvotingAction->setStatusTip(tr("Vote for SmartHive proposals"));
     smartvotingAction->setToolTip(smartvotingAction->statusTip());
     smartvotingAction->setCheckable(true);

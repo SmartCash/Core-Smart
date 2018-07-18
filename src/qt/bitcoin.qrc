@@ -53,6 +53,7 @@
         <file alias="zerocoin">res/icons/zerocoin.png</file>
         <file alias="smartnodes">res/icons/smartnodes.png</file>
         <file alias="smartrewards">res/icons/smartrewards.png</file>
+        <file alias="smarthive">res/icons/smarthive.png</file>
         <file alias="hd_enabled">res/icons/hd_enabled.png</file>
         <file alias="hd_disabled">res/icons/hd_disabled.png</file>
     </qresource>
