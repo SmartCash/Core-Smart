@@ -193,7 +193,7 @@ class SmartVotingAddress
 
 public:
     SmartVotingAddress(const std::string &address, const CAmount nAmount, const bool fEnabled = true):
-        address(QString::fromStdString(address)), nVotingPower(nAmount / COIN){}
+        address(QString::fromStdString(address)), nVotingPower(nAmount / COIN), fEnabled(fEnabled){}
 
     friend bool operator==(const SmartVotingAddress& a, const SmartVotingAddress& b)
     {
