@@ -9,7 +9,7 @@
 
 #include <univalue.h>
 
-static const bool DEFAULT_CACHE_NODES = true;
+static const bool DEFAULT_CACHE_NODES = false;
 static const bool DEFAULT_CACHE_WINNERS= true;
 static const bool DEFAULT_CACHE_NETFULLFILLED = true;
 
