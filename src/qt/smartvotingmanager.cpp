@@ -251,9 +251,9 @@ int SmartVotingManager::GetEnabledAddressCount()
     return nCount;
 }
 
-int SmartVotingManager::GetVotingPower()
+double SmartVotingManager::GetVotingPower()
 {
-    int nVotingPower = 0;
+    double nVotingPower = 0;
 
     for( auto address : vecAddresses ){
         if( address.IsEnabled() ) nVotingPower += address.GetVotingPower();
@@ -308,7 +308,7 @@ void SmartVotingManager::updateAddresses()
             if( fKnown && !fEligible ){
                 vecAddresses.erase(inVect);
             }else if( fKnown ){
-                inVect->SetVotingPower(nAmount);
+                inVect->SetAmount(nAmount);
             }else if( fEligible ){
                 SmartVotingAddress newAddress(address,nAmount);
                 vecAddresses.push_back(newAddress);
@@ -382,7 +382,7 @@ SmartProposal * SmartProposal::fromJsonObject(QJsonObject &object){
         LogPrint("smartvoting", "type field type %d\n",s["type"].type());
         LogPrint("smartvoting", "valid field type %d\n",s["valid"].type());
 
-        SmartVotingAddress voteAddress(address.toStdString(),(int)amount * COIN,valid);
+        SmartVotingAddress voteAddress(address.toStdString(),amount * COIN,valid);
 
         if( type == "YES"){
             proposal->yesVotes.push_back(voteAddress);
@@ -397,46 +397,46 @@ SmartProposal * SmartProposal::fromJsonObject(QJsonObject &object){
     return proposal;
 }
 
-int SmartProposal::getVotedAmount(SmartHiveVoting::Type type)
+double SmartProposal::getVotedAmount(SmartHiveVoting::Type type)
 {
 
-    int nAmount = 0;
+    double nVotingPower = 0;
 
     if( type == SmartHiveVoting::Yes ){
 
         for( auto address : yesVotes ){
-            if( address.IsEnabled() ) nAmount += address.GetVotingPower();
+            if( address.IsEnabled() ) nVotingPower += address.GetVotingPower();
         }
 
     }else if( type == SmartHiveVoting::No ){
 
         for( auto address : noVotes ){
-            if( address.IsEnabled() ) nAmount += address.GetVotingPower();
+            if( address.IsEnabled() ) nVotingPower += address.GetVotingPower();
         }
 
     }else if( type == SmartHiveVoting::Abstain ){
 
         for( auto address : abstainVotes ){
-            if( address.IsEnabled() ) nAmount += address.GetVotingPower();
+            if( address.IsEnabled() ) nVotingPower += address.GetVotingPower();
         }
 
     }else{
 
         for( auto address : yesVotes ){
-            if( !address.IsEnabled() ) nAmount += address.GetVotingPower();
+            if( !address.IsEnabled() ) nVotingPower += address.GetVotingPower();
         }
 
         for( auto address : noVotes ){
-            if( !address.IsEnabled() ) nAmount += address.GetVotingPower();
+            if( !address.IsEnabled() ) nVotingPower += address.GetVotingPower();
         }
 
         for( auto address : abstainVotes ){
-            if( !address.IsEnabled() ) nAmount += address.GetVotingPower();
+            if( !address.IsEnabled() ) nVotingPower += address.GetVotingPower();
         }
 
     }
 
-    return nAmount;
+    return nVotingPower;
 }
 
 void SmartProposalVote::AddVote(const SmartVotingAddress &address, const std::string &message)

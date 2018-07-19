@@ -146,7 +146,7 @@ void SmartVotingPage::updateUI()
         return;
     }
 
-    QString votingPowerString = QString::number(votingManager->GetVotingPower());
+    QString votingPowerString = QString::number(votingManager->GetVotingPower(),'f',2);
 
     AddThousandsSpaces(votingPowerString);
 

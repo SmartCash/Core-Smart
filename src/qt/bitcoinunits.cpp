@@ -12,7 +12,13 @@ void AddThousandsSpaces(QString &input)
 {
     QChar thin_sp(THIN_SP_CP);
 
-    int q_size = input.size();
+    int seperatorIdx = input.indexOf('.');
+    if( seperatorIdx == -1){
+        seperatorIdx = input.indexOf(',');
+    }
+
+    int q_size = seperatorIdx != -1 ? seperatorIdx : input.size();
+
     for (int i = 3; i < q_size; i += 3)
         input.insert(q_size - i, thin_sp);
 }

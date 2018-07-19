@@ -56,41 +56,41 @@ SmartProposalWidget::SmartProposalWidget(SmartProposal * proposal, QWidget *pare
     ui->amountSmartLabel->setText(QString("%1 USD").arg(usdString));
     ui->amountUSDLabel->setText(QString("%1 SMART").arg(smartString));
 
-    ui->yesLabel->setText(QString("Yes %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentYes(),'f',2)).arg(BitcoinUnits::format(nDisplayUnit, yes)));
-    ui->noLabel->setText(QString("No %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentNo(),'f',2)).arg(BitcoinUnits::format(nDisplayUnit, no)));
-    ui->abstainLabel->setText(QString("Abstain %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentAbstain(),'f',2)).arg(BitcoinUnits::format(nDisplayUnit, abstain)));
+    ui->yesLabel->setText(QString("Yes %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentYes(), 'f',2)).arg(BitcoinUnits::format(nDisplayUnit, yes)));
+    ui->noLabel->setText(QString("No %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentNo(), 'f',2)).arg(BitcoinUnits::format(nDisplayUnit, no)));
+    ui->abstainLabel->setText(QString("Abstain %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentAbstain(), 'f',2)).arg(BitcoinUnits::format(nDisplayUnit, abstain)));
 
     ui->progressYes->setValue( (int)proposal->getPercentYes() );
     ui->progressNo->setValue( (int)proposal->getPercentNo() );
     ui->progressAbstain->setValue( (int)proposal->getPercentAbstain() );
 
-    int yesVoted = proposal->getVotedAmount(SmartHiveVoting::Yes);
-    int noVoted = proposal->getVotedAmount(SmartHiveVoting::No);
-    int abstainVoted = proposal->getVotedAmount(SmartHiveVoting::Abstain);
-    int invalidVotes = proposal->getVotedAmount(SmartHiveVoting::Disabled);
+    double yesVoted = proposal->getVotedAmount(SmartHiveVoting::Yes);
+    double noVoted = proposal->getVotedAmount(SmartHiveVoting::No);
+    double abstainVoted = proposal->getVotedAmount(SmartHiveVoting::Abstain);
+    double invalidVotes = proposal->getVotedAmount(SmartHiveVoting::Disabled);
 
     QString votedString = "";
 
     if( yesVoted ){
-        QString yesString = QString::number(yesVoted);
+        QString yesString = QString::number(yesVoted, 'f', 2);
         AddThousandsSpaces(yesString);
         votedString += "YES - " + yesString + "\n";
     }
 
     if( noVoted ){
-        QString noString = QString::number(noVoted);
+        QString noString = QString::number(noVoted, 'f', 2);
         AddThousandsSpaces(noString);
         votedString +=  "NO - " + noString + "\n";
     }
 
     if( abstainVoted ){
-        QString abstainString = QString::number(abstainVoted);
+        QString abstainString = QString::number(abstainVoted, 'f', 2);
         AddThousandsSpaces(abstainString);
         votedString += "ABSTAIN - " + abstainString + "\n";
     }
 
     if( invalidVotes ){
-        QString invalidString = QString::number(invalidVotes);
+        QString invalidString = QString::number(invalidVotes, 'f', 2);
         AddThousandsSpaces(invalidString);
         votedString += "INVALIDATED - " + invalidString + "\n";
     }

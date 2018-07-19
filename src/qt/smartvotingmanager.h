@@ -50,6 +50,38 @@ enum Type{
 
 }
 
+class SmartVotingAddress
+{
+    QString address;
+    CAmount nAmount;
+    bool fEnabled;
+
+public:
+    SmartVotingAddress(const std::string &address, const CAmount nAmount, const bool fEnabled = true):
+        address(QString::fromStdString(address)), nAmount(nAmount), fEnabled(fEnabled){}
+
+    friend bool operator==(const SmartVotingAddress& a, const SmartVotingAddress& b)
+    {
+        return (a.address == b.address);
+    }
+
+    friend bool operator!=(const SmartVotingAddress& a, const SmartVotingAddress& b)
+    {
+        return !(a == b);
+    }
+
+    friend bool operator<(const SmartVotingAddress& a, const SmartVotingAddress& b)
+    {
+        return a.address < b.address;
+    }
+
+    void SetEnabled(bool fState){fEnabled = fState;}
+    void SetAmount(CAmount nAmount){this->nAmount = nAmount;}
+    bool IsEnabled() const {return fEnabled;}
+    QString GetAddress() const {return address;}
+    double GetVotingPower() const {return nAmount / COIN + ( double(nAmount % COIN) / COIN );}
+};
+
 class SmartProposal{
 
     int proposalId;
@@ -107,7 +139,7 @@ public:
     double getPercentYes() const {return percentYes;}
     double getPercentNo() const {return percentNo;}
     double getPercentAbstain() const {return percentAbstain;}
-    int getVotedAmount(SmartHiveVoting::Type type);
+    double getVotedAmount(SmartHiveVoting::Type type);
 };
 
 class SmartProposalVote{
@@ -168,7 +200,11 @@ public:
 
     void AddVote(const SmartVotingAddress &address, const std::string &message);
     int GetProposalId() const {return proposalId;}
-    CAmount GetVotingPower() const {return nVotingPower;}
+    double GetVotingPower() const {
+        double nVotingPower = 0;
+        for( auto p:mapSignatures) nVotingPower += p.first.GetVotingPower();
+        return nVotingPower;
+    }
     std::string GetVoteType() const {return voteType;}
     QString ToJson() const;
 };
@@ -183,38 +219,6 @@ public:
     SmartHiveRequest();
     SmartHiveRequest(QString endpoint);
     SmartHiveRequest(QString endpoint, const SmartProposalVote &vote);
-};
-
-class SmartVotingAddress
-{
-    QString address;
-    int nVotingPower;
-    bool fEnabled;
-
-public:
-    SmartVotingAddress(const std::string &address, const CAmount nAmount, const bool fEnabled = true):
-        address(QString::fromStdString(address)), nVotingPower(nAmount / COIN), fEnabled(fEnabled){}
-
-    friend bool operator==(const SmartVotingAddress& a, const SmartVotingAddress& b)
-    {
-        return (a.address == b.address);
-    }
-
-    friend bool operator!=(const SmartVotingAddress& a, const SmartVotingAddress& b)
-    {
-        return !(a == b);
-    }
-
-    friend bool operator<(const SmartVotingAddress& a, const SmartVotingAddress& b)
-    {
-        return a.address < b.address;
-    }
-
-    void SetEnabled(bool fState){fEnabled = fState;}
-    void SetVotingPower(CAmount nAmount){nVotingPower = nAmount / COIN;}
-    bool IsEnabled() const {return fEnabled;}
-    QString GetAddress() const {return address;}
-    int GetVotingPower() const {return nVotingPower;}
 };
 
 class SmartVotingManager: public QObject
@@ -236,7 +240,7 @@ public:
     const std::vector<SmartProposal *> &GetProposals();
     std::vector<SmartVotingAddress> &GetAddresses(){return vecAddresses;}
     int GetEnabledAddressCount();
-    int GetVotingPower();
+    double GetVotingPower();
 
 private:
 
