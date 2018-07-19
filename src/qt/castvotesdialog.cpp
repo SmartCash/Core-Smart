@@ -43,7 +43,7 @@ QString ErrorText(QString text)
 
 
 CastVotesDialog::CastVotesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, QWidget *parent) :
-    QDialog(parent),
+    QDialog(parent, Qt::WindowTitleHint),
     ui(new Ui::CastVotesDialog),
     platformStyle(platformStyle),
     votingManager(votingManager)

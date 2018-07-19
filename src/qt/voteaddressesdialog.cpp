@@ -58,7 +58,7 @@ bool VoteAddressesWidgetItem::operator<(const QTableWidgetItem &other) const {
 }
 
 VoteAddressesDialog::VoteAddressesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, QWidget *parent) :
-    QDialog(parent),
+    QDialog(parent, Qt::WindowTitleHint),
     ui(new Ui::VoteAddressesDialog),
     platformStyle(platformStyle),
     votingManager(votingManager)

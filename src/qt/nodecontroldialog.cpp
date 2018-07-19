@@ -43,7 +43,7 @@ bool CSmartnodeControlWidgetItem::operator<(const QTableWidgetItem &other) const
 }
 
 SmartnodeControlDialog::SmartnodeControlDialog(const PlatformStyle *platformStyle, SmartnodeControlMode mode, QWidget *parent) :
-    QDialog(parent),
+    QDialog(parent, Qt::WindowTitleHint),
     unlockedForEdit(COutPoint()),
     ui(new Ui::SmartnodeControlDialog),
     model(0),
