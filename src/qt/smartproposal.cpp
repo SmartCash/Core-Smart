@@ -92,7 +92,7 @@ SmartProposalWidget::SmartProposalWidget(SmartProposal * proposal, QWidget *pare
     if( invalidVotes ){
         QString invalidString = QString::number(invalidVotes, 'f', 2);
         AddThousandsSpaces(invalidString);
-        votedString += "INVALIDATED - " + invalidString + "\n";
+        votedString += "INVALID - " + invalidString + "\n";
     }
 
     if( votedString != "" ){
