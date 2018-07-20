@@ -123,7 +123,7 @@ void VoteAddressesDialog::cellChanged(int row, int column)
 
     }
 
-    QString votingPowerString = QString::number(votingManager->GetVotingPower(),'f',2);
+    QString votingPowerString = QString::number(std::round(votingManager->GetVotingPower()),'f',0);
 
     AddThousandsSpaces(votingPowerString);
 
@@ -165,7 +165,7 @@ void VoteAddressesDialog::updateUI()
         table->setItem(nRow, COLUMN_CHECKBOX, checkBoxItem);
         table->setItem(nRow, COLUMN_ADDRESS, createItem(address.GetAddress()));
 
-        QString votingPowerString = QString::number(address.GetVotingPower(),'f',2);
+        QString votingPowerString = QString::number(std::round(address.GetVotingPower()),'f',0);
 
         AddThousandsSpaces(votingPowerString);
 
@@ -175,7 +175,7 @@ void VoteAddressesDialog::updateUI()
     }
     table->setSortingEnabled(true);
 
-    QString votingPowerString = QString::number(votingManager->GetVotingPower(),'f',2);
+    QString votingPowerString = QString::number(std::round(votingManager->GetVotingPower()),'f',0);
 
     AddThousandsSpaces(votingPowerString);
 

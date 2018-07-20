@@ -45,52 +45,58 @@ SmartProposalWidget::SmartProposalWidget(SmartProposal * proposal, QWidget *pare
     CAmount no = proposal->getVoteNo() * COIN;
     CAmount abstain = proposal->getVoteAbstain() * COIN;
 
-    int nDisplayUnit = BitcoinUnits::SMART;
+    QString smartString = QString::number(std::round(proposal->getAmountSmart()),'f',0);
+    QString usdString = QString::number(std::round(proposal->getAmountUSD()),'f',0);
 
-    QString smartString = QString::number((int)proposal->getAmountSmart());
-    QString usdString = QString::number((int)proposal->getAmountUSD());
+    QString yesString = QString::number(std::round(int(yes / COIN + ( double(yes % COIN) / COIN ))),'f',0);
+    QString noString = QString::number(std::round(int(no / COIN + ( double(no % COIN) / COIN ))),'f',0);
+    QString abstainString = QString::number(std::round(int(abstain / COIN + ( double(abstain % COIN) / COIN ))), 'f',0);
 
     AddThousandsSpaces(smartString);
     AddThousandsSpaces(usdString);
 
+    AddThousandsSpaces(yesString);
+    AddThousandsSpaces(noString);
+    AddThousandsSpaces(abstainString);
+
     ui->amountSmartLabel->setText(QString("%1 USD").arg(usdString));
     ui->amountUSDLabel->setText(QString("%1 SMART").arg(smartString));
 
-    ui->yesLabel->setText(QString("Yes %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentYes(), 'f',2)).arg(BitcoinUnits::format(nDisplayUnit, yes)));
-    ui->noLabel->setText(QString("No %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentNo(), 'f',2)).arg(BitcoinUnits::format(nDisplayUnit, no)));
-    ui->abstainLabel->setText(QString("Abstain %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentAbstain(), 'f',2)).arg(BitcoinUnits::format(nDisplayUnit, abstain)));
+    ui->yesLabel->setText(QString("Yes %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentYes(), 'f',2)).arg(yesString));
+    ui->noLabel->setText(QString("No %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentNo(), 'f',2)).arg(noString));
+    ui->abstainLabel->setText(QString("Abstain %1\% ( %2 SMART )").arg(QString::number(proposal->getPercentAbstain(), 'f',2)).arg(abstainString));
 
     ui->progressYes->setValue( (int)proposal->getPercentYes() );
     ui->progressNo->setValue( (int)proposal->getPercentNo() );
     ui->progressAbstain->setValue( (int)proposal->getPercentAbstain() );
 
-    double yesVoted = proposal->getVotedAmount(SmartHiveVoting::Yes);
-    double noVoted = proposal->getVotedAmount(SmartHiveVoting::No);
-    double abstainVoted = proposal->getVotedAmount(SmartHiveVoting::Abstain);
-    double invalidVotes = proposal->getVotedAmount(SmartHiveVoting::Disabled);
+    int yesVoted = std::round(proposal->getVotedAmount(SmartHiveVoting::Yes));
+    int noVoted = std::round(proposal->getVotedAmount(SmartHiveVoting::No));
+    int abstainVoted = std::round(proposal->getVotedAmount(SmartHiveVoting::Abstain));
+    int invalidVotes = std::round(proposal->getVotedAmount(SmartHiveVoting::Disabled));
 
     QString votedString = "";
 
     if( yesVoted ){
-        QString yesString = QString::number(yesVoted, 'f', 2);
+        QString yesString = QString::number(yesVoted,'f',0);
         AddThousandsSpaces(yesString);
         votedString += "YES - " + yesString + "\n";
     }
 
     if( noVoted ){
-        QString noString = QString::number(noVoted, 'f', 2);
+        QString noString = QString::number(noVoted,'f',0);
         AddThousandsSpaces(noString);
         votedString +=  "NO - " + noString + "\n";
     }
 
     if( abstainVoted ){
-        QString abstainString = QString::number(abstainVoted, 'f', 2);
+        QString abstainString = QString::number(abstainVoted,'f',0);
         AddThousandsSpaces(abstainString);
         votedString += "ABSTAIN - " + abstainString + "\n";
     }
 
     if( invalidVotes ){
-        QString invalidString = QString::number(invalidVotes, 'f', 2);
+        QString invalidString = QString::number(invalidVotes,'f',0);
         AddThousandsSpaces(invalidString);
         votedString += "INVALID - " + invalidString + "\n";
     }

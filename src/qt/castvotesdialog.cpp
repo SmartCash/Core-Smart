@@ -112,7 +112,7 @@ void CastVotesDialog::voteOne()
 
         ui->results->append(QString("<br>Vote <b>%1</b> with <b>%2 SMART</b> for proposal <b>#%3</b><br>")
                             .arg(QString::fromStdString(vote.GetVoteType()))
-                            .arg(vote.GetVotingPower(), 0,'f', 2)
+                            .arg(std::round(vote.GetVotingPower()),0,'f',0)
                             .arg(vote.GetProposalId()));
 
         ui->results->append("Wait for response");
@@ -158,7 +158,7 @@ void CastVotesDialog::voted(const SmartProposalVote &vote, const QJsonArray &res
                 resultString = ErrorText(status);
             }
 
-            ui->results->append(QString("  -> %1 | %2 SMART <b>%3<b>").arg(address).arg(amount, 0,'f',2).arg(resultString));
+            ui->results->append(QString("  -> %1 | %2 SMART <b>%3<b>").arg(address).arg(std::round(amount),0,'f',0).arg(resultString));
         }
 
     }
