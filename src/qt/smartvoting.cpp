@@ -192,20 +192,10 @@ void SmartVotingPage::selectAddresses(){
 
 void SmartVotingPage::castVotes(){
 
-    CastVotesDialog dialog(platformStyle, votingManager);
+    CastVotesDialog dialog(platformStyle, votingManager, walletModel);
     dialog.setVoting(mapVoteProposals);
 
-    WalletModel::EncryptionStatus encStatus = walletModel->getEncryptionStatus();
-
-    if(encStatus == walletModel->Locked || encStatus == walletModel->UnlockedForMixingOnly) {
-        WalletModel::UnlockContext ctx(walletModel->requestUnlock());
-
-        if(!ctx.isValid()) return; // Unlock wallet was cancelled
-
-        dialog.exec();
-    }else{
-        dialog.exec();
-    }
+    dialog.exec();
 
     refreshProposals(true);
 }

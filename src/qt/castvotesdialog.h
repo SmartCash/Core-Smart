@@ -28,7 +28,7 @@ class CastVotesDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit CastVotesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, QWidget *parent = 0);
+    explicit CastVotesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, WalletModel *model, QWidget *parent = 0);
     ~CastVotesDialog();
 
     void setVoting(std::map<SmartProposal, SmartHiveVoting::Type> mapVotings){this->mapVotings = mapVotings;}
@@ -39,6 +39,7 @@ private:
     const PlatformStyle *platformStyle;
 
     SmartVotingManager * votingManager;
+    WalletModel *walletModel;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVotings;
     std::vector<SmartProposalVote> vecVotes;
     QTimer waitTimer;

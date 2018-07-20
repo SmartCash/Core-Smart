@@ -42,11 +42,12 @@ QString ErrorText(QString text)
 }
 
 
-CastVotesDialog::CastVotesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, QWidget *parent) :
+CastVotesDialog::CastVotesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, WalletModel *model, QWidget *parent) :
     QDialog(parent, Qt::WindowTitleHint),
     ui(new Ui::CastVotesDialog),
     platformStyle(platformStyle),
-    votingManager(votingManager)
+    votingManager(votingManager),
+    walletModel(model)
 {
     ui->setupUi(this);
 
@@ -79,6 +80,13 @@ void CastVotesDialog::close()
 
 void CastVotesDialog::start()
 {
+
+    if( !walletModel){
+        ui->results->append("<br><b>Wallet not available!</b>");
+        ui->button->setText("Close");
+        return;
+    }
+
     std::map<SmartProposalVote, std::string> mapResults;
 
     vecVotes.clear();
@@ -89,7 +97,21 @@ void CastVotesDialog::start()
                         .arg(mapVotings.size())
                         .arg(mapVotings.size() > 1 ? "s" : ""));
 
-    votingManager->CreateVotes(mapVotings, mapResults);
+    WalletModel::EncryptionStatus encStatus = walletModel->getEncryptionStatus();
+
+    if(encStatus == walletModel->Locked || encStatus == walletModel->UnlockedForMixingOnly) {
+        WalletModel::UnlockContext ctx(walletModel->requestUnlock());
+
+        if(!ctx.isValid()){
+            ui->results->append("<br><b>Signing failed!</b>");
+            ui->button->setText("Close");
+            return;
+        }
+
+        votingManager->CreateVotes(mapVotings, mapResults);
+    }else{
+        votingManager->CreateVotes(mapVotings, mapResults);
+    }
 
     for( auto result : mapResults ){
         if( result.second == "" ){
