@@ -17,6 +17,8 @@
 #include "../util.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
+#else //ENABLE_WALLET
+#include "base58.h"
 #endif // ENABLE_WALLET
 
 #include <boost/lexical_cast.hpp>
