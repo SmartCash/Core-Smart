@@ -805,7 +805,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
 
     // if we are still syncing and there was no known ping for this mn for quite a while
     // (NOTE: assuming that SMARTNODE_EXPIRATION_SECONDS/2 should be enough to finish mn list sync)
-    if(!smartnodeSync.IsSmartnodeListSynced() && !pmn->IsPingedWithin(SMARTNODE_EXPIRATION_SECONDS/2)) {
+    if(fFromNewBroadcast && !smartnodeSync.IsSmartnodeListSynced() && !pmn->IsPingedWithin(SMARTNODE_EXPIRATION_SECONDS/2)) {
         // let's bump sync timeout
         LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- bumping sync timeout, smartnode=%s\n", outpoint.ToStringShort());
         smartnodeSync.BumpAssetLastTime("CSmartnodePing::CheckAndUpdate");
