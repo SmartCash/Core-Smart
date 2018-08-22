@@ -258,7 +258,7 @@ UniValue getdummybalance(const UniValue& params, bool fHelp)
     if (fHelp || params.size() > 0)
         throw runtime_error(
             "getdummybalance\n"
-            "\nReturns the current dummybalance.\n");
+            "Returns the current dummybalance.\n");
 
     CWalletDB walletdb(pwalletMain->strWalletFile);
     CAmount dummyBalance;
