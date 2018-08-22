@@ -293,6 +293,17 @@ bool CWalletDB::WriteCalculatedZCBlock(int height)
     return Write(std::string("calculatedzcblock"), height);
 }
 
+bool CWalletDB::ReadDummyBalance(CAmount& dummyBalance)
+{
+    dummyBalance = 0;
+    return Read(std::string("dummybalance"), dummyBalance);
+}
+
+bool CWalletDB::WriteDummyBalance(CAmount dummyBalance)
+{
+    return Write(std::string("dummybalance"), dummyBalance);
+}
+
 void CWalletDB::ListPubCoin(std::list<CZerocoinEntry>& listPubCoin)
 {
     Dbc* pcursor = GetCursor();

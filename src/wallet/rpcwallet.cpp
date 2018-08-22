@@ -149,7 +149,7 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
 
 CBitcoinAddress GetAccountAddress(string strAccount, bool bForceNew=false)
 {
-        CWalletDB walletdb(pwalletMain->strWalletFile);
+    CWalletDB walletdb(pwalletMain->strWalletFile);
 
     CAccount account;
     walletdb.ReadAccount(strAccount, account);
@@ -250,6 +250,42 @@ UniValue getrawchangeaddress(const UniValue& params, bool fHelp)
     return CBitcoinAddress(keyID).ToString();
 }
 
+UniValue getdummybalance(const UniValue& params, bool fHelp)
+{
+    if (!EnsureWalletIsAvailable(fHelp))
+        return NullUniValue;
+
+    if (fHelp || params.size() > 0)
+        throw runtime_error(
+            "getdummybalance\n"
+            "\nReturns the current dummybalance.\n");
+
+    CWalletDB walletdb(pwalletMain->strWalletFile);
+    CAmount dummyBalance;
+    walletdb.ReadDummyBalance(dummyBalance);
+
+    return ValueFromAmount(dummyBalance);
+}
+
+UniValue setdummybalance(const UniValue& params, bool fHelp)
+{
+    if (!EnsureWalletIsAvailable(fHelp))
+        return NullUniValue;
+
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "setdummybalance \"dummybalance\" [0 is the default and results in no dummy balance!]\n");
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    CWalletDB walletdb(pwalletMain->strWalletFile);
+    CAmount dummyBalance = AmountFromValue(params[0]);
+    if (dummyBalance < -1)
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for dummybalance");
+
+    walletdb.WriteDummyBalance(dummyBalance);
+    return NullUniValue;
+}
 
 UniValue setaccount(const UniValue& params, bool fHelp)
 {
@@ -452,7 +488,7 @@ UniValue sendtoaddress(const UniValue& params, bool fHelp)
 
     bool fSubtractFeeFromAmount = false;
     if (params.size() > 4)
-        fSubtractFeeFromAmount = params[4].get_bool();    
+        fSubtractFeeFromAmount = params[4].get_bool();
 
     bool fUseInstantSend = false;
     bool fUsePrivateSend = false;
@@ -2785,6 +2821,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "getaddressesbyaccount",    &getaddressesbyaccount,    true  },
     { "wallet",             "getbalance",               &getbalance,               false },
     { "wallet",             "getnewaddress",            &getnewaddress,            true  },
+    { "wallet",             "getdummybalance",          &getdummybalance,          true  },
+    { "wallet",             "setdummybalance",            &setdummybalance,        true  },
     { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      true  },
     { "wallet",             "getreceivedbyaccount",     &getreceivedbyaccount,     false },
     { "wallet",             "getreceivedbyaddress",     &getreceivedbyaddress,     false },
