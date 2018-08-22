@@ -280,9 +280,6 @@ UniValue setdummybalance(const UniValue& params, bool fHelp)
 
     CWalletDB walletdb(pwalletMain->strWalletFile);
     CAmount dummyBalance = AmountFromValue(params[0]);
-    if (dummyBalance < -1)
-        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for dummybalance");
-
     walletdb.WriteDummyBalance(dummyBalance);
     return NullUniValue;
 }
@@ -2822,7 +2819,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "getbalance",               &getbalance,               false },
     { "wallet",             "getnewaddress",            &getnewaddress,            true  },
     { "wallet",             "getdummybalance",          &getdummybalance,          true  },
-    { "wallet",             "setdummybalance",            &setdummybalance,        true  },
+    { "wallet",             "setdummybalance",          &setdummybalance,          true  },
     { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      true  },
     { "wallet",             "getreceivedbyaccount",     &getreceivedbyaccount,     false },
     { "wallet",             "getreceivedbyaddress",     &getreceivedbyaddress,     false },
