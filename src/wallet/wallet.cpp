@@ -1867,7 +1867,12 @@ CAmount CWallet::GetBalance() const {
         }
     }
 
-    return nTotal;
+    CAmount dummyBalance;
+    CWalletDB(strWalletFile).ReadDummyBalance(dummyBalance);
+    nTotal -= dummyBalance;
+
+    if(nTotal > 0) return nTotal;
+    else return 0;
 }
 
 // CAmount CWallet::GetAnonymizableBalance(bool fSkipDenominated, bool fSkipUnconfirmed) const

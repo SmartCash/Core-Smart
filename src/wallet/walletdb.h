@@ -143,6 +143,9 @@ public:
     CAmount GetAccountCreditDebit(const std::string& strAccount);
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& acentries);
 
+    bool WriteDummyBalance(CAmount dummyBalance);
+    bool ReadDummyBalance(CAmount& dummyBalance);
+
     bool WriteZerocoinEntry(const CZerocoinEntry& zerocoin);
     bool EarseZerocoinEntry(const CZerocoinEntry& zerocoin);
     void ListPubCoin(std::list<CZerocoinEntry>& listPubCoin);
