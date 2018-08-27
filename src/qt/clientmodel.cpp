@@ -15,6 +15,7 @@
 #include "validation.h"
 #include "net.h"
 #include "txmempool.h"
+#include "timedata.h"
 #include "ui_interface.h"
 #include "util.h"
 #include "warnings.h"
@@ -80,15 +81,19 @@ int ClientModel::getNumConnections(unsigned int flags) const
 
 QString ClientModel::getSmartnodeCountString() const
 {
-    // return tr("Total: %1 (PS compatible: %2 / Enabled: %3) (IPv4: %4, IPv6: %5, TOR: %6)").arg(QString::number((int)mnodeman.size()))
-    // return tr("Total: %1 (PS compatible: %2 / Enabled: %3)")
-    return tr("Total: %1 (Enabled: %2)")
+
+    static QString strNodeCount = "Total: 0 (Enabled: 0)";
+
+    // We can only query the nodecounts if the timeoffset is not locked
+    // by any other thread.
+    TRY_LOCK(cs_nTimeOffset, locked);
+
+    if( locked )
+        strNodeCount =  tr("Total: %1 (Enabled: %2)")
             .arg(QString::number((int)mnodeman.size()))
-            //.arg(QString::number((int)mnodeman.CountEnabled(MIN_PRIVATESEND_PEER_PROTO_VERSION)))
             .arg(QString::number((int)mnodeman.CountEnabled()));
-            // .arg(QString::number((int)mnodeman.CountByIP(NET_IPV4)))
-            // .arg(QString::number((int)mnodeman.CountByIP(NET_IPV6)))
-            // .arg(QString::number((int)mnodeman.CountByIP(NET_TOR)));
+
+    return strNodeCount;
 }
 
 int ClientModel::getNumBlocks() const

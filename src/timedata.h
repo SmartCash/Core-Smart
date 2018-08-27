@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <vector>
+#include "sync.h"
 
 static const int64_t DEFAULT_MAX_TIME_ADJUSTMENT = 70 * 60;
 
@@ -74,5 +75,7 @@ public:
 int64_t GetTimeOffset();
 int64_t GetAdjustedTime();
 void AddTimeData(const CNetAddr& ip, int64_t nTime);
+
+extern CCriticalSection cs_nTimeOffset;
 
 #endif // BITCOIN_TIMEDATA_H

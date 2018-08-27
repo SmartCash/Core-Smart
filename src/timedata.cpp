@@ -9,16 +9,16 @@
 #include "timedata.h"
 
 #include "netbase.h"
-#include "sync.h"
 #include "ui_interface.h"
 #include "util.h"
 #include "utilstrencodings.h"
+#include "warnings.h"
 
 #include <boost/foreach.hpp>
 
 using namespace std;
 
-static CCriticalSection cs_nTimeOffset;
+CCriticalSection cs_nTimeOffset;
 static int64_t nTimeOffset = 0;
 
 /**
