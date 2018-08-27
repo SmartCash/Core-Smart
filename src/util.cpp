@@ -15,6 +15,7 @@
 #include "sync.h"
 #include "utilstrencodings.h"
 #include "utiltime.h"
+#include "warnings.h"
 
 #include <stdarg.h>
 
@@ -520,7 +521,7 @@ const boost::filesystem::path &GetBackupsDir()
         if (fs::is_directory(backupsDir)) return backupsDir; 
         // Fallback to default path if it doesn't 
         LogPrintf("%s: Warning: incorrect parameter -walletbackupsdir, path must exist! Using default path.\n", __func__); 
-        strMiscWarning = _("Warning: incorrect parameter -walletbackupsdir, path must exist! Using default path."); 
+        SetMiscWarning(_("Warning: incorrect parameter -walletbackupsdir, path must exist! Using default path."));
     } 
     // Default path 
     backupsDir = GetDataDir() / "backups"; 
