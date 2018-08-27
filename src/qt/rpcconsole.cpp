@@ -851,6 +851,8 @@ if (!clientModel || !clientModel->getPeerTableModel())
     bool fUnselect = false;
     bool fReselect = false;
 
+    resizePeerColumns();
+
     if (cachedNodeids.empty()) // no node selected yet
         return;
 
@@ -945,9 +947,20 @@ void RPCConsole::updateNodeDetail(const CNodeCombinedStats *stats)
     ui->detailWidget->show();
 }
 
+void RPCConsole::resizePeerColumns()
+{
+    ui->peerWidget->setColumnWidth(PeerTableModel::NetNodeId, ui->peerWidget->width()*0.1);
+    ui->peerWidget->setColumnWidth(PeerTableModel::Address, ui->peerWidget->width()*0.35);
+    ui->peerWidget->setColumnWidth(PeerTableModel::Subversion, ui->peerWidget->width()*0.35);
+    ui->peerWidget->setColumnWidth(PeerTableModel::Ping, ui->peerWidget->width()*0.2);
+
+}
+
 void RPCConsole::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
+
+    resizePeerColumns();
 }
 
 void RPCConsole::showEvent(QShowEvent *event)
