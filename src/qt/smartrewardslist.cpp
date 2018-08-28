@@ -211,7 +211,7 @@ void SmartrewardsList::updateUI()
 
         if( ( ( MainNet() && current.number >= nRewardsFirstAutomatedRound ) || TestNet() ) && tip ){
 
-            uint64_t remainingBlocks = current.endBlockHeight - tip->nHeight;
+            int64_t remainingBlocks = current.endBlockHeight - tip->nHeight;
 
             roundEndText = QString("%1 blocks ( ").arg(remainingBlocks);
 
