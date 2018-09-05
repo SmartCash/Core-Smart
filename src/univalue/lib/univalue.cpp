@@ -14,9 +14,7 @@
 
 #include "univalue.h"
 
-namespace 
-{
-static bool ParsePrechecks(const std::string& str)
+bool ParsePrechecks(const std::string& str)
 {
     if (str.empty()) // No empty string allowed
         return false;
@@ -43,6 +41,21 @@ bool ParseInt32(const std::string& str, int32_t *out)
         n <= std::numeric_limits<int32_t>::max();
 }
 
+bool ParseUInt32(const std::string& str, int32_t *out)
+{
+    if (!ParsePrechecks(str))
+        return false;
+    char *endp = NULL;
+    errno = 0; // strtol will not set errno if valid
+    long int n = strtol(str.c_str(), &endp, 10);
+    if(out) *out = (uint32_t)n;
+    // Note that strtol returns a *long int*, so even if strtol doesn't report a over/underflow
+    // we still have to check that the returned value is within the range of an *int32_t*. On 64-bit
+    // platforms the size of these types may be different.
+    return endp && *endp == 0 && !errno &&
+        n <= std::numeric_limits<uint32_t>::max();
+}
+
 bool ParseInt64(const std::string& str, int64_t *out)
 {
     if (!ParsePrechecks(str))
@@ -58,6 +71,20 @@ bool ParseInt64(const std::string& str, int64_t *out)
         n <= std::numeric_limits<int64_t>::max();
 }
 
+bool ParseInt64(const std::string& str, uint64_t *out)
+{
+    if (!ParsePrechecks(str))
+        return false;
+    char *endp = NULL;
+    errno = 0; // strtoll will not set errno if valid
+    long long int n = strtoll(str.c_str(), &endp, 10);
+    if(out) *out = (uint64_t)n;
+    // Note that strtoll returns a *long long int*, so even if strtol doesn't report a over/underflow
+    // we still have to check that the returned value is within the range of an *int64_t*.
+    return endp && *endp == 0 && !errno &&
+        n <= std::numeric_limits<uint64_t>::max();
+}
+
 bool ParseDouble(const std::string& str, double *out)
 {
     if (!ParsePrechecks(str))
@@ -70,7 +97,6 @@ bool ParseDouble(const std::string& str, double *out)
     text >> result;
     if(out) *out = result;
     return text.eof() && !text.fail();
-}
 }
 
 using namespace std;

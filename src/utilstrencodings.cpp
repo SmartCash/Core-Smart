@@ -66,6 +66,16 @@ bool IsHex(const string& str)
     return (str.size() > 0) && (str.size()%2 == 0);
 }
 
+bool IsInteger(const std::string& s)
+{
+   if(s.empty() || ((!isdigit(s[0])) && (s[0] != '-') && (s[0] != '+'))) return false ;
+
+   char * p ;
+   strtol(s.c_str(), &p, 10) ;
+
+   return (*p == 0) ;
+}
+
 vector<unsigned char> ParseHex(const char* psz)
 {
     // convert hex dump to vector

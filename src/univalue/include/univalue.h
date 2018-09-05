@@ -16,6 +16,14 @@
 #include <sstream>        // .get_int64()
 #include <utility>        // std::pair
 
+
+bool ParsePrechecks(const std::string& str);
+bool ParseInt32(const std::string& str, int32_t *out);
+bool ParseUInt32(const std::string& str, uint32_t *out);
+bool ParseInt64(const std::string& str, int64_t *out);
+bool ParseUInt64(const std::string& str, uint64_t *out);
+bool ParseDouble(const std::string& str, double *out);
+
 class UniValue {
 public:
     enum VType { VNULL, VOBJ, VARR, VSTR, VNUM, VBOOL, };

@@ -132,6 +132,9 @@ BITCOIN_CORE_H = \
   rpc/protocol.h \
   rpc/server.h \
   rpc/register.h \
+  sapi/sapiserver.h \
+  sapi/sapi.h \
+  sapi/sapi_validation.h \
   scheduler.h \
   script/sigcache.h \
   script/sign.h \
@@ -224,6 +227,12 @@ libbitcoin_server_a_SOURCES = \
   rpc/rpcsmartnode.cpp \
   rpc/rpcsmartrewards.cpp \
   rpc/rpcsmartmining.cpp \
+  sapi/sapiserver.cpp \
+  sapi/sapi.cpp \
+  sapi/sapi_address.cpp \
+  sapi/sapi_blockchain.cpp \
+  sapi/sapi_transaction.cpp \
+  sapi/sapi_validation.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
   sendalert.cpp \

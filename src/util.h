@@ -14,6 +14,7 @@
 #include "config/bitcoin-config.h"
 #endif
 
+#include "amount.h"
 #include "compat.h"
 #include "tinyformat.h"
 #include "utiltime.h"
@@ -90,6 +91,10 @@ inline int roundint(double d)
 inline int64_t roundint64(double d)
 {
     return (int64_t)(d > 0 ? d + 0.5 : d - 0.5);
+}
+
+inline double CAmountToDouble(CAmount nAmount){
+     return nAmount / COIN + ( double(nAmount % COIN) / COIN );
 }
 
 void SetupEnvironment();

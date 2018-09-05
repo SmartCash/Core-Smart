@@ -59,17 +59,19 @@
 #include "smartnode/smartnodesync.h"
 #include "smartnode/smartnodeman.h"
 #include "smartnode/smartnodeconfig.h"
+#include "smartnode/spork.h"
 #include "messagesigner.h"
 // #ifdef ENABLE_WALLET
 // #include "privatesend-client.h"
 // #endif // ENABLE_WALLET
 // #include "privatesend-server.h"
-#include "smartnode/spork.h"
 
 #include "smartrewards/rewards.h"
 
 #include "smarthive/hive.h"
 #include "smarthive/hivepayments.h"
+
+#include "sapi/sapi.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -215,6 +217,8 @@ void Interrupt(boost::thread_group& threadGroup)
     InterruptHTTPRPC();
     InterruptRPC();
     InterruptREST();
+    InterruptSAPIServer();
+    InterruptSAPI();
     InterruptTorControl();
     if (g_connman)
         g_connman->Interrupt();
@@ -241,6 +245,8 @@ void PrepareShutdown()
     StopREST();
     StopRPC();
     StopHTTPServer();
+    StopSAPIServer();
+    StopSAPI();
 #ifdef ENABLE_WALLET
     if (pwalletMain)
         pwalletMain->Flush(false);
@@ -771,6 +777,18 @@ bool AppInitServers(boost::thread_group& threadGroup)
     if (GetBoolArg("-rest", DEFAULT_REST_ENABLE) && !StartREST())
         return false;
     if (!StartHTTPServer())
+        return false;
+    return true;
+}
+
+bool AppInitSAPI(boost::thread_group& threadGroup)
+{
+
+    if (!InitSAPIServer())
+        return false;
+    if (!StartSAPIServer())
+        return false;
+    if (!StartSAPI())
         return false;
     return true;
 }
@@ -1328,6 +1346,13 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         uiInterface.InitMessage.connect(SetRPCWarmupStatus);
         if (!AppInitServers(threadGroup))
             return InitError(_("Unable to start HTTP server. See debug log for details."));
+    }
+
+    bool fSAPI = GetBoolArg("-sapi", false);
+
+    if( fSAPI ){
+        if (!AppInitSAPI(threadGroup))
+            return InitError(_("Unable to start SAPI server. See debug log for details."));
     }
 
     int64_t nStart = 0;

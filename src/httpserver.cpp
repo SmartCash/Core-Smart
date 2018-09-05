@@ -9,7 +9,6 @@
 #include "util.h"
 #include "netbase.h"
 #include "rpc/protocol.h" // For HTTP status codes
-#include "sync.h"
 #include "ui_interface.h"
 
 #include <stdio.h>
@@ -39,135 +38,6 @@
 
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
-
-/** HTTP request work item */
-class HTTPWorkItem : public HTTPClosure
-{
-public:
-    HTTPWorkItem(std::unique_ptr<HTTPRequest> req, const std::string &path, const HTTPRequestHandler& func):
-        req(std::move(req)), path(path), func(func)
-    {
-    }
-    void operator()()
-    {
-        func(req.get(), path);
-    }
-
-    std::unique_ptr<HTTPRequest> req;
-
-private:
-    std::string path;
-    HTTPRequestHandler func;
-};
-
-/** Simple work queue for distributing work over multiple threads.
- * Work items are simply callable objects.
- */
-template <typename WorkItem>
-class WorkQueue
-{
-private:
-    /** Mutex protects entire object */
-    CWaitableCriticalSection cs;
-    CConditionVariable cond;
-    std::deque<std::unique_ptr<WorkItem>> queue;
-    bool running;
-    size_t maxDepth;
-    int numThreads;
-
-    /** RAII object to keep track of number of running worker threads */
-    class ThreadCounter
-    {
-    public:
-        WorkQueue &wq;
-        ThreadCounter(WorkQueue &w): wq(w)
-        {
-            boost::lock_guard<boost::mutex> lock(wq.cs);
-            wq.numThreads += 1;
-        }
-        ~ThreadCounter()
-        {
-            boost::lock_guard<boost::mutex> lock(wq.cs);
-            wq.numThreads -= 1;
-            wq.cond.notify_all();
-        }
-    };
-
-public:
-    WorkQueue(size_t maxDepth) : running(true),
-                                 maxDepth(maxDepth),
-                                 numThreads(0)
-    {
-    }
-    /** Precondition: worker threads have all stopped
-     * (call WaitExit)
-     */
-    ~WorkQueue()
-    {
-    }
-    /** Enqueue a work item */
-    bool Enqueue(WorkItem* item)
-    {
-        boost::unique_lock<boost::mutex> lock(cs);
-        if (queue.size() >= maxDepth) {
-            return false;
-        }
-        queue.emplace_back(std::unique_ptr<WorkItem>(item));
-        cond.notify_one();
-        return true;
-    }
-    /** Thread function */
-    void Run()
-    {
-        ThreadCounter count(*this);
-        while (running) {
-            std::unique_ptr<WorkItem> i;
-            {
-                boost::unique_lock<boost::mutex> lock(cs);
-                while (running && queue.empty())
-                    cond.wait(lock);
-                if (!running)
-                    break;
-                i = std::move(queue.front());
-                queue.pop_front();
-            }
-            (*i)();
-        }
-    }
-    /** Interrupt and exit loops */
-    void Interrupt()
-    {
-        boost::unique_lock<boost::mutex> lock(cs);
-        running = false;
-        cond.notify_all();
-    }
-    /** Wait for worker threads to exit */
-    void WaitExit()
-    {
-        boost::unique_lock<boost::mutex> lock(cs);
-        while (numThreads > 0)
-            cond.wait(lock);
-    }
-
-    /** Return current depth of queue */
-    size_t Depth()
-    {
-        boost::unique_lock<boost::mutex> lock(cs);
-        return queue.size();
-    }
-};
-
-struct HTTPPathHandler
-{
-    HTTPPathHandler() {}
-    HTTPPathHandler(std::string prefix, bool exactMatch, HTTPRequestHandler handler):
-        prefix(prefix), exactMatch(exactMatch), handler(handler)
-    {
-    }
-    std::string prefix;
-    bool exactMatch;
-    HTTPRequestHandler handler;
-};
 
 /** HTTP module state */
 
@@ -227,7 +97,7 @@ static bool InitHTTPAllowList()
 }
 
 /** HTTP request method as string - use for logging only */
-static std::string RequestMethodString(HTTPRequest::RequestMethod m)
+std::string RequestMethodString(HTTPRequest::RequestMethod m)
 {
     switch (m) {
     case HTTPRequest::GET:
