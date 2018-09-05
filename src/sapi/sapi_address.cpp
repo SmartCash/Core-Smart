@@ -4,7 +4,6 @@
 
 #include "sapi.h"
 #include "rpc/client.h"
-#include "sapi_address.h"
 #include "sapi_validation.h"
 
 using namespace std;
