@@ -19,6 +19,13 @@ struct CAddressBalance
         address(address), balance(balance), received(received){}
 };
 
+
+bool amountSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
+                std::pair<CAddressUnspentKey, CAddressUnspentValue> b)
+{
+    return a.second.satoshis > b.second.satoshis;
+}
+
 bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
 bool address_balances(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
 bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
@@ -151,7 +158,7 @@ static bool GetUTXOs(HTTPRequest* req, const CBitcoinAddress& address, std::vect
 inline double CalculateFee( int nInputs )
 {
     double feeCalc = (((nInputs * 148) + (2 * 34) + 10 + 9) / 1024.0) * 0.001;
-    return std::round( feeCalc * 1000.0 ) / 1000.0;
+    return std::max(std::round( feeCalc * 1000.0 ) / 1000.0, 0.001);
 }
 
 bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
@@ -443,6 +450,7 @@ bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart, const
     result.pushKV("scriptPubKey", HexStr(script.begin(), script.end()));
     result.pushKV("address", addrStr);
     result.pushKV("inputsAmount", amountSum);
+    result.pushKV("change", amountSum - expectedAmount - fee);
     result.pushKV("inputs", inputs);
 
     string strJSON = result.write(2) + "\n";

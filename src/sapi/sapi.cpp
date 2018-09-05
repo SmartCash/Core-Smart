@@ -119,12 +119,6 @@ static SAPI::Result ParameterBaseCheck(HTTPRequest* req, const UniValue &obj, co
     return SAPI::Result();
 }
 
-bool amountSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
-                std::pair<CAddressUnspentKey, CAddressUnspentValue> b)
-{
-    return a.second.satoshis > b.second.satoshis;
-}
-
 bool ParseHashStr(const string& strHash, uint256& v)
 {
     if (!IsHex(strHash) || (strHash.size() != 64))
