@@ -295,7 +295,10 @@ bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniV
     int nPages = nDeposits / nPageSize;
     if( nDeposits % nPageSize ) nPages++;
 
-    int nDepositStart = nPageNumber * nPageSize;
+    if (nPageNumber > nPages)
+        return Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d", nPages));
+
+    int nDepositStart = ( nPageNumber - 1 ) * nPageSize;
 
     obj.pushKV("page", nPageNumber);
     obj.pushKV("pages", nPages);
@@ -312,7 +315,7 @@ bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniV
         }
 
         if( !pIndex )
-            return Error(req, HTTP_BAD_REQUEST, "Could not find block index.");
+            return Error(req, SAPI::BlockNotFound, "Could not find block index.");
 
         // Add the deposits to the json response.
         UniValue entry(UniValue::VOBJ);

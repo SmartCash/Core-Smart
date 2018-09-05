@@ -40,6 +40,7 @@ enum Codes{
     BlockNotSpecified,
     /* /address errors */
     AddressNotFound = 3000,
+    PageOutOfRange,
     /* /transaction errors */
     TxDecodeFailed = 4000,
     TxNotSpecified,
