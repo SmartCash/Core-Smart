@@ -189,15 +189,15 @@ bool Error(HTTPRequest* req, SAPI::Codes code, const std::string &message);
 
 }
 
-bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &address);
+extern bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &address);
 
-bool heightSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
+extern bool heightSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
                 std::pair<CAddressUnspentKey, CAddressUnspentValue> b);
 
 bool amountSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
                 std::pair<CAddressUnspentKey, CAddressUnspentValue> b);
 
-bool ParseHashStr(const string& strReq, uint256& v);
+extern bool ParseHashStr(const string& strHash, uint256& v);
 
 bool SAPICheckWarmup(HTTPRequest* req);
 

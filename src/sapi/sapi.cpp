@@ -12,6 +12,7 @@
 #include "sapi_validation.h"
 #include "streams.h"
 #include "sync.h"
+#include "rpc/client.h"
 #include "txmempool.h"
 #include "utilstrencodings.h"
 #include "version.h"
@@ -68,18 +69,6 @@ bool SAPI::Error(HTTPRequest* req, SAPI::Codes code, const std::string &message)
     return false;
 }
 
-/** Non-RFC4627 JSON parser, accepts internal values (such as numbers, true, false, null)
- * as well as objects and arrays.
- */
-static UniValue ParseNonRFCJSONValue(const std::string& strVal)
-{
-    UniValue jVal;
-    if (!jVal.read(std::string("[")+strVal+std::string("]")) ||
-        !jVal.isArray() || jVal.size()!=1)
-        throw runtime_error(string("Error parsing JSON:")+strVal);
-    return jVal[0];
-}
-
 static SAPI::Result ParameterBaseCheck(HTTPRequest* req, const UniValue &obj, const SAPI::BodyParameter &param)
 {
     std::string key = param.key;
@@ -130,36 +119,18 @@ static SAPI::Result ParameterBaseCheck(HTTPRequest* req, const UniValue &obj, co
     return SAPI::Result();
 }
 
-
-bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &address)
-{
-    if (type == 2) {
-        address = CBitcoinAddress(CScriptID(hash)).ToString();
-    } else if (type == 1) {
-        address = CBitcoinAddress(CKeyID(hash)).ToString();
-    } else {
-        return false;
-    }
-    return true;
-}
-
-bool heightSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
-                std::pair<CAddressUnspentKey, CAddressUnspentValue> b) {
-    return a.second.blockHeight < b.second.blockHeight;
-}
-
 bool amountSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
                 std::pair<CAddressUnspentKey, CAddressUnspentValue> b)
 {
     return a.second.satoshis > b.second.satoshis;
 }
 
-bool ParseHashStr(const string& strReq, uint256& v)
+bool ParseHashStr(const string& strHash, uint256& v)
 {
-    if (!IsHex(strReq) || (strReq.size() != 64))
+    if (!IsHex(strHash) || (strHash.size() != 64))
         return false;
 
-    v.SetHex(strReq);
+    v.SetHex(strHash);
     return true;
 }
 
@@ -225,7 +196,12 @@ static bool SAPIValidateBody(HTTPRequest *req, const SAPI::Endpoint &endpoint, U
         return SAPI::Error(req, HTTP_BAD_REQUEST, "No body parameter object defined in the body: {...TBD...}");
 
     try{
-        bodyParameter = ParseNonRFCJSONValue(bodyStr);
+        // Try to parse body string to json
+        UniValue jVal;
+        if (!jVal.read(std::string("[")+bodyStr+std::string("]")) ||
+            !jVal.isArray() || jVal.size()!=1)
+            throw runtime_error(string("Error parsing JSON:")+bodyStr);
+        bodyParameter = jVal[0];
     }
     catch (UniValue& objError)
     {
