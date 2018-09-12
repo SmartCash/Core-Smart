@@ -296,3 +296,20 @@ bool SAPIUnknownEndpointHandler(HTTPRequest* req, const std::string& strURIPart)
 {
     return SAPI::Error(req, HTTP_NOT_FOUND, "Invalid endpoint: " + req->GetURI() + " with method: " + RequestMethodString(req->GetRequestMethod()));
 }
+
+string JsonString(const UniValue &obj)
+{
+    return obj.write(DEFAULT_SAPI_JSON_INDENT) + "\n";
+}
+
+void SAPIWriteReply(HTTPRequest *req, const UniValue &obj)
+{
+    req->WriteHeader("Content-Type", "application/json");
+    req->WriteReply(HTTP_OK, JsonString(obj));
+}
+
+void SAPIWriteReply(HTTPRequest *req, const std::string &str)
+{
+    req->WriteHeader("Content-Type", "text/plain");
+    req->WriteReply(HTTP_OK, str + "\n");
+}

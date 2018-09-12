@@ -41,6 +41,7 @@ enum Codes{
     /* /address errors */
     AddressNotFound = 3000,
     PageOutOfRange,
+    NoDepositAvailble,
     /* /transaction errors */
     TxDecodeFailed = 4000,
     TxNotSpecified,
@@ -198,6 +199,10 @@ extern bool ParseHashStr(const string& strHash, uint256& v);
 
 bool SAPICheckWarmup(HTTPRequest* req);
 
+void SAPIWriteReply(HTTPRequest *req, const UniValue& obj);
+void SAPIWriteReply(HTTPRequest *req, const std::string &str);
+
+inline std::string JsonString(const UniValue& obj);
 
 /** Initialize SAPI server.
  * Call this before RegisterSAPIHandler or EventBase().

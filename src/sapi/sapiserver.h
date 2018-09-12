@@ -19,6 +19,8 @@ static const int DEFAULT_SAPI_WORKQUEUE=16;
 static const int DEFAULT_SAPI_SERVER_TIMEOUT=30;
 static const int DEFAULT_SAPI_SERVER_PORT=9680;
 
+static const int DEFAULT_SAPI_JSON_INDENT=2;
+
 /** Initialize SAPI server. */
 bool InitSAPIServer();
 /** Start SAPI server. */

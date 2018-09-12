@@ -8,9 +8,9 @@
 
 using namespace std;
 
-bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-bool blockchain_height(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool blockchain_height(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
 
 std::vector<SAPI::Endpoint> blockchainEndpoints = {
     {"", HTTPRequest::GET, UniValue::VNULL, blockchain_info, {}},
@@ -23,7 +23,7 @@ bool SAPIBlockchain(HTTPRequest* req, const std::string& strURIPart)
     return SAPIExecuteEndpoint(req, strURIPart, blockchainEndpoints);
 }
 
-bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
     UniValue obj(UniValue::VOBJ);
 
@@ -39,25 +39,22 @@ bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, const UniV
         obj.push_back(Pair("chainwork",             chainActive.Tip()->nChainWork.GetHex()));
     }
 
-    string strJSON = obj.write(2) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, obj);
 
     return true;
 }
 
-bool blockchain_height(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool blockchain_height(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
     LOCK(cs_main);
 
     string strHeight = std::to_string(chainActive.Height());
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strHeight);
+    SAPIWriteReply(req, strHeight);
 
     return true;
 }
 
-bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
     if ( strURIPart.length() <= 1 || strURIPart == "/" )
         return SAPI::Error(req, SAPI::BlockNotSpecified, "No height or hash specified. Use /blockchain/block/<height or hash>");
@@ -128,9 +125,7 @@ bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, const Uni
     if (pnext)
         result.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
 
-    string strJSON = result.write(2) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, result);
 
     return true;
 }

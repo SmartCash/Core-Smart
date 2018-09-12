@@ -134,6 +134,9 @@ BITCOIN_CORE_H = \
   rpc/register.h \
   sapi/sapiserver.h \
   sapi/sapi.h \
+  sapi/sapi_address.h \
+  sapi/sapi_blockchain.h \
+  sapi/sapi_transaction.h \
   sapi/sapi_validation.h \
   scheduler.h \
   script/sigcache.h \

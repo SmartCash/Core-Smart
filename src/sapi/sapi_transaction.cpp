@@ -12,8 +12,8 @@ using namespace std;
 
 extern void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
 
-bool transaction_send(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-bool transaction_check(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool transaction_send(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool transaction_check(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
 
 std::vector<SAPI::Endpoint> transactionEndpoints = {
     {
@@ -37,7 +37,7 @@ bool SAPITransaction(HTTPRequest* req, const std::string& strURIPart)
     return SAPIExecuteEndpoint(req, strURIPart, transactionEndpoints);
 }
 
-bool transaction_send(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool transaction_send(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
 
     LOCK(cs_main);
@@ -88,14 +88,12 @@ bool transaction_send(HTTPRequest* req, const std::string& strURIPart, const Uni
 
     g_connman->RelayTransaction(tx);
 
-    string strJSON = hashTx.GetHex() + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, hashTx.GetHex());
 
     return true;
 }
 
-bool transaction_check(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool transaction_check(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
     if ( strURIPart.length() <= 1 || strURIPart == "/" )
         return SAPI::Error(req, SAPI::TxNotSpecified, "No hash specified. Use /transaction/check/<txhash>");
@@ -171,9 +169,7 @@ bool transaction_check(HTTPRequest* req, const std::string& strURIPart, const Un
         }
     }
 
-    string strJSON = result.write(2) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, result);
 
     return true;
 }

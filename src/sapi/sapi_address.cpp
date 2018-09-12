@@ -5,6 +5,7 @@
 #include "sapi.h"
 #include "rpc/client.h"
 #include "sapi_validation.h"
+#include "sapi/sapi_address.h"
 
 using namespace std;
 using namespace SAPI;
@@ -26,12 +27,21 @@ bool amountSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
     return a.second.satoshis > b.second.satoshis;
 }
 
-bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-bool address_balances(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+bool spendingSort(std::pair<CAddressIndexKey, CAmount> a,
+                std::pair<CAddressIndexKey, CAmount> b) {
+    return a.first.spending != b.first.spending;
+}
 
+bool timestampSort(const CSAPIDeposit& a,
+                   const CSAPIDeposit& b) {
+    return a.GetTimestamp() < b.GetTimestamp();
+}
+
+static bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool address_balances(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
 
 
 std::vector<Endpoint> addressEndpoints = {
@@ -81,7 +91,6 @@ static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecA
 {
     SAPI::Codes code = SAPI::Valid;
     std::string error = std::string();
-    std::vector<std::pair<uint160, int> > addresses;
     std::vector<SAPI::Result> errors;
 
     vecBalances.clear();
@@ -134,23 +143,16 @@ static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecA
 
 static bool GetUTXOs(HTTPRequest* req, const CBitcoinAddress& address, std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >& utxos){
 
-    std::vector<std::pair<uint160, int> > addresses;
-
     uint160 hashBytes;
     int type = 0;
+
     if (!address.GetIndexKey(hashBytes, type)) {
         return Error(req, SAPI::InvalidSmartCashAddress, "Invalid address");
     }
 
-    addresses.push_back(std::make_pair(hashBytes, type));
-
-    for (std::vector<std::pair<uint160, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
-        if (!GetAddressUnspent((*it).first, (*it).second, utxos)) {
-            return Error(req, SAPI::AddressNotFound, "No information available for address");
-        }
+    if (!GetAddressUnspent(hashBytes, type, utxos)) {
+        return Error(req, SAPI::AddressNotFound, "No information available for address");
     }
-
-    //std::sort(utxos.begin(), utxos.end(), heightSort);
 
     return true;
 }
@@ -161,7 +163,7 @@ inline double CalculateFee( int nInputs )
     return std::max(std::round( feeCalc * 1000.0 ) / 1000.0, 0.001);
 }
 
-bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
 
     if ( strURIPart.length() <= 1 || strURIPart == "/" )
@@ -181,15 +183,13 @@ bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniV
     response.pushKV("sent", CAmountToDouble(result.received - result.balance));
     response.pushKV("balance", CAmountToDouble(result.balance));
 
-    string strJSON = response.write(1,1) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, response);
 
     return true;
 }
 
 
-bool address_balances(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool address_balances(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
 
     if( !bodyParameter.isArray() || bodyParameter.empty() )
@@ -221,14 +221,12 @@ bool address_balances(HTTPRequest* req, const std::string& strURIPart, const Uni
         response.push_back(entry);
     }
 
-    string strJSON = response.write(2) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, response);
 
     return true;
 }
 
-bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
 
     int start = bodyParameter[Keys::timestampFrom].get_int64();
@@ -239,7 +237,6 @@ bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniV
     if (end < start)
         return Error(req, HTTP_BAD_REQUEST, "\"" + Keys::timestampFrom + "\" is expected to be greater than \"" + Keys::timestampTo + "\"");
 
-    std::vector<std::pair<uint160, int> > addresses;
     std::string addrStr = bodyParameter[Keys::address].get_str();
     CBitcoinAddress address(addrStr);
     uint160 hashBytes;
@@ -276,30 +273,53 @@ bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniV
     if (!GetAddressIndex(hashBytes, type, addressIndex, pIndexStart->nHeight, pIndexEnd->nHeight))
         return Error(req, HTTP_BAD_REQUEST, "No information available for " + addrStr);
 
+    std::sort(addressIndex.begin(), addressIndex.end(), spendingSort);
+
+
     UniValue result(UniValue::VOBJ);
 
-    std::vector<std::pair<CAddressIndexKey, CAmount>> vecDeposits;
+    std::vector<CSAPIDeposit> vecDeposits;
+    std::map<uint256, CAmount> vecSpendings;
+    CBlockIndex *pIndex = nullptr;
 
     for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin();
          it!=addressIndex.end();
          it++) {
 
-        std::string address;
+        std::string addrStr;
 
-        if (!getAddressFromIndex(it->first.type, it->first.hashBytes, address))
+        if (!getAddressFromIndex(it->first.type, it->first.hashBytes, addrStr))
             return Error(req, HTTP_BAD_REQUEST, "Unknown address type");
 
-        // TBD check if its a sent to the address itself
-        if( 1 ){
-            vecDeposits.push_back(*it);
+        if( it->first.spending ){
+            vecSpendings.insert(std::make_pair(it->first.txhash, it->second));
+            continue;
         }
+
+
+        if( vecSpendings.count(it->first.txhash))
+            continue;
+
+        {
+            LOCK(cs_main);
+            pIndex = chainActive[it->first.blockHeight];
+        }
+
+        if( !pIndex )
+            return Error(req, SAPI::BlockNotFound, "Couldn't find block index.");
+
+        CSAPIDeposit entry(it->first.txhash.GetHex(), pIndex->GetBlockTime(), CAmountToDouble(it->second));
+        vecDeposits.push_back(entry);
     }
 
     UniValue obj(UniValue::VOBJ);
-    UniValue arr(UniValue::VARR);
+    UniValue arrDeposit(UniValue::VARR);
     int nDeposits = vecDeposits.size();
     int nPages = nDeposits / nPageSize;
     if( nDeposits % nPageSize ) nPages++;
+
+    if (!nDeposits)
+        return Error(req, SAPI::NoDepositAvailble, strprintf("No deposits available for the given timerange.", nPages));
 
     if (nPageNumber > nPages)
         return Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d", nPages));
@@ -309,42 +329,24 @@ bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniV
     obj.pushKV("page", nPageNumber);
     obj.pushKV("pages", nPages);
 
-    for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin() + nDepositStart;
-         it!=addressIndex.end();
-         it++) {
+    std::sort(vecDeposits.begin(), vecDeposits.end(), timestampSort);
 
-        CBlockIndex *pIndex = nullptr;
-
-        {
-            LOCK(cs_main);
-            pIndex = chainActive[it->first.blockHeight];
-        }
-
-        if( !pIndex )
-            return Error(req, SAPI::BlockNotFound, "Could not find block index.");
+    for (auto it=vecDeposits.begin() + nDepositStart; it!=vecDeposits.end(); it++) {
 
         // Add the deposits to the json response.
-        UniValue entry(UniValue::VOBJ);
+        arrDeposit.push_back(it->ToJson());
 
-        entry.pushKV("txhash", HexStr(it->first.txhash.begin(), it->first.txhash.end()));
-        entry.pushKV("timestamp", pIndex->GetBlockTime());
-        entry.pushKV("amount", CAmountToDouble(it->second));
-
-        arr.push_back(entry);
-
-        if( arr.size() == (size_t)nPageSize ) break;
+        if( arrDeposit.size() == (size_t)nPageSize ) break;
     }
 
-    obj.pushKV("deposits",arr);
+    obj.pushKV("deposits",arrDeposit);
 
-    string strJSON = obj.write(2) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, obj);
 
     return true;
 }
 
-bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
     if ( strURIPart.length() <= 1 || strURIPart == "/" )
         return Error(req, HTTP_BAD_REQUEST, "No SmartCash address specified. Use /address/unspent/<smartcash_address>");
@@ -376,14 +378,12 @@ bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const UniVal
         result.push_back(output);
     }
 
-    string strJSON = result.write(2) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, result);
 
     return true;
 }
 
-bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
     std::string addrStr = bodyParameter[SAPI::Keys::address].get_str();
     double expectedAmount = bodyParameter[SAPI::Keys::amount].get_real();
@@ -453,9 +453,7 @@ bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart, const
     result.pushKV("change", amountSum - expectedAmount - fee);
     result.pushKV("inputs", inputs);
 
-    string strJSON = result.write(2) + "\n";
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, strJSON);
+    SAPIWriteReply(req, result);
 
     return true;
 }
