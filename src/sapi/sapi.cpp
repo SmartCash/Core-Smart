@@ -41,32 +41,12 @@ bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector
 
 bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::string &message)
 {
-    UniValue obj(UniValue::VOBJ);
-
-    obj.pushKV("code", SAPI::Undefined);
-    obj.pushKV("message", message);
-
-    string strJSON = obj.write(1,1) + "\n";
-
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(status, strJSON);
-
-    return false;
+    return SAPI::Error(req, status, {SAPI::Result(SAPI::Undefined, message)});
 }
 
 bool SAPI::Error(HTTPRequest* req, SAPI::Codes code, const std::string &message)
 {
-    UniValue obj(UniValue::VOBJ);
-
-    obj.pushKV("code", code);
-    obj.pushKV("message", message);
-
-    string strJSON = obj.write(2) + "\n";
-
-    req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_BAD_REQUEST, strJSON);
-
-    return false;
+    return SAPI::Error(req, HTTP_BAD_REQUEST, {SAPI::Result(code, message)});
 }
 
 static SAPI::Result ParameterBaseCheck(HTTPRequest* req, const UniValue &obj, const SAPI::BodyParameter &param)
@@ -302,14 +282,24 @@ string JsonString(const UniValue &obj)
     return obj.write(DEFAULT_SAPI_JSON_INDENT) + "\n";
 }
 
-void SAPIWriteReply(HTTPRequest *req, const UniValue &obj)
+void SAPIWriteReply(HTTPRequest *req, enum HTTPStatusCode status, const UniValue &obj)
 {
     req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, JsonString(obj));
+    req->WriteReply(status, JsonString(obj));
+}
+
+void SAPIWriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::string &str)
+{
+    req->WriteHeader("Content-Type", "text/plain");
+    req->WriteReply(status, str + "\n");
+}
+
+void SAPIWriteReply(HTTPRequest *req, const UniValue &obj)
+{
+    SAPIWriteReply(req, HTTP_OK, JsonString(obj));
 }
 
 void SAPIWriteReply(HTTPRequest *req, const std::string &str)
 {
-    req->WriteHeader("Content-Type", "text/plain");
-    req->WriteReply(HTTP_OK, str + "\n");
+    SAPIWriteReply(req, HTTP_OK, str);
 }

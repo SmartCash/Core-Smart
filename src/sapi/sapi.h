@@ -184,7 +184,6 @@ typedef struct {
 }Endpoint;
 
 bool Error(HTTPRequest* req, enum HTTPStatusCode status, const std::string &message);
-bool Error(HTTPRequest* req, enum HTTPStatusCode status, const SAPI::Result &error);
 bool Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector<SAPI::Result> &errors);
 bool Error(HTTPRequest* req, SAPI::Codes code, const std::string &message);
 
