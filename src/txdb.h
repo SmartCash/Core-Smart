@@ -135,6 +135,7 @@ public:
                           int start = 0, int end = 0);
     bool WriteTimestampIndex(const CTimestampIndexKey &timestampIndex);
     bool ReadTimestampIndex(const unsigned int &high, const unsigned int &low, std::vector<uint256> &vect);
+    bool ReadTimestampIndex(const unsigned int &timestamp, uint256 &blockHash);
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
     bool LoadBlockIndexGuts(boost::function<CBlockIndex*(const uint256&)> insertBlockIndex);

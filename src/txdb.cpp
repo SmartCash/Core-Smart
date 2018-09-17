@@ -334,6 +334,26 @@ bool CBlockTreeDB::ReadTimestampIndex(const unsigned int &high, const unsigned i
     return true;
 }
 
+bool CBlockTreeDB::ReadTimestampIndex(const unsigned int &timestamp, uint256 &blockHash) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(make_pair(DB_TIMESTAMPINDEX, CTimestampIndexIteratorKey(timestamp)));
+
+    blockHash.SetNull();
+
+    if (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char, CTimestampIndexKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_TIMESTAMPINDEX) {
+            blockHash = key.second.blockHash;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool CBlockTreeDB::WriteFlag(const std::string &name, bool fValue) {
     return Write(std::make_pair(DB_FLAG, name), fValue ? '1' : '0');
 }
