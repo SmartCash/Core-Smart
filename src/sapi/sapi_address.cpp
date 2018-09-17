@@ -6,6 +6,8 @@
 #include "rpc/client.h"
 #include "sapi_validation.h"
 #include "sapi/sapi_address.h"
+#include "txdb.h"
+#include "validation.h"
 
 using namespace std;
 using namespace SAPI;
@@ -157,6 +159,19 @@ static bool GetUTXOs(HTTPRequest* req, const CBitcoinAddress& address, std::vect
     return true;
 }
 
+static bool GetBlockInfoForTimestamp(const unsigned int &timestamp, uint256 &blockHash)
+{
+    bool fTimestampIndex = GetBoolArg("-timestampindex", DEFAULT_TIMESTAMPINDEX);
+
+    if (!fTimestampIndex)
+        return error("Timestamp index not enabled");
+
+    if (!pblocktree->ReadTimestampIndex(timestamp, blockHash))
+        return error("Unable to get hashes for timestamps");
+
+    return true;
+}
+
 inline double CalculateFee( int nInputs )
 {
     double feeCalc = (((nInputs * 148) + (2 * 34) + 10 + 9) / 1024.0) * 0.001;
@@ -228,6 +243,9 @@ static bool address_balances(HTTPRequest* req, const std::string& strURIPart, co
 
 static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
+    int64_t nTime0, nTime1, nTime2, nTime3, nTime4, nTime5, nTime6, nTime7, nTime8;
+
+    nTime0 = GetTimeMicros();
 
     int start = bodyParameter[Keys::timestampFrom].get_int64();
     int end = bodyParameter[Keys::timestampTo].get_int64();
@@ -246,35 +264,46 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
         return Error(req, HTTP_BAD_REQUEST,"Invalid address: " + addrStr);
 
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
-    std::vector<uint256> vecBlockHashes;
+    uint256 startHash, endHash;
 
     CBlockIndex* pIndexStart = nullptr;
     CBlockIndex* pIndexEnd = nullptr;
 
-    if (!GetTimestampIndex(end, start, vecBlockHashes) || vecBlockHashes.size() < 2 )
-        return Error(req, HTTP_BAD_REQUEST, "No information available for the given timerange.");
+    nTime1 = GetTimeMicros();
+
+    if (!GetBlockInfoForTimestamp(start, startHash) || startHash.IsNull() )
+        return Error(req, HTTP_BAD_REQUEST, "No information available for the provided start timestamp.");
+
+    if (!GetBlockInfoForTimestamp(end, endHash) || endHash.IsNull() )
+        return Error(req, HTTP_BAD_REQUEST, "No information available for the provided end timestamp.");
+
+    nTime2 = GetTimeMicros();
 
     {
         LOCK(cs_main);
 
-        if (mapBlockIndex.count(vecBlockHashes.front()) == 0)
+        if (mapBlockIndex.count(startHash) == 0)
             return Error(req, HTTP_BAD_REQUEST, "Start block not found");
-        if (mapBlockIndex.count(vecBlockHashes.back()) == 0)
+        if (mapBlockIndex.count(endHash) == 0)
             return Error(req, HTTP_BAD_REQUEST, "End block not found");
 
-        pIndexStart = mapBlockIndex[vecBlockHashes.front()];
-        pIndexEnd = mapBlockIndex[vecBlockHashes.back()];
-
+        pIndexStart = mapBlockIndex[startHash];
+        pIndexEnd = mapBlockIndex[endHash];
     }
 
     if( !pIndexStart || !pIndexEnd )
         return Error(req, HTTP_BAD_REQUEST, "Could not load block index.");
 
+    nTime3 = GetTimeMicros();
+
     if (!GetAddressIndex(hashBytes, type, addressIndex, pIndexStart->nHeight, pIndexEnd->nHeight))
         return Error(req, HTTP_BAD_REQUEST, "No information available for " + addrStr);
 
+    nTime4 = GetTimeMicros();
+
     std::sort(addressIndex.begin(), addressIndex.end(), spendingSort);
 
+    nTime5 = GetTimeMicros();
 
     UniValue result(UniValue::VOBJ);
 
@@ -286,18 +315,12 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
          it!=addressIndex.end();
          it++) {
 
-        std::string addrStr;
-
-        if (!getAddressFromIndex(it->first.type, it->first.hashBytes, addrStr))
-            return Error(req, HTTP_BAD_REQUEST, "Unknown address type");
-
         if( it->first.spending ){
             vecSpendings.insert(std::make_pair(it->first.txhash, it->second));
             continue;
         }
 
-
-        if( vecSpendings.count(it->first.txhash))
+        if( vecSpendings.find(it->first.txhash) != vecSpendings.end() )
             continue;
 
         {
@@ -308,9 +331,11 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
         if( !pIndex )
             return Error(req, SAPI::BlockNotFound, "Couldn't find block index.");
 
-        CSAPIDeposit entry(it->first.txhash.GetHex(), pIndex->GetBlockTime(), CAmountToDouble(it->second));
+        CSAPIDeposit entry(it->first.txhash.GetHex(), 0, CAmountToDouble(it->second));
         vecDeposits.push_back(entry);
     }
+
+    nTime6 = GetTimeMicros();
 
     UniValue obj(UniValue::VOBJ);
     UniValue arrDeposit(UniValue::VARR);
@@ -341,13 +366,32 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
 
     obj.pushKV("deposits",arrDeposit);
 
+    nTime7 = GetTimeMicros();
+
     SAPIWriteReply(req, obj);
+
+    nTime8 = GetTimeMicros();
+
+    LogPrint("sapi-benchmark", "\naddress_deposit\n");
+    LogPrint("sapi-benchmark", " Prepare parameter: %.2fms\n", (nTime1 - nTime0) * 0.001);
+    LogPrint("sapi-benchmark", " Query timestamp index: %.2fms\n", (nTime2 - nTime1) * 0.001);
+    LogPrint("sapi-benchmark", " Get block index: %.2fms\n", (nTime3 - nTime2) * 0.001);
+    LogPrint("sapi-benchmark", " Get address index: %.2fms\n", (nTime4 - nTime3) * 0.001);
+    LogPrint("sapi-benchmark", " Sort address index: %.2fms\n", (nTime5 - nTime4) * 0.001);
+    LogPrint("sapi-benchmark", " Evaluate deposits: %.2fms\n", (nTime6 - nTime5) * 0.001);
+    LogPrint("sapi-benchmark", " Process deposits: %.2fms\n", (nTime7 - nTime6) * 0.001);
+    LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime8 - nTime7) * 0.001);
+    LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime8 - nTime0) * 0.001);
 
     return true;
 }
 
 static bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
+    int64_t nTime0, nTime1, nTime2, nTime3, nTime4, nTime5;
+
+    nTime0 = GetTimeMicros();
+
     if ( strURIPart.length() <= 1 || strURIPart == "/" )
         return Error(req, HTTP_BAD_REQUEST, "No SmartCash address specified. Use /address/unspent/<smartcash_address>");
 
@@ -356,19 +400,23 @@ static bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const
     int64_t nHeight = chainActive.Height();
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
 
+    nTime1 = GetTimeMicros();
+
     if( !GetUTXOs(req, address, unspentOutputs ) )
         return false;
 
+    nTime2 = GetTimeMicros();
+
     std::sort(unspentOutputs.begin(), unspentOutputs.end(), heightSort);
+
+    nTime3 = GetTimeMicros();
 
     UniValue result(UniValue::VARR);
 
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
         UniValue output(UniValue::VOBJ);
         std::string address;
-        if (!getAddressFromIndex(it->first.type, it->first.hashBytes, address)) {
-            return Error(req, HTTP_BAD_REQUEST, "Unknown address type");
-        }
+
         output.pushKV("txid", it->first.txhash.GetHex());
         output.pushKV("index", (int)it->first.index);
         output.pushKV(Keys::address, address);
@@ -378,23 +426,45 @@ static bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const
         result.push_back(output);
     }
 
+    nTime4 = GetTimeMicros();
+
     SAPIWriteReply(req, result);
+
+    nTime5 = GetTimeMicros();
+
+    LogPrint("sapi-benchmark", "\naddress_utxos\n");
+    LogPrint("sapi-benchmark", " Query utxos: %.2fms\n", (nTime2 - nTime1) * 0.001);
+    LogPrint("sapi-benchmark", " Sort utxos: %.2fms\n", (nTime3 - nTime2) * 0.001);
+    LogPrint("sapi-benchmark", " Process utxos: %.2fms\n", (nTime4 - nTime3) * 0.001);
+    LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime5 - nTime4) * 0.001);
+    LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime5 - nTime0) * 0.001);
+
 
     return true;
 }
 
 static bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
+    int64_t nTime0, nTime1, nTime2, nTime3, nTime4, nTime5;
+
+    nTime0 = GetTimeMicros();
+
     std::string addrStr = bodyParameter[SAPI::Keys::address].get_str();
     double expectedAmount = bodyParameter[SAPI::Keys::amount].get_real();
 
     CBitcoinAddress address(addrStr);
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
 
+    nTime1 = GetTimeMicros();
+
     if( !GetUTXOs(req, address, unspentOutputs ) )
         return false;
 
+    nTime2 = GetTimeMicros();
+
     std::sort(unspentOutputs.begin(), unspentOutputs.end(), amountSort);
+
+    nTime3 = GetTimeMicros();
 
     int64_t nHeight = chainActive.Height();
     double fee = CalculateFee(0);
@@ -404,10 +474,6 @@ static bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart
 
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
         UniValue output(UniValue::VOBJ);
-        std::string address;
-        if (!getAddressFromIndex(it->first.type, it->first.hashBytes, address)) {
-            return Error(req, HTTP_BAD_REQUEST, "Unknown address type");
-        }
 
         CSpentIndexValue spentInfo;
         CSpentIndexKey spentKey(it->first.txhash, (int)it->first.index);
@@ -453,7 +519,18 @@ static bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart
     result.pushKV("change", amountSum - expectedAmount - fee);
     result.pushKV("inputs", inputs);
 
+    nTime4 = GetTimeMicros();
+
     SAPIWriteReply(req, result);
+
+    nTime5 = GetTimeMicros();
+
+    LogPrint("sapi-benchmark", "\naddress_utxos\n");
+    LogPrint("sapi-benchmark", " Query utxos: %.2fms\n", (nTime2 - nTime1) * 0.001);
+    LogPrint("sapi-benchmark", " Sort utxos: %.2fms\n", (nTime3 - nTime2) * 0.001);
+    LogPrint("sapi-benchmark", " Evaluate inputs: %.2fms\n", (nTime4 - nTime3) * 0.001);
+    LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime5 - nTime4) * 0.001);
+    LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime5 - nTime0) * 0.001);
 
     return true;
 }
