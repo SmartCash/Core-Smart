@@ -417,6 +417,13 @@ static bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const
         UniValue output(UniValue::VOBJ);
         std::string address;
 
+        CSpentIndexValue spentInfo;
+        CSpentIndexKey spentKey(it->first.txhash, (int)it->first.index);
+
+        // Ignore inputs currently used for tx in the mempool
+        if (mempool.getSpentIndex(spentKey, spentInfo))
+            continue;
+
         output.pushKV("txid", it->first.txhash.GetHex());
         output.pushKV("index", (int)it->first.index);
         output.pushKV(Keys::address, address);
