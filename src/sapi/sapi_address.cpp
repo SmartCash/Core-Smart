@@ -243,145 +243,89 @@ static bool address_balances(HTTPRequest* req, const std::string& strURIPart, co
 
 static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
-    int64_t nTime0, nTime1, nTime2, nTime3, nTime4, nTime5, nTime6, nTime7, nTime8;
+    int64_t nTime0, nTime1, nTime2, nTime3, nTime4, nTime5;
 
     nTime0 = GetTimeMicros();
 
-    int start = bodyParameter[Keys::timestampFrom].get_int64();
-    int end = bodyParameter[Keys::timestampTo].get_int64();
+    int64_t start = bodyParameter[Keys::timestampFrom].get_int64();
+    int64_t end = bodyParameter[Keys::timestampTo].get_int64();
     int nPageNumber = bodyParameter[Keys::pageNumber].get_int64();
     int nPageSize = bodyParameter[Keys::pageSize].get_int64();
 
-    if (end < start)
+    if ( start && end && end <= start)
         return Error(req, HTTP_BAD_REQUEST, "\"" + Keys::timestampFrom + "\" is expected to be greater than \"" + Keys::timestampTo + "\"");
 
     std::string addrStr = bodyParameter[Keys::address].get_str();
     CBitcoinAddress address(addrStr);
     uint160 hashBytes;
     int type = 0;
+    int nDeposits = 0;
 
     if (!address.GetIndexKey(hashBytes, type))
         return Error(req, HTTP_BAD_REQUEST,"Invalid address: " + addrStr);
 
-    std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
-    uint256 startHash, endHash;
-
-    CBlockIndex* pIndexStart = nullptr;
-    CBlockIndex* pIndexEnd = nullptr;
+    std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
 
     nTime1 = GetTimeMicros();
 
-    if (!GetBlockInfoForTimestamp(start, startHash) || startHash.IsNull() )
-        return Error(req, HTTP_BAD_REQUEST, "No information available for the provided start timestamp.");
-
-    if (!GetBlockInfoForTimestamp(end, endHash) || endHash.IsNull() )
-        return Error(req, HTTP_BAD_REQUEST, "No information available for the provided end timestamp.");
-
-    nTime2 = GetTimeMicros();
-
-    {
-        LOCK(cs_main);
-
-        if (mapBlockIndex.count(startHash) == 0)
-            return Error(req, HTTP_BAD_REQUEST, "Start block not found");
-        if (mapBlockIndex.count(endHash) == 0)
-            return Error(req, HTTP_BAD_REQUEST, "End block not found");
-
-        pIndexStart = mapBlockIndex[startHash];
-        pIndexEnd = mapBlockIndex[endHash];
-    }
-
-    if( !pIndexStart || !pIndexEnd )
-        return Error(req, HTTP_BAD_REQUEST, "Could not load block index.");
-
-    nTime3 = GetTimeMicros();
-
-    if (!GetAddressIndex(hashBytes, type, addressIndex, pIndexStart->nHeight, pIndexEnd->nHeight))
-        return Error(req, HTTP_BAD_REQUEST, "No information available for " + addrStr);
-
-    nTime4 = GetTimeMicros();
-
-    std::sort(addressIndex.begin(), addressIndex.end(), spendingSort);
-
-    nTime5 = GetTimeMicros();
-
-    UniValue result(UniValue::VOBJ);
-
-    std::vector<CSAPIDeposit> vecDeposits;
-    std::map<uint256, CAmount> vecSpendings;
-    CBlockIndex *pIndex = nullptr;
-
-    for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin();
-         it!=addressIndex.end();
-         it++) {
-
-        if( it->first.spending ){
-            vecSpendings.insert(std::make_pair(it->first.txhash, it->second));
-            continue;
-        }
-
-        if( vecSpendings.find(it->first.txhash) != vecSpendings.end() )
-            continue;
-
-        {
-            LOCK(cs_main);
-            pIndex = chainActive[it->first.blockHeight];
-        }
-
-        if( !pIndex )
-            return Error(req, SAPI::BlockNotFound, "Couldn't find block index.");
-
-        CSAPIDeposit entry(it->first.txhash.GetHex(), 0, CAmountToDouble(it->second));
-        vecDeposits.push_back(entry);
-    }
-
-    nTime6 = GetTimeMicros();
-
-    UniValue obj(UniValue::VOBJ);
-    UniValue arrDeposit(UniValue::VARR);
-    int nDeposits = vecDeposits.size();
-    int nPages = nDeposits / nPageSize;
-    if( nDeposits % nPageSize ) nPages++;
+    if (!GetDepositIndexCount(hashBytes, type, nDeposits, start, end) )
+        return Error(req, HTTP_BAD_REQUEST, "No information available for the provided timerange.");
 
     if (!nDeposits)
-        return Error(req, SAPI::NoDepositAvailble, strprintf("No deposits available for the given timerange.", nPages));
+        return Error(req, SAPI::NoDepositAvailble, "No deposits available for the given timerange.");
+
+    int nPages = nDeposits / nPageSize;
+    if( nDeposits % nPageSize ) nPages++;
 
     if (nPageNumber > nPages)
         return Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d", nPages));
 
     int nDepositStart = ( nPageNumber - 1 ) * nPageSize;
+    int nLimit = (nDeposits % nPageSize) && nPageNumber == nPages ? (nDeposits % nPageSize) : nPageSize;
+
+    nTime2 = GetTimeMicros();
+
+    if (!GetDepositIndex(hashBytes, type, depositIndex, start, nDepositStart , nLimit))
+        return Error(req, HTTP_BAD_REQUEST, "No information available for " + addrStr);
+
+    nTime3 = GetTimeMicros();
+
+    UniValue result(UniValue::VOBJ);
+
+    UniValue arrDeposit(UniValue::VARR);
+
+    for (std::vector<std::pair<CDepositIndexKey, CDepositValue> >::const_iterator it=depositIndex.begin();
+         it!=depositIndex.end();
+         it++) {
+
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("txhash", it->first.txhash.GetHex());
+        obj.pushKV("blockHeight", it->second.blockHeight);
+        obj.pushKV("timestamp", (int64_t)it->first.timestamp);
+        obj.pushKV("amount", CAmountToDouble(it->second.satoshis));
+
+        arrDeposit.push_back(obj);
+    }
+
+    UniValue obj(UniValue::VOBJ);
 
     obj.pushKV("page", nPageNumber);
     obj.pushKV("pages", nPages);
-
-    std::sort(vecDeposits.begin(), vecDeposits.end(), timestampSort);
-
-    for (auto it=vecDeposits.begin() + nDepositStart; it!=vecDeposits.end(); it++) {
-
-        // Add the deposits to the json response.
-        arrDeposit.push_back(it->ToJson());
-
-        if( arrDeposit.size() == (size_t)nPageSize ) break;
-    }
-
     obj.pushKV("deposits",arrDeposit);
 
-    nTime7 = GetTimeMicros();
+    nTime4 = GetTimeMicros();
 
     SAPIWriteReply(req, obj);
 
-    nTime8 = GetTimeMicros();
+    nTime5 = GetTimeMicros();
 
-    LogPrint("sapi-benchmark", "\naddress_deposit\n");
+    LogPrint("sapi-benchmark", "address_deposit\n");
     LogPrint("sapi-benchmark", " Prepare parameter: %.2fms\n", (nTime1 - nTime0) * 0.001);
-    LogPrint("sapi-benchmark", " Query timestamp index: %.2fms\n", (nTime2 - nTime1) * 0.001);
-    LogPrint("sapi-benchmark", " Get block index: %.2fms\n", (nTime3 - nTime2) * 0.001);
-    LogPrint("sapi-benchmark", " Get address index: %.2fms\n", (nTime4 - nTime3) * 0.001);
-    LogPrint("sapi-benchmark", " Sort address index: %.2fms\n", (nTime5 - nTime4) * 0.001);
-    LogPrint("sapi-benchmark", " Evaluate deposits: %.2fms\n", (nTime6 - nTime5) * 0.001);
-    LogPrint("sapi-benchmark", " Process deposits: %.2fms\n", (nTime7 - nTime6) * 0.001);
-    LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime8 - nTime7) * 0.001);
-    LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime8 - nTime0) * 0.001);
+    LogPrint("sapi-benchmark", " Get deposit count: %.2fms\n", (nTime2 - nTime1) * 0.001);
+    LogPrint("sapi-benchmark", " Get deposit index: %.2fms\n", (nTime3 - nTime2) * 0.001);
+    LogPrint("sapi-benchmark", " Process deposits: %.2fms\n", (nTime4 - nTime3) * 0.001);
+    LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime5 - nTime4) * 0.001);
+    LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime5 - nTime0) * 0.001);
 
     return true;
 }
