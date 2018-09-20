@@ -1179,24 +1179,25 @@ bool GetAddressUnspent(uint160 addressHash, int type,
     return true;
 }
 
-bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int start, int end)
+bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int &firstTime, int &lastTime, int start, int end)
 {
     if (!fDepositIndex)
         return error("deposit index not enabled");
 
-    if (!pblocktree->ReadDepositIndexCount(addressHash, type, count, start, end))
+    if (!pblocktree->ReadDepositIndexCount(addressHash, type, count, firstTime, lastTime, start, end))
         return error("unable to get deposits count for address");
 
     return true;
 }
 
 bool GetDepositIndex(uint160 addressHash, int type,
-                     std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex, int start, int offset, int limit)
+                     std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex,
+                     int start, int offset, int limit, bool reverse)
 {
     if (!fDepositIndex)
         return error("deposit index not enabled");
 
-    if (!pblocktree->ReadDepositIndex(addressHash, type, depositIndex, start, offset, limit))
+    if (!pblocktree->ReadDepositIndex(addressHash, type, depositIndex, start, offset, limit, reverse))
         return error("unable to get deposits for address");
 
     return true;

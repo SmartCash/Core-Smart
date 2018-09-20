@@ -140,9 +140,10 @@ public:
     bool EraseDepositIndex(const std::vector<std::pair<CDepositIndexKey, CDepositValue> > &vect);
     bool ReadDepositIndex(uint160 addressHash, int type,
                           std::vector<std::pair<CDepositIndexKey, CDepositValue> > &depositIndex,
-                          int start = 0, int offset = 0, int limit = 0);
+                          int start = 0, int offset = 0, int limit = 0, bool reverse = false);
     bool ReadDepositIndexCount(uint160 addressHash, int type,
                                         int &count,
+                                        int &firstTime, int &lastTime,
                                         int start, int end);
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);

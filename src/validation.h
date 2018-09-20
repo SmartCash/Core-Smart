@@ -480,9 +480,10 @@ bool GetAddressIndex(uint160 addressHash, int type,
                      int start = 0, int end = 0);
 bool GetAddressUnspent(uint160 addressHash, int type,
                        std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs);
-bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int start, int end);
+bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int &firstTime, int &lastTime, int start, int end);
 bool GetDepositIndex(uint160 addressHash, int type,
-                     std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex, int start, int offset, int limit);
+                     std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex,
+                     int start, int offset, int limit, bool reverse);
 
 /** Functions for disk access for blocks */
 bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMessageHeader::MessageStartChars& messageStart);

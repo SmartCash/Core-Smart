@@ -64,6 +64,8 @@ namespace Keys{
     const std::string rawtx = "data";
     const std::string instantpay = "instantpay";
     const std::string overridefees = "overrideFees";
+    const std::string ascending = "ascending";
+    const std::string descending = "descending";
 
 }
 

@@ -371,7 +371,7 @@ bool CBlockTreeDB::EraseDepositIndex(const std::vector<std::pair<CDepositIndexKe
 
 bool CBlockTreeDB::ReadDepositIndex(uint160 addressHash, int type,
                                     std::vector<std::pair<CDepositIndexKey, CDepositValue> > &depositIndex,
-                                    int start, int offset, int limit) {
+                                    int start, int offset, int limit, bool reverse) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -394,7 +394,10 @@ bool CBlockTreeDB::ReadDepositIndex(uint160 addressHash, int type,
             if (pcursor->GetValue(nValue)) {
                 if( ++nCount > offset )
                     depositIndex.push_back(make_pair(key.second, nValue));
-                pcursor->Next();
+
+                if( reverse ) pcursor->Prev();
+                else          pcursor->Next();
+
             } else {
                 return error("failed to get deposit index value");
             }
@@ -408,13 +411,16 @@ bool CBlockTreeDB::ReadDepositIndex(uint160 addressHash, int type,
 
 bool CBlockTreeDB::ReadDepositIndexCount(uint160 addressHash, int type,
                                     int &count,
+                                    int &firstTime, int &lastTime,
                                     int start, int end) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
     count = 0;
+    firstTime = 0;
+    lastTime = 0;
 
-    if (start > 0 && end > 0) {
+    if (start > 0) {
         pcursor->Seek(make_pair(DB_DEPOSITINDEX, CDepositIndexIteratorTimeKey(type, addressHash, start)));
     } else {
         pcursor->Seek(make_pair(DB_DEPOSITINDEX, CDepositIndexIteratorKey(type, addressHash)));
@@ -424,10 +430,15 @@ bool CBlockTreeDB::ReadDepositIndexCount(uint160 addressHash, int type,
         boost::this_thread::interruption_point();
         std::pair<char,CDepositIndexKey> key;
         if (pcursor->GetKey(key) && key.first == DB_DEPOSITINDEX && key.second.hashBytes == addressHash) {
+
+            if( !firstTime ) firstTime = key.second.timestamp;
+
             if (end > 0 && key.second.timestamp > (unsigned int)end) {
+                if( !lastTime ) lastTime = firstTime;
                 break;
             }
 
+            lastTime = key.second.timestamp;
             count++;
             pcursor->Next();
 

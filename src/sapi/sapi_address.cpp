@@ -66,7 +66,8 @@ std::vector<Endpoint> addressEndpoints = {
             BodyParameter(Keys::timestampFrom,  new SAPI::Validation::UInt(), true),
             BodyParameter(Keys::timestampTo,    new SAPI::Validation::UInt(), true),
             BodyParameter(Keys::pageNumber,     new SAPI::Validation::IntRange(1,INT_MAX)),
-            BodyParameter(Keys::pageSize,       new SAPI::Validation::IntRange(1,1000))
+            BodyParameter(Keys::pageSize,       new SAPI::Validation::IntRange(1,1000)),
+            BodyParameter(Keys::ascending,      new SAPI::Validation::Bool(), true),
         }
     },
     {
@@ -251,6 +252,7 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
     int64_t end = bodyParameter.exists(Keys::timestampTo) ? bodyParameter[Keys::timestampTo].get_int64() : INT_MAX;
     int nPageNumber = bodyParameter[Keys::pageNumber].get_int64();
     int nPageSize = bodyParameter[Keys::pageSize].get_int64();
+    bool fAsc = bodyParameter.exists(Keys::ascending) ? bodyParameter[Keys::ascending].get_bool() : false;
 
     if ( end <= start)
         return Error(req, HTTP_BAD_REQUEST, "\"" + Keys::timestampFrom + "\" is expected to be greater than \"" + Keys::timestampTo + "\"");
@@ -260,6 +262,8 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
     uint160 hashBytes;
     int type = 0;
     int nDeposits = 0;
+    int nFirstTimestamp;
+    int nLastTimestamp;
 
     if (!address.GetIndexKey(hashBytes, type))
         return Error(req, HTTP_BAD_REQUEST,"Invalid address: " + addrStr);
@@ -268,7 +272,7 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
 
     nTime1 = GetTimeMicros();
 
-    if (!GetDepositIndexCount(hashBytes, type, nDeposits, start, end) )
+    if (!GetDepositIndexCount(hashBytes, type, nDeposits, nFirstTimestamp, nLastTimestamp, start, end) )
         return Error(req, HTTP_BAD_REQUEST, "No information available for the provided timerange.");
 
     if (!nDeposits)
@@ -280,12 +284,12 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
     if (nPageNumber > nPages)
         return Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d", nPages));
 
-    int nDepositStart = ( nPageNumber - 1 ) * nPageSize;
+    int nIndexOffset = ( nPageNumber - 1 ) * nPageSize;
     int nLimit = (nDeposits % nPageSize) && nPageNumber == nPages ? (nDeposits % nPageSize) : nPageSize;
 
     nTime2 = GetTimeMicros();
 
-    if (!GetDepositIndex(hashBytes, type, depositIndex, start, nDepositStart , nLimit))
+    if (!GetDepositIndex(hashBytes, type, depositIndex, fAsc ? nFirstTimestamp : nLastTimestamp, nIndexOffset , nLimit, !fAsc))
         return Error(req, HTTP_BAD_REQUEST, "No information available for " + addrStr);
 
     nTime3 = GetTimeMicros();
