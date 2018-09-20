@@ -63,8 +63,8 @@ std::vector<Endpoint> addressEndpoints = {
         "/deposit", HTTPRequest::POST, UniValue::VOBJ, address_deposit,
         {
             BodyParameter(Keys::address,        new SAPI::Validation::SmartCashAddress()),
-            BodyParameter(Keys::timestampFrom,  new SAPI::Validation::Int()),
-            BodyParameter(Keys::timestampTo,    new SAPI::Validation::Int()),
+            BodyParameter(Keys::timestampFrom,  new SAPI::Validation::UInt(), true),
+            BodyParameter(Keys::timestampTo,    new SAPI::Validation::UInt(), true),
             BodyParameter(Keys::pageNumber,     new SAPI::Validation::IntRange(1,INT_MAX)),
             BodyParameter(Keys::pageSize,       new SAPI::Validation::IntRange(1,1000))
         }
@@ -247,12 +247,12 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
 
     nTime0 = GetTimeMicros();
 
-    int64_t start = bodyParameter[Keys::timestampFrom].get_int64();
-    int64_t end = bodyParameter[Keys::timestampTo].get_int64();
+    int64_t start = bodyParameter.exists(Keys::timestampFrom) ? bodyParameter[Keys::timestampFrom].get_int64() : 0;
+    int64_t end = bodyParameter.exists(Keys::timestampTo) ? bodyParameter[Keys::timestampTo].get_int64() : INT_MAX;
     int nPageNumber = bodyParameter[Keys::pageNumber].get_int64();
     int nPageSize = bodyParameter[Keys::pageSize].get_int64();
 
-    if ( start && end && end <= start)
+    if ( end <= start)
         return Error(req, HTTP_BAD_REQUEST, "\"" + Keys::timestampFrom + "\" is expected to be greater than \"" + Keys::timestampTo + "\"");
 
     std::string addrStr = bodyParameter[Keys::address].get_str();
