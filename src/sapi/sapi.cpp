@@ -55,10 +55,10 @@ static SAPI::Result ParameterBaseCheck(HTTPRequest* req, const UniValue &obj, co
     SAPI::Codes code = SAPI::Valid;
     std::string err = std::string();
 
-    if( !obj.exists(param.key) ){
+    if( !obj.exists(param.key) && !param.optional ){
         err = "Parameter missing: " + key;
         code = SAPI::ParameterMissing;
-    }else{
+    }else if( obj.exists(param.key) ){
 
         if( obj[key].type() != param.validator->GetType() ){
 
@@ -210,7 +210,7 @@ static bool SAPIValidateBody(HTTPRequest *req, const SAPI::Endpoint &endpoint, U
 
             results.push_back(result);
 
-        }else{
+        }else if( bodyParameter.exists(param.key) ){
 
             SAPI::Result result = param.validator->Validate(param.key, bodyParameter[param.key]);
 

@@ -150,8 +150,11 @@ namespace Validation{
 struct BodyParameter{
     std::string key;
     const SAPI::Validation::Base *validator;
+    bool optional;
     BodyParameter(const std::string &key,
-                      const SAPI::Validation::Base *validator) : key(key), validator(validator){}
+                  const SAPI::Validation::Base *validator, bool optional = false) : key(key),
+                                                                                    validator(validator),
+                                                                                    optional(optional){}
 };
 
 struct Result{
