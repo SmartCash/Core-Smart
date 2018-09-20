@@ -136,6 +136,14 @@ public:
     bool WriteTimestampIndex(const CTimestampIndexKey &timestampIndex);
     bool ReadTimestampIndex(const unsigned int &high, const unsigned int &low, std::vector<uint256> &vect);
     bool ReadTimestampIndex(const unsigned int &timestamp, uint256 &blockHash);
+    bool WriteDepositIndex(const std::vector<std::pair<CDepositIndexKey, CDepositValue> > &vect);
+    bool EraseDepositIndex(const std::vector<std::pair<CDepositIndexKey, CDepositValue> > &vect);
+    bool ReadDepositIndex(uint160 addressHash, int type,
+                          std::vector<std::pair<CDepositIndexKey, CDepositValue> > &depositIndex,
+                          int start = 0, int offset = 0, int limit = 0);
+    bool ReadDepositIndexCount(uint160 addressHash, int type,
+                                        int &count,
+                                        int start, int end);
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
     bool LoadBlockIndexGuts(boost::function<CBlockIndex*(const uint256&)> insertBlockIndex);

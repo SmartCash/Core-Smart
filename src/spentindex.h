@@ -370,4 +370,155 @@ struct CAddressIndexIteratorHeightKey {
 };
 
 
+struct CDepositIndexKey {
+    unsigned int type;
+    uint160 hashBytes;
+    unsigned int timestamp;
+    uint256 txhash;
+
+    size_t GetSerializeSize(int nType, int nVersion) const {
+        return 61;
+    }
+    template<typename Stream>
+    void Serialize(Stream& s, int nType, int nVersion) const {
+        ser_writedata8(s, type);
+        hashBytes.Serialize(s, nType, nVersion);
+        // Timestamps are stored big-endian for key sorting in LevelDB
+        ser_writedata32be(s, timestamp);
+        txhash.Serialize(s, nType, nVersion);
+    }
+    template<typename Stream>
+    void Unserialize(Stream& s, int nType, int nVersion) {
+        type = ser_readdata8(s);
+        hashBytes.Unserialize(s, nType, nVersion);
+        timestamp = ser_readdata32be(s);
+        txhash.Unserialize(s, nType, nVersion);
+    }
+
+    CDepositIndexKey(unsigned int addressType, uint160 addressHash,
+                     int time, uint256 txid) {
+        type = addressType;
+        hashBytes = addressHash;
+        timestamp = time;
+        txhash = txid;
+    }
+
+    CDepositIndexKey() {
+        SetNull();
+    }
+
+    void SetNull() {
+        type = 0;
+        hashBytes.SetNull();
+        timestamp = 0;
+        txhash.SetNull();
+    }
+
+};
+
+struct CDepositValue {
+    CAmount satoshis;
+    int blockHeight;
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(satoshis);
+        READWRITE(blockHeight);
+    }
+
+    CDepositValue(CAmount sats, int height) {
+        satoshis = sats;
+        blockHeight = height;
+    }
+
+    CDepositValue() {
+        SetNull();
+    }
+
+    void SetNull() {
+        satoshis = -1;
+        blockHeight = 0;
+    }
+
+    bool IsNull() const {
+        return (satoshis == -1);
+    }
+};
+
+
+struct CDepositIndexIteratorKey {
+    unsigned int type;
+    uint160 hashBytes;
+
+    size_t GetSerializeSize(int nType, int nVersion) const {
+        return 21;
+    }
+    template<typename Stream>
+    void Serialize(Stream& s, int nType, int nVersion) const {
+        ser_writedata8(s, type);
+        hashBytes.Serialize(s, nType, nVersion);
+    }
+    template<typename Stream>
+    void Unserialize(Stream& s, int nType, int nVersion) {
+        type = ser_readdata8(s);
+        hashBytes.Unserialize(s, nType, nVersion);
+    }
+
+    CDepositIndexIteratorKey(unsigned int addressType, uint160 addressHash) {
+        type = addressType;
+        hashBytes = addressHash;
+    }
+
+    CDepositIndexIteratorKey() {
+        SetNull();
+    }
+
+    void SetNull() {
+        type = 0;
+        hashBytes.SetNull();
+    }
+};
+
+struct CDepositIndexIteratorTimeKey {
+    unsigned int type;
+    uint160 hashBytes;
+    int timestamp;
+
+    size_t GetSerializeSize(int nType, int nVersion) const {
+        return 25;
+    }
+    template<typename Stream>
+    void Serialize(Stream& s, int nType, int nVersion) const {
+        ser_writedata8(s, type);
+        hashBytes.Serialize(s, nType, nVersion);
+        ser_writedata32be(s, timestamp);
+    }
+    template<typename Stream>
+    void Unserialize(Stream& s, int nType, int nVersion) {
+        type = ser_readdata8(s);
+        hashBytes.Unserialize(s, nType, nVersion);
+        timestamp = ser_readdata32be(s);
+    }
+
+    CDepositIndexIteratorTimeKey(unsigned int addressType, uint160 addressHash, int time) {
+        type = addressType;
+        hashBytes = addressHash;
+        timestamp = time;
+    }
+
+    CDepositIndexIteratorTimeKey() {
+        SetNull();
+    }
+
+    void SetNull() {
+        type = 0;
+        hashBytes.SetNull();
+        timestamp = 0;
+    }
+};
+
+
+
 #endif // BITCOIN_SPENTINDEX_H

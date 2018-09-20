@@ -79,6 +79,7 @@ bool fTxIndex = true;
 bool fAddressIndex = false;
 bool fTimestampIndex = false;
 bool fSpentIndex = false;
+bool fDepositIndex = false;
 bool fHavePruned = false;
 bool fPruneMode = false;
 bool fIsBareMultisigStd = DEFAULT_PERMIT_BAREMULTISIG;
@@ -1178,6 +1179,29 @@ bool GetAddressUnspent(uint160 addressHash, int type,
     return true;
 }
 
+bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int start, int end)
+{
+    if (!fDepositIndex)
+        return error("deposit index not enabled");
+
+    if (!pblocktree->ReadDepositIndexCount(addressHash, type, count, start, end))
+        return error("unable to get deposits count for address");
+
+    return true;
+}
+
+bool GetDepositIndex(uint160 addressHash, int type,
+                     std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex, int start, int offset, int limit)
+{
+    if (!fDepositIndex)
+        return error("deposit index not enabled");
+
+    if (!pblocktree->ReadDepositIndex(addressHash, type, depositIndex, start, offset, limit))
+        return error("unable to get deposits for address");
+
+    return true;
+}
+
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransaction &tx, bool fLimitFree,
                         bool* pfMissingInputs, bool fOverrideMempoolLimit, bool fRejectAbsurdFee, bool fDryRun)
 {
@@ -1781,38 +1805,57 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
+    std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
         const CTransaction &tx = block.vtx[i];
         uint256 hash = tx.GetHash();
         bool is_coinbase = tx.IsCoinBase();
+        std::map<std::pair<uint160, int>, CAmount> vecInputs;
+        std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
-        if (fAddressIndex) {
+        if (fAddressIndex || fDepositIndex) {
+
+            uint160 hashBytes;
+            int addressType;
 
             for (unsigned int k = tx.vout.size(); k-- > 0;) {
                 const CTxOut &out = tx.vout[k];
 
                 if (out.scriptPubKey.IsPayToScriptHash()) {
-                    vector<unsigned char> hashBytes(out.scriptPubKey.begin()+2, out.scriptPubKey.begin()+22);
 
-                    // undo receiving activity
-                    addressIndex.push_back(make_pair(CAddressIndexKey(2, uint160(hashBytes), pindex->nHeight, i, hash, k, false), out.nValue));
-
-                    // undo unspent index
-                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(2, uint160(hashBytes), hash, k), CAddressUnspentValue()));
-
+                    hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin()+2, out.scriptPubKey.begin()+22));
+                    addressType = 2;
                 } else if (out.scriptPubKey.IsPayToPublicKeyHash()) {
-                    vector<unsigned char> hashBytes(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23);
 
-                    // undo receiving activity
-                    addressIndex.push_back(make_pair(CAddressIndexKey(1, uint160(hashBytes), pindex->nHeight, i, hash, k, false), out.nValue));
-
-                    // undo unspent index
-                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(1, uint160(hashBytes), hash, k), CAddressUnspentValue()));
-
+                    hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23));
+                    addressType = 1;
                 } else {
                     continue;
+                }
+
+                if( fAddressIndex ){
+
+                    // undo receiving activity
+                    addressIndex.push_back(make_pair(CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, hash, k, false), out.nValue));
+
+                    // undo unspent index
+                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, hash, k), CAddressUnspentValue()));
+                }
+
+                if ( fDepositIndex ) {
+
+                    auto it = vecOutputs.find(std::make_pair(hashBytes,addressType));
+
+                    if( it == vecOutputs.end() ){
+                        // For the first occurrence of the address it
+                        vecOutputs.insert(std::make_pair(std::make_pair(hashBytes,addressType), out.nValue));
+                    }else{
+                        // For further ones add up the amount
+                        it->second += out.nValue;
+                    }
+
                 }
 
             }
@@ -1853,34 +1896,77 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                     spentIndex.push_back(make_pair(CSpentIndexKey(input.prevout.hash, input.prevout.n), CSpentIndexValue()));
                 }
 
-                if (fAddressIndex) {
+                if (fAddressIndex || fDepositIndex) {
+
                     const Coin &coin = view.AccessCoin(tx.vin[j].prevout);
                     const CTxOut &prevout = coin.out;
+
+                    uint160 hashBytes;
+                    int addressType = 0;
+
                     if (prevout.scriptPubKey.IsPayToScriptHash()) {
-                        vector<unsigned char> hashBytes(prevout.scriptPubKey.begin()+2, prevout.scriptPubKey.begin()+22);
 
-                        // undo spending activity
-                        addressIndex.push_back(make_pair(CAddressIndexKey(2, uint160(hashBytes), pindex->nHeight, i, hash, j, true), prevout.nValue * -1));
-
-                        // restore unspent index
-                        addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(2, uint160(hashBytes), input.prevout.hash, input.prevout.n), CAddressUnspentValue(prevout.nValue, prevout.scriptPubKey, undoHeight)));
-
+                        hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin()+2, prevout.scriptPubKey.begin()+22));
+                        addressType = 2;
 
                     } else if (prevout.scriptPubKey.IsPayToPublicKeyHash()) {
-                        vector<unsigned char> hashBytes(prevout.scriptPubKey.begin()+3, prevout.scriptPubKey.begin()+23);
 
-                        // undo spending activity
-                        addressIndex.push_back(make_pair(CAddressIndexKey(1, uint160(hashBytes), pindex->nHeight, i, hash, j, true), prevout.nValue * -1));
-
-                        // restore unspent index
-                        addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(1, uint160(hashBytes), input.prevout.hash, input.prevout.n), CAddressUnspentValue(prevout.nValue, prevout.scriptPubKey, undoHeight)));
+                        hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin()+3, prevout.scriptPubKey.begin()+23));
+                        addressType = 1;
 
                     } else {
                         continue;
                     }
+
+                    if ( fDepositIndex ) {
+
+                        auto it = vecInputs.find(std::make_pair(hashBytes,addressType));
+
+                        if( it == vecInputs.end() ){
+                            // For the first occurrence of the address it
+                            vecInputs.insert(std::make_pair(std::make_pair(hashBytes,addressType), prevout.nValue));
+                        }else{
+                            // For further ones add up the amount
+                            it->second += prevout.nValue;
+                        }
+
+                    }
+
+                    if( fAddressIndex ){
+
+                        // undo spending activity
+                        addressIndex.push_back(make_pair(CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, hash, j, true), prevout.nValue * -1));
+
+                        // restore unspent index
+                        addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, input.prevout.hash, input.prevout.n), CAddressUnspentValue(prevout.nValue, prevout.scriptPubKey, undoHeight)));
+                    }
+
                 }
 
             }
+
+            if( fDepositIndex ){
+
+                for( auto const &output : vecOutputs ){
+
+                    auto input = vecInputs.find(std::make_pair( output.first.first, output.first.second ));
+
+                    if( input == vecInputs.end() ){
+                        // If there is no input related to the address of this output just add it as deposit
+                        depositIndex.push_back(std::make_pair(CDepositIndexKey(output.first.second, output.first.first, block.nTime, tx.GetHash() ),CDepositValue(output.second,pindex->nHeight)));
+                    }else{
+
+                        // If there is an input related to the address of this output evaluate if the outputs exceed the inputs
+                        CAmount nDeposit = output.second - input->second;
+
+                        if( nDeposit > 0 ){
+                            // If the outputs exceed the inputs add the deposit.
+                            depositIndex.push_back(std::make_pair(CDepositIndexKey(output.first.second, output.first.first, block.nTime, tx.GetHash() ),CDepositValue(nDeposit,pindex->nHeight)));
+                        }
+                    }
+                }
+            }
+
             // At this point, all of txundo.vprevout should have been moved out.
         }
     }
@@ -1888,6 +1974,14 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
+
+    if (fDepositIndex) {
+
+        if( !pblocktree->EraseDepositIndex(depositIndex) ){
+            AbortNode(state, "Failed to write deposit index");
+            return DISCONNECT_FAILED;
+        }
+    }
 
     if (fAddressIndex) {
         if (!pblocktree->EraseAddressIndex(addressIndex)) {
@@ -2142,6 +2236,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
+    std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
@@ -2149,6 +2244,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     {
         const CTransaction &tx = block.vtx[i];
         const uint256 txhash = tx.GetHash();
+        std::map<std::pair<uint160, int>, CAmount> vecInputs;
+        std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
@@ -2175,7 +2272,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                                  REJECT_INVALID, "bad-txns-nonfinal");
             }
 
-            if (fAddressIndex || fSpentIndex)
+            if (fAddressIndex || fSpentIndex || fDepositIndex)
             {
                 for (size_t j = 0; j < tx.vin.size(); j++) {
                     const CTxIn input = tx.vin[j];
@@ -2193,6 +2290,20 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                     } else {
                         hashBytes.SetNull();
                         addressType = 0;
+                    }
+
+                    if (fDepositIndex && addressType) {
+
+                        auto it = vecInputs.find(std::make_pair(hashBytes,addressType));
+
+                        if( it == vecInputs.end() ){
+                            // For the first occurrence of the address it
+                            vecInputs.insert(std::make_pair(std::make_pair(hashBytes,addressType), prevout.nValue));
+                        }else{
+                            // For further ones add up the amount
+                            it->second += prevout.nValue;
+                        }
+
                     }
 
                     if (fAddressIndex && addressType > 0) {
@@ -2233,32 +2344,68 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             control.Add(vChecks);
         }
 
-        if (fAddressIndex) {
+        if (fAddressIndex || fDepositIndex) {
             for (unsigned int k = 0; k < tx.vout.size(); k++) {
                 const CTxOut &out = tx.vout[k];
 
+                uint160 hashBytes;
+                int addressType;
+
                 if (out.scriptPubKey.IsPayToScriptHash()) {
-                    vector<unsigned char> hashBytes(out.scriptPubKey.begin()+2, out.scriptPubKey.begin()+22);
-
-                    // record receiving activity
-                    addressIndex.push_back(make_pair(CAddressIndexKey(2, uint160(hashBytes), pindex->nHeight, i, txhash, k, false), out.nValue));
-
-                    // record unspent output
-                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(2, uint160(hashBytes), txhash, k), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
-
+                    hashBytes = uint160(vector <unsigned char>(out.scriptPubKey.begin()+2, out.scriptPubKey.begin()+22));
+                    addressType = 2;
                 } else if (out.scriptPubKey.IsPayToPublicKeyHash()) {
-                    vector<unsigned char> hashBytes(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23);
-
-                    // record receiving activity
-                    addressIndex.push_back(make_pair(CAddressIndexKey(1, uint160(hashBytes), pindex->nHeight, i, txhash, k, false), out.nValue));
-
-                    // record unspent output
-                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(1, uint160(hashBytes), txhash, k), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
-
+                    hashBytes = uint160(vector <unsigned char>(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23));
+                    addressType = 1;
                 } else {
                     continue;
                 }
 
+                if ( fDepositIndex ) {
+
+                    auto it = vecOutputs.find(std::make_pair(hashBytes,addressType));
+
+                    if( it == vecOutputs.end() ){
+                        // For the first occurrence of the address it
+                        vecOutputs.insert(std::make_pair(std::make_pair(hashBytes,addressType), out.nValue));
+                    }else{
+                        // For further ones add up the amount
+                        it->second += out.nValue;
+                    }
+
+                }
+
+                if( fAddressIndex ){
+
+                    // record receiving activity
+                    addressIndex.push_back(make_pair(CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, txhash, k, false), out.nValue));
+                    // record unspent output
+                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, txhash, k), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
+                }
+
+            }
+
+            if( fDepositIndex ){
+
+
+                for( auto const &output : vecOutputs ){
+
+                    auto input = vecInputs.find(std::make_pair( output.first.first, output.first.second ));
+
+                    if( input == vecInputs.end() ){
+                        // If there is no input related to the address of this output just add it as deposit
+                        depositIndex.push_back(std::make_pair(CDepositIndexKey(output.first.second, output.first.first, block.nTime, tx.GetHash() ),CDepositValue(output.second,pindex->nHeight)));
+                    }else{
+
+                        // If there is an input related to the address of this output evaluate if the outputs exceed the inputs
+                        CAmount nDeposit = output.second - input->second;
+
+                        if( nDeposit > 0 ){
+                            // If the outputs exceed the inputs add the deposit.
+                            depositIndex.push_back(std::make_pair(CDepositIndexKey(output.first.second, output.first.first, block.nTime, tx.GetHash() ),CDepositValue(nDeposit,pindex->nHeight)));
+                        }
+                    }
+                }
             }
         }
 
@@ -2338,6 +2485,13 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     if (fTimestampIndex)
         if (!pblocktree->WriteTimestampIndex(CTimestampIndexKey(pindex->nTime, pindex->GetBlockHash())))
             return AbortNode(state, "Failed to write timestamp index");
+
+    if (fDepositIndex) {
+
+        if( !pblocktree->WriteDepositIndex(depositIndex) ){
+            return AbortNode(state, "Failed to write deposit index");
+        }
+    }
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());
@@ -4188,6 +4342,10 @@ bool InitBlockIndex(const CChainParams& chainparams)
 
     fSpentIndex = GetBoolArg("-spentindex", DEFAULT_SPENTINDEX);
     pblocktree->WriteFlag("spentindex", fSpentIndex);
+
+    // Use the provided setting for -addressindex in the new database
+    fDepositIndex = GetBoolArg("-depositindex", DEFAULT_DEPOSITINDEX);
+    pblocktree->WriteFlag("depositindex", fDepositIndex);
 
     // Check whether we're already initialized
     if (chainActive.Genesis() != NULL)

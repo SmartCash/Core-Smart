@@ -26,6 +26,7 @@ static const char DB_ADDRESSINDEX = 'a';
 static const char DB_ADDRESSUNSPENTINDEX = 'u';
 static const char DB_TIMESTAMPINDEX = 's';
 static const char DB_SPENTINDEX = 'p';
+static const char DB_DEPOSITINDEX = 'd';
 static const char DB_BLOCK_INDEX = 'b';
 
 static const char DB_BEST_BLOCK = 'B';
@@ -352,6 +353,90 @@ bool CBlockTreeDB::ReadTimestampIndex(const unsigned int &timestamp, uint256 &bl
     }
 
     return false;
+}
+
+bool CBlockTreeDB::WriteDepositIndex(const std::vector<std::pair<CDepositIndexKey, CDepositValue > >&vect) {
+    CDBBatch batch(*this);
+    for (std::vector<std::pair<CDepositIndexKey, CDepositValue> >::const_iterator it=vect.begin(); it!=vect.end(); it++)
+        batch.Write(make_pair(DB_DEPOSITINDEX, it->first), it->second);
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::EraseDepositIndex(const std::vector<std::pair<CDepositIndexKey, CDepositValue > >&vect) {
+    CDBBatch batch(*this);
+    for (std::vector<std::pair<CDepositIndexKey, CDepositValue> >::const_iterator it=vect.begin(); it!=vect.end(); it++)
+        batch.Erase(make_pair(DB_DEPOSITINDEX, it->first));
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::ReadDepositIndex(uint160 addressHash, int type,
+                                    std::vector<std::pair<CDepositIndexKey, CDepositValue> > &depositIndex,
+                                    int start, int offset, int limit) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    int nCount = 0;
+
+    if (start > 0) {
+        pcursor->Seek(make_pair(DB_DEPOSITINDEX, CDepositIndexIteratorTimeKey(type, addressHash, start)));
+    } else {
+        pcursor->Seek(make_pair(DB_DEPOSITINDEX, CDepositIndexIteratorKey(type, addressHash)));
+    }
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char,CDepositIndexKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_DEPOSITINDEX && key.second.hashBytes == addressHash) {
+            if (limit > 0 && depositIndex.size() == (size_t)limit) {
+                break;
+            }
+            CDepositValue nValue;
+            if (pcursor->GetValue(nValue)) {
+                if( ++nCount > offset )
+                    depositIndex.push_back(make_pair(key.second, nValue));
+                pcursor->Next();
+            } else {
+                return error("failed to get deposit index value");
+            }
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool CBlockTreeDB::ReadDepositIndexCount(uint160 addressHash, int type,
+                                    int &count,
+                                    int start, int end) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    count = 0;
+
+    if (start > 0 && end > 0) {
+        pcursor->Seek(make_pair(DB_DEPOSITINDEX, CDepositIndexIteratorTimeKey(type, addressHash, start)));
+    } else {
+        pcursor->Seek(make_pair(DB_DEPOSITINDEX, CDepositIndexIteratorKey(type, addressHash)));
+    }
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char,CDepositIndexKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_DEPOSITINDEX && key.second.hashBytes == addressHash) {
+            if (end > 0 && key.second.timestamp > (unsigned int)end) {
+                break;
+            }
+
+            count++;
+            pcursor->Next();
+
+        } else {
+            break;
+        }
+    }
+
+    return true;
 }
 
 bool CBlockTreeDB::WriteFlag(const std::string &name, bool fValue) {

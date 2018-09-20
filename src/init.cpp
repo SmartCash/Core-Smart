@@ -454,6 +454,7 @@ std::string HelpMessage(HelpMessageMode mode)
     // ### SMARTCASH ###
     // txindex option is currently disabled, defaults to true.
     //strUsage += HelpMessageOpt("-txindex", strprintf(_("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)"), DEFAULT_TXINDEX));
+    strUsage += HelpMessageOpt("-depositindex", strprintf(_("Maintain a address deposit index, used by the SAPI and the getdeposits rpc call (not yet implemented) (default: %u)"), DEFAULT_DEPOSITINDEX));
 
     strUsage += HelpMessageGroup(_("Connection options:"));
     strUsage += HelpMessageOpt("-addnode=<ip>", _("Add a node to connect to and attempt to keep the connection open"));
@@ -908,7 +909,8 @@ void InitParameterInteraction()
     bool fAdditionalIndexes =
         GetBoolArg("-addressindex", DEFAULT_ADDRESSINDEX) ||
         GetBoolArg("-spentindex", DEFAULT_SPENTINDEX) ||
-        GetBoolArg("-timestampindex", DEFAULT_TIMESTAMPINDEX);
+        GetBoolArg("-timestampindex", DEFAULT_TIMESTAMPINDEX) ||
+        GetBoolArg("-depositindex", DEFAULT_DEPOSITINDEX);
 
     if (fAdditionalIndexes && GetArg("-checklevel", DEFAULT_CHECKLEVEL) < 4) {
         mapArgs["-checklevel"] = "4";
