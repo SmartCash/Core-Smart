@@ -250,12 +250,17 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
             // MNLIST : SYNC SMARTNODE LIST FROM OTHER CONNECTED CLIENTS
 
             if(nRequestedSmartnodeAssets == SMARTNODE_SYNC_LIST) {
+
+                int nMeanListCount = GetMeanListCount();
+                bool fEnoughNodes = (nMeanListCount && mnodeman.size() >= nMeanListCount * 0.9);
+
                 LogPrint("mnsync", "CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nTimeLastBumped %lld GetTime() %lld diff %lld\n", nTick, nRequestedSmartnodeAssets, nTimeLastBumped, GetTime(), GetTime() - nTimeLastBumped);
                 // check for timeout first
-                if(GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS) {
-                    int nMeanListCount = GetMeanListCount();
+                if( ( GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS && fEnoughNodes ) ||
+                   GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS * 8 ) {
+
                     LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- timeout\n", nTick, nRequestedSmartnodeAssets);
-                    if (nRequestedSmartnodeAttempt == 0 || (nMeanListCount && mnodeman.size() < nMeanListCount * 0.9) ) {
+                    if (nRequestedSmartnodeAttempt == 0 || !fEnoughNodes ) {
                         LogPrintf("CSmartnodeSync::ProcessTick -- ERROR: failed to sync %s\n", GetAssetName());
                         // there is no way we can continue without smartnode list, fail here and try later
                         Fail(connman);
