@@ -296,7 +296,7 @@ void SAPIWriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::str
 
 void SAPIWriteReply(HTTPRequest *req, const UniValue &obj)
 {
-    SAPIWriteReply(req, HTTP_OK, JsonString(obj));
+    SAPIWriteReply(req, HTTP_OK, obj);
 }
 
 void SAPIWriteReply(HTTPRequest *req, const std::string &str)
