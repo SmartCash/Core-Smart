@@ -13,7 +13,13 @@
 #include "primitives/transaction.h"
 #include "validation.h"
 
+#define SAPI_VERSION_MAJOR 1
+#define SAPI_VERSION_MINOR 0
+
 namespace SAPI{
+
+extern std::string versionSubPath;
+extern std::string versionString;
 
 struct Result;
 

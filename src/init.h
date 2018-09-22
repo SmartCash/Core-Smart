@@ -86,4 +86,6 @@ public:
 
 extern CVersionInfo versionInfo;
 
+extern std::string strClientVersion;
+
 #endif // BITCOIN_INIT_H

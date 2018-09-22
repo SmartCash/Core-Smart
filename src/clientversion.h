@@ -63,6 +63,7 @@ extern const std::string CLIENT_DATE;
 
 
 std::string FormatFullVersion();
+std::string FormatVersion(int nVersion);
 std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments);
 
 #endif // WINDRES_PREPROC

@@ -4,6 +4,7 @@
 
 #include "base58.h"
 #include "chain.h"
+#include "clientversion.h"
 #include "chainparams.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"
@@ -24,6 +25,18 @@
 
 using namespace std;
 
+extern std::string strClientVersion;
+
+std::string SAPI::versionSubPath;
+std::string SAPI::versionString;
+
+static void AddDefaultHeaders(HTTPRequest* req)
+{
+    req->WriteHeader("User-Agent", CLIENT_NAME);
+    req->WriteHeader("Client-Version", strClientVersion);
+    req->WriteHeader("SAPI-Version", SAPI::versionString);
+}
+
 bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector<SAPI::Result> &errors)
 {
     UniValue arr(UniValue::VARR);
@@ -34,6 +47,7 @@ bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector
 
     string strJSON = arr.write(1,1) + "\n";
 
+    AddDefaultHeaders(req);
     req->WriteHeader("Content-Type", "application/json");
     req->WriteReply(status, strJSON);
     return false;
@@ -124,6 +138,8 @@ static bool SAPIStatus(HTTPRequest* req, const std::string& strURIPart)
     UniValue result(UniValue::VOBJ);
     result.pushKV("status", true);
 
+    AddDefaultHeaders(req);
+
     string strJSON = result.write(1,1) + "\n";
     req->WriteHeader("Content-Type", "application/json");
     req->WriteReply(HTTP_OK, strJSON);
@@ -143,8 +159,11 @@ static const struct {
 
 bool StartSAPI()
 {
+    SAPI::versionSubPath = strprintf("/v%d", SAPI_VERSION_MAJOR);
+    SAPI::versionString = strprintf("%d.%d", SAPI_VERSION_MAJOR, SAPI_VERSION_MINOR);
+
     for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
-        RegisterSAPIHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
+        RegisterSAPIHandler( SAPI::versionSubPath + uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
     return true;
 }
 
@@ -284,12 +303,14 @@ string JsonString(const UniValue &obj)
 
 void SAPIWriteReply(HTTPRequest *req, enum HTTPStatusCode status, const UniValue &obj)
 {
+    AddDefaultHeaders(req);
     req->WriteHeader("Content-Type", "application/json");
     req->WriteReply(status, JsonString(obj));
 }
 
 void SAPIWriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::string &str)
 {
+    AddDefaultHeaders(req);
     req->WriteHeader("Content-Type", "text/plain");
     req->WriteReply(status, str + "\n");
 }
