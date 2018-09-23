@@ -35,6 +35,7 @@ static void AddDefaultHeaders(HTTPRequest* req)
     req->WriteHeader("User-Agent", CLIENT_NAME);
     req->WriteHeader("Client-Version", strClientVersion);
     req->WriteHeader("SAPI-Version", SAPI::versionString);
+    req->WriteHeader("Access-Control-Allow-Origin", "*");
 }
 
 bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector<SAPI::Result> &errors)
