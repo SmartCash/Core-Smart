@@ -111,6 +111,8 @@ std::string RequestMethodString(HTTPRequest::RequestMethod m)
         break;
     case HTTPRequest::PUT:
         return "PUT";
+    case HTTPRequest::OPTIONS:
+        return "OPTIONS";
         break;
     default:
         return "unknown";
@@ -514,6 +516,8 @@ HTTPRequest::RequestMethod HTTPRequest::GetRequestMethod()
     case EVHTTP_REQ_PUT:
         return PUT;
         break;
+    case EVHTTP_REQ_OPTIONS:
+        return OPTIONS;
     default:
         return UNKNOWN;
         break;

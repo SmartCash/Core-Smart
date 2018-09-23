@@ -209,6 +209,9 @@ bool InitSAPIServer()
     evhttp_set_max_headers_size(sapi, MAX_HEADERS_SIZE);
     evhttp_set_max_body_size(sapi, MAX_SIZE);
     evhttp_set_gencb(sapi, sapi_request_cb, NULL);
+    evhttp_set_allowed_methods(sapi, EVHTTP_REQ_GET |
+                                       EVHTTP_REQ_POST |
+                                       EVHTTP_REQ_OPTIONS);
 
     if (!SAPIBindAddresses(sapi)) {
         LogPrintf("Unable to bind any endpoint for SAPI server\n");

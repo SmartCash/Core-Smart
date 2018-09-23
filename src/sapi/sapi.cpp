@@ -257,7 +257,11 @@ bool SAPIExecuteEndpoint(HTTPRequest *req, const string &strURIPart, const std::
 
     for( auto endpoint : endpoints ){
 
-        if( endpoint.method != req->GetRequestMethod() )
+        bool fOptions = false;
+
+        if( req->GetRequestMethod() == HTTPRequest::OPTIONS )
+            fOptions = true;
+        else if( endpoint.method != req->GetRequestMethod() )
             continue;
 
         if( endpoint.path == "" && ( strURIPart == "" || strURIPart == "/" ) ){
@@ -278,7 +282,7 @@ bool SAPIExecuteEndpoint(HTTPRequest *req, const string &strURIPart, const std::
             continue;
         }
 
-        if( !SAPIValidateBody(req, endpoint, bodyParameter) )
+        if( !fOptions && !SAPIValidateBody(req, endpoint, bodyParameter) )
             return false;
 
         strPath = strURIPart.substr(pos + endpoint.path.length());
@@ -287,7 +291,20 @@ bool SAPIExecuteEndpoint(HTTPRequest *req, const string &strURIPart, const std::
         break;
     }
 
-    if( matchedEndpoint ) return matchedEndpoint->handler(req, strPath, bodyParameter );
+    if( matchedEndpoint ){
+
+        // For options requests answer with the allowed methods for this endpoint.
+        if (req->GetRequestMethod() == HTTPRequest::OPTIONS) {
+            AddDefaultHeaders(req);
+            req->WriteHeader("Access-Control-Allow-Methods", "OPTIONS, " + RequestMethodString(matchedEndpoint->method));
+            req->WriteHeader("Access-Control-Allow-Headers", "Content-Type");
+            req->WriteReply(HTTP_OK, std::string());
+            return true;
+        }
+
+        // Else call the related handler.
+        return matchedEndpoint->handler(req, strPath, bodyParameter );
+    }
 
     return SAPIUnknownEndpointHandler(req, strURIPart);
 }
