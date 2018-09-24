@@ -6,6 +6,7 @@
 #include "ui_smartrewardslist.h"
 
 #include "smartrewards/rewards.h"
+#include "smartrewards/rewardspayments.h"
 
 #include "addresstablemodel.h"
 #include "bitcoinunits.h"
@@ -216,8 +217,11 @@ void SmartrewardsList::updateUI()
             roundEndText = QString("%1 blocks ( ").arg(remainingBlocks);
 
             if( remainingBlocks <= 1 ) {
-                roundEndText += " ( Now )";
+                ui->roundEndsLabel->setText("");
+                roundEndText = QString("Snapshot has occurred. Payouts will begin at block %1").arg(current.endBlockHeight + nRewardPayoutStartDelay);
             }else{
+
+                ui->roundEndsLabel->setText("Round ends:");
 
                 uint64_t remainingSeconds = remainingBlocks * Params().GetConsensus().nPowTargetSpacing;
                 uint64_t minutesLeft = remainingSeconds / 60;
