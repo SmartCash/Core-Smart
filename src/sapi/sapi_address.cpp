@@ -34,11 +34,6 @@ bool spendingSort(std::pair<CAddressIndexKey, CAmount> a,
     return a.first.spending != b.first.spending;
 }
 
-bool timestampSort(const CSAPIDeposit& a,
-                   const CSAPIDeposit& b) {
-    return a.GetTimestamp() < b.GetTimestamp();
-}
-
 static bool address_balance(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
 static bool address_balances(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
 static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
@@ -71,9 +66,11 @@ std::vector<Endpoint> addressEndpoints = {
         }
     },
     {
-        "/unspent", HTTPRequest::GET, UniValue::VNULL, address_utxos,
+        "/unspent", HTTPRequest::POST, UniValue::VOBJ, address_utxos,
         {
-            // No body parameter
+            BodyParameter(Keys::address,        new SAPI::Validation::SmartCashAddress()),
+            BodyParameter(Keys::pageNumber,     new SAPI::Validation::IntRange(1,INT_MAX)),
+            BodyParameter(Keys::pageSize,       new SAPI::Validation::IntRange(1,1000))
         }
     },
     {
@@ -144,7 +141,7 @@ static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecA
     return true;
 }
 
-static bool GetUTXOs(HTTPRequest* req, const CBitcoinAddress& address, std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >& utxos){
+static bool GetUTXOCount(HTTPRequest* req, const CBitcoinAddress& address, int &count, CAddressUnspentKey &lastIndex){
 
     uint160 hashBytes;
     int type = 0;
@@ -153,22 +150,27 @@ static bool GetUTXOs(HTTPRequest* req, const CBitcoinAddress& address, std::vect
         return Error(req, SAPI::InvalidSmartCashAddress, "Invalid address");
     }
 
-    if (!GetAddressUnspent(hashBytes, type, utxos)) {
+    if (!GetAddressUnspentCount(hashBytes, type, count, lastIndex)) {
         return Error(req, SAPI::AddressNotFound, "No information available for address");
     }
 
     return true;
 }
 
-static bool GetBlockInfoForTimestamp(const unsigned int &timestamp, uint256 &blockHash)
-{
-    bool fTimestampIndex = GetBoolArg("-timestampindex", DEFAULT_TIMESTAMPINDEX);
+static bool GetUTXOs(HTTPRequest* req, const CBitcoinAddress& address, std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >& utxos,
+                     const CAddressUnspentKey &start = CAddressUnspentKey(),
+                     int offset = -1, int limit = -1, bool reverse = -1){
 
-    if (!fTimestampIndex)
-        return error("Timestamp index not enabled");
+    uint160 hashBytes;
+    int type = 0;
 
-    if (!pblocktree->ReadTimestampIndex(timestamp, blockHash))
-        return error("Unable to get hashes for timestamps");
+    if (!address.GetIndexKey(hashBytes, type)) {
+        return Error(req, SAPI::InvalidSmartCashAddress, "Invalid address");
+    }
+
+    if (!GetAddressUnspent(hashBytes, type, utxos, start, offset, limit, reverse)) {
+        return Error(req, SAPI::AddressNotFound, "No information available for address");
+    }
 
     return true;
 }
@@ -248,16 +250,16 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
 
     nTime0 = GetTimeMicros();
 
+    std::string addrStr = bodyParameter[Keys::address].get_str();
     int64_t start = bodyParameter.exists(Keys::timestampFrom) ? bodyParameter[Keys::timestampFrom].get_int64() : 0;
     int64_t end = bodyParameter.exists(Keys::timestampTo) ? bodyParameter[Keys::timestampTo].get_int64() : INT_MAX;
-    int nPageNumber = bodyParameter[Keys::pageNumber].get_int64();
-    int nPageSize = bodyParameter[Keys::pageSize].get_int64();
+    int64_t nPageNumber = bodyParameter[Keys::pageNumber].get_int64();
+    int64_t nPageSize = bodyParameter[Keys::pageSize].get_int64();
     bool fAsc = bodyParameter.exists(Keys::ascending) ? bodyParameter[Keys::ascending].get_bool() : false;
 
     if ( end <= start)
         return Error(req, HTTP_BAD_REQUEST, "\"" + Keys::timestampFrom + "\" is expected to be greater than \"" + Keys::timestampTo + "\"");
 
-    std::string addrStr = bodyParameter[Keys::address].get_str();
     CBitcoinAddress address(addrStr);
     uint160 hashBytes;
     int type = 0;
@@ -284,8 +286,8 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
     if (nPageNumber > nPages)
         return Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d", nPages));
 
-    int nIndexOffset = ( nPageNumber - 1 ) * nPageSize;
-    int nLimit = (nDeposits % nPageSize) && nPageNumber == nPages ? (nDeposits % nPageSize) : nPageSize;
+    int nIndexOffset = static_cast<int>(( nPageNumber - 1 ) * nPageSize);
+    int nLimit = static_cast<int>((nDeposits % nPageSize) && nPageNumber == nPages ? (nDeposits % nPageSize) : nPageSize);
 
     nTime2 = GetTimeMicros();
 
@@ -305,7 +307,7 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("txhash", it->first.txhash.GetHex());
         obj.pushKV("blockHeight", it->second.blockHeight);
-        obj.pushKV("timestamp", (int64_t)it->first.timestamp);
+        obj.pushKV("timestamp", int64_t(it->first.timestamp));
         obj.pushKV("amount", CAmountToDouble(it->second.satoshis));
 
         arrDeposit.push_back(obj);
@@ -313,8 +315,9 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
 
     UniValue obj(UniValue::VOBJ);
 
-    obj.pushKV("page", nPageNumber);
+    obj.pushKV("count", nDeposits);
     obj.pushKV("pages", nPages);
+    obj.pushKV("page", nPageNumber);
     obj.pushKV("deposits",arrDeposit);
 
     nTime4 = GetTimeMicros();
@@ -336,64 +339,87 @@ static bool address_deposit(HTTPRequest* req, const std::string& strURIPart, con
 
 static bool address_utxos(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
 {
-    int64_t nTime0, nTime1, nTime2, nTime3, nTime4, nTime5;
+    int64_t nTime0, nTime1, nTime2, nTime3, nTime4;
 
     nTime0 = GetTimeMicros();
 
-    if ( strURIPart.length() <= 1 || strURIPart == "/" )
-        return Error(req, HTTP_BAD_REQUEST, "No SmartCash address specified. Use /address/unspent/<smartcash_address>");
+    std::string addrStr = bodyParameter[Keys::address].get_str();
+    int64_t nPageNumber = bodyParameter[Keys::pageNumber].get_int64();
+    int64_t nPageSize = bodyParameter[Keys::pageSize].get_int64();
+    bool fAsc = bodyParameter.exists(Keys::ascending) ? bodyParameter[Keys::ascending].get_bool() : false;
 
-    std::string addrStr = strURIPart.substr(1);
     CBitcoinAddress address(addrStr);
-    int64_t nHeight = chainActive.Height();
+
+    CAddressUnspentKey lastIndex;
+    int nUtxoCount = 0;
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
+
+    if( !GetUTXOCount(req, address, nUtxoCount, lastIndex ) ){
+        return false;
+    }
+
+    if (!nUtxoCount)
+        return Error(req, SAPI::NoUtxosAvailble, "No unspent outputs available.");
 
     nTime1 = GetTimeMicros();
 
-    if( !GetUTXOs(req, address, unspentOutputs ) )
+    int nPages = nUtxoCount / nPageSize;
+    if( nUtxoCount % nPageSize ) nPages++;
+
+    if (nPageNumber > nPages)
+        return Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d", nPages));
+
+    int nIndexOffset = static_cast<int>(( nPageNumber - 1 ) * nPageSize);
+    int nLimit = static_cast<int>( (nUtxoCount % nPageSize) && nPageNumber == nPages ? (nUtxoCount % nPageSize) : nPageSize);
+
+    if (!GetUTXOs(req, address, unspentOutputs, fAsc ? CAddressUnspentKey() : lastIndex, nIndexOffset , nLimit, !fAsc))
         return false;
 
     nTime2 = GetTimeMicros();
 
-    std::sort(unspentOutputs.begin(), unspentOutputs.end(), heightSort);
-
-    nTime3 = GetTimeMicros();
-
-    UniValue result(UniValue::VARR);
+    UniValue arrUtxos(UniValue::VARR);
 
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
         UniValue output(UniValue::VOBJ);
         std::string address;
 
         CSpentIndexValue spentInfo;
-        CSpentIndexKey spentKey(it->first.txhash, (int)it->first.index);
+        CSpentIndexKey spentKey(it->first.txhash, static_cast<unsigned int>(it->first.index));
 
-        // Ignore inputs currently used for tx in the mempool
-        if (mempool.getSpentIndex(spentKey, spentInfo))
-            continue;
+        // Mark inputs currently used for tx in the mempool
+        bool fInMempool = mempool.getSpentIndex(spentKey, spentInfo);
 
         output.pushKV("txid", it->first.txhash.GetHex());
-        output.pushKV("index", (int)it->first.index);
+        output.pushKV("index", static_cast<int>(it->first.index));
         output.pushKV(Keys::address, address);
         output.pushKV("script", HexStr(it->second.script.begin(), it->second.script.end()));
         output.pushKV("value", CAmountToDouble(it->second.satoshis));
-        output.pushKV("confirmations", nHeight - it->second.blockHeight);
-        result.push_back(output);
+        output.pushKV("height", it->first.nBlockHeight);
+        output.pushKV("inMempool", fInMempool);
+
+        arrUtxos.push_back(output);
     }
+
+    nTime3 = GetTimeMicros();
+
+    UniValue obj(UniValue::VOBJ);
+
+    obj.pushKV("count", nUtxoCount);
+    obj.pushKV("pages", nPages);
+    obj.pushKV("page", nPageNumber);
+    obj.pushKV("blockHeight", chainActive.Height());
+    obj.pushKV("utxos",arrUtxos);
+
+    SAPIWriteReply(req, obj);
 
     nTime4 = GetTimeMicros();
 
-    SAPIWriteReply(req, result);
-
-    nTime5 = GetTimeMicros();
-
     LogPrint("sapi-benchmark", "\naddress_utxos\n");
+    LogPrint("sapi-benchmark", " Query utxos count: %.2fms\n", (nTime1 - nTime0) * 0.001);
     LogPrint("sapi-benchmark", " Query utxos: %.2fms\n", (nTime2 - nTime1) * 0.001);
-    LogPrint("sapi-benchmark", " Sort utxos: %.2fms\n", (nTime3 - nTime2) * 0.001);
-    LogPrint("sapi-benchmark", " Process utxos: %.2fms\n", (nTime4 - nTime3) * 0.001);
-    LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime5 - nTime4) * 0.001);
-    LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime5 - nTime0) * 0.001);
-
+    LogPrint("sapi-benchmark", " Process utxos: %.2fms\n", (nTime3 - nTime2) * 0.001);
+    LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime4 - nTime3) * 0.001);
+    LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime4 - nTime0) * 0.001);
 
     return true;
 }
@@ -431,14 +457,14 @@ static bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart
         UniValue output(UniValue::VOBJ);
 
         CSpentIndexValue spentInfo;
-        CSpentIndexKey spentKey(it->first.txhash, (int)it->first.index);
+        CSpentIndexKey spentKey(it->first.txhash, static_cast<unsigned int>(it->first.index));
 
         // Ignore inputs currently used for tx in the mempool
         if (mempool.getSpentIndex(spentKey, spentInfo))
             continue;
 
         //Ignore inputs that are not valid for instantpay
-        if( (nHeight - it->second.blockHeight + 1) < 2 )
+        if( (nHeight - it->first.nBlockHeight + 1) < 2 )
             continue;
 
         double amount = CAmountToDouble(it->second.satoshis);
@@ -447,13 +473,13 @@ static bool address_utxos_amount(HTTPRequest* req, const std::string& strURIPart
         UniValue obj(UniValue::VOBJ);
 
         obj.pushKV("txid", it->first.txhash.GetHex());
-        obj.pushKV("index", (int64_t)it->first.index);
-        obj.pushKV("confirmations", nHeight - it->second.blockHeight + 1);
+        obj.pushKV("index", static_cast<int>(it->first.index));
+        obj.pushKV("confirmations", nHeight - it->first.nBlockHeight + 1);
         obj.pushKV("amount", amount);
 
         inputs.push_back(obj);
 
-        fee = CalculateFee(inputs.size());
+        fee = CalculateFee(static_cast<int>(inputs.size()));
 
         if( amountSum > expectedAmount + fee )
             break;

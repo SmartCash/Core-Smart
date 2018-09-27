@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef SMARTCASH_SAPI_H
-#define SMARTCASH_SAPI_H
+#ifndef SMARTCASH_SAPI_BLOCKCHAIN_H
+#define SMARTCASH_SAPI_BLOCKCHAIN_H
 
-#endif // SMARTCASH_SAPISERVER_H
+#endif // SMARTCASH_SAPI_BLOCKCHAIN_H

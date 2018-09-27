@@ -48,6 +48,7 @@ enum Codes{
     AddressNotFound = 3000,
     PageOutOfRange,
     NoDepositAvailble,
+    NoUtxosAvailble,
     /* /transaction errors */
     TxDecodeFailed = 4000,
     TxNotSpecified,
@@ -201,9 +202,6 @@ bool Error(HTTPRequest* req, SAPI::Codes code, const std::string &message);
 }
 
 extern bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &address);
-
-extern bool heightSort(std::pair<CAddressUnspentKey, CAddressUnspentValue> a,
-                std::pair<CAddressUnspentKey, CAddressUnspentValue> b);
 
 extern bool ParseHashStr(const string& strHash, uint256& v);
 
