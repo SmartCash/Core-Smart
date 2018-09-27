@@ -478,8 +478,11 @@ bool GetSpentIndex(CSpentIndexKey &key, CSpentIndexValue &value);
 bool GetAddressIndex(uint160 addressHash, int type,
                      std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex,
                      int start = 0, int end = 0);
+bool GetAddressUnspentCount(uint160 addressHash, int type, int &count, CAddressUnspentKey &lastIndex);
 bool GetAddressUnspent(uint160 addressHash, int type,
-                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs);
+                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs,
+                       const CAddressUnspentKey &start = CAddressUnspentKey(),
+                       int offset = -1, int limit = -1, bool reverse = false);
 bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int &firstTime, int &lastTime, int start, int end);
 bool GetDepositIndex(uint160 addressHash, int type,
                      std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex,

@@ -235,21 +235,66 @@ bool CBlockTreeDB::UpdateAddressUnspentIndex(const std::vector<std::pair<CAddres
     return WriteBatch(batch);
 }
 
-bool CBlockTreeDB::ReadAddressUnspentIndex(uint160 addressHash, int type,
-                                           std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs) {
+bool CBlockTreeDB::ReadAddressUnspentIndexCount(uint160 addressHash, int type, int &nCount, CAddressUnspentKey &lastIndex) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
     pcursor->Seek(make_pair(DB_ADDRESSUNSPENTINDEX, CAddressIndexIteratorKey(type, addressHash)));
 
+    lastIndex.SetNull();
+    nCount = 0;
+
+    std::pair<char,CAddressUnspentKey> key;
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        if (pcursor->GetKey(key) && key.first == DB_ADDRESSUNSPENTINDEX && key.second.hashBytes == addressHash) {
+            ++nCount;
+            pcursor->Next();
+        } else if( nCount ) {
+
+            pcursor->Prev();
+
+            if(pcursor->Valid() && pcursor->GetKey(key))
+                lastIndex = key.second;
+
+            break;
+        }else{
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool CBlockTreeDB::ReadAddressUnspentIndex(uint160 addressHash, int type,
+                                           std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs,
+                                           const CAddressUnspentKey &start, int offset, int limit, bool reverse) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+    int nCount = 0;
+
+    if( start.IsNull() )
+        pcursor->Seek(make_pair(DB_ADDRESSUNSPENTINDEX, CAddressIndexIteratorKey(type, addressHash)));
+    else
+        pcursor->Seek(make_pair(DB_ADDRESSUNSPENTINDEX, start));
+
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
         std::pair<char,CAddressUnspentKey> key;
         if (pcursor->GetKey(key) && key.first == DB_ADDRESSUNSPENTINDEX && key.second.hashBytes == addressHash) {
+            if (limit > 0 && unspentOutputs.size() == (size_t)limit) {
+                break;
+            }
             CAddressUnspentValue nValue;
             if (pcursor->GetValue(nValue)) {
-                unspentOutputs.push_back(make_pair(key.second, nValue));
-                pcursor->Next();
+
+                if( offset < 0 || ++nCount > offset )
+                    unspentOutputs.push_back(make_pair(key.second, nValue));
+
+                if( reverse ) pcursor->Prev();
+                else          pcursor->Next();
+
             } else {
                 return error("failed to get address unspent value");
             }
@@ -274,6 +319,7 @@ bool CBlockTreeDB::EraseAddressIndex(const std::vector<std::pair<CAddressIndexKe
         batch.Erase(make_pair(DB_ADDRESSINDEX, it->first));
     return WriteBatch(batch);
 }
+
 
 bool CBlockTreeDB::ReadAddressIndex(uint160 addressHash, int type,
                                     std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex,

@@ -1167,13 +1167,26 @@ bool GetAddressIndex(uint160 addressHash, int type,
     return true;
 }
 
-bool GetAddressUnspent(uint160 addressHash, int type,
-                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs)
+bool GetAddressUnspentCount(uint160 addressHash, int type, int &count, CAddressUnspentKey &lastIndex)
 {
     if (!fAddressIndex)
         return error("address index not enabled");
 
-    if (!pblocktree->ReadAddressUnspentIndex(addressHash, type, unspentOutputs))
+    if (!pblocktree->ReadAddressUnspentIndexCount(addressHash, type, count, lastIndex))
+        return error("unable to get unspent count for address");
+
+    return true;
+}
+
+bool GetAddressUnspent(uint160 addressHash, int type,
+                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs,
+                       const CAddressUnspentKey &start,
+                       int offset, int limit, bool reverse)
+{
+    if (!fAddressIndex)
+        return error("address index not enabled");
+
+    if (!pblocktree->ReadAddressUnspentIndex(addressHash, type, unspentOutputs, start, offset, limit, reverse))
         return error("unable to get txids for address");
 
     return true;
@@ -1284,7 +1297,7 @@ bool GetTransaction(const uint256 &hash, CTransaction &txOut, const Consensus::P
 //
 
 int getNHeight(const CBlockHeader &block) {
-    CBlockIndex *pindexPrev = NULL;
+    CBlockIndex *pindexPrev = nullptr;
     int nHeight = 0;
     BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
     if (mi != mapBlockIndex.end()) {
@@ -1380,7 +1393,7 @@ bool IsInitialBlockDownload()
     return false;
 }
 
-CBlockIndex *pindexBestForkTip = NULL, *pindexBestForkBase = NULL;
+CBlockIndex *pindexBestForkTip = nullptr, *pindexBestForkBase = nullptr;
 
 // static void AlertNotify(const std::string& strMessage)
 // {
@@ -1842,7 +1855,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                     addressIndex.push_back(make_pair(CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, hash, k, false), out.nValue));
 
                     // undo unspent index
-                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, hash, k), CAddressUnspentValue()));
+                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, hash, k, pindex->nHeight), CAddressUnspentValue()));
                 }
 
                 if ( fDepositIndex ) {
@@ -1939,7 +1952,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                         addressIndex.push_back(make_pair(CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, hash, j, true), prevout.nValue * -1));
 
                         // restore unspent index
-                        addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, input.prevout.hash, input.prevout.n), CAddressUnspentValue(prevout.nValue, prevout.scriptPubKey, undoHeight)));
+                        addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, input.prevout.hash, input.prevout.n, pindex->nHeight), CAddressUnspentValue(prevout.nValue, prevout.scriptPubKey, undoHeight)));
                     }
 
                 }
@@ -2312,7 +2325,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                         addressIndex.push_back(make_pair(CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, txhash, j, true), prevout.nValue * -1));
 
                         // remove address from unspent index
-                        addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, input.prevout.hash, input.prevout.n), CAddressUnspentValue()));
+                        addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, input.prevout.hash, input.prevout.n, pindex->nHeight), CAddressUnspentValue()));
                     }
 
                     if (fSpentIndex) {
@@ -2381,7 +2394,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                     // record receiving activity
                     addressIndex.push_back(make_pair(CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, txhash, k, false), out.nValue));
                     // record unspent output
-                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, txhash, k), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
+                    addressUnspentIndex.push_back(make_pair(CAddressUnspentKey(addressType, hashBytes, txhash, k, pindex->nHeight), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
                 }
 
             }

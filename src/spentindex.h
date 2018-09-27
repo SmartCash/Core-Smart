@@ -14,7 +14,7 @@ struct CSpentIndexKey {
     uint256 txid;
     unsigned int outputIndex;
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -160,16 +160,18 @@ struct CTimestampIndexKey {
 struct CAddressUnspentKey {
     unsigned int type;
     uint160 hashBytes;
+    int nBlockHeight;
     uint256 txhash;
     size_t index;
 
     size_t GetSerializeSize(int nType, int nVersion) const {
-        return 57;
+        return 61;
     }
     template<typename Stream>
     void Serialize(Stream& s, int nType, int nVersion) const {
         ser_writedata8(s, type);
         hashBytes.Serialize(s, nType, nVersion);
+        ser_writedata32be(s, nBlockHeight);
         txhash.Serialize(s, nType, nVersion);
         ser_writedata32(s, index);
     }
@@ -177,13 +179,15 @@ struct CAddressUnspentKey {
     void Unserialize(Stream& s, int nType, int nVersion) {
         type = ser_readdata8(s);
         hashBytes.Unserialize(s, nType, nVersion);
+        nBlockHeight = ser_readdata32be(s);
         txhash.Unserialize(s, nType, nVersion);
         index = ser_readdata32(s);
     }
 
-    CAddressUnspentKey(unsigned int addressType, uint160 addressHash, uint256 txid, size_t indexValue) {
+    CAddressUnspentKey(unsigned int addressType, uint160 addressHash, uint256 txid, size_t indexValue, int blockHeight) {
         type = addressType;
         hashBytes = addressHash;
+        nBlockHeight = blockHeight;
         txhash = txid;
         index = indexValue;
     }
@@ -195,29 +199,28 @@ struct CAddressUnspentKey {
     void SetNull() {
         type = 0;
         hashBytes.SetNull();
+        nBlockHeight = -1;
         txhash.SetNull();
         index = 0;
     }
+    bool IsNull() const {return nBlockHeight == -1;}
 };
 
 struct CAddressUnspentValue {
     CAmount satoshis;
     CScript script;
-    int blockHeight;
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(satoshis);
         READWRITE(*(CScriptBase*)(&script));
-        READWRITE(blockHeight);
     }
 
     CAddressUnspentValue(CAmount sats, CScript scriptPubKey, int height) {
         satoshis = sats;
         script = scriptPubKey;
-        blockHeight = height;
     }
 
     CAddressUnspentValue() {
@@ -227,7 +230,6 @@ struct CAddressUnspentValue {
     void SetNull() {
         satoshis = -1;
         script.clear();
-        blockHeight = 0;
     }
 
     bool IsNull() const {
