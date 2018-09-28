@@ -670,10 +670,10 @@ void SAPI::WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::s
 
 void SAPI::WriteReply(HTTPRequest *req, const UniValue &obj)
 {
-    SAPI::WriteReply(req, HTTP_OK, obj);
+    SAPI::WriteReply(req, HTTPStatusCode::HTTP_OK, obj);
 }
 
 void SAPI::WriteReply(HTTPRequest *req, const std::string &str)
 {
-    SAPI::WriteReply(req, HTTP_OK, str);
+    SAPI::WriteReply(req, HTTPStatusCode::HTTP_OK, str);
 }

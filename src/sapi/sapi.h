@@ -38,17 +38,20 @@ enum Codes{
     InvalidSmartCashAddress,
     EmptyString,
     InvalidHexString,
-    /* /address errors */
-    BlockHeightOutOfRange = 2000,
+    /* common errors */
+    TimedOut = 2000,
+    PageOutOfRange,
+    BalanceTooLow,
+    /* block errors */
+    BlockHeightOutOfRange = 3000,
     BlockNotFound,
     BlockNotSpecified,
-    /* /address errors */
-    AddressNotFound = 3000,
-    PageOutOfRange,
+    /* address errors */
+    AddressNotFound = 4000,
     NoDepositAvailble,
     NoUtxosAvailble,
-    /* /transaction errors */
-    TxDecodeFailed = 4000,
+    /* transaction errors */
+    TxDecodeFailed = 5000,
     TxNotSpecified,
     TxNoValidInstantPay,
     TxRejected,
