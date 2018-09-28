@@ -2,109 +2,51 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "sapi.h"
+#include "sapi/sapi_transaction.h"
 
 #include "core_io.h"
-#include "smartnode/instantx.h"
+#include "coins.h"
 #include "consensus/validation.h"
-
-using namespace std;
+#include "smartnode/instantx.h"
+#include "validation.h"
 
 extern void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
 
-static bool transaction_send(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-static bool transaction_check(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
+static bool transaction_send(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool transaction_check(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
-std::vector<SAPI::Endpoint> transactionEndpoints = {
+SAPI::EndpointGroup transactionEndpoints = {
+    "transaction",
     {
-        "/check", HTTPRequest::GET, UniValue::VNULL, transaction_check,
         {
+            "check/{txhash}", HTTPRequest::GET, UniValue::VNULL, transaction_check,
+            {
 
-        }
-    },
-    {
-        "/send", HTTPRequest::POST, UniValue::VOBJ, transaction_send,
+            }
+        },
         {
-            SAPI::BodyParameter(SAPI::Keys::rawtx, new SAPI::Validation::HexString()),
-            SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool()),
-            SAPI::BodyParameter(SAPI::Keys::overridefees, new SAPI::Validation::Bool())
+            "send", HTTPRequest::POST, UniValue::VOBJ, transaction_send,
+            {
+                SAPI::BodyParameter(SAPI::Keys::rawtx, new SAPI::Validation::HexString()),
+                SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true),
+                SAPI::BodyParameter(SAPI::Keys::overridefees, new SAPI::Validation::Bool(), true)
+            }
         }
     }
 };
 
-bool SAPITransaction(HTTPRequest* req, const std::string& strURIPart)
+static bool transaction_check(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
-    return SAPIExecuteEndpoint(req, strURIPart, transactionEndpoints);
-}
-
-static bool transaction_send(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
-{
-
-    LOCK(cs_main);
-
-    std::string rawTx = bodyParameter[SAPI::Keys::rawtx].get_str();
-
-    // parse hex string from parameter
-    CTransaction tx;
-
-    if (!DecodeHexTx(tx, rawTx))
-        return SAPI::Error(req, SAPI::TxDecodeFailed, "TX decode failed");
-
-    uint256 hashTx = tx.GetHash();
-
-    bool fOverrideFees = bodyParameter[SAPI::Keys::overridefees].get_bool();
-    bool fInstantSend = bodyParameter[SAPI::Keys::instantpay].get_bool();
-
-    CCoinsViewCache &view = *pcoinsTip;
-    bool fHaveChain = false;
-    for (size_t o = 0; !fHaveChain && o < tx.vout.size(); o++) {
-        const Coin& existingCoin = view.AccessCoin(COutPoint(hashTx, o));
-        fHaveChain = !existingCoin.IsSpent();
-    }
-    bool fHaveMempool = mempool.exists(hashTx);
-    if (!fHaveMempool && !fHaveChain) {
-        // push to local node and sync with wallets
-        if (fInstantSend && !instantsend.ProcessTxLockRequest(tx, *g_connman)) {
-            return SAPI::Error(req, SAPI::TxNoValidInstantPay, "Not a valid InstantSend transaction, see debug.log for more info");
-        }
-        CValidationState state;
-        bool fMissingInputs;
-        if (!AcceptToMemoryPool(mempool, state, tx, false, &fMissingInputs, false, !fOverrideFees)) {
-            if (state.IsInvalid()) {
-                return SAPI::Error(req, SAPI::TxRejected, strprintf("%i: %s", state.GetRejectCode(), state.GetRejectReason()));
-            } else {
-                if (fMissingInputs) {
-                    return SAPI::Error(req, SAPI::TxMissingInputs, "Missing inputs");
-                }
-                return SAPI::Error(req, SAPI::TxRejected, state.GetRejectReason());
-            }
-        }
-    } else if (fHaveChain) {
-        return SAPI::Error(req, SAPI::TxAlreadyInBlockchain, "transaction already in block chain");
-    }
-
-    if(!g_connman)
-        return SAPI::Error(req, SAPI::TxCantRelay, "Error: Peer-to-peer functionality missing or disabled");
-
-    g_connman->RelayTransaction(tx);
-
-    SAPIWriteReply(req, hashTx.GetHex());
-
-    return true;
-}
-
-static bool transaction_check(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
-{
-    if ( strURIPart.length() <= 1 || strURIPart == "/" )
+    if ( !mapPathParams.count("txhash") )
         return SAPI::Error(req, SAPI::TxNotSpecified, "No hash specified. Use /transaction/check/<txhash>");
 
-    std::string blockStr = strURIPart.substr(1);
+    std::string hashStr = mapPathParams.at("txhash");
     uint256 hash;
 
     LOCK(cs_main);
 
-    if( !ParseHashStr(blockStr, hash) )
-        return SAPI::Error(req, SAPI::TxNotSpecified, "No hash specified. Use /transaction/check/<txhash>");
+    if( !ParseHashStr(hashStr, hash) )
+        return SAPI::Error(req, SAPI::TxNotSpecified, "Invalid hash specified. Use /transaction/check/<txhash>");
 
     CTransaction tx;
     uint256 hashBlock;
@@ -169,7 +111,63 @@ static bool transaction_check(HTTPRequest* req, const std::string& strURIPart, c
         }
     }
 
-    SAPIWriteReply(req, result);
+    SAPI::WriteReply(req, result);
 
     return true;
 }
+
+static bool transaction_send(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+
+    LOCK(cs_main);
+
+    std::string rawTx = bodyParameter[SAPI::Keys::rawtx].get_str();
+    bool fInstantSend = bodyParameter.exists(SAPI::Keys::instantpay) ? bodyParameter[SAPI::Keys::instantpay].get_bool() : false;
+    bool fOverrideFees = bodyParameter.exists(SAPI::Keys::overridefees) ? bodyParameter[SAPI::Keys::overridefees].get_bool() : false;
+
+    // parse hex string from parameter
+    CTransaction tx;
+
+    if (!DecodeHexTx(tx, rawTx))
+        return SAPI::Error(req, SAPI::TxDecodeFailed, "TX decode failed");
+
+    uint256 hashTx = tx.GetHash();
+
+    CCoinsViewCache &view = *pcoinsTip;
+    bool fHaveChain = false;
+    for (size_t o = 0; !fHaveChain && o < tx.vout.size(); o++) {
+        const Coin& existingCoin = view.AccessCoin(COutPoint(hashTx, o));
+        fHaveChain = !existingCoin.IsSpent();
+    }
+    bool fHaveMempool = mempool.exists(hashTx);
+    if (!fHaveMempool && !fHaveChain) {
+        // push to local node and sync with wallets
+        if (fInstantSend && !instantsend.ProcessTxLockRequest(tx, *g_connman)) {
+            return SAPI::Error(req, SAPI::TxNoValidInstantPay, "Not a valid InstantSend transaction, see debug.log for more info");
+        }
+        CValidationState state;
+        bool fMissingInputs;
+        if (!AcceptToMemoryPool(mempool, state, tx, false, &fMissingInputs, false, !fOverrideFees)) {
+            if (state.IsInvalid()) {
+                return SAPI::Error(req, SAPI::TxRejected, strprintf("%i: %s", state.GetRejectCode(), state.GetRejectReason()));
+            } else {
+                if (fMissingInputs) {
+                    return SAPI::Error(req, SAPI::TxMissingInputs, "Missing inputs");
+                }
+                return SAPI::Error(req, SAPI::TxRejected, state.GetRejectReason());
+            }
+        }
+    } else if (fHaveChain) {
+        return SAPI::Error(req, SAPI::TxAlreadyInBlockchain, "transaction already in block chain");
+    }
+
+    if(!g_connman)
+        return SAPI::Error(req, SAPI::TxCantRelay, "Error: Peer-to-peer functionality missing or disabled");
+
+    g_connman->RelayTransaction(tx);
+
+    SAPI::WriteReply(req, hashTx.GetHex());
+
+    return true;
+}
+

@@ -5,4 +5,8 @@
 #ifndef SMARTCASH_SAPI_TRANSACTION_H
 #define SMARTCASH_SAPI_TRANSACTION_H
 
+#include "sapi/sapi.h"
+
+extern SAPI::EndpointGroup transactionEndpoints;
+
 #endif // SMARTCASH_SAPI_TRANSACTION_H

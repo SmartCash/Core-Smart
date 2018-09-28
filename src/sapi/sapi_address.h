@@ -5,5 +5,8 @@
 #ifndef SMARTCASH_SAPI_ADDRESS_H
 #define SMARTCASH_SAPI_ADDRESS_H
 
+#include "sapi/sapi.h"
+
+extern SAPI::EndpointGroup addressEndpoints;
 
 #endif // SMARTCASH_SAPI_ADDRESS_H

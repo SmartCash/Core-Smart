@@ -5,4 +5,8 @@
 #ifndef SMARTCASH_SAPI_BLOCKCHAIN_H
 #define SMARTCASH_SAPI_BLOCKCHAIN_H
 
+#include "sapi/sapi.h"
+
+extern SAPI::EndpointGroup blockchainEndpoints;
+
 #endif // SMARTCASH_SAPI_BLOCKCHAIN_H

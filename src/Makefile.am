@@ -132,7 +132,6 @@ BITCOIN_CORE_H = \
   rpc/protocol.h \
   rpc/server.h \
   rpc/register.h \
-  sapi/sapiserver.h \
   sapi/sapi.h \
   sapi/sapi_address.h \
   sapi/sapi_blockchain.h \
@@ -230,7 +229,6 @@ libbitcoin_server_a_SOURCES = \
   rpc/rpcsmartnode.cpp \
   rpc/rpcsmartrewards.cpp \
   rpc/rpcsmartmining.cpp \
-  sapi/sapiserver.cpp \
   sapi/sapi.cpp \
   sapi/sapi_address.cpp \
   sapi/sapi_blockchain.cpp \

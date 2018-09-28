@@ -5,16 +5,14 @@
 #ifndef SMARTCASH_SAPI_H
 #define SMARTCASH_SAPI_H
 
-#include "sapiserver.h"
-#include "base58.h"
-#include "chain.h"
-#include "chainparams.h"
-#include "primitives/block.h"
-#include "primitives/transaction.h"
-#include "validation.h"
-
-#define SAPI_VERSION_MAJOR 1
-#define SAPI_VERSION_MINOR 0
+#include "httpserver.h"
+#include "rpc/protocol.h"
+#include "rpc/server.h"
+#include <string>
+#include <stdint.h>
+#include <boost/thread.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/function.hpp>
 
 namespace SAPI{
 
@@ -73,6 +71,8 @@ namespace Keys{
     const std::string overridefees = "overrideFees";
     const std::string ascending = "ascending";
     const std::string descending = "descending";
+    const std::string solution = "solution";
+    const std::string maxInputs = "maxInputs";
 
 }
 
@@ -191,13 +191,29 @@ typedef struct {
     std::string path;
     HTTPRequest::RequestMethod method;
     UniValue::VType bodyRoot;
-    bool (*handler)(HTTPRequest* req, const std::string& strReq, const UniValue &bodyParameter);
+    bool (*handler)(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
     std::vector<SAPI::BodyParameter> vecBodyParameter;
 }Endpoint;
+
+typedef struct{
+    std::string prefix;
+    std::vector<Endpoint> endpoints;
+}EndpointGroup;
+
+void AddDefaultHeaders(HTTPRequest* req);
 
 bool Error(HTTPRequest* req, enum HTTPStatusCode status, const std::string &message);
 bool Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector<SAPI::Result> &errors);
 bool Error(HTTPRequest* req, SAPI::Codes code, const std::string &message);
+
+void WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const UniValue &obj);
+void WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::string &str);
+void WriteReply(HTTPRequest *req, const UniValue& obj);
+void WriteReply(HTTPRequest *req, const std::string &str);
+
+bool CheckWarmup(HTTPRequest* req);
+
+bool UnknownEndpointHandler(HTTPRequest* req, const std::string& strURIPart);
 
 }
 
@@ -205,18 +221,18 @@ extern bool getAddressFromIndex(const int &type, const uint160 &hash, std::strin
 
 extern bool ParseHashStr(const string& strHash, uint256& v);
 
-bool SAPICheckWarmup(HTTPRequest* req);
-
-void SAPIWriteReply(HTTPRequest *req, const UniValue& obj);
-void SAPIWriteReply(HTTPRequest *req, const std::string &str);
-
 inline std::string JsonString(const UniValue& obj);
 
-/** Initialize SAPI server.
- * Call this before RegisterSAPIHandler or EventBase().
- */
+/** Initialize SAPI server. */
 bool InitSAPIServer();
-/** Start SAPI server.
+/** Start SAPI server. */
+bool StartSAPIServer();
+/** Interrupt SAPI server threads */
+void InterruptSAPIServer();
+/** Stop SAPI server */
+void StopSAPIServer();
+
+/** Start SAPI.
  * This is separate from InitSAPIServer to give users race-condition-free time
  * to register their handlers between InitSAPIServer and StartSAPIServer.
  */
@@ -226,11 +242,30 @@ void InterruptSAPI();
 /** Stop SAPI server */
 void StopSAPI();
 
-bool SAPIExecuteEndpoint(HTTPRequest* req, const std::string& strURIPart, const std::vector<SAPI::Endpoint> &endpoints );
-bool SAPIUnknownEndpointHandler(HTTPRequest* req, const std::string& strURIPart);
+/** Handler for requests to a certain HTTP path */
+typedef std::function<bool(HTTPRequest*, const std::map<std::string, std::string> &, const SAPI::Endpoint *)> SAPIRequestHandler;
 
-bool SAPIBlockchain(HTTPRequest* req, const std::string& strURIPart);
-bool SAPIAddress(HTTPRequest* req, const std::string& strURIPart);
-bool SAPITransaction(HTTPRequest* req, const std::string& strURIPart);
+/** SAPI request work item */
+class SAPIWorkItem : public HTTPClosure
+{
+public:
+    SAPIWorkItem(std::unique_ptr<HTTPRequest> req,
+                 const std::map<std::string, std::string> &mapPathParams,
+                 const SAPI::Endpoint *endpoint, const SAPIRequestHandler& func):
+        req(std::move(req)), mapPathParams(mapPathParams), endpoint(endpoint), func(func)
+    {
+    }
+    void operator()()
+    {
+        func(req.get(), mapPathParams, endpoint);
+    }
 
-#endif // SMARTCASH_SAPISERVER_H
+    std::unique_ptr<HTTPRequest> req;
+
+private:
+    const std::map<std::string, std::string> mapPathParams;
+    const SAPI::Endpoint *endpoint;
+    SAPIRequestHandler func;
+};
+
+#endif // SMARTCASH_SAPI_H

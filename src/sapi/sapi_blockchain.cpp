@@ -3,27 +3,23 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "sapi.h"
-
+#include "validation.h"
 #include "checkpoints.h"
 
-using namespace std;
+static bool blockchain_info(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool blockchain_height(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool blockchain_block(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
-static bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-static bool blockchain_height(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-static bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter);
-
-std::vector<SAPI::Endpoint> blockchainEndpoints = {
-    {"", HTTPRequest::GET, UniValue::VNULL, blockchain_info, {}},
-    {"/height", HTTPRequest::GET, UniValue::VNULL, blockchain_height, {}},
-    {"/block", HTTPRequest::GET, UniValue::VNULL, blockchain_block, {}}
+SAPI::EndpointGroup blockchainEndpoints = {
+    "blockchain",
+    {
+        {"", HTTPRequest::GET, UniValue::VNULL, blockchain_info, {}},
+        {"height", HTTPRequest::GET, UniValue::VNULL, blockchain_height, {}},
+        {"block/{blockinfo}", HTTPRequest::GET, UniValue::VNULL, blockchain_block, {}}
+    }
 };
 
-bool SAPIBlockchain(HTTPRequest* req, const std::string& strURIPart)
-{
-    return SAPIExecuteEndpoint(req, strURIPart, blockchainEndpoints);
-}
-
-static bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool blockchain_info(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     UniValue obj(UniValue::VOBJ);
 
@@ -39,36 +35,36 @@ static bool blockchain_info(HTTPRequest* req, const std::string& strURIPart, con
         obj.push_back(Pair("chainwork",             chainActive.Tip()->nChainWork.GetHex()));
     }
 
-    SAPIWriteReply(req, obj);
+    SAPI::WriteReply(req, obj);
 
     return true;
 }
 
-static bool blockchain_height(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool blockchain_height(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     LOCK(cs_main);
 
     string strHeight = std::to_string(chainActive.Height());
-    SAPIWriteReply(req, strHeight);
+    SAPI::WriteReply(req, strHeight);
 
     return true;
 }
 
-static bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, const UniValue &bodyParameter)
+static bool blockchain_block(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
-    if ( strURIPart.length() <= 1 || strURIPart == "/" )
+    if ( !mapPathParams.count("blockinfo") )
         return SAPI::Error(req, SAPI::BlockNotSpecified, "No height or hash specified. Use /blockchain/block/<height or hash>");
 
-    std::string blockStr = strURIPart.substr(1);
+    std::string blockInfoStr = mapPathParams.at("blockinfo");
     uint256 hash;
 
     LOCK(cs_main);
 
-    if( IsInteger(blockStr) ){
+    if( IsInteger(blockInfoStr) ){
 
         int64_t nHeight;
 
-        if( !ParseInt64(blockStr, &nHeight) )
+        if( !ParseInt64(blockInfoStr, &nHeight) )
             return SAPI::Error(req, SAPI::UIntOverflow, "Integer overflow.");
 
         if ( nHeight < 0 ||  nHeight > chainActive.Height() )
@@ -76,8 +72,8 @@ static bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, co
 
         CBlockIndex* pblockindex = chainActive[nHeight];
         hash = pblockindex->GetBlockHash();
-    }else if( !ParseHashStr(blockStr, hash) ){
-        return SAPI::Error(req, SAPI::BlockNotSpecified, "No height or hash specified. Use /blockchain/block/<height or hash>");
+    }else if( !ParseHashStr(blockInfoStr, hash) ){
+        return SAPI::Error(req, SAPI::BlockNotSpecified, "No valid height or hash specified. Use /blockchain/block/<height or hash>");
     }
 
     if (mapBlockIndex.count(hash) == 0)
@@ -125,7 +121,7 @@ static bool blockchain_block(HTTPRequest* req, const std::string& strURIPart, co
     if (pnext)
         result.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
 
-    SAPIWriteReply(req, result);
+    SAPI::WriteReply(req, result);
 
     return true;
 }
