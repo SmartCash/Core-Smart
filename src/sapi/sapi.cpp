@@ -123,13 +123,13 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Early address-based allow check
     if (!ClientAllowed(hreq->GetPeer())) {
-        SAPI::Error(hreq.get(), HTTP_FORBIDDEN, "Access forbidden");
+        SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, "Access forbidden");
         return;
     }
 
     // Early reject unknown HTTP methods
     if (method == HTTPRequest::UNKNOWN) {
-        SAPI::Error(hreq.get(), HTTP_BAD_METHOD, "Invalid method");
+        SAPI::Error(hreq.get(), HTTPStatus::BAD_METHOD, "Invalid method");
         return;
     }
 
@@ -138,7 +138,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // For now we only have v1, so just check if its provided..
     if( strURI.substr(0,SAPI::versionSubPath.size()) != SAPI::versionSubPath ){
-        SAPI::Error(hreq.get(), HTTP_NOT_FOUND, "Invalid api version. Use: <host>/v1/<endpoint>");
+        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid api version. Use: <host>/v1/<endpoint>");
         return;
     }
 
@@ -146,7 +146,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Check if there is anything else provided after the version
     if( !strURI.size() || strURI.front() != '/' ){
-        SAPI::Error(hreq.get(), HTTP_NOT_FOUND, "Endpoint missing. Use: <host>/v1/<endpoint>");
+        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Endpoint missing. Use: <host>/v1/<endpoint>");
         return;
     }
 
@@ -230,7 +230,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
         SAPI::AddDefaultHeaders(hreq.get());
         hreq->WriteHeader("Access-Control-Allow-Methods", strMethods);
         hreq->WriteHeader("Access-Control-Allow-Headers", "Content-Type");
-        hreq->WriteReply(HTTP_OK, std::string());
+        hreq->WriteReply(HTTPStatus::OK, std::string());
         return;
     }
 
@@ -248,7 +248,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
             item.release(); /* if true, queue took ownership */
         else {
             LogPrintf("WARNING: request rejected because sapi work queue depth exceeded, it can be increased with the -sapiworkqueue= setting\n");
-            item->req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
+            item->req->WriteReply(HTTPStatus::INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
         }
     } else {
         SAPI::UnknownEndpointHandler(hreq.get(), strURI);
@@ -259,7 +259,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 static void sapi_reject_request_cb(struct evhttp_request* req, void*)
 {
     LogPrint("sapi", "Rejecting request while shutting down\n");
-    evhttp_send_error(req, HTTP_SERVICE_UNAVAILABLE, NULL);
+    evhttp_send_error(req, HTTPStatus::SERVICE_UNAVAILABLE, NULL);
 }
 
 /** Event dispatcher thread */
@@ -504,7 +504,7 @@ bool SAPI::CheckWarmup(HTTPRequest* req)
 {
     std::string statusmessage;
     if (RPCIsInWarmup(&statusmessage))
-        return SAPI::Error(req, HTTP_SERVICE_UNAVAILABLE, "Service temporarily unavailable: " + statusmessage);
+        return SAPI::Error(req, HTTPStatus::SERVICE_UNAVAILABLE, "Service temporarily unavailable: " + statusmessage);
     return true;
 }
 
@@ -541,7 +541,7 @@ static bool SAPIValidateBody(HTTPRequest *req, const SAPI::Endpoint *endpoint, U
     std::string bodyStr = req->ReadBody();
 
     if ( bodyStr.empty() )
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "No body parameter object defined in the body: {...TBD...}");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No body parameter object defined in the body: {...TBD...}");
 
     try{
         // Try to parse body string to json
@@ -557,22 +557,22 @@ static bool SAPIValidateBody(HTTPRequest *req, const SAPI::Endpoint *endpoint, U
             {
                 int code = find_value(objError, "code").get_int();
                 std::string message = find_value(objError, "message").get_str();
-                return SAPI::Error(req, HTTP_BAD_REQUEST, message + " (code " + std::to_string(code) + ")");
+                return SAPI::Error(req, HTTPStatus::BAD_REQUEST, message + " (code " + std::to_string(code) + ")");
             }
             catch (const std::runtime_error&) // raised when converting to invalid type, i.e. missing code or message
             {   // Show raw JSON object
-                return SAPI::Error(req, HTTP_BAD_REQUEST, objError.write());
+                return SAPI::Error(req, HTTPStatus::BAD_REQUEST, objError.write());
             }
     }
     catch (const std::exception& e)
     {
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "Error: " + std::string(e.what()));
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Error: " + std::string(e.what()));
     }
 
     if( endpoint->bodyRoot == UniValue::VOBJ && !bodyParameter.isObject() )
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "Parameter json is expedted to be a JSON object: {...TBD... }");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Parameter json is expedted to be a JSON object: {...TBD... }");
     else if( endpoint->bodyRoot == UniValue::VARR && !bodyParameter.isArray() )
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "Parameter json is expedted to be a JSON array: {...TBD... }");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Parameter json is expedted to be a JSON array: {...TBD... }");
 
     std::vector<SAPI::Result> results;
 
@@ -595,7 +595,7 @@ static bool SAPIValidateBody(HTTPRequest *req, const SAPI::Endpoint *endpoint, U
     }
 
     if( results.size() )
-        return SAPI::Error(req,HTTP_BAD_REQUEST,results);
+        return SAPI::Error(req,HTTPStatus::BAD_REQUEST,results);
 
     return true;
 }
@@ -612,7 +612,7 @@ static bool SAPIExecuteEndpoint(HTTPRequest *req, const std::map<std::string, st
 
 bool SAPI::UnknownEndpointHandler(HTTPRequest* req, const std::string& strURIPart)
 {
-    return SAPI::Error(req, HTTP_NOT_FOUND, "Invalid endpoint: " + req->GetURI() + " with method: " + RequestMethodString(req->GetRequestMethod()));
+    return SAPI::Error(req, HTTPStatus::NOT_FOUND, "Invalid endpoint: " + req->GetURI() + " with method: " + RequestMethodString(req->GetRequestMethod()));
 }
 
 std::string JsonString(const UniValue &obj)
@@ -628,7 +628,7 @@ void SAPI::AddDefaultHeaders(HTTPRequest* req)
     req->WriteHeader("Access-Control-Allow-Origin", "*");
 }
 
-bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector<SAPI::Result> &errors)
+bool SAPI::Error(HTTPRequest* req, HTTPStatus::Codes status, const std::vector<SAPI::Result> &errors)
 {
     UniValue arr(UniValue::VARR);
 
@@ -644,24 +644,24 @@ bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector
     return false;
 }
 
-bool SAPI::Error(HTTPRequest* req, enum HTTPStatusCode status, const std::string &message)
+bool SAPI::Error(HTTPRequest* req, HTTPStatus::Codes status, const std::string &message)
 {
     return SAPI::Error(req, status, {SAPI::Result(SAPI::Undefined, message)});
 }
 
 bool SAPI::Error(HTTPRequest* req, SAPI::Codes code, const std::string &message)
 {
-    return SAPI::Error(req, HTTP_BAD_REQUEST, {SAPI::Result(code, message)});
+    return SAPI::Error(req, HTTPStatus::BAD_REQUEST, {SAPI::Result(code, message)});
 }
 
-void SAPI::WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const UniValue &obj)
+void SAPI::WriteReply(HTTPRequest *req, HTTPStatus::Codes status, const UniValue &obj)
 {
     AddDefaultHeaders(req);
     req->WriteHeader("Content-Type", "application/json");
     req->WriteReply(status, JsonString(obj));
 }
 
-void SAPI::WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::string &str)
+void SAPI::WriteReply(HTTPRequest *req, HTTPStatus::Codes status, const std::string &str)
 {
     AddDefaultHeaders(req);
     req->WriteHeader("Content-Type", "text/plain");
@@ -670,10 +670,10 @@ void SAPI::WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::s
 
 void SAPI::WriteReply(HTTPRequest *req, const UniValue &obj)
 {
-    SAPI::WriteReply(req, HTTPStatusCode::HTTP_OK, obj);
+    SAPI::WriteReply(req, HTTPStatus::OK, obj);
 }
 
 void SAPI::WriteReply(HTTPRequest *req, const std::string &str)
 {
-    SAPI::WriteReply(req, HTTPStatusCode::HTTP_OK, str);
+    SAPI::WriteReply(req, HTTPStatus::OK, str);
 }

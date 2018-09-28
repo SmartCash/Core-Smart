@@ -205,12 +205,12 @@ typedef struct{
 
 void AddDefaultHeaders(HTTPRequest* req);
 
-bool Error(HTTPRequest* req, enum HTTPStatusCode status, const std::string &message);
-bool Error(HTTPRequest* req, enum HTTPStatusCode status, const std::vector<SAPI::Result> &errors);
+bool Error(HTTPRequest* req, HTTPStatus::Codes status, const std::string &message);
+bool Error(HTTPRequest* req, HTTPStatus::Codes status, const std::vector<SAPI::Result> &errors);
 bool Error(HTTPRequest* req, SAPI::Codes code, const std::string &message);
 
-void WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const UniValue &obj);
-void WriteReply(HTTPRequest *req, enum HTTPStatusCode status, const std::string &str);
+void WriteReply(HTTPRequest *req, HTTPStatus::Codes status, const UniValue &obj);
+void WriteReply(HTTPRequest *req, HTTPStatus::Codes status, const std::string &str);
 void WriteReply(HTTPRequest *req, const UniValue& obj);
 void WriteReply(HTTPRequest *req, const std::string &str);
 

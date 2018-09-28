@@ -129,13 +129,13 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
 
     // Early address-based allow check
     if (!ClientAllowed(hreq->GetPeer())) {
-        hreq->WriteReply(HTTP_FORBIDDEN);
+        hreq->WriteReply(HTTPStatus::FORBIDDEN);
         return;
     }
 
     // Early reject unknown HTTP methods
     if (hreq->GetRequestMethod() == HTTPRequest::UNKNOWN) {
-        hreq->WriteReply(HTTP_BAD_METHOD);
+        hreq->WriteReply(HTTPStatus::BAD_METHOD);
         return;
     }
 
@@ -164,10 +164,10 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
             item.release(); /* if true, queue took ownership */
         else {
             LogPrintf("WARNING: request rejected because http work queue depth exceeded, it can be increased with the -rpcworkqueue= setting\n");
-            item->req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
+            item->req->WriteReply(HTTPStatus::INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
         }
     } else {
-        hreq->WriteReply(HTTP_NOT_FOUND);
+        hreq->WriteReply(HTTPStatus::NOT_FOUND);
     }
 }
 
@@ -175,7 +175,7 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
 static void http_reject_request_cb(struct evhttp_request* req, void*)
 {
     LogPrint("http", "Rejecting request while shutting down\n");
-    evhttp_send_error(req, HTTP_SERVICE_UNAVAILABLE, NULL);
+    evhttp_send_error(req, HTTPStatus::SERVICE_UNAVAILABLE, NULL);
 }
 
 /** Event dispatcher thread */
@@ -420,7 +420,7 @@ HTTPRequest::~HTTPRequest()
     if (!replySent) {
         // Keep track of whether reply was sent to avoid request leaks
         LogPrintf("%s: Unhandled request\n", __func__);
-        WriteReply(HTTP_INTERNAL_SERVER_ERROR, "Unhandled request");
+        WriteReply(HTTPStatus::INTERNAL_SERVER_ERROR, "Unhandled request");
     }
     // evhttpd cleans up the request, as long as a reply was sent.
 }

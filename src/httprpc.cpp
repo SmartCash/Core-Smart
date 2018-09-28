@@ -69,13 +69,13 @@ static HTTPRPCTimerInterface* httpRPCTimerInterface = 0;
 static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const UniValue& id)
 {
     // Send error reply from json-rpc error object
-    int nStatus = HTTP_INTERNAL_SERVER_ERROR;
+    int nStatus = HTTPStatus::INTERNAL_SERVER_ERROR;
     int code = find_value(objError, "code").get_int();
 
     if (code == RPC_INVALID_REQUEST)
-        nStatus = HTTP_BAD_REQUEST;
+        nStatus = HTTPStatus::BAD_REQUEST;
     else if (code == RPC_METHOD_NOT_FOUND)
-        nStatus = HTTP_NOT_FOUND;
+        nStatus = HTTPStatus::NOT_FOUND;
 
     std::string strReply = JSONRPCReply(NullUniValue, objError, id);
 
@@ -148,14 +148,14 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
-        req->WriteReply(HTTP_BAD_METHOD, "JSONRPC server handles only POST requests");
+        req->WriteReply(HTTPStatus::BAD_METHOD, "JSONRPC server handles only POST requests");
         return false;
     }
     // Check authorization
     std::pair<bool, std::string> authHeader = req->GetHeader("authorization");
     if (!authHeader.first) {
         req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-        req->WriteReply(HTTP_UNAUTHORIZED);
+        req->WriteReply(HTTPStatus::UNAUTHORIZED);
         return false;
     }
 
@@ -168,7 +168,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
         MilliSleep(250);
 
         req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-        req->WriteReply(HTTP_UNAUTHORIZED);
+        req->WriteReply(HTTPStatus::UNAUTHORIZED);
         return false;
     }
 
@@ -196,7 +196,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
             throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
 
         req->WriteHeader("Content-Type", "application/json");
-        req->WriteReply(HTTP_OK, strReply);
+        req->WriteReply(HTTPStatus::OK, strReply);
     } catch (const UniValue& objError) {
         JSONErrorReply(req, objError, jreq.id);
         return false;

@@ -139,11 +139,11 @@ static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecA
     }
 
     if( errors.size() ){
-        return Error(req, HTTP_BAD_REQUEST, errors);
+        return Error(req, HTTPStatus::BAD_REQUEST, errors);
     }
 
     if( !vecBalances.size() ){
-        return SAPI::Error(req, HTTP_INTERNAL_SERVER_ERROR, "Balance check failed unexpected.");
+        return SAPI::Error(req, HTTPStatus::INTERNAL_SERVER_ERROR, "Balance check failed unexpected.");
     }
 
     return true;
@@ -194,7 +194,7 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
 {
 
     if ( !mapPathParams.count("address") )
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "No SmartCash address specified. Use /address/balance/<smartcash_address>");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/balance/<smartcash_address>");
 
     std::string addrStr = mapPathParams.at("address");
     std::vector<CAddressBalance> vecResult;
@@ -220,7 +220,7 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
 {
 
     if( !bodyParameter.isArray() || bodyParameter.empty() )
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "Addresses are expedted to be a JSON array: [ \"address\", ... ]");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Addresses are expedted to be a JSON array: [ \"address\", ... ]");
 
     std::vector<CAddressBalance> vecResult;
     std::vector<std::string> vecAddresses;
@@ -267,7 +267,7 @@ static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::s
     bool fAsc = bodyParameter.exists(SAPI::Keys::ascending) ? bodyParameter[SAPI::Keys::ascending].get_bool() : false;
 
     if ( end <= start)
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "\"" + SAPI::Keys::timestampFrom + "\" is expected to be greater than \"" + SAPI::Keys::timestampTo + "\"");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "\"" + SAPI::Keys::timestampFrom + "\" is expected to be greater than \"" + SAPI::Keys::timestampTo + "\"");
 
     CBitcoinAddress address(addrStr);
     uint160 hashBytes;
@@ -277,14 +277,14 @@ static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::s
     int nLastTimestamp;
 
     if (!address.GetIndexKey(hashBytes, type))
-        return SAPI::Error(req, HTTP_BAD_REQUEST,"Invalid address: " + addrStr);
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST,"Invalid address: " + addrStr);
 
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
 
     nTime1 = GetTimeMicros();
 
     if (!GetDepositIndexCount(hashBytes, type, nDeposits, nFirstTimestamp, nLastTimestamp, start, end) )
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "No information available for the provided timerange.");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No information available for the provided timerange.");
 
     if (!nDeposits)
         return SAPI::Error(req, SAPI::NoDepositAvailble, "No deposits available for the given timerange.");
@@ -301,7 +301,7 @@ static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::s
     nTime2 = GetTimeMicros();
 
     if (!GetDepositIndex(hashBytes, type, depositIndex, fAsc ? nFirstTimestamp : nLastTimestamp, nIndexOffset , nLimit, !fAsc))
-        return SAPI::Error(req, HTTP_BAD_REQUEST, "No information available for " + addrStr);
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No information available for " + addrStr);
 
     nTime3 = GetTimeMicros();
 
