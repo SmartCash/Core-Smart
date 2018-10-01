@@ -272,7 +272,7 @@ bool CBlockTreeDB::ReadAddressUnspentIndex(uint160 addressHash, int type,
                                            const CAddressUnspentKey &start, int offset, int limit, bool reverse) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
-    int nCount = 0;
+    int nOffsetCount = 0, nFound = 0;
 
     if( start.IsNull() )
         pcursor->Seek(make_pair(DB_ADDRESSUNSPENTINDEX, CAddressIndexIteratorKey(type, addressHash)));
@@ -283,14 +283,16 @@ bool CBlockTreeDB::ReadAddressUnspentIndex(uint160 addressHash, int type,
         boost::this_thread::interruption_point();
         std::pair<char,CAddressUnspentKey> key;
         if (pcursor->GetKey(key) && key.first == DB_ADDRESSUNSPENTINDEX && key.second.hashBytes == addressHash) {
-            if (limit > 0 && unspentOutputs.size() == (size_t)limit) {
+            if (limit > 0 && nFound == limit) {
                 break;
             }
             CAddressUnspentValue nValue;
             if (pcursor->GetValue(nValue)) {
 
-                if( offset < 0 || ++nCount > offset )
+                if( offset < 0 || ++nOffsetCount > offset ){
                     unspentOutputs.push_back(make_pair(key.second, nValue));
+                    ++nFound;
+                }
 
                 if( reverse ) pcursor->Prev();
                 else          pcursor->Next();

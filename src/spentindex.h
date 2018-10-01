@@ -298,6 +298,7 @@ struct CAddressIndexKey {
         spending = false;
     }
 
+    bool IsNull(){ return hashBytes.IsNull(); }
 };
 
 struct CAddressIndexIteratorKey {
