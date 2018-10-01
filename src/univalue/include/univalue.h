@@ -40,8 +40,8 @@ public:
     UniValue(int val_) {
         setInt(val_);
     }
-    UniValue(double val_) {
-        setFloat(val_);
+    UniValue(double val_, int precision = 16) {
+        setFloat(val_, precision);
     }
     UniValue(const std::string& val_) {
         setStr(val_);
@@ -60,7 +60,7 @@ public:
     bool setInt(uint64_t val);
     bool setInt(int64_t val);
     bool setInt(int val) { return setInt((int64_t)val); }
-    bool setFloat(double val);
+    bool setFloat(double val, int precision = 16);
     bool setStr(const std::string& val);
     bool setArray();
     bool setObject();

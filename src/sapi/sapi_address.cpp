@@ -526,7 +526,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
                 obj.pushKV("txid", it->first.txhash.GetHex());
                 obj.pushKV("index", static_cast<int>(it->first.index));
                 obj.pushKV("confirmations", nHeight - it->first.nBlockHeight + 1);
-                obj.pushKV("amount", CAmountToDouble(it->second.satoshis));
+                obj.pushKV("amount", UniValue(CAmountToDouble(it->second.satoshis),8));
 
                 utxos.push_back(obj);
 
@@ -543,8 +543,6 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
             // Won't happen.
             break;
         }
-
-        LogPrintf("Step: %.2fms, size: %d, limit: %d\n", (GetTimeMicros() - nTime1) * 0.001, unspentOutputs.size(), nLimit );
 
         for (auto it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
 
@@ -566,7 +564,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
                 obj.pushKV("txid", it->first.txhash.GetHex());
                 obj.pushKV("index", static_cast<int>(it->first.index));
                 obj.pushKV("confirmations", nHeight - it->first.nBlockHeight + 1);
-                obj.pushKV("amount", CAmountToDouble(it->second.satoshis));
+                obj.pushKV("amount", UniValue(CAmountToDouble(it->second.satoshis),8));
 
                 utxos.push_back(obj);
 
@@ -613,9 +611,9 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     result.pushKV("blockHeight", nHeight);
     result.pushKV("scriptPubKey", HexStr(script.begin(), script.end()));
     result.pushKV("address", addrStr);
-    result.pushKV("amount", CAmountToDouble(bestSolution.amount));
-    result.pushKV("fee", CAmountToDouble(bestSolution.fee));
-    result.pushKV("change", CAmountToDouble(bestSolution.change));
+    result.pushKV("amount", UniValue(CAmountToDouble(bestSolution.amount),8));
+    result.pushKV("fee", UniValue(CAmountToDouble(bestSolution.fee),8));
+    result.pushKV("change", UniValue(CAmountToDouble(bestSolution.change),8));
     result.pushKV("utxos", bestSolution.arrUTXOs);
 
     SAPI::WriteReply(req, result);

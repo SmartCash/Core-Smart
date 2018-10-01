@@ -92,12 +92,12 @@ bool UniValue::setInt(int64_t val)
     return setNumStr(oss.str());
 }
 
-bool UniValue::setFloat(double val)
+bool UniValue::setFloat(double val, int precision)
 {
     string s;
     ostringstream oss;
 
-    oss << std::setprecision(16) << val;
+    oss << std::setprecision(precision) << val;
 
     bool ret = setNumStr(oss.str());
     typ = VNUM;
