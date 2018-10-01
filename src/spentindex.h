@@ -46,7 +46,7 @@ struct CSpentIndexValue {
     int addressType;
     uint160 addressHash;
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -203,7 +203,8 @@ struct CAddressUnspentKey {
         txhash.SetNull();
         index = 0;
     }
-    bool IsNull() const {return nBlockHeight == -1;}
+
+    bool IsNull() const { return hashBytes.IsNull(); }
 };
 
 struct CAddressUnspentValue {
