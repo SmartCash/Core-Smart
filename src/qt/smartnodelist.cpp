@@ -576,6 +576,8 @@ void SmartnodeList::on_RemoveButton_clicked()
             return;
         }
 
+    }else{
+        return;
     }
 
     QMessageBox::information(this, tr("Success"),
