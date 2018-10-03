@@ -205,6 +205,14 @@ struct CAddressUnspentKey {
     }
 
     bool IsNull() const { return hashBytes.IsNull(); }
+
+    friend bool operator==(const CAddressUnspentKey& a, const CAddressUnspentKey& b)
+    {
+        return a.type == b.type &&
+               a.hashBytes == b.hashBytes &&
+               a.txhash == b.txhash &&
+               a.index == b.index;
+    }
 };
 
 struct CAddressUnspentValue {

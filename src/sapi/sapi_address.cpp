@@ -87,9 +87,9 @@ SAPI::EndpointGroup addressEndpoints = {
         {
             "unspent/amount", HTTPRequest::POST, UniValue::VOBJ, address_utxos_amount,
             {
-                SAPI::BodyParameter(SAPI::Keys::address,  new SAPI::Validation::SmartCashAddress()),
-                SAPI::BodyParameter(SAPI::Keys::amount,   new SAPI::Validation::DoubleRange(1.0 / COIN,(double)MAX_MONEY / COIN)),
-                SAPI::BodyParameter(SAPI::Keys::solution, new SAPI::Validation::IntRange(0,2), true),
+                SAPI::BodyParameter(SAPI::Keys::address,    new SAPI::Validation::SmartCashAddress()),
+                SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::DoubleRange(1.0 / COIN,(double)MAX_MONEY / COIN)),
+                SAPI::BodyParameter(SAPI::Keys::random,     new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true)
             }
         }
@@ -440,14 +440,14 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     int64_t nTime0, nTime1, nTime2, nTime3, nTime4;
 
     // matching algorithm parameters
-    const int nUtxosSlice = 1000;
+    const int nUtxosSlice = 2000;
     const int nMatchTimeoutMicros = 5 * 1000000;
 
     nTime0 = GetTimeMicros();
 
     std::string addrStr = bodyParameter[SAPI::Keys::address].get_str();
     CAmount expectedAmount = bodyParameter[SAPI::Keys::amount].get_real() * COIN;
-    int64_t nSolution = bodyParameter.exists(SAPI::Keys::solution) ? bodyParameter[SAPI::Keys::solution].get_int64() : 0;
+    bool fRandom = bodyParameter.exists(SAPI::Keys::random) ? bodyParameter[SAPI::Keys::random].get_bool() : true;
     bool fInstantPay = bodyParameter.exists(SAPI::Keys::instantpay) ? bodyParameter[SAPI::Keys::instantpay].get_bool() : false;
 
     CBitcoinAddress address(addrStr);
@@ -460,7 +460,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     }
 
     if (!nUtxoCount)
-        return SAPI::Error(req, SAPI::NoUtxosAvailble, "No unspent outputs available.");
+        return SAPI::Error(req, SAPI::NoUtxosAvailble, "No unspent outputs available");
 
     nTime1 = GetTimeMicros();
 
@@ -471,10 +471,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
     int64_t nHeight = chainActive.Height();
 
-    CUnspentSolution bestSolution;
-    std::pair<CAddressUnspentKey, CAddressUnspentValue> nearestMatch;
-
-    nearestMatch.first.SetNull();
+    CUnspentSolution currentSolution, bestSolution;
 
     do{
 
@@ -483,70 +480,22 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
                                        (nPageCurrent % nPages) == nPages - 1 ? (nUtxoCount % nUtxosSlice) :
                                                                     nUtxosSlice);
 
-        if( nSolution && GetTimeMicros() - nTime0 > nMatchTimeoutMicros )
+        if( !fRandom && GetTimeMicros() - nTime0 > nMatchTimeoutMicros )
             break;
 
         if( !GetUTXOs(req, address, unspentOutputs, CAddressUnspentKey(), nIndexOffset , nLimit) )
             return false;
 
-        CAmount fee = CalculateFee(0);
-        CAmount amountSum = 0;
-
-        UniValue utxos(UniValue::VARR);
-
-        switch(nSolution){
-        case 0:{ // Pick random utxos until the amount is reached.
+        if( fRandom ){ // Pick random utxos until the amount is reached.
             auto rng = std::default_random_engine {};
             std::shuffle(unspentOutputs.begin(), unspentOutputs.end(), rng);
-        }break;
-        case 1:{ // Search a solution with fewest change
-
-            // If we are in the second iteration use the nearest match from the
-            // round before too..
-            if( !nearestMatch.first.IsNull() ){
-                unspentOutputs.push_back(nearestMatch);
-                nearestMatch.first.SetNull();
-            }
-
-            std::sort(unspentOutputs.begin(), unspentOutputs.end(), amountSortLTH);
-
-            auto it = unspentOutputs.rbegin();
-
-            while( it++ != unspentOutputs.rend() ) {
-                if( it->second.satoshis <= expectedAmount ){
-                    nearestMatch = *it;
-                    break;
-                }
-            }
-
-            if( it != unspentOutputs.rend() ){
-
-                UniValue obj(UniValue::VOBJ);
-
-                obj.pushKV("txid", it->first.txhash.GetHex());
-                obj.pushKV("index", static_cast<int>(it->first.index));
-                obj.pushKV("confirmations", nHeight - it->first.nBlockHeight + 1);
-                obj.pushKV("amount", UniValue(CAmountToDouble(it->second.satoshis),8));
-
-                utxos.push_back(obj);
-
-                fee = CalculateFee(static_cast<int>(utxos.size()));
-
-                unspentOutputs.erase( it.base() - 1 );
-            }
-
-        }break;
-        case 2: // Search a solution with fewest utxo's
+        }else{ // Search a solution with fewest utxo's
             std::sort(unspentOutputs.begin(), unspentOutputs.end(), amountSortHTL);
-            break;
-        default:
-            // Won't happen.
-            break;
         }
 
         for (auto it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
 
-            if( nSolution && GetTimeMicros() - nTime0 > nMatchTimeoutMicros )
+            if( GetTimeMicros() - nTime0 > nMatchTimeoutMicros )
                 break;
 
             CSpentIndexValue spentInfo;
@@ -557,37 +506,26 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
             if (!mempool.getSpentIndex(spentKey, spentInfo) &&
                ( !fInstantPay || ( fInstantPay && (nHeight - it->first.nBlockHeight + 1) >= INSTANTSEND_CONFIRMATIONS_REQUIRED ) ) ){
 
-                amountSum += it->second.satoshis;
-
-                UniValue obj(UniValue::VOBJ);
-
-                obj.pushKV("txid", it->first.txhash.GetHex());
-                obj.pushKV("index", static_cast<int>(it->first.index));
-                obj.pushKV("confirmations", nHeight - it->first.nBlockHeight + 1);
-                obj.pushKV("amount", UniValue(CAmountToDouble(it->second.satoshis),8));
-
-                utxos.push_back(obj);
-
-                fee = CalculateFee(static_cast<int>(utxos.size()));
+                currentSolution.AddUtxo(*it);
             }
 
-            if( amountSum > expectedAmount + fee ){
+            if( currentSolution.amount > expectedAmount + currentSolution.fee ){
 
-                CAmount change = amountSum - expectedAmount - fee;
+                currentSolution.change = currentSolution.amount - expectedAmount - currentSolution.fee;
 
                 if( bestSolution.IsNull() ||
-                    ( nSolution == 1 && change < bestSolution.change ) || // Looking for fewest change
-                    ( nSolution == 2 && utxos.size() < bestSolution.arrUTXOs.size() ) ){ // Looking for fewest inputs
+                    ( !fRandom && currentSolution.vecUtxos.size() < bestSolution.vecUtxos.size() ) ){ // Looking for fewest inputs
 
-                    bestSolution = CUnspentSolution(amountSum,fee,change,utxos);
+                    bestSolution = currentSolution;
+                    currentSolution.SetNull();
                 }
 
                 break;
             }
         }
 
-        if( ( !bestSolution.IsNull() && !nSolution ) ||
-            ( nSolution && GetTimeMicros() - nTime0 > nMatchTimeoutMicros ) )
+        if( ( !bestSolution.IsNull() && fRandom ) ||
+            ( GetTimeMicros() - nTime0 > nMatchTimeoutMicros ) )
             break;
 
     }while( (++nPageCurrent % nPages) != nPageStart);
@@ -598,13 +536,14 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     if( (++nPageCurrent % nPages) == nPageStart && bestSolution.IsNull() )
         return SAPI::Error(req, SAPI::BalanceTooLow, "Requested amount exceeds balance");
 
-    // We found no solution, but there might be one..
+    // We found no solution, but there still might be one..
     if( bestSolution.IsNull() )
         return SAPI::Error(req, SAPI::TimedOut, "No solution found");
 
     nTime3 = GetTimeMicros();
 
     UniValue result(UniValue::VOBJ);
+    UniValue arrUtxos(UniValue::VARR);
 
     CScript script = GetScriptForDestination(address.Get());
 
@@ -614,7 +553,20 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     result.pushKV("amount", UniValue(CAmountToDouble(bestSolution.amount),8));
     result.pushKV("fee", UniValue(CAmountToDouble(bestSolution.fee),8));
     result.pushKV("change", UniValue(CAmountToDouble(bestSolution.change),8));
-    result.pushKV("utxos", bestSolution.arrUTXOs);
+
+    for( auto utxo : bestSolution.vecUtxos ){
+
+        UniValue obj(UniValue::VOBJ);
+
+        obj.pushKV("txid", utxo.first.txhash.GetHex());
+        obj.pushKV("index", static_cast<int>(utxo.first.index));
+        obj.pushKV("confirmations", nHeight - utxo.first.nBlockHeight + 1);
+        obj.pushKV("amount", UniValue(CAmountToDouble(utxo.second.satoshis),8));
+
+        arrUtxos.push_back(obj);
+    }
+
+    result.pushKV("utxos", arrUtxos);
 
     SAPI::WriteReply(req, result);
 
@@ -627,4 +579,21 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime3 - nTime0) * 0.001);
 
     return true;
+}
+
+void CUnspentSolution::AddUtxo(const std::pair<CAddressUnspentKey, CAddressUnspentValue> &utxo)
+{
+
+    // Check if the utxos is already used for this solution.
+    auto res = std::find_if(vecUtxos.begin(), vecUtxos.end(),
+                            [utxo](const std::pair<CAddressUnspentKey, CAddressUnspentValue> &entry) -> bool {
+        return utxo.first == entry.first;
+    });
+
+    if( res == vecUtxos.end() ){
+
+        amount += utxo.second.satoshis;
+        vecUtxos.push_back(utxo);
+        fee = CalculateFee(static_cast<int>(vecUtxos.size()));
+    }
 }

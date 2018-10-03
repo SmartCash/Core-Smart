@@ -74,7 +74,7 @@ namespace Keys{
     const std::string overridefees = "overrideFees";
     const std::string ascending = "ascending";
     const std::string descending = "descending";
-    const std::string solution = "solution";
+    const std::string random = "random";
     const std::string maxInputs = "maxInputs";
 
 }
