@@ -38,6 +38,8 @@ enum Codes{
     InvalidSmartCashAddress,
     EmptyString,
     InvalidHexString,
+    InvalidAmount,
+    AmountOutOfRange,
     /* common errors */
     TimedOut = 2000,
     PageOutOfRange,
@@ -153,6 +155,20 @@ namespace Validation{
         double max;
     public:
         DoubleRange( double min, double max ) : Double(), min(min), max(max) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class Amount : public Base{
+    public:
+        Amount() : Base(UniValue::VNUM) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const override;
+    };
+
+    class AmountRange : public Amount{
+        CAmount min;
+        CAmount max;
+    public:
+        AmountRange( CAmount min, CAmount max ) : Amount(), min(min), max(max) {}
         SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
     };
 

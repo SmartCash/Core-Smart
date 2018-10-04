@@ -88,7 +88,7 @@ SAPI::EndpointGroup addressEndpoints = {
             "unspent/amount", HTTPRequest::POST, UniValue::VOBJ, address_utxos_amount,
             {
                 SAPI::BodyParameter(SAPI::Keys::address,    new SAPI::Validation::SmartCashAddress()),
-                SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::DoubleRange(1.0 / COIN,(double)MAX_MONEY / COIN)),
+                SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::AmountRange(1,MAX_MONEY)),
                 SAPI::BodyParameter(SAPI::Keys::random,     new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true)
             }
@@ -208,9 +208,9 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
 
     UniValue response(UniValue::VOBJ);
     response.pushKV("address", result.address);
-    response.pushKV("received", CAmountToDouble(result.received));
-    response.pushKV("sent", CAmountToDouble(result.received - result.balance));
-    response.pushKV("balance", CAmountToDouble(result.balance));
+    response.pushKV("received", UniValue::fromAmount(result.received));
+    response.pushKV("sent", UniValue::fromAmount(result.received - result.balance));
+    response.pushKV("balance", UniValue::fromAmount(result.balance));
 
     SAPI::WriteReply(req, response);
 
@@ -244,9 +244,9 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
 
         UniValue entry(UniValue::VOBJ);
         entry.pushKV(SAPI::Keys::address, result.address);
-        entry.pushKV("received", CAmountToDouble(result.received));
-        entry.pushKV("sent", CAmountToDouble(result.received - result.balance));
-        entry.pushKV("balance", CAmountToDouble(result.balance));
+        entry.pushKV("received", UniValue::fromAmount(result.received));
+        entry.pushKV("sent", UniValue::fromAmount(result.received - result.balance));
+        entry.pushKV("balance", UniValue::fromAmount(result.balance));
         response.push_back(entry);
     }
 
@@ -319,7 +319,7 @@ static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::s
         obj.pushKV("txhash", it->first.txhash.GetHex());
         obj.pushKV("blockHeight", it->second.blockHeight);
         obj.pushKV("timestamp", int64_t(it->first.timestamp));
-        obj.pushKV("amount", CAmountToDouble(it->second.satoshis));
+        obj.pushKV("amount", UniValue::fromAmount(it->second.satoshis));
 
         arrDeposit.push_back(obj);
     }
@@ -404,7 +404,7 @@ static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::str
         output.pushKV("index", static_cast<int>(it->first.index));
         output.pushKV(SAPI::Keys::address, address);
         output.pushKV("script", HexStr(it->second.script.begin(), it->second.script.end()));
-        output.pushKV("value", CAmountToDouble(it->second.satoshis));
+        output.pushKV("value", UniValue::fromAmount(it->second.satoshis));
         output.pushKV("height", it->first.nBlockHeight);
         output.pushKV("inMempool", fInMempool);
 
@@ -446,7 +446,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     nTime0 = GetTimeMicros();
 
     std::string addrStr = bodyParameter[SAPI::Keys::address].get_str();
-    CAmount expectedAmount = bodyParameter[SAPI::Keys::amount].get_real() * COIN;
+    CAmount expectedAmount = bodyParameter[SAPI::Keys::amount].get_amount();
     bool fRandom = bodyParameter.exists(SAPI::Keys::random) ? bodyParameter[SAPI::Keys::random].get_bool() : true;
     bool fInstantPay = bodyParameter.exists(SAPI::Keys::instantpay) ? bodyParameter[SAPI::Keys::instantpay].get_bool() : false;
 
@@ -550,9 +550,10 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     result.pushKV("blockHeight", nHeight);
     result.pushKV("scriptPubKey", HexStr(script.begin(), script.end()));
     result.pushKV("address", addrStr);
-    result.pushKV("amount", UniValue(CAmountToDouble(bestSolution.amount),8));
-    result.pushKV("fee", UniValue(CAmountToDouble(bestSolution.fee),8));
-    result.pushKV("change", UniValue(CAmountToDouble(bestSolution.change),8));
+    result.pushKV("requestedAmount", UniValue::fromAmount(expectedAmount));
+    result.pushKV("finalAmount", UniValue::fromAmount(bestSolution.amount));
+    result.pushKV("fee", UniValue::fromAmount(bestSolution.fee));
+    result.pushKV("change", UniValue::fromAmount(bestSolution.change));
 
     for( auto utxo : bestSolution.vecUtxos ){
 
@@ -561,7 +562,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
         obj.pushKV("txid", utxo.first.txhash.GetHex());
         obj.pushKV("index", static_cast<int>(utxo.first.index));
         obj.pushKV("confirmations", nHeight - utxo.first.nBlockHeight + 1);
-        obj.pushKV("amount", UniValue(CAmountToDouble(utxo.second.satoshis),8));
+        obj.pushKV("amount", UniValue::fromAmount(utxo.second.satoshis));
 
         arrUtxos.push_back(obj);
     }

@@ -189,6 +189,44 @@ SAPI::Result SAPI::Validation::DoubleRange::Validate(const string &parameter, co
     return SAPI::Result(code, message);
 }
 
+SAPI::Result SAPI::Validation::Amount::Validate(const string &parameter, const UniValue &value) const
+{
+    int64_t val;
+    std::string valStr = value.getValStr();
+    SAPI::Codes code = SAPI::Valid;
+    std::string message = std::string();
+
+    if (!ParsePrechecks(valStr))
+        code = SAPI::NumberParserFailed;
+    else if (!ParseFloatingAmount(valStr, &val)){
+        code = SAPI::InvalidAmount;
+    }
+
+    if( code != SAPI::Valid ) message = parameter + " -- " + ResultMessage(code);
+
+    return SAPI::Result(code, message);
+}
+
+SAPI::Result SAPI::Validation::AmountRange::Validate(const string &parameter, const UniValue &value) const
+{
+    SAPI::Result result = Amount::Validate(parameter, value);
+
+    if( result != SAPI::Valid ) return result;
+
+    SAPI::Codes code = SAPI::Valid;
+    std::string message = std::string();
+
+    CAmount val = value.get_amount();
+
+    if( val < min || val > max ){
+        code = SAPI::AmountOutOfRange;
+        UniValue minVal = UniValue::fromAmount(min);
+        UniValue maxVal = UniValue::fromAmount(max);
+        message = parameter + " -- " + strprintf(ResultMessage(code), minVal.getValStr(), maxVal.getValStr());
+    }
+
+    return SAPI::Result(code, message);
+}
 
 std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
 {
@@ -213,6 +251,10 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "InvalidSmartCashAddress";
     case DoubleOutOfRange:
         return "Value out of the valid range: %8.8f - %8.8f";
+    case InvalidAmount:
+        return "InvalidAmount";
+    case AmountOutOfRange:
+        return "Value out of the valid range: %s - %s";
     default:
         return "UNDEFINED";
     }

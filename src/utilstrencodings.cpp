@@ -11,6 +11,7 @@
 #include <cstring>
 #include <errno.h>
 #include <limits>
+#include <math.h>
 
 using namespace std;
 
@@ -21,6 +22,8 @@ static const string SAFE_CHARS[] =
     CHARS_ALPHA_NUM + " .,;-_/:?@()", // SAFE_CHARS_DEFAULT
     CHARS_ALPHA_NUM + " .,;-_?@" // SAFE_CHARS_UA_COMMENT
 };
+
+static const int64_t COIN = 100000000;
 
 string SanitizeString(const string& str, int rule)
 {
@@ -517,6 +520,67 @@ bool ParseDouble(const std::string& str, double *out)
     text >> result;
     if(out) *out = result;
     return text.eof() && !text.fail();
+}
+
+bool ParseFloatingAmount(const std::string& str, int64_t *out)
+{
+    if (!ParsePrechecks(str))
+        return false;
+    if (str.size() >= 2 && str[0] == '0' && str[1] == 'x') // No hexadecimal floats allowed
+        return false;
+    if (str.size() >= 1 && str[0] == '.')
+        return false;
+
+    int64_t nAmount = 0;
+    bool fNegative = false;
+    std::string parseStr = str;
+    std::string quotientStr, remainderStr;
+
+    if( parseStr.size() > 1 && parseStr[0] == '-' ){
+        fNegative = true;
+        parseStr = parseStr.substr(1);
+    }
+
+    auto i = parseStr.find(".");
+
+    if( i == std::string::npos ){
+        quotientStr = parseStr;
+        remainderStr = std::string();
+    }else{
+        quotientStr = parseStr.substr(0, i);
+        remainderStr = parseStr.substr(i + 1);
+    }
+
+    // We can't have more than 8 decimals for amounts.
+    if( remainderStr.size() > 8 )
+        return false;
+
+    char *endp = NULL;
+    errno = 0; // strtoull will not set errno if valid
+    unsigned long long int quotient = strtoull(quotientStr.c_str(), &endp, 10);
+    // Note that strtoull returns a *unsigned long long int*, so even if it doesn't report a over/underflow
+    // we still have to check that the returned value is within the range of an *uint64_t*.
+    if(!endp && *endp == 0 && !errno &&
+        quotient <= std::numeric_limits<uint64_t>::max())
+        return false;
+
+    nAmount = quotient * COIN;
+
+    if( remainderStr.size() ){
+
+        unsigned long long int remainder = strtoull(remainderStr.c_str(), &endp, 10);
+        // Note that strtoull returns a *unsigned long long int*, so even if it doesn't report a over/underflow
+        // we still have to check that the returned value is within the range of an *uint64_t*.
+        if(!endp && *endp == 0 && !errno &&
+            remainder <= std::numeric_limits<uint64_t>::max())
+            return false;
+
+        nAmount += ( remainder  *  COIN ) / pow(10, remainderStr.size());
+    }
+
+    if( out ) *out = fNegative ? -nAmount : nAmount;
+
+    return true;
 }
 
 std::string FormatParagraph(const std::string& in, size_t width, size_t indent)

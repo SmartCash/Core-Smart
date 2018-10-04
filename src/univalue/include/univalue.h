@@ -16,7 +16,6 @@
 #include <sstream>        // .get_int64()
 #include <utility>        // std::pair
 
-
 bool ParsePrechecks(const std::string& str);
 
 class UniValue {
@@ -40,8 +39,8 @@ public:
     UniValue(int val_) {
         setInt(val_);
     }
-    UniValue(double val_, int precision = 16) {
-        setFloat(val_, precision);
+    UniValue(double val_) {
+        setFloat(val_);
     }
     UniValue(const std::string& val_) {
         setStr(val_);
@@ -52,6 +51,8 @@ public:
     }
     ~UniValue() {}
 
+    static UniValue fromAmount( int64_t nAmount );
+
     void clear();
 
     bool setNull();
@@ -60,7 +61,8 @@ public:
     bool setInt(uint64_t val);
     bool setInt(int64_t val);
     bool setInt(int val) { return setInt((int64_t)val); }
-    bool setFloat(double val, int precision = 16);
+    bool setFloat(double val);
+    bool setAmount(int64_t val);
     bool setStr(const std::string& val);
     bool setArray();
     bool setObject();
@@ -152,6 +154,7 @@ public:
     int get_int() const;
     int64_t get_int64() const;
     double get_real() const;
+    int64_t get_amount() const;
     const UniValue& get_obj() const;
     const UniValue& get_array() const;
 
