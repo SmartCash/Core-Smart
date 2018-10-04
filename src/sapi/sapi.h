@@ -47,6 +47,8 @@ enum Codes{
     TimedOut = 2000,
     PageOutOfRange,
     BalanceTooLow,
+    RequestRateLimitReached,
+    RessourceRateLimitReached,
     /* block errors */
     BlockHeightOutOfRange = 3000,
     BlockNotFound,
@@ -178,6 +180,44 @@ namespace Validation{
     std::string ResultMessage(SAPI::Codes value);
 }
 
+namespace Limits {
+
+    const int64_t nRequestsPerInterval = 20;
+    const int64_t nRequestIntervalMs = 5000;
+
+    class Client{
+
+        CCriticalSection cs;
+
+        int64_t nTotalRequests;
+        double nRemainingRequests;
+        int64_t nLastRequestTime;
+
+        int64_t nThrottling;
+        int64_t nRequestsLimitUnlock;
+        int64_t nRessourcesLimitUnlock;
+
+    public:
+
+        Client() {
+            nTotalRequests = 0;
+            nRemainingRequests = nRequestsPerInterval;
+            nLastRequestTime = 0;
+            nThrottling = -1;
+            nRequestsLimitUnlock = -1;
+            nRessourcesLimitUnlock = -1;
+        }
+        void Request();
+        bool IsRequestLimited();
+        bool IsRessourceLimited();
+        int64_t GetRequestLockSeconds();
+        int64_t GetRessourceLockSeconds();
+    };
+
+    Client *GetClient( const CService &peer );
+
+}
+
 struct BodyParameter{
     std::string key;
     const SAPI::Validation::Base *validator;
@@ -225,6 +265,7 @@ typedef struct{
 void AddDefaultHeaders(HTTPRequest* req);
 
 bool Error(HTTPRequest* req, HTTPStatus::Codes status, const std::string &message);
+bool Error(HTTPRequest* req, HTTPStatus::Codes status, const SAPI::Result &error);
 bool Error(HTTPRequest* req, HTTPStatus::Codes status, const std::vector<SAPI::Result> &errors);
 bool Error(HTTPRequest* req, SAPI::Codes code, const std::string &message);
 
@@ -235,7 +276,7 @@ void WriteReply(HTTPRequest *req, const std::string &str);
 
 bool CheckWarmup(HTTPRequest* req);
 
-bool UnknownEndpointHandler(HTTPRequest* req, const std::string& strURIPart);
+SAPI::Limits::Client *GetClientLimiter(const CService &peer);
 
 }
 

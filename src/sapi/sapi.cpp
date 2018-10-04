@@ -10,8 +10,8 @@
 #include "primitives/transaction.h"
 #include "validation.h"
 #include "smartnode/smartnodesync.h"
-#include "sapi.h"
-#include "sapi_validation.h"
+#include "sapi/sapi.h"
+#include "sapi/sapi_validation.h"
 #include "streams.h"
 #include "sync.h"
 #include "rpc/client.h"
@@ -135,6 +135,25 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     // Early address-based allow check
     if (!ClientAllowed(hreq->GetPeer())) {
         SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, "Access forbidden");
+        return;
+    }
+
+    SAPI::Limits::Client * client = SAPI::Limits::GetClient(hreq->GetPeer());
+
+    client->Request();
+
+    // Check the rate limiting for this peer
+    if( client->IsRequestLimited() ){
+        SAPI::Result error(SAPI::RequestRateLimitReached,
+                           strprintf("Cool down! Requests locked for %d seconds", client->GetRequestLockSeconds()));
+        SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
+        return;
+    }
+
+    if( client->IsRessourceLimited() ){
+        SAPI::Result error(SAPI::RessourceRateLimitReached,
+                           strprintf("Cool down! Ressources locked for %d seconds", client->GetRessourceLockSeconds()));
+        SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
         return;
     }
 
@@ -262,7 +281,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
             item->req->WriteReply(HTTPStatus::INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
         }
     } else {
-        SAPI::UnknownEndpointHandler(hreq.get(), strURI);
+        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid endpoint: " + strURI + " with method: " + RequestMethodString(hreq->GetRequestMethod()));
     }
 }
 
@@ -623,11 +642,6 @@ static bool SAPIExecuteEndpoint(HTTPRequest *req, const std::map<std::string, st
     return endpoint->handler(req, mapPathParams, bodyParameter );
 }
 
-bool SAPI::UnknownEndpointHandler(HTTPRequest* req, const std::string& strURIPart)
-{
-    return SAPI::Error(req, HTTPStatus::NOT_FOUND, "Invalid endpoint: " + req->GetURI() + " with method: " + RequestMethodString(req->GetRequestMethod()));
-}
-
 std::string JsonString(const UniValue &obj)
 {
     return obj.write(DEFAULT_SAPI_JSON_INDENT) + "\n";
@@ -662,9 +676,14 @@ bool SAPI::Error(HTTPRequest* req, HTTPStatus::Codes status, const std::string &
     return SAPI::Error(req, status, {SAPI::Result(SAPI::Undefined, message)});
 }
 
+bool SAPI::Error(HTTPRequest* req, HTTPStatus::Codes status, const SAPI::Result &error)
+{
+    return SAPI::Error(req, status, std::vector<SAPI::Result>{error});
+}
+
 bool SAPI::Error(HTTPRequest* req, SAPI::Codes code, const std::string &message)
 {
-    return SAPI::Error(req, HTTPStatus::BAD_REQUEST, {SAPI::Result(code, message)});
+    return SAPI::Error(req, HTTPStatus::BAD_REQUEST, std::vector<SAPI::Result>{SAPI::Result(code, message)});
 }
 
 void SAPI::WriteReply(HTTPRequest *req, HTTPStatus::Codes status, const UniValue &obj)

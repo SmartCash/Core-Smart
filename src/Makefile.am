@@ -232,6 +232,7 @@ libbitcoin_server_a_SOURCES = \
   sapi/sapi.cpp \
   sapi/sapi_address.cpp \
   sapi/sapi_blockchain.cpp \
+  sapi/sapi_limiter.cpp \
   sapi/sapi_transaction.cpp \
   sapi/sapi_validation.cpp \
   script/sigcache.cpp \
