@@ -9,6 +9,7 @@
 #include "primitives/block.h"
 #include "primitives/transaction.h"
 #include "validation.h"
+#include "smartnode/smartnodesync.h"
 #include "sapi.h"
 #include "sapi_validation.h"
 #include "streams.h"
@@ -505,6 +506,8 @@ bool SAPI::CheckWarmup(HTTPRequest* req)
     std::string statusmessage;
     if (RPCIsInWarmup(&statusmessage))
         return SAPI::Error(req, HTTPStatus::SERVICE_UNAVAILABLE, "Service temporarily unavailable: " + statusmessage);
+    if(!smartnodeSync.IsBlockchainSynced())
+        return SAPI::Error(req, HTTPStatus::SERVICE_UNAVAILABLE, "Service temporarily unavailable: Syncing with the SmartCash network.");
     return true;
 }
 
