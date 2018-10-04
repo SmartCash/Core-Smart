@@ -673,7 +673,7 @@ bool SAPI::Error(HTTPRequest* req, HTTPStatus::Codes status, const std::vector<S
 
 bool SAPI::Error(HTTPRequest* req, HTTPStatus::Codes status, const std::string &message)
 {
-    return SAPI::Error(req, status, {SAPI::Result(SAPI::Undefined, message)});
+    return SAPI::Error(req, status, std::vector<SAPI::Result>{SAPI::Result(SAPI::Undefined, message)});
 }
 
 bool SAPI::Error(HTTPRequest* req, HTTPStatus::Codes status, const SAPI::Result &error)
