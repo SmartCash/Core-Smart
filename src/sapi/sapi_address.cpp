@@ -487,8 +487,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
             return false;
 
         if( fRandom ){ // Pick random utxos until the amount is reached.
-            auto rng = std::default_random_engine {};
-            std::shuffle(unspentOutputs.begin(), unspentOutputs.end(), rng);
+            std::random_shuffle(unspentOutputs.begin(), unspentOutputs.end());
         }else{ // Search a solution with fewest utxo's
             std::sort(unspentOutputs.begin(), unspentOutputs.end(), amountSortHTL);
         }
