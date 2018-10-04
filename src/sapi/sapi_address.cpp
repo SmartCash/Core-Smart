@@ -464,6 +464,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
     nTime1 = GetTimeMicros();
 
+    bool fTimedOut = false;
     int nPages = nUtxoCount / nUtxosSlice;
     if( nUtxoCount % nUtxosSlice ) nPages++;
     int nPageStart = GetRand(nPages);
@@ -494,8 +495,10 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
         for (auto it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
 
-            if( GetTimeMicros() - nTime0 > nMatchTimeoutMicros )
+            if( GetTimeMicros() - nTime0 > nMatchTimeoutMicros ){
+                fTimedOut = true;
                 break;
+            }
 
             CSpentIndexValue spentInfo;
             CSpentIndexKey spentKey(it->first.txhash, static_cast<unsigned int>(it->first.index));
@@ -523,16 +526,20 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
             }
         }
 
-        if( ( !bestSolution.IsNull() && fRandom ) ||
-            ( GetTimeMicros() - nTime0 > nMatchTimeoutMicros ) )
+        if(!bestSolution.IsNull() && fRandom )
             break;
+
+        if( GetTimeMicros() - nTime0 > nMatchTimeoutMicros ){
+            fTimedOut = true;
+            break;
+        }
 
     }while( (++nPageCurrent % nPages) != nPageStart);
 
     nTime2 = GetTimeMicros();
 
     // If we iterated over all utxos and we did not find a solution.
-    if( (++nPageCurrent % nPages) == nPageStart && bestSolution.IsNull() )
+    if( (++nPageCurrent % nPages) == nPageStart && bestSolution.IsNull() && !fTimedOut )
         return SAPI::Error(req, SAPI::BalanceTooLow, "Requested amount exceeds balance");
 
     // We found no solution, but there still might be one..
