@@ -198,8 +198,10 @@ SAPI::Result SAPI::Validation::Amount::Validate(const string &parameter, const U
 
     if (!ParsePrechecks(valStr))
         code = SAPI::NumberParserFailed;
-    else if (!ParseFloatingAmount(valStr, &val)){
+    else if (!ParseFixedPoint(valStr, 8, &val)){
         code = SAPI::InvalidAmount;
+    }else if(!MoneyRange(val)){
+        code = SAPI::AmountOverflow;
     }
 
     if( code != SAPI::Valid ) message = parameter + " -- " + ResultMessage(code);
@@ -220,8 +222,8 @@ SAPI::Result SAPI::Validation::AmountRange::Validate(const string &parameter, co
 
     if( val < min || val > max ){
         code = SAPI::AmountOutOfRange;
-        UniValue minVal = UniValue::fromAmount(min);
-        UniValue maxVal = UniValue::fromAmount(max);
+        UniValue minVal = UniValueFromAmount(min);
+        UniValue maxVal = UniValueFromAmount(max);
         message = parameter + " -- " + strprintf(ResultMessage(code), minVal.getValStr(), maxVal.getValStr());
     }
 
@@ -253,6 +255,8 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Value out of the valid range: %8.8f - %8.8f";
     case InvalidAmount:
         return "InvalidAmount";
+    case AmountOverflow:
+        return "Amount out of max money range.";
     case AmountOutOfRange:
         return "Value out of the valid range: %s - %s";
     default:

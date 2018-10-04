@@ -15,8 +15,6 @@
 #include "univalue.h"
 #include "../utilstrencodings.h"
 
-static const int64_t COIN = 100000000;
-
 bool ParsePrechecks(const std::string& str)
 {
     if (str.empty()) // No empty string allowed
@@ -31,13 +29,6 @@ bool ParsePrechecks(const std::string& str)
 using namespace std;
 
 const UniValue NullUniValue;
-
-UniValue UniValue::fromAmount(int64_t nAmount)
-{
-    UniValue val;
-    val.setAmount(nAmount);
-    return val;
-}
 
 void UniValue::clear()
 {
@@ -97,33 +88,6 @@ bool UniValue::setInt(int64_t val)
     oss << val;
 
     return setNumStr(oss.str());
-}
-
-bool UniValue::setAmount(int64_t val)
-{
-    string s;
-
-    int64_t valAbs = (val > 0 ? val : -val);
-    int64_t quotient = valAbs / COIN;
-    int64_t remainder = valAbs % COIN;
-
-    if( val < 0)
-        s += "-";
-
-    std::ostringstream ssq;
-    ssq << quotient;
-    s+= ssq.str();
-
-    if( remainder > 0 ){
-        s += ".";
-        std::ostringstream ssr;
-        ssr << std::setw(8) << std::setfill('0') << remainder;
-        s+= ssr.str();
-    }
-
-    bool ret = setNumStr(s);
-    typ = VNUM;
-    return ret;
 }
 
 bool UniValue::setFloat(double val)
@@ -334,13 +298,12 @@ double UniValue::get_real() const
 int64_t UniValue::get_amount() const
 {
     if (typ != VNUM)
-        throw std::runtime_error("JSON value is not an amount as expected");
+        throw std::runtime_error("JSON value is not a number as expected");
     int64_t retval;
-    if (!ParseFloatingAmount(getValStr(), &retval))
-        throw std::runtime_error("JSON amount out of range");
+    if (!ParseFixedPoint(getValStr(), 8, &retval))
+        throw std::runtime_error("JSON amount invalid");
     return retval;
 }
-
 
 const UniValue& UniValue::get_obj() const
 {

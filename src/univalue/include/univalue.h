@@ -51,8 +51,6 @@ public:
     }
     ~UniValue() {}
 
-    static UniValue fromAmount( int64_t nAmount );
-
     void clear();
 
     bool setNull();
@@ -62,7 +60,6 @@ public:
     bool setInt(int64_t val);
     bool setInt(int val) { return setInt((int64_t)val); }
     bool setFloat(double val);
-    bool setAmount(int64_t val);
     bool setStr(const std::string& val);
     bool setArray();
     bool setObject();

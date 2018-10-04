@@ -111,6 +111,16 @@ static bool ClientAllowed(const CNetAddr& netaddr)
     return true;
 }
 
+UniValue UniValueFromAmount(int64_t nAmount)
+{
+    bool sign = nAmount < 0;
+    int64_t n_abs = (sign ? -nAmount : nAmount);
+    int64_t quotient = n_abs / COIN;
+    int64_t remainder = n_abs % COIN;
+    return UniValue(UniValue::VNUM,
+            strprintf("%s%d.%08d", sign ? "-" : "", quotient, remainder));
+}
+
 /** SAPI request callback */
 static void sapi_request_cb(struct evhttp_request* req, void* arg)
 {

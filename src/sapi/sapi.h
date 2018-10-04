@@ -14,6 +14,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/function.hpp>
 
+extern UniValue UniValueFromAmount(int64_t nAmount);
+
 namespace SAPI{
 
 extern std::string versionSubPath;
@@ -39,6 +41,7 @@ enum Codes{
     EmptyString,
     InvalidHexString,
     InvalidAmount,
+    AmountOverflow,
     AmountOutOfRange,
     /* common errors */
     TimedOut = 2000,

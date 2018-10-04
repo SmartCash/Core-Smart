@@ -92,13 +92,6 @@ bool ParseUInt64(const std::string& str, uint64_t *out);
  */
 bool ParseDouble(const std::string& str, double *out);
 
-/**
- * Convert a double string to sats with strict parse error feedback.
- * @returns true if the entire string could be parsed as valid amount,
- *   false if not the entire string could be parsed or when overflow or underflow occurred.
- */
-bool ParseFloatingAmount(const std::string& str, int64_t *out);
-
 template<typename T>
 std::string HexStr(const T itbegin, const T itend, bool fSpaces=false)
 {
