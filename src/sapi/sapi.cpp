@@ -190,60 +190,57 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     // Get a subvector without the path group
     partsURI = std::vector<std::string>( partsURI.begin() + 1, partsURI.end() );
 
-    if( partsURI.size() ){
+    for( auto group : endpointGroups ){
 
-        for( auto group : endpointGroups ){
+        if( group->prefix != pathGroup )
+            continue;
 
-            if( group->prefix != pathGroup )
-                continue;
+        for( SAPI::Endpoint &endpoint : group->endpoints ){
 
-            for( SAPI::Endpoint &endpoint : group->endpoints ){
+            std::vector<std::string> partsEndpoint;
+            SplitPath(endpoint.path, partsEndpoint);
 
-                std::vector<std::string> partsEndpoint;
-                SplitPath(endpoint.path, partsEndpoint);
-
-                if( !partsEndpoint.size() ){
-                    // If the endpoint is the root one for the group /v1/<group>
-
-                    // Match /v1/<group>/<endpoint> and /v1/<group>/<endpoint>/
-                    if( !partsURI.size() || ( partsURI.size() == 1 && partsURI.back() == "" ) )
-                        mapPathMatch.insert(std::make_pair(&endpoint, std::map<std::string, std::string>()));
+            if( partsEndpoint.size() == 1 && partsEndpoint.back() == "" ){
+                // If the endpoint is the root one for the group /v1/<group>
 
                 // Match /v1/<group>/<endpoint> and /v1/<group>/<endpoint>/
-                // For any other possible matching endpoints /v1/<group>/../..
-                }else if( ( partsURI.size() == partsEndpoint.size() + 1 && partsURI.back() == "" ) ||
-                            partsURI.size() == partsEndpoint.size() ){
+                if( !partsURI.size() || ( partsURI.size() == 1 && partsURI.back() == "" ) )
+                    mapPathMatch.insert(std::make_pair(&endpoint, std::map<std::string, std::string>()));
 
-                    bool fMatch = true;
-                    std::map<std::string, std::string> mapPathParams;
+            // Match /v1/<group>/<endpoint> and /v1/<group>/<endpoint>/
+            // For any other possible matching endpoints /v1/<group>/../..
+            }else if( ( partsURI.size() == partsEndpoint.size() + 1 && partsURI.back() == "" ) ||
+                        partsURI.size() == partsEndpoint.size() ){
 
-                    for( size_t i = 0; i < partsURI.size(); i++ ){
+                bool fMatch = true;
+                std::map<std::string, std::string> mapPathParams;
 
-                        bool fParam = false;
-                        std::string partStr = i < partsEndpoint.size() ? partsEndpoint.at(i) : "";
-                        std::string &uriPartStr = partsURI.at(i);
+                for( size_t i = 0; i < partsURI.size(); i++ ){
 
-                        // Check if a parameter is expected for this path component
-                        if( partStr.front() == '{' && partStr.back() == '}' )
-                            fParam = true;
+                    bool fParam = false;
+                    std::string partStr = i < partsEndpoint.size() ? partsEndpoint.at(i) : "";
+                    std::string &uriPartStr = partsURI.at(i);
 
-                        if( uriPartStr != partStr && !fParam ){
-                            fMatch = false;
-                            break;
-                        }else if( fParam ){
+                    // Check if a parameter is expected for this path component
+                    if( partStr.front() == '{' && partStr.back() == '}' )
+                        fParam = true;
 
-                            // Filter the param key of the path part
-                            partStr = std::string(partStr.begin() + 1, partStr.end() - 1 );
+                    if( uriPartStr != partStr && !fParam ){
+                        fMatch = false;
+                        break;
+                    }else if( fParam ){
 
-                            // Add the potential path parameter
-                            mapPathParams.insert(std::make_pair(partStr, uriPartStr));
-                        }
+                        // Filter the param key of the path part
+                        partStr = std::string(partStr.begin() + 1, partStr.end() - 1 );
+
+                        // Add the potential path parameter
+                        mapPathParams.insert(std::make_pair(partStr, uriPartStr));
                     }
-
-                    if( fMatch )
-                        mapPathMatch.insert(std::make_pair(&endpoint, mapPathParams));
-
                 }
+
+                if( fMatch )
+                    mapPathMatch.insert(std::make_pair(&endpoint, mapPathParams));
+
             }
         }
     }
