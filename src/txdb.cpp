@@ -357,6 +357,68 @@ bool CBlockTreeDB::ReadAddressIndex(uint160 addressHash, int type,
     return true;
 }
 
+
+bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, bool excludeZeroBalances) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(DB_ADDRESSINDEX);
+
+    CAddressIndexKey currentKey = CAddressIndexKey();
+    CAmount currentReceived = 0, currentBalance = 0;
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char,CAddressIndexKey> key;
+        if (pcursor->GetKey(key)){
+
+            if( currentKey.IsNull() ){
+                currentKey = key.second;
+            }
+
+            if( key.first != DB_ADDRESSINDEX)
+                break;
+
+            if( key.second.hashBytes != currentKey.hashBytes ) {
+
+                if( !excludeZeroBalances || (excludeZeroBalances && currentBalance ))
+                    // Save the address info
+                    addressList.push_back(CAddressListEntry(currentKey.type,
+                                                            currentKey.hashBytes,
+                                                            currentReceived,
+                                                            currentBalance));
+
+                // And move on with the next one
+                currentReceived = 0;
+                currentBalance = 0;
+                currentKey = key.second;
+            }
+
+            CAmount nValue;
+            if (pcursor->GetValue(nValue)) {
+                currentBalance += nValue;
+                if( nValue > 0)
+                    currentReceived += nValue;
+
+                pcursor->Next();
+            } else {
+                return error("failed to get address index value");
+            }
+        } else {
+            break;
+        }
+    }
+
+    if( !excludeZeroBalances || (excludeZeroBalances && currentBalance ))
+        // Store the last one..
+        addressList.push_back(CAddressListEntry(currentKey.type,
+                                                currentKey.hashBytes,
+                                                currentReceived,
+                                                currentBalance));
+
+    return true;
+}
+
 bool CBlockTreeDB::WriteTimestampIndex(const CTimestampIndexKey &timestampIndex) {
     CDBBatch batch(*this);
     batch.Write(make_pair(DB_TIMESTAMPINDEX, timestampIndex), 0);

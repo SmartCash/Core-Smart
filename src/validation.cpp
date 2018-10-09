@@ -1167,6 +1167,17 @@ bool GetAddressIndex(uint160 addressHash, int type,
     return true;
 }
 
+bool GetAddresses(std::vector<CAddressListEntry> &addressList, bool excludeZeroBalances)
+{
+    if (!fAddressIndex)
+        return error("address index not enabled");
+
+    if (!pblocktree->ReadAddresses(addressList, excludeZeroBalances))
+        return error("unable to get all addresses");
+
+    return true;
+}
+
 bool GetAddressUnspentCount(uint160 addressHash, int type, int &count, CAddressUnspentKey &lastIndex)
 {
     if (!fAddressIndex)

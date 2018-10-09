@@ -136,6 +136,7 @@ public:
     bool ReadAddressIndex(uint160 addressHash, int type,
                           std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex,
                           int start = 0, int end = 0);
+    bool ReadAddresses(std::vector<CAddressListEntry> &addressList, bool excludeZeroBalances);
     bool WriteTimestampIndex(const CTimestampIndexKey &timestampIndex);
     bool ReadTimestampIndex(const unsigned int &high, const unsigned int &low, std::vector<uint256> &vect);
     bool ReadTimestampIndex(const unsigned int &timestamp, uint256 &blockHash);
