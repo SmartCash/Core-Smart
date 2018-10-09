@@ -1046,7 +1046,7 @@ UniValue getaddresses(const UniValue& params, bool fHelp)
             + HelpExampleRpc("getaddressbalance", "true")
         );
 
-    bool fExcludeZeroBalances = params.size() == 1 ? params[0].get_bool() : true;
+    bool fExcludeZeroBalances = params.size() ? params[0].get_bool() : true;
     std::vector<CAddressListEntry> addressList;
 
     if (!GetAddresses(addressList, fExcludeZeroBalances)) {
