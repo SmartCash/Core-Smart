@@ -184,6 +184,7 @@ namespace Limits {
 
     const int64_t nRequestsPerInterval = 20;
     const int64_t nRequestIntervalMs = 5000;
+    const int64_t nClientRemovalMs = 10 * 60 * 1000;
 
     class Client{
 
@@ -207,15 +208,17 @@ namespace Limits {
             nRequestsLimitUnlock = -1;
             nRessourcesLimitUnlock = -1;
         }
-        void Request();
+        void Request(bool fCheckOnly = false);
         bool IsRequestLimited();
         bool IsRessourceLimited();
+        bool IsLimited();
         int64_t GetRequestLockSeconds();
         int64_t GetRessourceLockSeconds();
+        bool CheckAndRemove();
     };
 
     Client *GetClient( const CService &peer );
-
+    void CheckAndRemove();
 }
 
 struct BodyParameter{

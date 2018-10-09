@@ -32,7 +32,26 @@ SAPI::Limits::Client *SAPI::Limits::GetClient(const CService &peer)
     return client;
 }
 
-void SAPI::Limits::Client::Request()
+void SAPI::Limits::CheckAndRemove()
+{
+    LOCK(cs_clients);
+
+    LogPrintf("SAPI::Limits::CheckAndRemove() - Clients %d\n", mapClients.size());
+
+    auto it = mapClients.begin();
+
+    while( it != mapClients.end() ){
+        if( it->second->CheckAndRemove() ){
+            LogPrintf("SAPI::Limits::CheckAndRemove() - Remove %s\n", it->first);
+            delete it->second;
+            mapClients.erase(it->first);
+        }
+
+        ++it;
+    }
+}
+
+void SAPI::Limits::Client::Request(bool fCheckOnly)
 {
     LOCK(cs);
 
@@ -45,7 +64,12 @@ void SAPI::Limits::Client::Request()
 
     nRemainingRequests += (static_cast<double>(nTimePassed * nRequestsPerInterval) / nRequestIntervalMs) - 1.0;
 
+    if( nRemainingRequests > nRequestsPerInterval )
+            nRemainingRequests = nRequestsPerInterval;
+
     LogPrintf("nRemaining before: %f\n", nRemainingRequests);
+
+    if( fCheckOnly ) return;
 
     if(nRemainingRequests <= 0){
 
@@ -57,10 +81,9 @@ void SAPI::Limits::Client::Request()
         nRequestsLimitUnlock = nTime + nThrottlingTime * 1000;
         nRemainingRequests = nRequestIntervalMs;
 
-    }else if( nRemainingRequests > nRequestsPerInterval )
-        nRemainingRequests = nRequestsPerInterval;
+    }
 
-    LogPrintf("nRemaining after: %f, throtteling %d\n", nRemainingRequests, nThrottling);
+    LogPrintf("nRemaining after: %f, throttling %d\n", nRemainingRequests, nThrottling);
 
     nLastRequestTime = nTime;
 }
@@ -91,6 +114,11 @@ bool SAPI::Limits::Client::IsRessourceLimited()
     return false;
 }
 
+bool SAPI::Limits::Client::IsLimited()
+{
+    return IsRequestLimited() || IsRessourceLimited();
+}
+
 int64_t SAPI::Limits::Client::GetRequestLockSeconds()
 {
     if( nRequestsLimitUnlock < 0)
@@ -105,4 +133,17 @@ int64_t SAPI::Limits::Client::GetRessourceLockSeconds()
         return 0;
 
     return (nRessourcesLimitUnlock - GetTimeMillis()) / 1000;
+}
+
+bool SAPI::Limits::Client::CheckAndRemove()
+{
+    // Update the stats..
+    Request(true);
+
+    // If the client is not limited and was not active for nClientRemovalMs
+    // we want to remove it from the list.
+    if( !IsLimited() && ( GetTimeMillis() - nLastRequestTime ) > nClientRemovalMs )
+        return true;
+
+    return false;
 }

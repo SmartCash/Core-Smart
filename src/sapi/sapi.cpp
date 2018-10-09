@@ -280,6 +280,9 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     } else {
         SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid endpoint: " + strURI + " with method: " + RequestMethodString(hreq->GetRequestMethod()));
     }
+
+    // Clean up rate limits
+    SAPI::Limits::CheckAndRemove();
 }
 
 /** Callback to reject SAPI requests after shutdown. */
