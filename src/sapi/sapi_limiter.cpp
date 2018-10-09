@@ -51,14 +51,12 @@ void SAPI::Limits::CheckAndRemove()
     }
 }
 
-void SAPI::Limits::Client::Request(bool fCheckOnly)
+void SAPI::Limits::Client::Request()
 {
     LOCK(cs);
 
     int64_t nTime = GetTimeMillis();
     int64_t nTimePassed = nTime - nLastRequestTime;
-
-    ++nTotalRequests;
 
     IsRequestLimited();
 
@@ -68,8 +66,6 @@ void SAPI::Limits::Client::Request(bool fCheckOnly)
             nRemainingRequests = nRequestsPerInterval;
 
     LogPrintf("nRemaining before: %f\n", nRemainingRequests);
-
-    if( fCheckOnly ) return;
 
     if(nRemainingRequests <= 0){
 
@@ -137,9 +133,6 @@ int64_t SAPI::Limits::Client::GetRessourceLockSeconds()
 
 bool SAPI::Limits::Client::CheckAndRemove()
 {
-    // Update the stats..
-    Request(true);
-
     // If the client is not limited and was not active for nClientRemovalMs
     // we want to remove it from the list.
     if( !IsLimited() && ( GetTimeMillis() - nLastRequestTime ) > nClientRemovalMs )

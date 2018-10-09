@@ -190,7 +190,6 @@ namespace Limits {
 
         CCriticalSection cs;
 
-        int64_t nTotalRequests;
         double nRemainingRequests;
         int64_t nLastRequestTime;
 
@@ -201,14 +200,13 @@ namespace Limits {
     public:
 
         Client() {
-            nTotalRequests = 0;
             nRemainingRequests = nRequestsPerInterval;
             nLastRequestTime = 0;
             nThrottling = -1;
             nRequestsLimitUnlock = -1;
             nRessourcesLimitUnlock = -1;
         }
-        void Request(bool fCheckOnly = false);
+        void Request();
         bool IsRequestLimited();
         bool IsRessourceLimited();
         bool IsLimited();
