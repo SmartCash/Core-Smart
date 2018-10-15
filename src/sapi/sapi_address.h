@@ -12,7 +12,6 @@ struct CAddressUnspentValue;
 
 extern SAPI::EndpointGroup addressEndpoints;
 
-
 struct CUnspentSolution{
     CAmount amount;
     CAmount fee;
