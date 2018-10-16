@@ -10,6 +10,7 @@
 #include "rpc/client.h"
 #include "sapi_validation.h"
 #include "sapi/sapi_address.h"
+#include "smarthive/hive.h"
 #include "smartnode/instantx.h"
 #include "txdb.h"
 #include "random.h"
@@ -359,7 +360,8 @@ static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::str
     int64_t nPageSize = bodyParameter[SAPI::Keys::pageSize].get_int64();
     bool fAsc = bodyParameter.exists(SAPI::Keys::ascending) ? bodyParameter[SAPI::Keys::ascending].get_bool() : false;
 
-    CBitcoinAddress address(addrStr);
+    CSmartAddress address(addrStr);
+    CScript addrScript = address.GetScript();
 
     CAddressUnspentKey lastIndex;
     int nUtxoCount = 0;
@@ -392,7 +394,6 @@ static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::str
 
     for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
         UniValue output(UniValue::VOBJ);
-        std::string address;
 
         CSpentIndexValue spentInfo;
         CSpentIndexKey spentKey(it->first.txhash, static_cast<unsigned int>(it->first.index));
@@ -402,8 +403,6 @@ static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::str
 
         output.pushKV("txid", it->first.txhash.GetHex());
         output.pushKV("index", static_cast<int>(it->first.index));
-        output.pushKV(SAPI::Keys::address, address);
-        output.pushKV("script", HexStr(it->second.script.begin(), it->second.script.end()));
         output.pushKV("value", UniValueFromAmount(it->second.satoshis));
         output.pushKV("height", it->first.nBlockHeight);
         output.pushKV("inMempool", fInMempool);
@@ -419,6 +418,8 @@ static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::str
     obj.pushKV("pages", nPages);
     obj.pushKV("page", nPageNumber);
     obj.pushKV("blockHeight", chainActive.Height());
+    obj.pushKV(SAPI::Keys::address, addrStr);
+    obj.pushKV("script", HexStr(addrScript.begin(), addrScript.end()));
     obj.pushKV("utxos",arrUtxos);
 
     SAPI::WriteReply(req, obj);
