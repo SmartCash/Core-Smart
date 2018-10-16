@@ -102,8 +102,7 @@ static bool transaction_check(HTTPRequest* req, const std::map<std::string, std:
             if (chainActive.Contains(pindex)) {
                 result.pushKV("height", pindex->nHeight);
                 result.pushKV("confirmations", 1 + chainActive.Height() - pindex->nHeight);
-                result.pushKV("time", pindex->GetBlockTime());
-                result.pushKV("blocktime", pindex->GetBlockTime());
+                result.pushKV("blockTime", pindex->GetBlockTime());
             } else {
                 result.pushKV("height", -1);
                 result.pushKV("confirmations", 0);
