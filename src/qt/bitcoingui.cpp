@@ -1403,3 +1403,13 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
         optionsModel->setDisplayUnit(action->data());
     }
 }
+
+void showErrorDialog(QWidget *parent, std::string &strError)
+{
+    showErrorDialog(parent, QString::fromStdString(strError));
+}
+
+void showErrorDialog(QWidget *parent, QString strError)
+{
+    QMessageBox::warning(parent, "Error", strError);
+}

@@ -5,9 +5,11 @@
 #include "smartvoting.h"
 #include "ui_smartvoting.h"
 #include "smartproposal.h"
+#include "smartproposaltab.h"
 
 #include "addresstablemodel.h"
 #include "bitcoinunits.h"
+#include "bitcoingui.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
 #include "platformstyle.h"
@@ -44,19 +46,20 @@ struct QSmartVortingField
                           balance(0){}
 };
 
-
 SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::SmartVotingPage),
     platformStyle(platformStyle),
-    walletModel(0)
+    walletModel(nullptr),
+    votingManager(new SmartVotingManager())
 {
     ui->setupUi(this);
 
-    votingManager = new SmartVotingManager();
-
     connect(votingManager, SIGNAL(proposalsUpdated(const std::string&)),this,SLOT(proposalsUpdated(const std::string&)));
     connect(votingManager, SIGNAL(addressesUpdated()), this, SLOT(updateUI()));
+    connect(ui->manageProposalsButton, SIGNAL(clicked()),this,SLOT(showManagementUI()));
+    connect(ui->createProposalButton, SIGNAL(clicked()),this,SLOT(createProposal()));
+    connect(ui->backButton, SIGNAL(clicked()),this,SLOT(showVotingUI()));
     connect(ui->selectAddressesButton, SIGNAL(clicked()),this,SLOT(selectAddresses()));
     connect(ui->castVotesButton, SIGNAL(clicked()),this,SLOT(castVotes()));
     connect(ui->refreshButton, SIGNAL(clicked()),this,SLOT(refreshProposals()));
@@ -65,6 +68,9 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
     voteChanged();
 
     lockTimer.start(1000);
+
+    showVotingUI();
+
 }
 
 SmartVotingPage::~SmartVotingPage()
@@ -105,6 +111,87 @@ void SmartVotingPage::hideEvent(QHideEvent *event)
 
     vecProposalWidgets.clear();
 }
+
+void SmartVotingPage::connectProposalTab(SmartProposalTabWidget *tabWidget)
+{
+    connect(tabWidget, SIGNAL(titleChanged(SmartProposalTabWidget*, std::string&)), this, SLOT(tabTitleChanged(SmartProposalTabWidget*, std::string&)));
+    connect(tabWidget, SIGNAL(removeButtonClicked(SmartProposalTabWidget*)), this, SLOT(removalRequested(SmartProposalTabWidget*)));
+}
+
+void SmartVotingPage::disconnectProposalTab(SmartProposalTabWidget *tabWidget)
+{
+    disconnect(tabWidget, SIGNAL(titleChanged(SmartProposalTabWidget*, std::string)), this, SLOT(tabTitleChanged(SmartProposalTabWidget*, std::string)));
+    disconnect(tabWidget, SIGNAL(removeButtonClicked(SmartProposalTabWidget*)), this, SLOT(removalRequested(SmartProposalTabWidget*)));
+}
+
+bool SmartVotingPage::LoadProposalTabs()
+{
+    static bool fLoaded = false;
+
+    if( fLoaded )
+        return true;
+
+    if( !pwalletMain )
+        return false;
+
+    CWalletDB walletdb(pwalletMain->strWalletFile);
+
+    std::map<uint256, CInternalProposal> mapProposals;
+
+    mapProposals.clear();
+
+    walletdb.ReadProposals(mapProposals);
+
+    for( auto it : mapProposals ){
+
+        SmartProposalTabWidget * newProposalTab = new SmartProposalTabWidget(it.second, walletModel);
+
+        connectProposalTab(newProposalTab);
+
+        ui->proposalTabs->addTab(newProposalTab, QString::fromStdString(it.second.GetTitle()));
+    }
+
+    fLoaded = true;
+
+    return true;
+}
+
+bool SmartVotingPage::RemoveProposal(const CInternalProposal& proposal)
+{
+    if( !pwalletMain )
+        return false;
+
+    CWalletDB walletdb(pwalletMain->strWalletFile);
+
+    std::map<uint256, CInternalProposal> mapProposals;
+
+    mapProposals.clear();
+
+    walletdb.ReadProposals(mapProposals);
+
+    mapProposals.erase(proposal.GetInternalHash());
+
+    walletdb.WriteProposals(mapProposals);
+
+    return true;
+}
+
+void SmartVotingPage::showManagementUI()
+{
+
+    if( !LoadProposalTabs() ){
+        showErrorDialog(this, "Failed to load proposals.");
+        return;
+    }
+
+    ui->stackedWidget->setCurrentIndex(0);
+}
+
+void SmartVotingPage::showVotingUI()
+{
+    ui->stackedWidget->setCurrentIndex(2);
+}
+
 
 void SmartVotingPage::updateProposalUI()
 {
@@ -242,4 +329,36 @@ void SmartVotingPage::scrollChanged(int value)
 void SmartVotingPage::balanceChanged(const CAmount &balance, const CAmount &unconfirmedBalance, const CAmount &immatureBalance, const CAmount &watchOnlyBalance, const CAmount &watchUnconfBalance, const CAmount &watchImmatureBalance)
 {
     updateUI();
+}
+
+void SmartVotingPage::createProposal()
+{
+
+    CInternalProposal newProposal(GetRandHash());
+    SmartProposalTabWidget * newProposalTab = new SmartProposalTabWidget(newProposal, walletModel);
+
+    connectProposalTab(newProposalTab);
+
+    ui->proposalTabs->addTab(newProposalTab, "New proposal");
+    ui->proposalTabs->setCurrentIndex(ui->proposalTabs->count()-1);
+}
+
+void SmartVotingPage::tabTitleChanged(SmartProposalTabWidget* tab, string &newTitle)
+{
+    int idx = ui->proposalTabs->indexOf(tab);
+    ui->proposalTabs->setTabText(idx, QString::fromStdString(newTitle));
+}
+
+void SmartVotingPage::removalRequested(SmartProposalTabWidget *tab)
+{
+    const CInternalProposal proposal = tab->GetProposal();
+
+    if( !RemoveProposal(proposal) ){
+        showErrorDialog(this, "Failed to remove proposal.");
+        return;
+    }
+
+    int idx = ui->proposalTabs->indexOf(tab);
+    ui->proposalTabs->removeTab(idx);
+    delete tab;
 }

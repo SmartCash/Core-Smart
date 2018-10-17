@@ -294,4 +294,11 @@ private Q_SLOTS:
     void onMenuSelection(QAction* action);
 };
 
+extern void showErrorDialog(QWidget *parent, std::string &strError);
+extern void showErrorDialog(QWidget *parent, QString strError);
+
+inline bool char_isspace(char c) {
+    return std::isspace(static_cast<unsigned char>(c));
+}
+
 #endif // BITCOIN_QT_BITCOINGUI_H

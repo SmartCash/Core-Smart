@@ -5,6 +5,7 @@
 #include "math.h"
 
 #include <QDesktopServices>
+#include <QUrl>
 
 SmartProposalWidget::SmartProposalWidget(SmartProposal * proposal, QWidget *parent) :
     QFrame(parent),

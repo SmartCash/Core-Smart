@@ -156,6 +156,8 @@ BITCOIN_CORE_H = \
   smartrewards/rewards.h \
   smartrewards/rewardsdb.h \
   smartrewards/rewardspayments.h \
+  smartvoting/proposal.h \
+  smartvoting/voting.h \
   spentindex.h \
   streams.h \
   support/allocators/secure.h \
@@ -253,6 +255,8 @@ libbitcoin_server_a_SOURCES = \
   smartrewards/rewards.cpp \
   smartrewards/rewardsdb.cpp \
   smartrewards/rewardspayments.cpp \
+  smartvoting/proposal.cpp \
+  smartvoting/voting.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \
@@ -369,6 +373,7 @@ libbitcoin_common_a_SOURCES = \
   script/sign.cpp \
   script/standard.cpp \
   smartnode/spork.cpp \
+  smartvoting/proposal.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
 

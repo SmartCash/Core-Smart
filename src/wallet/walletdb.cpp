@@ -6,6 +6,7 @@
 #include "wallet/walletdb.h"
 
 #include "base58.h"
+#include "clientversion.h"
 #include "consensus/validation.h"
 #include "validation.h" // For CheckTransaction
 #include "protocol.h"
@@ -14,6 +15,7 @@
 #include "util.h"
 #include "utiltime.h"
 #include "wallet/wallet.h"
+#include "smartvoting/proposal.h"
 
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
@@ -293,15 +295,18 @@ bool CWalletDB::WriteCalculatedZCBlock(int height)
     return Write(std::string("calculatedzcblock"), height);
 }
 
-bool CWalletDB::ReadDummyBalance(CAmount& dummyBalance)
+bool CWalletDB::ReadProposals(std::map<uint256, CInternalProposal> &mapProposals)
 {
-    dummyBalance = 0;
-    return Read(std::string("dummybalance"), dummyBalance);
+    std::string key = "proposals-V1";
+    if( !CLIENT_VERSION_IS_RELEASE) key += "-dev";
+    return Read(std::string(key), mapProposals);
 }
 
-bool CWalletDB::WriteDummyBalance(CAmount dummyBalance)
+bool CWalletDB::WriteProposals(const std::map<uint256, CInternalProposal> &mapProposals)
 {
-    return Write(std::string("dummybalance"), dummyBalance);
+    std::string key = "proposals-V1";
+    if( !CLIENT_VERSION_IS_RELEASE) key += "-dev";
+    return Write(std::string(key), mapProposals);
 }
 
 void CWalletDB::ListPubCoin(std::list<CZerocoinEntry>& listPubCoin)

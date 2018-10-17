@@ -23,6 +23,7 @@
 #include "script/sign.h"
 #include "smartnode/instantx.h"
 #include "smartnode/smartnode.h"
+#include "smarthive/hive.h"
 #include "timedata.h"
 #include "txmempool.h"
 #include "util.h"
@@ -75,6 +76,12 @@ struct CompareValueOnly {
 
 std::string COutput::ToString() const {
     return strprintf("COutput(%s, %d, %d) [%s]", tx->GetHash().ToString(), i, nDepth, FormatMoney(tx->vout[i].nValue));
+}
+
+inline CAmount CalculateInputFee(int64_t nInputs){
+    CAmount feeCalc = (((nInputs * 148) + (2 * 34) + 10 + 9) / 1024.0) * 100000;
+    feeCalc = std::floor((feeCalc / 100000.0) + 0.5) * 100000;
+    return std::max(feeCalc, static_cast<CAmount>(100000));
 }
 
 const CWalletTx *CWallet::GetWalletTx(const uint256 &hash) const {
@@ -1867,12 +1874,7 @@ CAmount CWallet::GetBalance() const {
         }
     }
 
-    CAmount dummyBalance;
-    CWalletDB(strWalletFile).ReadDummyBalance(dummyBalance);
-    nTotal -= dummyBalance;
-
-    if(nTotal > 0) return nTotal;
-    else return 0;
+    return nTotal;
 }
 
 // CAmount CWallet::GetAnonymizableBalance(bool fSkipDenominated, bool fSkipUnconfirmed) const
@@ -2162,6 +2164,52 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, bool fOnlyConfirmed, cons
     }
 }
  
+void CWallet::AvailableCoins(vector <COutput> &vCoins, const CSmartAddress& address) const {
+    vCoins.clear();
+
+    {
+        LOCK2(cs_main, cs_wallet);
+
+        CScript addressScript = address.GetScript();
+
+        for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
+            const uint256 &wtxid = it->first;
+            const CWalletTx *pcoin = &(*it).second;
+
+            if (!CheckFinalTx(*pcoin))
+                continue;
+
+            if (!pcoin->IsTrusted())
+                continue;
+
+            if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
+                continue;
+
+            int nDepth = pcoin->GetDepthInMainChain(false);
+
+            // We should not consider coins which aren't at least in our mempool
+            // It's possible for these to be conflicted via ancestors which we may never be able to detect
+            if (nDepth == 0 && !pcoin->InMempool())
+                continue;
+
+            for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
+
+                if( pcoin->vout[i].scriptPubKey != addressScript)
+                    continue;
+
+                isminetype mine = IsMine(pcoin->vout[i]);
+                if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
+                    !IsLockedCoin((*it).first, i) &&
+                    pcoin->vout[i].nValue > 0)
+                        vCoins.push_back(COutput(pcoin, i, nDepth,
+                                                 ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
+                                                  false,
+                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO));
+
+            }
+        }
+    }
+}
  
 bool CWallet::SelectCoinsDark(CAmount nValueMin, CAmount nValueMax, std::vector<CTxIn>& vecTxInRet, CAmount& nValueRet, int nPrivateSendRoundsMin, int nPrivateSendRoundsMax) const 
 { 
@@ -2874,67 +2922,52 @@ bool CWallet::HasCollateralInputs(bool fOnlyConfirmed) const
     return !vCoins.empty();
 }
 
-// bool CWallet::CreateCollateralTransaction(CMutableTransaction& txCollateral, std::string& strReason)
-// {
-//     txCollateral.vin.clear();
-//     txCollateral.vout.clear();
-
-//     CReserveKey reservekey(this);
-//     CAmount nValue = 0;
-//     CTxDSIn txdsinCollateral;
-
-//     if (!GetCollateralTxDSIn(txdsinCollateral, nValue)) {
-//         strReason = "PrivateSend requires a collateral transaction and could not locate an acceptable input!";
-//         return false;
-//     }
-
-//     // make our change address
-//     CScript scriptChange;
-//     CPubKey vchPubKey;
-//     assert(reservekey.GetReservedKey(vchPubKey, true)); // should never fail, as we just unlocked
-//     scriptChange = GetScriptForDestination(vchPubKey.GetID());
-//     reservekey.KeepKey();
-
-//     txCollateral.vin.push_back(txdsinCollateral);
-
-//     //pay collateral charge in fees
-//     CTxOut txout = CTxOut(nValue - CPrivateSend::GetCollateralAmount(), scriptChange);
-//     txCollateral.vout.push_back(txout);
-
-//     if(!SignSignature(*this, txdsinCollateral.prevPubKey, txCollateral, 0, int(SIGHASH_ALL|SIGHASH_ANYONECANPAY))) {
-//         strReason = "Unable to sign collateral transaction!";
-//         return false;
-//     }
-
-//     return true;
-// }
-
-bool CWallet::GetBudgetSystemCollateralTX(CTransaction& tx, uint256 hash, CAmount amount, bool fUseInstantSend)
-{
-    CWalletTx wtx;
-    if(GetBudgetSystemCollateralTX(wtx, hash, amount, fUseInstantSend)){
-        tx = (CTransaction)wtx;
-        return true;
-    }
-    return false;
-}
-
-bool CWallet::GetBudgetSystemCollateralTX(CWalletTx& tx, uint256 hash, CAmount amount, bool fUseInstantSend)
+bool CWallet::GetProposalFeeTX(CWalletTx& tx, const CSmartAddress& fromAddress, uint256 proposalHash, CAmount nAmount)
 {
     // make our change address
     CReserveKey reservekey(this);
 
-    CScript scriptChange;
-    scriptChange << OP_RETURN << ToByteVector(hash);
+    std::vector<COutput> vecCoins;
 
-    CAmount nFeeRet = 0;
+    AvailableCoins(vecCoins, fromAddress);
+
+    CScript scriptData;
+    scriptData << OP_RETURN << ToByteVector(proposalHash);
+
+    CAmount nAmountIn = 0, nFeeRet = 0;
     int nChangePosRet = -1;
     std::string strFail = "";
+    CRecipient dataRecipient = {scriptData, 0, false};
     vector< CRecipient > vecSend;
-    vecSend.push_back((CRecipient){scriptChange, amount, false});
+    vecSend.push_back(dataRecipient);
 
-    CCoinControl *coinControl=NULL;
-    bool success = CreateTransaction(vecSend, tx, reservekey, nFeeRet, nChangePosRet, strFail, coinControl, true, ALL_COINS, fUseInstantSend);
+    CScript hiveScript = CSmartAddress("ScfFzBriv2kDXwdgJvndha6Qf9qAZ21t8t").GetScript(); //SmartHive::Script(SmartHive::ProjectTreasury);
+    CRecipient hiveRecipient = {hiveScript, nAmount, false};
+    vecSend.push_back(hiveRecipient);
+
+    CCoinControl coinControl;
+
+    coinControl.destChange = fromAddress.Get();
+
+    int64_t nInputs = 0;
+    CAmount nFee = CalculateInputFee(0);
+
+    for( auto coin : vecCoins ){
+
+        COutPoint out(coin.tx->GetHash(), coin.i);
+
+        coinControl.Select(out);
+
+        nAmountIn += coin.tx->vout[coin.i].nValue;
+
+        nFee = CalculateInputFee(++nInputs);
+
+        if( nAmountIn > (nAmount + nFee) )
+            break;
+
+    }
+
+    bool success = CreateTransaction(vecSend, tx, reservekey, nFeeRet, nChangePosRet, strFail, &coinControl, true, ALL_COINS, false);
     if(!success){
         LogPrintf("CWallet::GetBudgetSystemCollateralTX -- Error: %s\n", strFail);
         return false;
