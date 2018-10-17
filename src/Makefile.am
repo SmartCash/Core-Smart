@@ -226,9 +226,9 @@ libbitcoin_server_a_SOURCES = \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \
   rpc/server.cpp \
-  rpc/rpcsmartnode.cpp \
-  rpc/rpcsmartrewards.cpp \
-  rpc/rpcsmartmining.cpp \
+  rpc/smartnode.cpp \
+  rpc/smartrewards.cpp \
+  rpc/smartmining.cpp \
   sapi/sapi.cpp \
   sapi/sapi_address.cpp \
   sapi/sapi_blockchain.cpp \

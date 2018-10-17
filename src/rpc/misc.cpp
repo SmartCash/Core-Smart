@@ -21,6 +21,7 @@
 
 #include "smartnode/smartnodesync.h"
 #include "smartnode/spork.h"
+#include "smarthive/hive.h"
 
 #include <stdint.h>
 
@@ -1033,6 +1034,7 @@ UniValue getspentinfo(const UniValue& params, bool fHelp)
     return obj;
 }
 
+
 UniValue getaddresses(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() > 1)
@@ -1079,3 +1081,41 @@ UniValue getaddresses(const UniValue& params, bool fHelp)
 
     return result;
 }
+
+UniValue getmoneysupply(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() )
+        throw runtime_error(
+            "getmoneysupply\n"
+            "\nPrint the current total money supply in the SmartCash blockchain.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getmoneysupply", "")
+            + HelpExampleRpc("getmoneysupply", "")
+        );
+
+    std::vector<CAddressListEntry> addressList;
+
+    if (!GetAddresses(addressList, true)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Failed to load the address list.");
+    }
+
+    CAmount totalSupply = 0;
+
+    for (std::vector<CAddressListEntry>::const_iterator it=addressList.begin(); it!=addressList.end(); it++) {
+
+        CSmartAddress address;
+        if (it->type == 2) {
+            address = CSmartAddress(CScriptID(it->hashBytes));
+        } else if (it->type == 1) {
+            address = CSmartAddress(CKeyID(it->hashBytes));
+        } else {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
+        }
+
+        totalSupply += it->balance;
+    }
+
+    return UniValueFromAmount(totalSupply);
+}
+
+
