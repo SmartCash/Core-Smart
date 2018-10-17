@@ -163,5 +163,5 @@ void ProposalAddressDialog::updateUI()
 void ProposalAddressDialog::itemSelectionChanged()
 {
     int nSelectedRow = ui->addressTable->currentRow();
-    strAddress = ui->addressTable->itemAt(nSelectedRow, COLUMN_ADDRESS)->text();
+    strAddress = ui->addressTable->item(nSelectedRow, COLUMN_ADDRESS)->text();
 }
