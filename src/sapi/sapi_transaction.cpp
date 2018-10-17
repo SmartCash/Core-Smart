@@ -69,13 +69,22 @@ static bool transaction_check(HTTPRequest* req, const std::map<std::string, std:
         if (tx.IsCoinBase())
             in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
         else {
+
+            CTransaction txInput;
+            uint256 hashBlockIn;
+            if (!GetTransaction(txin.prevout.hash, txInput, Params().GetConsensus(), hashBlockIn, false))
+                return SAPI::Error(req, SAPI::TxNotFound, "No information available about one of the inputs.");
+
+            const CTxOut& txout = txInput.vout[txin.prevout.n];
+
             in.pushKV("txid", txin.prevout.hash.GetHex());
-            in.pushKV("vout", (int64_t)txin.prevout.n);
+            in.pushKV("value", ValueFromAmount(txout.nValue));
+            in.pushKV("n", (int64_t)txin.prevout.n);
             UniValue o(UniValue::VOBJ);
-            o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
-            o.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
-            in.pushKV("scriptSig", o);
+            ScriptPubKeyToJSON(txout.scriptPubKey, o, true);
+            in.pushKV("scriptPubKey", o);
         }
+
         in.pushKV("sequence", (int64_t)txin.nSequence);
         vin.push_back(in);
     }
@@ -85,7 +94,6 @@ static bool transaction_check(HTTPRequest* req, const std::map<std::string, std:
         const CTxOut& txout = tx.vout[i];
         UniValue out(UniValue::VOBJ);
         out.pushKV("value", ValueFromAmount(txout.nValue));
-        out.pushKV("valueSat", txout.nValue);
         out.pushKV("n", (int64_t)i);
         UniValue o(UniValue::VOBJ);
         ScriptPubKeyToJSON(txout.scriptPubKey, o, true);
