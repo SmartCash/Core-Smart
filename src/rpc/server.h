@@ -231,8 +231,6 @@ extern UniValue estimatesmartpriority(const UniValue& params, bool fHelp);
 extern UniValue instantsendtoaddress(const UniValue& params, bool fHelp);
 extern UniValue keepass(const UniValue& params, bool fHelp);
 extern UniValue getnewaddress(const UniValue& params, bool fHelp); // in rpcwallet.cpp
-extern UniValue getdummybalance(const UniValue& params, bool fHelp);
-extern UniValue setdummybalance(const UniValue& params, bool fHelp);
 extern UniValue getaccountaddress(const UniValue& params, bool fHelp);
 extern UniValue getrawchangeaddress(const UniValue& params, bool fHelp);
 extern UniValue setaccount(const UniValue& params, bool fHelp);
@@ -319,6 +317,7 @@ extern UniValue invalidateblock(const UniValue& params, bool fHelp);
 extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
 extern UniValue getspentinfo(const UniValue& params, bool fHelp);
 extern UniValue getaddresses(const UniValue& params, bool fHelp);
+extern UniValue getmoneysupply(const UniValue& params, bool fHelp);
 extern UniValue sentinelping(const UniValue& params, bool fHelp);
 
 extern void EnsureWalletIsUnlocked();

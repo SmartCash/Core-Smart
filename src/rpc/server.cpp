@@ -338,6 +338,7 @@ static const CRPCCommand vRPCCommands[] =
     { "addressindex",       "getaddresstxids",        &getaddresstxids,        false },
     { "addressindex",       "getaddressbalance",      &getaddressbalance,      false },
     { "addressindex",       "getaddresses",           &getaddresses,           false },
+    { "addressindex",       "getmoneysupply",         &getmoneysupply,         false },
 
     /* Utility functions */
     { "util",               "createmultisig",         &createmultisig,         true  },
@@ -387,8 +388,6 @@ static const CRPCCommand vRPCCommands[] =
     { "wallet",             "getaddressesbyaccount",  &getaddressesbyaccount,  true  },
     { "wallet",             "getbalance",             &getbalance,             false },
     { "wallet",             "getnewaddress",          &getnewaddress,          true  },
-//    { "wallet",             "getdummybalance",        &getdummybalance,        true  },
-//    { "wallet",             "setdummybalance",        &setdummybalance,        true  },
     { "wallet",             "getrawchangeaddress",    &getrawchangeaddress,    true  },
     { "wallet",             "getreceivedbyaccount",   &getreceivedbyaccount,   false },
     { "wallet",             "getreceivedbyaddress",   &getreceivedbyaddress,   false },
