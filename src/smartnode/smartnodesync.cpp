@@ -272,6 +272,12 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                     return;
                 }
 
+                // request from three peers max
+                if (nRequestedSmartnodeAttempt > 2) {
+                    connman.ReleaseNodeVector(vNodesCopy);
+                    return;
+                }
+
                 // only request once from each peer
                 if(netfulfilledman.HasFulfilledRequest(pnode->addr, "smartnode-list-sync")) continue;
                 netfulfilledman.AddFulfilledRequest(pnode->addr, "smartnode-list-sync");
