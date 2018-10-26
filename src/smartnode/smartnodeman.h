@@ -67,10 +67,10 @@ private:
     std::map<CService, std::pair<int64_t, CSmartnodeVerification> > mapPendingMNV;
     CCriticalSection cs_mapPendingMNV;
 
-    /// Set when smartnodes are added, cleared when CGovernanceManager is notified
+    /// Set when smartnodes are added, cleared when CSmartVotingManager is notified
     bool fSmartnodesAdded;
 
-    /// Set when smartnodes are removed, cleared when CGovernanceManager is notified
+    /// Set when smartnodes are removed, cleared when CSmartVotingManager is notified
     bool fSmartnodesRemoved;
 
     std::vector<uint256> vecDirtyGovernanceObjectHashes;
@@ -237,7 +237,7 @@ public:
     void UpdatedBlockTip(const CBlockIndex *pindex);
 
     /**
-     * Called to notify CGovernanceManager that the smartnode index has been updated.
+     * Called to notify CSmartVotingManager that the smartnode index has been updated.
      * Must be called while not holding the CSmartnodeMan::cs mutex
      */
     void NotifySmartnodeUpdates(CConnman& connman);

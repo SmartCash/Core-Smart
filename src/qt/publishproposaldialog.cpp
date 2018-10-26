@@ -8,6 +8,7 @@
 #include "bitcoingui.h"
 #include "chainparams.h"
 #include "guiutil.h"
+#include "smartvoting/manager.h"
 #include "util.h"
 #include "validation.h"
 #include "waitingspinnerwidget.h"
@@ -93,22 +94,48 @@ void PublishProposalDialog::update()
     if( nTxHeight )
         nConfirmations = nHeight - nTxHeight + 1;
 
-    if( nConfirmations >= 6){
+    if( nConfirmations >= 2){
 
-        if( 1 ){
-            ui->infoLabel->setText(("Your proposal has been published successfully!\n\n"
-                                    "To make the proposal more publicly available you should"
-                                    " consider adding it to the voting portal. Therefor you"
-                                    " can just close this dialog and then click the \"Detail\" button"
-                                    " to get your credentials."));
+        LOCK(cs_main);
 
-
-            Q_EMIT published();
-
-            timer.stop();
+        if(smartVoting.HaveProposalForHash(proposal.GetHash())) {
+            LogPrint("proposal", "VOTINGPROPOSAL -- Received already seen object: %s\n", proposal.GetHash().ToString());
+            return;
         }
 
+        std::string strError = "";
+        // CHECK PROPOSAL AGAINST LOCAL BLOCKCHAIN
+
+        int fMissingConfirmations;
+        bool fIsValid = proposal.IsValidLocally(strError, fMissingConfirmations, true);
+
+        if(!fIsValid) {
+
+            if( fMissingConfirmations ){
+                smartVoting.AddPostponedProposal(proposal);
+                LogPrintf("VOTINGPROPOSAL -- Not enough fee confirmations for: %s, strError = %s\n", proposal.GetHash().ToString(), strError);
+            }else{
+
+                ui->infoLabel->setText(("Failed to publish the proposal."));
+                return;
+            }
+
+        }else{
+            smartVoting.AddProposal(proposal, *g_connman);
+        }
+
+        ui->infoLabel->setText(("Your proposal has been published successfully!\n\n"
+                                "To make the proposal more publicly available you should"
+                                " consider adding it to the voting portal. Therefor you"
+                                " can just close this dialog and then click the \"Detail\" button"
+                                " to get your credentials."));
+
+
+        Q_EMIT published();
+
+        timer.stop();
         ui->loadingWidget->hide();
+
     }else{
         ui->confirmationsLabel->setText(QString("%1/6").arg(nConfirmations));
     }

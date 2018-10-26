@@ -1,13 +1,15 @@
-// Copyright (c) 2018 - The SmartCash Developers
-// Distributed under the MIT software license, see the accompanying
+// Copyright (c) 2014-2017 The Dash Core developers
+// Copyright (c) 2018 The SmartCash developers
+// Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "smartvoting/manager.h"
 #include "smartvoting/proposal.h"
+#include "smartnode/smartnodesync.h"
+#include "smartnode/instantx.h"
 #include "validation.h"
 
 #include <regex>
-
-const CAmount nProposalFee = 1 * COIN;
 
 const size_t nProposalTitleLengthMin = 10;
 const size_t nProposalTitleLengthMax = 200;
@@ -18,6 +20,64 @@ const size_t nProposalMilestoneDescriptionLengthMax = 100;
 
 static bool char_isspace(char c) {
     return std::isspace(static_cast<unsigned char>(c));
+}
+
+
+CProposal::CProposal() :
+    title(),
+    url(),
+    address(),
+    vecMilestones(),
+    nTimeCreated(0),
+    nTimeDeletion(0),
+    nFeeHash(),
+    vchSig(),
+    mapCurrentVKVotes(),
+    cmmapOrphanVotes(),
+    fileVotes(),
+    cs()
+{
+
+}
+
+CProposal::CProposal(const CProposal &other) :
+    title(other.title),
+    url(other.url),
+    address(other.address),
+    vecMilestones(other.vecMilestones),
+    nTimeCreated(other.nTimeCreated),
+    nTimeDeletion(other.nTimeDeletion),
+    nFeeHash(other.nFeeHash),
+    vchSig(other.vchSig),
+    mapCurrentVKVotes(other.mapCurrentVKVotes),
+    cmmapOrphanVotes(other.cmmapOrphanVotes),
+    fileVotes(other.fileVotes),
+    cs()
+{}
+
+void CProposal::swap(CProposal &first, CProposal &second)
+{
+    // enable ADL (not necessary in our case, but good practice)
+    using std::swap;
+
+    // by swapping the members of two classes,
+    // the two classes are effectively swapped
+    swap(first.title, second.title);
+    swap(first.url, second.url);
+    swap(first.address, second.address);
+    swap(first.vecMilestones, second.vecMilestones);
+    swap(first.nTimeCreated, second.nTimeCreated);
+    swap(first.nTimeDeletion, second.nTimeDeletion);
+    swap(first.nFeeHash, second.nFeeHash);
+    swap(first.vchSig, second.vchSig);
+
+    // swap all cached valid flags
+    swap(first.fCachedFunding, second.fCachedFunding);
+    swap(first.fCachedValid, second.fCachedValid);
+    swap(first.fCachedDelete, second.fCachedDelete);
+    swap(first.fCachedEndorsed, second.fCachedEndorsed);
+    swap(first.fDirtyCache, second.fDirtyCache);
+    swap(first.fExpired, second.fExpired);
 }
 
 
@@ -51,17 +111,17 @@ bool CProposal::ValidateUrl(const string& strUrl, string& strError)
     return true;
 }
 
-bool CProposal::IsTitleValid(string& strError)
+bool CProposal::IsTitleValid(string& strError) const
 {
     return ValidateTitle(title, strError);
 }
 
-bool CProposal::IsUrlValid(string& strError)
+bool CProposal::IsUrlValid(string& strError) const
 {
     return ValidateUrl(url, strError);
 }
 
-bool CProposal::IsAddressValid(string& strError)
+bool CProposal::IsAddressValid(string& strError) const
 {
     strError.clear();
 
@@ -73,7 +133,7 @@ bool CProposal::IsAddressValid(string& strError)
     return true;
 }
 
-bool CProposal::IsMilestoneVectorValid(std::string& strError)
+bool CProposal::IsMilestoneVectorValid(std::string& strError) const
 {
     strError.clear();
 
@@ -107,25 +167,17 @@ bool CProposal::IsMilestoneVectorValid(std::string& strError)
     return strError.empty();
 }
 
-bool CProposal::IsValid(std::string& strError)
+bool CProposal::IsValid(std::vector<std::string> &vecErrors) const
 {
-    bool fValid = true;
-    std::string strErr1, strErr2, strErr3, strErr4;
-    fValid &= IsTitleValid(strErr1);
-    fValid &= IsUrlValid(strErr2);
-    fValid &= IsAddressValid(strErr3);
-    fValid &= IsMilestoneVectorValid(strErr4);
+    vecErrors.clear();
 
-    if( !fValid ){
-        strError = strErr1 +
-                   "\n" + strErr2 +
-                   "\n" + strErr3 +
-                   "\n" + strErr4;
-    }else{
-        strError.clear();
-    }
+    std::string strError;
+    if( !IsTitleValid(strError) ) vecErrors.push_back(strError);
+    if( !IsUrlValid(strError) ) vecErrors.push_back(strError);
+    if( !IsAddressValid(strError) ) vecErrors.push_back(strError);
+    if( !IsMilestoneVectorValid(strError) ) vecErrors.push_back(strError);
 
-    return fValid;
+    return !vecErrors.size();
 }
 
 uint256 CProposal::GetHash() const
@@ -139,6 +191,17 @@ uint256 CProposal::GetHash() const
     ss << vecMilestones;
 
     return ss.GetHash();
+}
+
+CInternalProposal::CInternalProposal(const CInternalProposal &other) :
+    CProposal(other),
+    hashInternal(other.hashInternal),
+    fPaid(other.fPaid),
+    fPublished(other.fPublished),
+    rawFeeTx(other.rawFeeTx),
+    strSignedHash(other.strSignedHash)
+{
+
 }
 
 void CInternalProposal::AddMilestone(CProposalMilestone &milestone)
@@ -155,7 +218,7 @@ void CInternalProposal::RemoveMilestone(size_t index)
     std::sort(vecMilestones.begin(), vecMilestones.end());
 }
 
-bool CProposalMilestone::IsDescriptionValid(string &strError)
+bool CProposalMilestone::IsDescriptionValid(string &strError) const
 {
     strError.clear();
 
@@ -170,3 +233,356 @@ bool CProposalMilestone::IsDescriptionValid(string &strError)
 
     return strError.empty();
 }
+
+
+
+bool CProposal::ProcessVote(CNode* pfrom,
+                            const CProposalVote& vote,
+                            CSmartVotingException& exception,
+                            CConnman& connman)
+{
+    LOCK(cs);
+
+    // do not process already known valid votes twice
+    if (fileVotes.HasVote(vote.GetHash())) {
+        // nothing to do here, not an error
+        std::ostringstream ostr;
+        ostr << "CProposal::ProcessVote -- Already known valid vote";
+        LogPrint("proposal", "%s\n", ostr.str());
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_NONE);
+        return false;
+    }
+
+    vote_m_it it = mapCurrentVKVotes.emplace(vote_m_t::value_type(vote.GetVotingKey(), vote_rec_t())).first;
+    vote_rec_t& voteRecordRef = it->second;
+    vote_signal_enum_t eSignal = vote.GetSignal();
+    if(eSignal == VOTE_SIGNAL_NONE) {
+        std::ostringstream ostr;
+        ostr << "CProposal::ProcessVote -- Vote signal: none";
+        LogPrint("proposal", "%s\n", ostr.str());
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_WARNING);
+        return false;
+    }
+    if(eSignal > MAX_SUPPORTED_VOTE_SIGNAL) {
+        std::ostringstream ostr;
+        ostr << "CProposal::ProcessVote -- Unsupported vote signal: " << CProposalVoting::ConvertSignalToString(vote.GetSignal());
+        LogPrintf("%s\n", ostr.str());
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR, 20);
+        return false;
+    }
+    vote_instance_m_it it2 = voteRecordRef.mapInstances.emplace(vote_instance_m_t::value_type(int(eSignal), vote_instance_t())).first;
+    vote_instance_t& voteInstanceRef = it2->second;
+
+    // Reject obsolete votes
+    if(vote.GetTimestamp() < voteInstanceRef.nCreationTime) {
+        std::ostringstream ostr;
+        ostr << "CProposal::ProcessVote -- Obsolete vote";
+        LogPrint("proposal", "%s\n", ostr.str());
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_NONE);
+        return false;
+    }
+
+// TODO VOTE RATE LIMIT CHECKS
+//    int64_t nNow = GetAdjustedTime();
+    int64_t nVoteTimeUpdate = voteInstanceRef.nTime;
+//    if(governance.AreRateChecksEnabled()) {
+//        int64_t nTimeDelta = nNow - voteInstanceRef.nTime;
+//        if(nTimeDelta < SMARTVOTING_UPDATE_MIN) {
+//            std::ostringstream ostr;
+//            ostr << "CProposal::ProcessVote -- Masternode voting too often"
+//                 << ", MN outpoint = " << vote.GetMasternodeOutpoint().ToStringShort()
+//                 << ", governance object hash = " << GetHash().ToString()
+//                 << ", time delta = " << nTimeDelta;
+//            LogPrint("proposal", "%s\n", ostr.str());
+//            exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_TEMPORARY_ERROR);
+//            nVoteTimeUpdate = nNow;
+//            return false;
+//        }
+//    }
+
+    // Finally check that the vote is actually valid (done last because of cost of signature verification)
+    if(!vote.IsValid(true)) {
+        std::ostringstream ostr;
+        ostr << "CProposal::ProcessVote -- Invalid vote"
+                << ", proposal hash = " << GetHash().ToString()
+                << ", vote hash = " << vote.GetHash().ToString();
+        LogPrintf("%s\n", ostr.str());
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR, 20);
+        smartVoting.AddInvalidVote(vote);
+        return false;
+    }
+
+// TODO maybe, add votes to the walletdb
+//    if(!mnodeman.AddGovernanceVote(vote.GetMasternodeOutpoint(), vote.GetParentHash())) {
+//        std::ostringstream ostr;
+//        ostr << "CProposal::ProcessVote -- Unable to add governance vote"
+//             << ", MN outpoint = " << vote.GetMasternodeOutpoint().ToStringShort()
+//             << ", governance object hash = " << GetHash().ToString();
+//        LogPrint("proposal", "%s\n", ostr.str());
+//        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR);
+//        return false;
+//    }
+
+    voteInstanceRef = vote_instance_t(vote.GetOutcome(), nVoteTimeUpdate, vote.GetTimestamp());
+    fileVotes.AddVote(vote);
+    //fDirtyCache = true;
+    return true;
+}
+
+void CProposal::ClearVoteKeyVotes()
+{
+    LOCK(cs);
+
+    vote_m_it it = mapCurrentVKVotes.begin();
+    while(it != mapCurrentVKVotes.end()) {
+//        if(!mnodeman.Has(it->first)) {
+            fileVotes.RemoveVotesFromVotingKey(it->first);
+            mapCurrentVKVotes.erase(it++);
+//        }
+//        else {
+//            ++it;
+//        }
+    }
+}
+
+void CProposal::UpdateLocalValidity()
+{
+    LOCK(cs_main);
+    // THIS DOES NOT CHECK COLLATERAL, THIS IS CHECKED UPON ORIGINAL ARRIVAL
+    fCachedLocalValidity = IsValidLocally(strLocalValidityError, false);
+}
+
+bool CProposal::IsValidLocally(std::string& strError, bool fCheckCollateral) const
+{
+    int fMissingConfirmations = -1;
+
+    return IsValidLocally(strError, fMissingConfirmations, fCheckCollateral);
+}
+
+bool CProposal::IsValidLocally(std::string& strError, int& fMissingConfirmations, bool fCheckCollateral) const
+{
+    fMissingConfirmations = -1;
+
+    // Note: It's ok to have expired proposals
+    // they are going to be cleared by CSmartVotingManager::UpdateCachesAndClean()
+    // TODO: should they be tagged as "expired" to skip vote downloading?
+    std::vector<std::string> vecErrors;
+    if (!IsValid(vecErrors)) {
+        strError = strprintf("Invalid proposal data, error messages: %s", vecErrors.front());
+        return false;
+    }
+    if (fCheckCollateral && !IsCollateralValid(strError, fMissingConfirmations)) {
+        strError = "Invalid proposal collateral";
+        return false;
+    }
+    return true;
+}
+
+bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmations) const
+{
+    strError = "";
+    fMissingConfirmations = -1;
+    CAmount nMinFee = SMARTVOTING_PROPOSAL_FEE;
+    uint256 nExpectedHash = GetHash();
+
+    CTransaction txCollateral;
+    uint256 nBlockHash;
+
+    // RETRIEVE TRANSACTION IN QUESTION
+
+    if(!GetTransaction(nFeeHash, txCollateral, Params().GetConsensus(), nBlockHash, true)){
+        strError = strprintf("Can't find collateral tx %s", nFeeHash.ToString());
+        LogPrintf("CProposal::IsCollateralValid -- %s\n", strError);
+        return false;
+    }
+
+    if(nBlockHash == uint256()) {
+        strError = strprintf("Collateral tx %s is not mined yet", txCollateral.ToString());
+        LogPrintf("CProposal::IsCollateralValid -- %s\n", strError);
+        return false;
+    }
+
+    if(txCollateral.vout.size() < 1) {
+        strError = strprintf("tx vout size less than 1 | %d", txCollateral.vout.size());
+        LogPrintf("CProposal::IsCollateralValid -- %s\n", strError);
+        return false;
+    }
+
+    // LOOK FOR SPECIALIZED GOVERNANCE SCRIPT (PROOF OF BURN)
+
+    CScript findDataScript;
+    findDataScript << OP_RETURN << ToByteVector(nExpectedHash);
+
+    CScript findHiveScript = CSmartAddress("ScfFzBriv2kDXwdgJvndha6Qf9qAZ21t8t").GetScript(); //SmartHive::Script(SmartHive::ProjectTreasury);
+
+    bool fFoundOpReturn = false;
+    bool fFoundFee = false;
+    for (const auto& output : txCollateral.vout) {
+        DBG( std::cout << "IsCollateralValid txout : " << output.ToString()
+             << ", output.nValue = " << output.nValue
+             << ", output.scriptPubKey = " << ScriptToAsmStr( output.scriptPubKey, false )
+             << std::endl; );
+        if(!output.scriptPubKey.IsPayToPublicKeyHash() && !output.scriptPubKey.IsUnspendable()) {
+            strError = strprintf("Invalid Script %s", txCollateral.ToString());
+            LogPrintf ("CProposal::IsCollateralValid -- %s\n", strError);
+            return false;
+        }
+        if(output.scriptPubKey == findHiveScript && output.nValue >= nMinFee) {
+            DBG( std::cout << "IsCollateralValid fFoundFee = true" << std::endl; );
+            fFoundFee = true;
+        }
+        if(output.scriptPubKey == findDataScript && output.nValue == 0) {
+            DBG( std::cout << "IsCollateralValid fFoundOpReturn = true" << std::endl; );
+            fFoundOpReturn = true;
+        }
+        else  {
+            DBG( std::cout << "IsCollateralValid No match, continuing" << std::endl; );
+        }
+
+    }
+
+    if(!fFoundOpReturn){
+        strError = strprintf("Couldn't find opReturn %s in %s", nExpectedHash.ToString(), txCollateral.ToString());
+        LogPrintf ("CProposal::IsCollateralValid -- %s\n", strError);
+        return false;
+    }
+
+    if(!fFoundFee){
+        strError = strprintf("Couldn't find proposal fee output %s in %s", nExpectedHash.ToString(), txCollateral.ToString());
+        LogPrintf ("CProposal::IsCollateralValid -- %s\n", strError);
+        return false;
+    }
+
+    // GET CONFIRMATIONS FOR TRANSACTION
+
+    AssertLockHeld(cs_main);
+    int nConfirmationsIn = instantsend.GetConfirmations(nFeeHash);
+    if (nBlockHash != uint256()) {
+        BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
+        if (mi != mapBlockIndex.end() && (*mi).second) {
+            CBlockIndex* pindex = (*mi).second;
+            if (chainActive.Contains(pindex)) {
+                nConfirmationsIn += chainActive.Height() - pindex->nHeight + 1;
+            }
+        }
+    }
+
+    if(nConfirmationsIn < SMARTVOTING_FEE_CONFIRMATIONS) {
+        strError = strprintf("Collateral requires at least %d confirmations to be relayed throughout the network (it has only %d)", SMARTVOTING_FEE_CONFIRMATIONS, nConfirmationsIn);
+        if (nConfirmationsIn >= SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS) {
+            strError += ", pre-accepted -- waiting for required confirmations";
+        } else {
+            strError += ", rejected -- try again later";
+        }
+        LogPrintf ("CProposal::IsCollateralValid -- %s\n", strError);
+
+        fMissingConfirmations = std::max<int>(0,SMARTVOTING_FEE_CONFIRMATIONS - nConfirmationsIn);
+
+        return false;
+    }
+
+    strError = "valid";
+    return true;
+}
+
+int CProposal::CountMatchingVotes(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const
+{
+    LOCK(cs);
+
+    int nCount = 0;
+    for (const auto& votepair : mapCurrentVKVotes) {
+        const vote_rec_t& recVote = votepair.second;
+        vote_instance_m_cit it2 = recVote.mapInstances.find(eVoteSignalIn);
+        if(it2 != recVote.mapInstances.end() && it2->second.eOutcome == eVoteOutcomeIn) {
+            ++nCount;
+        }
+    }
+    return nCount;
+}
+
+/**
+*   Get specific vote counts for each outcome (funding, validity, etc)
+*/
+
+int CProposal::GetAbsoluteYesCount(vote_signal_enum_t eVoteSignalIn) const
+{
+    return GetYesCount(eVoteSignalIn) - GetNoCount(eVoteSignalIn);
+}
+
+int CProposal::GetAbsoluteNoCount(vote_signal_enum_t eVoteSignalIn) const
+{
+    return GetNoCount(eVoteSignalIn) - GetYesCount(eVoteSignalIn);
+}
+
+int CProposal::GetYesCount(vote_signal_enum_t eVoteSignalIn) const
+{
+    return CountMatchingVotes(eVoteSignalIn, VOTE_OUTCOME_YES);
+}
+
+int CProposal::GetNoCount(vote_signal_enum_t eVoteSignalIn) const
+{
+    return CountMatchingVotes(eVoteSignalIn, VOTE_OUTCOME_NO);
+}
+
+int CProposal::GetAbstainCount(vote_signal_enum_t eVoteSignalIn) const
+{
+    return CountMatchingVotes(eVoteSignalIn, VOTE_OUTCOME_ABSTAIN);
+}
+
+bool CProposal::GetCurrentVKVotes(const CPubKey& votingKey, vote_rec_t& voteRecord) const
+{
+    LOCK(cs);
+
+    vote_m_cit it = mapCurrentVKVotes.find(votingKey);
+    if (it == mapCurrentVKVotes.end()) {
+        return false;
+    }
+    voteRecord = it->second;
+    return  true;
+}
+
+void CProposal::Relay(CConnman& connman) const
+{
+    // Do not relay until fully synced
+    if(!smartnodeSync.IsSynced()) {
+        LogPrint("proposal", "CProposal::Relay -- won't relay until fully synced\n");
+        return;
+    }
+
+    CInv inv(MSG_VOTING_PROPOSAL, GetHash());
+    connman.RelayInv(inv, MIN_VOTING_PEER_PROTO_VERSION);
+}
+
+void CProposal::CheckOrphanVotes(CConnman& connman)
+{
+    int64_t nNow = GetAdjustedTime();
+    const vote_cmm_t::list_t& listVotes = cmmapOrphanVotes.GetItemList();
+    vote_cmm_t::list_cit it = listVotes.begin();
+    while(it != listVotes.end()) {
+        bool fRemove = false;
+        const COutPoint& key = it->key;
+        const vote_time_pair_t& pairVote = it->value;
+        const CProposalVote& vote = pairVote.first;
+        if(pairVote.second < nNow) {
+            fRemove = true;
+        }
+// TODO check for valid voting key
+//        else if(!mnodeman.Has(vote.GetVotingKey())) {
+//            ++it;
+//            continue;
+//        }
+        CSmartVotingException exception;
+        if(!ProcessVote(NULL, vote, exception, connman)) {
+            LogPrintf("CProposal::CheckOrphanVotes -- Failed to add orphan vote: %s\n", exception.what());
+        }
+        else {
+            vote.Relay(connman);
+            fRemove = true;
+        }
+        ++it;
+        if(fRemove) {
+            cmmapOrphanVotes.Erase(key, pairVote);
+        }
+    }
+}
+

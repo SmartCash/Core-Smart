@@ -30,11 +30,11 @@
 #include "validationinterface.h"
 
 #include "smartnode/spork.h"
-//#include "governance.h"
 #include "smartnode/instantx.h"
 #include "smartnode/smartnodeman.h"
 #include "smartnode/smartnodepayments.h"
 #include "smartnode/smartnodesync.h"
+#include "smartvoting/manager.h"
 
 //#ifdef ENABLE_WALLET
 //#include "privatesend-client.h"
@@ -662,6 +662,10 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     case MSG_SMARTNODE_PING:
         return mnodeman.mapSeenSmartnodePing.count(inv.hash);
 
+    case MSG_VOTING_PROPOSAL:
+    case MSG_VOTING_PROPOSAL_VOTE:
+        return !smartVoting.ConfirmInventoryRequest(inv);
+
     case MSG_SMARTNODE_VERIFY:
         return mnodeman.mapSeenSmartnodeVerification.count(inv.hash);
     }
@@ -676,6 +680,7 @@ static void RelayAddress(const CAddress& addr, bool fReachable, CConnman& connma
 
     uint64_t hashAddr = addr.GetHash();
     const CSipHasher hasher = connman.GetDeterministicRandomizer(RANDOMIZER_ID_ADDRESS_RELAY).Write(hashAddr << 32).Write((GetTime() + hashAddr) / (24*60*60));
+    FastRandomContext insecure_rand;
 
     std::array<std::pair<uint64_t, CNode*>,2> best{{{0, nullptr}, {0, nullptr}}};
     assert(nRelayNodes <= best.size());
@@ -693,9 +698,9 @@ static void RelayAddress(const CAddress& addr, bool fReachable, CConnman& connma
         }
     };
 
-    auto pushfunc = [&addr, &best, nRelayNodes] {
+    auto pushfunc = [&addr, &best, nRelayNodes, &insecure_rand] {
         for (unsigned int i = 0; i < nRelayNodes && best[i].first != 0; i++) {
-            best[i].second->PushAddress(addr);
+            best[i].second->PushAddress(addr, insecure_rand);
         }
     };
 
@@ -907,6 +912,43 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                     }
                 }
 
+                if (!pushed && inv.type == MSG_VOTING_PROPOSAL) {
+                    LogPrint("net", "ProcessGetData -- MSG_VOTING_PROPOSAL: inv = %s\n", inv.ToString());
+                    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+                    bool topush = false;
+                    {
+                        if(smartVoting.HaveProposalForHash(inv.hash)) {
+                            ss.reserve(1000);
+                            if(smartVoting.SerializeProposalForHash(inv.hash, ss)) {
+                                topush = true;
+                            }
+                        }
+                    }
+                    LogPrint("net", "ProcessGetData -- MSG_VOTING_PROPOSAL: topush = %d, inv = %s\n", topush, inv.ToString());
+                    if(topush) {
+                        connman.PushMessage(pfrom, NetMsgType::VOTINGPROPOSAL, ss);
+                        pushed = true;
+                    }
+                }
+
+                if (!pushed && inv.type == MSG_VOTING_PROPOSAL_VOTE) {
+                    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+                    bool topush = false;
+                    {
+                        if(smartVoting.HaveVoteForHash(inv.hash)) {
+                            ss.reserve(1000);
+                            if(smartVoting.SerializeVoteForHash(inv.hash, ss)) {
+                                topush = true;
+                            }
+                        }
+                    }
+                    LogPrint("net", "ProcessGetData -- MSG_VOTING_PROPOSAL_VOTE: topush = %d, inv = %s\n", topush, inv.ToString());
+                    if(topush) {
+                        connman.PushMessage(pfrom, NetMsgType::VOTINGPROPOSALVOTE, ss);
+                        pushed = true;
+                    }
+                }
+
                 if (!pushed && inv.type == MSG_SMARTNODE_VERIFY) {
                     if(mnodeman.mapSeenSmartnodeVerification.count(inv.hash)) {
                         CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
@@ -946,7 +988,6 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
 bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, int64_t nTimeReceived, CConnman& connman, std::atomic<bool>& interruptMsgProc)
 {
     const CChainParams& chainparams = Params();
-    RandAddSeedPerfmon();
 
     LogPrint("net", "received: %s (%u bytes) peer=%d\n", SanitizeString(strCommand), vRecv.size(), pfrom->id);
 
@@ -1082,14 +1123,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             if (fListen && !IsInitialBlockDownload())
             {
                 CAddress addr = GetLocalAddress(&pfrom->addr, pfrom->GetLocalServices());
+                FastRandomContext insecure_rand;
+
                 if (addr.IsRoutable())
                 {
                     LogPrintf("ProcessMessages: advertising address %s\n", addr.ToString());
-                    pfrom->PushAddress(addr);
+                    pfrom->PushAddress(addr, insecure_rand);
                 } else if (IsPeerAddrLocalGood(pfrom)) {
                     addr.SetIP(pfrom->addrLocal);
                     LogPrintf("ProcessMessages: advertising address %s\n", addr.ToString());
-                    pfrom->PushAddress(addr);
+                    pfrom->PushAddress(addr, insecure_rand);
                 }
             }
 
@@ -1841,10 +1884,20 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             return true;
         }
 
+        // Only send one GetAddr response per connection to reduce resource waste
+        //  and discourage addr stamping of INV announcements.
+        if (pfrom->fSentAddr) {
+            LogPrint("net", "Ignoring repeated \"getaddr\". peer=%d\n", pfrom->id);
+            return true;
+        }
+        pfrom->fSentAddr = true;
+
         pfrom->vAddrToSend.clear();
         vector<CAddress> vAddr = connman.GetAddresses();
+        FastRandomContext insecure_rand;
+
         BOOST_FOREACH(const CAddress &addr, vAddr)
-            pfrom->PushAddress(addr);
+            pfrom->PushAddress(addr, insecure_rand);
     }
 
 
@@ -2086,6 +2139,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             instantsend.ProcessMessage(pfrom, strCommand, vRecv, connman);
             sporkManager.ProcessSpork(pfrom, strCommand, vRecv, connman);
             smartnodeSync.ProcessMessage(pfrom, strCommand, vRecv);
+            smartVoting.ProcessMessage(pfrom, strCommand, vRecv, connman);
         }
         else
         {

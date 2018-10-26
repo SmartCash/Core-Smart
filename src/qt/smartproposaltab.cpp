@@ -135,7 +135,7 @@ bool SmartProposalTabWidget::save()
 
     walletdb.ReadProposals(mapProposals);
 
-    mapProposals[proposal.GetInternalHash()] = proposal;
+    mapProposals.emplace(proposal.GetInternalHash(), proposal);
 
     if( !walletdb.WriteProposals(mapProposals) ){
         showErrorDialog(this, "Failed to save the proposal.");
@@ -307,11 +307,18 @@ void SmartProposalTabWidget::publish()
         }
 
         int64_t nTime = GetAdjustedTime();
-        std::string strError;
+        std::vector<std::string> vecErrors;
 
-        proposal.SetTime(nTime);
+        proposal.SetCreationTime(nTime);
 
-        if( !proposal.IsValid(strError) ){
+        if( !proposal.IsValid(vecErrors) ){
+
+            std::string strError;
+
+            for( auto error : vecErrors ){
+                strError += error + "\n";
+            }
+
             showErrorDialog(this, QString::fromStdString("Invalid proposal data, error messages:\n" + strError));
             return;
         }
@@ -329,7 +336,7 @@ void SmartProposalTabWidget::publish()
             return;
 
         CWalletTx wtx;
-        if(!pwalletMain->GetProposalFeeTX(wtx, proposal.GetAddress(), proposal.GetHash(), nProposalFee)) {
+        if(!pwalletMain->GetProposalFeeTX(wtx, proposal.GetAddress(), proposal.GetHash(), SMARTVOTING_PROPOSAL_FEE)) {
             showErrorDialog(this, QString("Failed to create the proposal transaction. Please check the balance of the provided proposal address."));
             return;
         }
@@ -338,7 +345,7 @@ void SmartProposalTabWidget::publish()
         questionString.append("<br /><br />Proposal fee: %1 SMART");
 
         SendConfirmationDialog confirmationDialog(tr("Confirm send proposal fee"),
-            questionString.arg(CAmountToDouble(nProposalFee)), 3, this);
+            questionString.arg(CAmountToDouble(SMARTVOTING_PROPOSAL_FEE)), 3, this);
         confirmationDialog.exec();
         QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
 

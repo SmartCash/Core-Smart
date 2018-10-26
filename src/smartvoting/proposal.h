@@ -1,24 +1,97 @@
-// Copyright (c) 2018 - The SmartCash Developers
-// Distributed under the MIT software license, see the accompanying
+// Copyright (c) 2014-2017 The Dash Core developers
+// Copyright (c) 2018 The SmartCash developers
+// Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef PROPOSAL_H
 #define PROPOSAL_H
 
 #include "amount.h"
+#include "base58.h"
+#include "cachemultimap.h"
 #include "chain.h"
 #include "coins.h"
-#include "base58.h"
+#include "net.h"
 #include "smarthive/hive.h"
+#include "smartvoting/exceptions.h"
+#include "smartvoting/voting.h"
+#include "smartvoting/votedb.h"
 
-extern const CAmount nProposalFee;
+class CSmartVotingManager;
+class CProposal;
+class CProposalVote;
 
-extern const size_t nProposalTitleLengthMin;
-extern const size_t nProposalTitleLengthMax;
+static const int MAX_SMARTVOTING_OBJECT_DATA_SIZE = 16 * 1024;
+static const int MIN_SMARTVOTING_PEER_PROTO_VERSION = 90027;
 
-extern const int64_t nProposalMilestoneDistanceMax;
-extern const size_t nProposalMilestoneDescriptionLengthMn;
-extern const size_t nProposalMilestoneDescriptionLengthMax;
+static const double SMARTVOTING_FILTER_FP_RATE = 0.001;
+
+static const CAmount SMARTVOTING_PROPOSAL_FEE = 1 * COIN;
+
+static const int64_t SMARTVOTING_FEE_CONFIRMATIONS = 6;
+static const int64_t SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS = 2;
+static const int64_t SMARTVOTING_UPDATE_MIN = 60*60;
+static const int64_t SMARTVOTING_DELETION_DELAY = 10*60;
+static const int64_t SMARTVOTING_ORPHAN_EXPIRATION_TIME = 10*60;
+
+// FOR SEEN MAP ARRAYS - GOVERNANCE OBJECTS AND VOTES
+static const int SEEN_OBJECT_IS_VALID = 0;
+static const int SEEN_OBJECT_ERROR_INVALID = 1;
+static const int SEEN_OBJECT_ERROR_IMMATURE = 2;
+static const int SEEN_OBJECT_EXECUTED = 3;
+static const int SEEN_OBJECT_UNKNOWN = 4; // the default
+
+typedef std::pair<CProposalVote, int64_t> vote_time_pair_t;
+
+inline bool operator<(const vote_time_pair_t& p1, const vote_time_pair_t& p2)
+{
+    return (p1.first < p2.first);
+}
+
+struct vote_instance_t {
+
+    vote_outcome_enum_t eOutcome;
+    int64_t nTime;
+    int64_t nCreationTime;
+
+    vote_instance_t(vote_outcome_enum_t eOutcomeIn = VOTE_OUTCOME_NONE, int64_t nTimeIn = 0, int64_t nCreationTimeIn = 0)
+        : eOutcome(eOutcomeIn),
+          nTime(nTimeIn),
+          nCreationTime(nCreationTimeIn)
+    {}
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
+    {
+        int nOutcome = int(eOutcome);
+        READWRITE(nOutcome);
+        READWRITE(nTime);
+        READWRITE(nCreationTime);
+        if(ser_action.ForRead()) {
+            eOutcome = vote_outcome_enum_t(nOutcome);
+        }
+    }
+};
+
+typedef std::map<int,vote_instance_t> vote_instance_m_t;
+
+typedef vote_instance_m_t::iterator vote_instance_m_it;
+
+typedef vote_instance_m_t::const_iterator vote_instance_m_cit;
+
+struct vote_rec_t {
+    vote_instance_m_t mapInstances;
+
+    ADD_SERIALIZE_METHODS
+
+     template <typename Stream, typename Operation>
+     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
+     {
+         READWRITE(mapInstances);
+     }
+};
 
 class CProposalMilestone
 {
@@ -43,7 +116,7 @@ public:
         READWRITE(strDescription);
     }
 
-    bool IsDescriptionValid(std::string &strError);
+    bool IsDescriptionValid(std::string &strError) const;
 
     int64_t GetTime() const { return nTime; }
     uint32_t GetAmount() const { return nAmount; }
@@ -66,31 +139,17 @@ public:
 
 };
 
-class CProposalVote
-{
-    int nBlockHeight;
-    CSmartAddress voteAddress;
-    int64_t nMapping;
-
-public:
-
-    uint256 GetHash() const;
-
-    ADD_SERIALIZE_METHODS
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(nBlockHeight);
-        READWRITE(voteAddress);
-        READWRITE(nMapping);
-    }
-};
-
 class CProposal
 {
 
-    int64_t nTimeCreated;
-    std::vector<CProposalVote> vecVotes;
+public:
+    typedef std::map<CPubKey, vote_rec_t> vote_m_t;
+
+    typedef vote_m_t::iterator vote_m_it;
+
+    typedef vote_m_t::const_iterator vote_m_cit;
+
+    typedef CacheMultiMap<COutPoint, vote_time_pair_t> vote_cmm_t;
 
 protected:
 
@@ -99,48 +158,144 @@ protected:
     CSmartAddress address;
     std::vector<CProposalMilestone> vecMilestones;
 
+    /// time this proposal was created
+    int64_t nTimeCreated;
+    /// time this proposal was marked for deletion
+    int64_t nTimeDeletion;
+
     uint256 nFeeHash;
+
+    /// Signature data
+    std::vector<unsigned char> vchSig;
+
+    /// is valid by blockchain
+    bool fCachedLocalValidity;
+    std::string strLocalValidityError;
+
+    // VARIOUS FLAGS FOR OBJECT / SET VIA MASTERNODE VOTING
+
+    /// true == minimum network support has been reached for this object to be funded (doesn't mean it will for sure though)
+    bool fCachedFunding;
+
+    /// true == minimum network has been reached flagging this object as a valid and understood governance object (e.g, the serialized data is correct format, etc)
+    bool fCachedValid;
+
+    /// true == minimum network support has been reached saying this object should be deleted from the system entirely
+    bool fCachedDelete;
+
+    /** true == minimum network support has been reached flagging this object as endorsed by an elected representative body
+     * (e.g. business review board / technecial review board /etc)
+     */
+    bool fCachedEndorsed;
+
+    /// object was updated and cached values should be updated soon
+    bool fDirtyCache;
+
+    /// Object is no longer of interest
+    bool fExpired;
+
+    vote_m_t mapCurrentVKVotes;
+
+    /// Limited map of votes orphaned by MN
+    vote_cmm_t cmmapOrphanVotes;
+
+    CProposalVoteFile fileVotes;
+
+private:
+    /// critical section to protect the inner data structures
+    mutable CCriticalSection cs;
 
 public:
 
-    CProposal() { SetNull(); }
+    CProposal();
 
-    void SetNull(){
-        nTimeCreated = -1;
-        title = std::string();
-        url = std::string();
-        address = CSmartAddress();
-        vecMilestones.clear();
-        vecVotes.clear();
-    }
+    CProposal(const CProposal& other);
+
+    void swap(CProposal& first, CProposal& second);
 
     static bool ValidateTitle(const std::string &strTitle, std::string &strError);
     static bool ValidateUrl(const std::string &strUrl, std::string &strError);
 
     void SetTitle(const std::string &strTitle) { title = strTitle; }
     std::string GetTitle() const { return title; }
-    bool IsTitleValid(std::string &strError);
+    bool IsTitleValid(std::string &strError) const;
 
     void SetUrl(const std::string &strUrl) { url = strUrl; }
     std::string GetUrl() const { return url; }
-    bool IsUrlValid(std::string &strError);
+    bool IsUrlValid(std::string &strError) const;
 
     void SetAddress(const CSmartAddress &address) { this->address = address; }
-    bool IsAddressValid(std::string &strError);
     CSmartAddress GetAddress() const { return address; }
+    bool IsAddressValid(std::string &strError) const;
 
-    bool IsMilestoneVectorValid(std::string &strError);
+    bool IsMilestoneVectorValid(std::string &strError) const;
 
     uint256 GetFeeHash() const { return nFeeHash; }
 
-    void SetTime(int64_t nTime) { nTimeCreated = nTime; }
-    int64_t GetTime() const { return nTimeCreated; }
+    void SetCreationTime(int64_t nTime) { nTimeCreated = nTime; }
+    int64_t GetCreationTime() const { return nTimeCreated; }
+
+    bool IsSetCachedFunding() const {
+        return fCachedFunding;
+    }
+
+    bool IsSetCachedValid() const {
+        return fCachedValid;
+    }
+
+    bool IsSetCachedDelete() const {
+        return fCachedDelete;
+    }
+
+    bool IsSetCachedEndorsed() const {
+        return fCachedEndorsed;
+    }
+
+    bool IsSetDirtyCache() const {
+        return fDirtyCache;
+    }
+
+    bool IsSetExpired() const {
+        return fExpired;
+    }
+
+    void InvalidateVoteCache() {
+        fDirtyCache = true;
+    }
+
 
     std::vector<CProposalMilestone> GetMilestones() const { return vecMilestones; }
 
-    bool IsValid(std::string &strError);
+    bool IsValid(std::vector<std::string> &vecErrors) const;
 
     uint256 GetHash() const;
+
+    void Relay(CConnman& connman) const;
+
+    bool ProcessVote(CNode* pfrom,
+                     const CProposalVote& vote,
+                     CSmartVotingException& exception,
+                     CConnman& connman);
+
+    const CProposalVoteFile& GetVoteFile() const {
+        return fileVotes;
+    }
+
+    void UpdateLocalValidity();
+    bool IsValidLocally(std::string& strError, bool fCheckCollateral) const;
+    bool IsValidLocally(std::string& strError, int& fMissingConfirmations, bool fCheckCollateral) const;
+    bool IsCollateralValid(std::string& strError, int& fMissingConfirmations) const;
+
+    void ClearVoteKeyVotes();
+    void CheckOrphanVotes(CConnman &connman);
+
+    int CountMatchingVotes(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const;
+    int GetAbsoluteYesCount(vote_signal_enum_t eVoteSignalIn) const;
+    int GetAbsoluteNoCount(vote_signal_enum_t eVoteSignalIn) const;
+    int GetYesCount(vote_signal_enum_t eVoteSignalIn) const;
+    int GetNoCount(vote_signal_enum_t eVoteSignalIn) const;
+    int GetAbstainCount(vote_signal_enum_t eVoteSignalIn) const;
+    bool GetCurrentVKVotes(const CPubKey &votingKey, vote_rec_t &voteRecord) const;
 
     ADD_SERIALIZE_METHODS
 
@@ -153,6 +308,11 @@ public:
         READWRITE(nFeeHash);
     }
 
+    CProposal& operator=(CProposal from)
+    {
+        swap(*this, from);
+        return *this;
+    }
 };
 
 // Used for GUI storage stuff
@@ -169,6 +329,7 @@ class CInternalProposal : public CProposal
 public:
 
     CInternalProposal() : CProposal() {}
+    CInternalProposal(const CInternalProposal& other);
     CInternalProposal(uint256 hashInternal) : CProposal(), hashInternal(hashInternal) {
         fPaid = false;
         fPublished = false;

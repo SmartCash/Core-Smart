@@ -83,7 +83,7 @@ ProposalAddressDialog::ProposalAddressDialog(QWidget *parent) :
     connect(ui->button, SIGNAL(clicked()), this, SLOT(close()));
     connect(ui->addressTable, SIGNAL(itemSelectionChanged()), this, SLOT(itemSelectionChanged()));
 
-    ui->infoLabel->setText(ui->infoLabel->text().arg(CAmountToDouble(nProposalFee) + 0.1));
+    ui->infoLabel->setText(ui->infoLabel->text().arg(CAmountToDouble(SMARTVOTING_PROPOSAL_FEE) + 0.1));
 
     this->setWindowTitle("Select the proposal address");
 
@@ -141,7 +141,7 @@ void ProposalAddressDialog::updateUI()
 
     for( auto address : mapAddresses ){
 
-        if( address.second < nProposalFee + ( 0.1 * COIN ) )
+        if( address.second < SMARTVOTING_PROPOSAL_FEE + ( 0.1 * COIN ) )
             continue;
 
         table->insertRow(nRow);

@@ -83,6 +83,8 @@ BITCOIN_CORE_H = \
   bip39.h \
   bip39_english.h \
   bloom.h \
+  cachemap.h \
+  cachemultimap.h \
   chain.h \
   chainparams.h \
   chainparamsbase.h \
@@ -156,8 +158,11 @@ BITCOIN_CORE_H = \
   smartrewards/rewards.h \
   smartrewards/rewardsdb.h \
   smartrewards/rewardspayments.h \
+  smartvoting/exceptions.h \
+  smartvoting/manager.h \
   smartvoting/proposal.h \
   smartvoting/voting.h \
+  smartvoting/votedb.h \
   spentindex.h \
   streams.h \
   support/allocators/secure.h \
@@ -256,6 +261,8 @@ libbitcoin_server_a_SOURCES = \
   smartrewards/rewardsdb.cpp \
   smartrewards/rewardspayments.cpp \
   smartvoting/proposal.cpp \
+  smartvoting/manager.cpp \
+  smartvoting/votedb.cpp \
   smartvoting/voting.cpp \
   timedata.cpp \
   torcontrol.cpp \

@@ -584,8 +584,8 @@ static bool ConnectThroughProxy(const proxyType &proxy, const std::string& strDe
     // do socks negotiation
     if (proxy.randomize_credentials) {
         ProxyCredentials random_auth;
-        random_auth.username = strprintf("%i", insecure_rand());
-        random_auth.password = strprintf("%i", insecure_rand());
+        random_auth.username = strprintf("%i", GetRand(std::numeric_limits<uint32_t>::max()));
+        random_auth.password = strprintf("%i", GetRand(std::numeric_limits<uint32_t>::max()));
         if (!Socks5(strDest, (unsigned short)port, &random_auth, hSocket))
             return false;
     } else {

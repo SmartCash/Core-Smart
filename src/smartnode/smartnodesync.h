@@ -12,6 +12,7 @@
 static const bool DEFAULT_CACHE_NODES = false;
 static const bool DEFAULT_CACHE_WINNERS= true;
 static const bool DEFAULT_CACHE_NETFULLFILLED = true;
+static const bool DEFAULT_CACHE_VOTING = true;
 
 class CSmartnodeSync;
 
@@ -20,6 +21,9 @@ static const int SMARTNODE_SYNC_INITIAL         = 0; // sync just started, was r
 static const int SMARTNODE_SYNC_WAITING         = 1; // waiting after initial to see if we can get more headers/blocks
 static const int SMARTNODE_SYNC_LIST            = 2;
 static const int SMARTNODE_SYNC_MNW             = 3;
+static const int SMARTNODE_SYNC_VOTING          = 4;
+static const int SMARTNODE_SYNC_PROPOSAL        = 20;
+static const int SMARTNODE_SYNC_PROPOSAL_VOTE   = 21;
 static const int SMARTNODE_SYNC_FINISHED        = 999;
 
 static const int SMARTNODE_SYNC_TICK_SECONDS    = 1;
