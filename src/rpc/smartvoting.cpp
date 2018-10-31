@@ -248,7 +248,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         LogPrintf("smartvoting(submit) -- Adding locally created proposal - %s\n", strHash);
 
-        if(fMissingConfirmations) {
+        if(fMissingConfirmations > 0) {
             smartVoting.AddPostponedProposal(proposal);
             proposal.Relay(*g_connman);
         } else {
@@ -257,7 +257,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         UniValue obj(UniValue::VOBJ);
 
-        obj.pushKV("status", fMissingConfirmations ? strError : "OK");
+        obj.pushKV("status", fMissingConfirmations > 0 ? strError : "OK");
         obj.pushKV("proposalHash", proposal.GetHash().ToString());
 
         return obj;
