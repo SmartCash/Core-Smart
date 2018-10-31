@@ -844,7 +844,7 @@ void CSmartVotingManager::RequestProposal(CNode* pfrom, const uint256& nHash, CC
         CProposal* pProposal = FindProposal(nHash);
 
         if(pProposal) {
-            filter = CBloomFilter(Params().GetConsensus().nGovernanceFilterElements, SMARTVOTING_FILTER_FP_RATE, GetRandInt(999999), BLOOM_UPDATE_ALL);
+            filter = CBloomFilter(Params().GetConsensus().nVotingFilterElements, SMARTVOTING_FILTER_FP_RATE, GetRandInt(999999), BLOOM_UPDATE_ALL);
             std::vector<CProposalVote> vecVotes = pProposal->GetVoteFile().GetVotes();
             nVoteCount = vecVotes.size();
             for(size_t i = 0; i < vecVotes.size(); ++i) {

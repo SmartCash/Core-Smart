@@ -112,12 +112,7 @@ public:
         
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT; // not true, but it's ok as long as it's less then nSmartnodePaymentsIncreaseBlock
-        //consensus.nSmartnodePaymentsIncreaseBlock = 680000; // actual historical value
-        //consensus.nSmartnodePaymentsIncreasePeriod = 576*30; // 17280 - actual historical value
-        //consensus.nSuperblockStartBlock = 614820;
-        //consensus.nBudgetPaymentsStartBlock = 328008; // actual historical value
-        //consensus.nBudgetPaymentsCycleBlocks = 16616; // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
-        //consensus.nBudgetPaymentsWindowBlocks = 100;
+        consensus.nVotingFilterElements = 200000;
         consensus.nSmartnodeMinimumConfirmations = 15;
         nMaxTipAge = 3 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
         nDelayGetHeadersTime = 24 * 60 * 60;
@@ -275,6 +270,8 @@ public:
         nExtCoinType = 224;
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
+
+        consensus.nVotingFilterElements = 5000;
 
         fMiningRequiresPeers = true;
         fDefaultConsistencyChecks = false;
