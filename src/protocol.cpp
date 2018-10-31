@@ -271,8 +271,6 @@ bool CInv::IsKnownType() const
         case MSG_WITNESS_BLOCK:
         case MSG_WITNESS_TX:
         case MSG_FILTERED_WITNESS_BLOCK:
-        case MSG_VOTING_PROPOSAL:
-        case MSG_VOTING_PROPOSAL_VOTE:
             return false;
         default:
         if(typeValue >= MSG_TXLOCK_REQUEST ) typeValue -= (MSG_WITNESS_FLAG - 1);
