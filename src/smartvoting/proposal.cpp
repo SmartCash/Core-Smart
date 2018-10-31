@@ -371,8 +371,7 @@ bool CProposal::IsValidLocally(std::string& strError, int& fMissingConfirmations
         strError = strprintf("Invalid proposal data, error messages: %s", vecErrors.front());
         return false;
     }
-    if (fCheckCollateral && !IsCollateralValid(strError, fMissingConfirmations)) {
-        strError = "Invalid proposal collateral";
+    if (fCheckCollateral && !IsCollateralValid(strError, fMissingConfirmations) ) {
         return false;
     }
     return true;
@@ -391,24 +390,24 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
     // RETRIEVE TRANSACTION IN QUESTION
 
     if(!GetTransaction(nFeeHash, txCollateral, Params().GetConsensus(), nBlockHash, true)){
-        strError = strprintf("Can't find collateral tx %s", nFeeHash.ToString());
+        strError = strprintf("Can't find fee tx %s", nFeeHash.ToString());
         LogPrintf("CProposal::IsCollateralValid -- %s\n", strError);
         return false;
     }
 
     if(nBlockHash == uint256()) {
-        strError = strprintf("Collateral tx %s is not mined yet", txCollateral.ToString());
+        strError = strprintf("Fee tx %s is not mined yet", txCollateral.ToString());
         LogPrintf("CProposal::IsCollateralValid -- %s\n", strError);
         return false;
     }
 
-    if(txCollateral.vout.size() < 1) {
-        strError = strprintf("tx vout size less than 1 | %d", txCollateral.vout.size());
+    if(txCollateral.vout.size() < 2) {
+        strError = strprintf("tx vout size less than 2 | %d", txCollateral.vout.size());
         LogPrintf("CProposal::IsCollateralValid -- %s\n", strError);
         return false;
     }
 
-    // LOOK FOR SPECIALIZED GOVERNANCE SCRIPT (PROOF OF BURN)
+    // LOOK FOR SPECIALIZED PROPOSAL SCRIPTS
 
     CScript findDataScript;
     findDataScript << OP_RETURN << ToByteVector(nExpectedHash);
@@ -478,7 +477,7 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
 
         fMissingConfirmations = std::max<int>(0,SMARTVOTING_FEE_CONFIRMATIONS - nConfirmationsIn);
 
-        return false;
+        return fMissingConfirmations <= (SMARTVOTING_FEE_CONFIRMATIONS-SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS);
     }
 
     strError = "valid";

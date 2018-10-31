@@ -287,7 +287,7 @@ private:
 
     void AddCachedTriggers();
 
-    void RequestOrphanObjects(CConnman& connman);
+    void RequestOrphanProposals(CConnman& connman);
 
     void CleanOrphanObjects();
 

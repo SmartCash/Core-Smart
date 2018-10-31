@@ -284,16 +284,12 @@ extern UniValue sendrawtransaction(const UniValue& params, bool fHelp);
 extern UniValue gettxoutproof(const UniValue& params, bool fHelp);
 extern UniValue verifytxoutproof(const UniValue& params, bool fHelp);
 
-//extern UniValue privatesend(const UniValue& params, bool fHelp);
 extern UniValue getpoolinfo(const UniValue& params, bool fHelp);
 extern UniValue spork(const UniValue& params, bool fHelp);
 extern UniValue smartnode(const UniValue& params, bool fHelp);
 extern UniValue smartnodelist(const UniValue& params, bool fHelp);
 extern UniValue smartnodebroadcast(const UniValue& params, bool fHelp);
-// extern UniValue gobject(const UniValue& params, bool fHelp);
-// extern UniValue getgovernanceinfo(const UniValue& params, bool fHelp);
-// extern UniValue getsuperblockbudget(const UniValue& params, bool fHelp);
-// extern UniValue voteraw(const UniValue& params, bool fHelp);
+extern UniValue smartvoting(const UniValue& params, bool fHelp);
 extern UniValue snsync(const UniValue& params, bool fHelp);
 extern UniValue smartrewards(const UniValue& params, bool fHelp);
 extern UniValue smartmining(const UniValue& params, bool fHelp);

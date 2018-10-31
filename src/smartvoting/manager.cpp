@@ -535,7 +535,7 @@ void CSmartVotingManager::DoMaintenance(CConnman& connman)
 
     CleanOrphanObjects();
 
-    RequestOrphanObjects(connman);
+    RequestOrphanProposals(connman);
 
     // CHECK AND REMOVE - REPROCESS GOVERNANCE OBJECTS
 
@@ -1018,31 +1018,10 @@ UniValue CSmartVotingManager::ToJson() const
 {
     LOCK(cs);
 
-//    int nProposalCount = 0;
-//    int nTriggerCount = 0;
-//    int nOtherCount = 0;
-
-//    for (const auto& objpair : mapProposals) {
-//        switch(objpair.second.GetObjectType()) {
-//            case SMARTVOTING_OBJECT_PROPOSAL:
-//                nProposalCount++;
-//                break;
-//            case SMARTVOTING_OBJECT_TRIGGER:
-//                nTriggerCount++;
-//                break;
-//            default:
-//                nOtherCount++;
-//                break;
-//        }
-//    }
-
     UniValue jsonObj(UniValue::VOBJ);
-//    jsonObj.push_back(Pair("objects_total", (int)mapProposals.size()));
-//    jsonObj.push_back(Pair("proposals", nProposalCount));
-//    jsonObj.push_back(Pair("triggers", nTriggerCount));
-//    jsonObj.push_back(Pair("other", nOtherCount));
-//    jsonObj.push_back(Pair("erased", (int)mapErasedProposals.size()));
-//    jsonObj.push_back(Pair("votes", (int)cmapVoteToProposal.GetSize()));
+    jsonObj.push_back(Pair("proposals", (int)mapProposals.size()));
+    jsonObj.push_back(Pair("erased", (int)mapErasedProposals.size()));
+    jsonObj.push_back(Pair("votes", (int)cmapVoteToProposal.GetSize()));
     return jsonObj;
 }
 
@@ -1063,7 +1042,7 @@ void CSmartVotingManager::UpdatedBlockTip(const CBlockIndex *pindex, CConnman& c
     CheckPostponedProposals(connman);
 }
 
-void CSmartVotingManager::RequestOrphanObjects(CConnman& connman)
+void CSmartVotingManager::RequestOrphanProposals(CConnman& connman)
 {
     std::vector<CNode*> vNodesCopy = connman.CopyNodeVector(CConnman::FullyConnectedOnly);
 
@@ -1080,7 +1059,7 @@ void CSmartVotingManager::RequestOrphanObjects(CConnman& connman)
         }
     }
 
-    LogPrint("proposal", "CProposal::RequestOrphanObjects -- number objects = %d\n", vecHashesFiltered.size());
+    LogPrint("proposal", "CProposal::RequestOrphanProposals -- number objects = %d\n", vecHashesFiltered.size());
     for(size_t i = 0; i < vecHashesFiltered.size(); ++i) {
         const uint256& nHash = vecHashesFiltered[i];
         for(size_t j = 0; j < vNodesCopy.size(); ++j) {
