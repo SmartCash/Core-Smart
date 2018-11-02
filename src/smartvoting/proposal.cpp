@@ -9,8 +9,6 @@
 #include "smartnode/instantx.h"
 #include "validation.h"
 
-#include <regex>
-
 const size_t nProposalTitleLengthMin = 10;
 const size_t nProposalTitleLengthMax = 200;
 
@@ -97,14 +95,71 @@ bool CProposal::ValidateTitle(const string& strTitle, string& strError)
     return strError.empty();
 }
 
+/*
+  The purpose of this function is to replicate the behavior of the
+  Python urlparse function used by sentinel (urlparse.py).  This function
+  should return false whenever urlparse raises an exception and true
+  otherwise.
+ */
+bool CProposal::CheckURL(const std::string& strURLIn)
+{
+    std::string strRest(strURLIn);
+    std::string::size_type nPos = strRest.find(':');
+
+    if(nPos != std::string::npos) {
+        //std::string strSchema = strRest.substr(0,nPos);
+
+        if(nPos < strRest.size()) {
+            strRest = strRest.substr(nPos + 1);
+        }
+        else {
+            strRest = "";
+        }
+    }
+
+    // Process netloc
+    if((strRest.size() > 2) && (strRest.substr(0,2) == "//")) {
+        static const std::string strNetlocDelimiters = "/?#";
+
+        strRest = strRest.substr(2);
+
+        std::string::size_type nPos2 = strRest.find_first_of(strNetlocDelimiters);
+
+        std::string strNetloc = strRest.substr(0,nPos2);
+
+        if((strNetloc.find('[') != std::string::npos) && (strNetloc.find(']') == std::string::npos)) {
+            return false;
+        }
+
+        if((strNetloc.find(']') != std::string::npos) && (strNetloc.find('[') == std::string::npos)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool CProposal::ValidateUrl(const string& strUrl, string& strError)
 {
-    std::regex ex("(http|https)://([^/ :]+):?([^/ ]*)(/?[^ #?]*)\\x3f?([^ #]*)#?([^ ]*)");
-
     strError.clear();
 
-    if( !std::regex_match(strUrl, ex) ){
-        strError = "Invalid URL: Required format http(s)://<url>";
+    if(std::find_if(strUrl.begin(), strUrl.end(), ::isspace) != strUrl.end()) {
+        strError += "URL can't have whitespaces";
+        return false;
+    }
+
+    if(strUrl.size() < 8U) {
+        strError += "URL too short, minimum length is 8 characters";
+        return false;
+    }
+
+    if(strUrl.size() > 200U) {
+        strError += "URL too long, maximum length is 200 characters";
+        return false;
+    }
+
+    if(!CProposal::CheckURL(strUrl)) {
+        strError += "URL format invalid";
         return false;
     }
 
@@ -583,5 +638,15 @@ void CProposal::CheckOrphanVotes(CConnman& connman)
             cmmapOrphanVotes.Erase(key, pairVote);
         }
     }
+}
+
+string CProposal::ToString() const
+{
+    return strprintf("CProposal(%s, %s, %s, %s)", GetHash().ToString(), title, url, address.ToString());
+}
+
+string CInternalProposal::ToString() const
+{
+    return strprintf("CInternalProposal %s -- %s", hashInternal.ToString(), CProposal::ToString());
 }
 

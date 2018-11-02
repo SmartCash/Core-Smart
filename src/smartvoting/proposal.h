@@ -214,6 +214,7 @@ public:
     void swap(CProposal& first, CProposal& second);
 
     static bool ValidateTitle(const std::string &strTitle, std::string &strError);
+    static bool CheckURL(const std::string& strURLIn);
     static bool ValidateUrl(const std::string &strUrl, std::string &strError);
 
     void SetTitle(const std::string &strTitle) { title = strTitle; }
@@ -297,6 +298,8 @@ public:
     int GetAbstainCount(vote_signal_enum_t eVoteSignalIn) const;
     bool GetCurrentVKVotes(const CPubKey &votingKey, vote_rec_t &voteRecord) const;
 
+    std::string ToString() const;
+
     ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
@@ -353,6 +356,8 @@ public:
 
     void AddMilestone( CProposalMilestone& milestone);
     void RemoveMilestone( size_t index );
+
+    std::string ToString() const;
 
     ADD_SERIALIZE_METHODS
 
