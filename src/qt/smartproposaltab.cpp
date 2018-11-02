@@ -135,7 +135,10 @@ bool SmartProposalTabWidget::save()
 
     walletdb.ReadProposals(mapProposals);
 
-    mapProposals.emplace(proposal.GetInternalHash(), proposal);
+    if( !mapProposals.count(proposal.GetInternalHash()))
+        mapProposals.insert(std::make_pair(proposal.GetInternalHash(), proposal));
+    else
+        mapProposals[proposal.GetInternalHash()] = proposal;
 
     if( !walletdb.WriteProposals(mapProposals) ){
         showErrorDialog(this, "Failed to save the proposal.");
