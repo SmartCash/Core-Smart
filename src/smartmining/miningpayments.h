@@ -13,7 +13,6 @@
 
 struct CSmartAddress;
 
-const uint8_t OP_DATA_MINING_FLAG = 0x01;
 const int nMiningSignaturePastTimeCutoff = 3600; // 1 hour
 const int nMiningSignatureMinScriptLength = 4;
 

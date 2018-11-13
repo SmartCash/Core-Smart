@@ -10,6 +10,7 @@
 #include "script/script.h"
 #include "serialize.h"
 #include "uint256.h"
+#include "smartvoting/votekeys.h"
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
@@ -211,6 +212,11 @@ public:
     {
     //  return (nValue < GetDustThreshold(minRelayTxFee));
         return false;
+    }
+
+    bool IsVoteKeyRegistrationData() const
+    {
+        return scriptPubKey.IsVoteKeyData() && nValue == VOTEKEY_REGISTER_FEE;
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
@@ -448,6 +454,8 @@ public:
     bool IsZerocoinSpend() const;
 
     bool IsZerocoinMint(const CTransaction& tx) const;
+
+    bool IsVoteKeyRegistration() const;
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {

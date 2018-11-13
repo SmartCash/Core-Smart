@@ -163,6 +163,7 @@ BITCOIN_CORE_H = \
   smartvoting/proposal.h \
   smartvoting/voting.h \
   smartvoting/votedb.h \
+  smartvoting/votekeys.h \
   spentindex.h \
   streams.h \
   support/allocators/secure.h \
@@ -351,6 +352,7 @@ libsmartcash_consensus_a_SOURCES = \
   script/script_error.h \
   smartnode/flat-database.h \
   smartnode/spork.h \
+  smartvoting/votekeys.h \
   serialize.h \
   tinyformat.h \
   uint256.cpp \
