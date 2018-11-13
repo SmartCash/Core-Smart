@@ -435,6 +435,22 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp = NULL
  */ 
 bool GetBlockHash(uint256& hashRet, int nBlockHeight = -1); 
 
+
+/**
+ * Check if transaction is a valid vote key registration transaction.
+ */
+bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress);
+
+/**
+ * Check if transaction is a valid vote key registration transaction.
+ */
+bool IsValidVoteKeyRegistration(const CTransaction &tx);
+
+/**
+ * Check if the given address has already an registered voting key.
+ */
+bool IsRegisteredForVoting(const CSmartAddress &address);
+
 /**
  * Closure representing one script verification
  * Note that this stores references to the spending transaction 
@@ -488,6 +504,10 @@ bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int &firstT
 bool GetDepositIndex(uint160 addressHash, int type,
                      std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex,
                      int start, int offset, int limit, bool reverse);
+
+bool GetVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys);
+bool GetVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey);
+bool GetVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue);
 
 /** Functions for disk access for blocks */
 bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMessageHeader::MessageStartChars& messageStart);

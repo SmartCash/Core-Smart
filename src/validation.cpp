@@ -606,6 +606,18 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
     if (tx.IsCoinBase()) {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-length");
+    } else if( tx.IsVoteKeyRegistration() ) {
+        // Check if there is already a registered voting key for the issuing address
+        CVoteKey voteKey;
+        CSmartAddress voteAddress;
+
+        if( !ParseVoteKeyRegistration(tx, voteKey, voteAddress) )
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-data-invalid");
+
+        // If its valid search for an existing entry
+        if( IsRegisteredForVoting(voteAddress) )
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-address-exists");
+
     } else {
 
         BOOST_FOREACH(const CTxIn &txin, tx.vin){
@@ -1831,6 +1843,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    std::vector<CVoteKey> vecVoteKeys;
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -1839,6 +1852,16 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         bool is_coinbase = tx.IsCoinBase();
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
+
+        if( tx.IsVoteKeyRegistration()  ){
+
+            CVoteKey voteKey;
+            CSmartAddress voteAddress;
+            if( ParseVoteKeyRegistration(tx, voteKey, voteAddress) ){
+                vecVoteKeys.push_back(voteKey);
+            }
+
+        }
 
         if (fAddressIndex || fDepositIndex) {
 
@@ -1999,6 +2022,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
+
+
+    if( !pblocktree->EraseVoteKeys(vecVoteKeys) ){
+        AbortNode(state, "Failed to erase vote keys");
+        return DISCONNECT_FAILED;
+    }
 
     if (fDepositIndex) {
 
@@ -2262,6 +2291,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    std::vector<std::pair<CVoteKey, CVoteKeyValue>> vecVoteKeys;
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
@@ -2434,6 +2464,23 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             }
         }
 
+        if( tx.IsVoteKeyRegistration() ){
+
+            CVoteKey voteKey;
+            CSmartAddress voteAddress;
+
+            if( !ParseVoteKeyRegistration(tx, voteKey, voteAddress) )
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-data-invalid");
+
+            // If its valid search for an existing entry
+            if( IsRegisteredForVoting(voteAddress) )
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-address-exists");
+
+            CVoteKeyValue voteKeyValue(voteAddress, tx.GetHash(), pindex->nHeight);
+
+            vecVoteKeys.push_back(std::make_pair(voteKey, voteKeyValue));
+        }
+
         CTxUndo undoDummy;
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
@@ -2515,6 +2562,12 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
         if( !pblocktree->WriteDepositIndex(depositIndex) ){
             return AbortNode(state, "Failed to write deposit index");
+        }
+    }
+
+    if( vecVoteKeys.size() ){
+        if ( !pblocktree->WriteVoteKeys(vecVoteKeys)){
+            return AbortNode(state, "Failed to write vote keys");
         }
     }
 
@@ -4726,3 +4779,155 @@ public:
         mapBlockIndex.clear();
     }
 } instance_of_cmaincleanup;
+
+bool GetVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys)
+{
+    if (!pblocktree->ReadVoteKeys(vecVoteKeys))
+        return error("unable to get votekeys");
+
+    return true;
+}
+
+bool GetVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey)
+{
+    if (!pblocktree->ReadVoteKeyForAddress(voteAddress, voteKey))
+        return error("unable to get votekey for address");
+
+    return voteKey.IsValid();
+}
+
+bool GetVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue)
+{
+    if (!pblocktree->ReadVoteKeyValue(voteKey, voteKeyValue))
+        return error("unable to get votekey value");
+
+    return voteKeyValue.voteAddress.IsValid();
+}
+
+bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress)
+{
+
+    if( !tx.IsVoteKeyRegistration() ) return false;
+
+    unsigned char cRegisterOption;
+    std::vector<unsigned char> vecSigVoteKey, vecSigVoteAddress;
+
+    for( const CTxOut& out : tx.vout ){
+
+        if( out.IsVoteKeyRegistrationData() ){
+            std::vector<unsigned char> scriptData;
+            scriptData.insert(scriptData.end(), out.scriptPubKey.begin() + 4, out.scriptPubKey.end());
+            CDataStream ss(scriptData, SER_NETWORK, 0);
+
+            ss >> cRegisterOption;
+            ss >> voteKey;
+            ss >> vecSigVoteKey;
+
+            if( cRegisterOption == 0x02 ){
+                ss >> voteAddress;
+                ss >> vecSigVoteAddress;
+            }
+
+            break;
+        }
+
+    }
+
+    if( cRegisterOption == 0x01 ){
+        CTransaction rTx;
+        uint256 rBlockHash;
+        const CTxIn &in = tx.vin[0];
+
+        if(!::GetTransaction(in.prevout.hash,rTx,Params().GetConsensus(),rBlockHash)){
+            return error("ParseVoteKeyRegistration: GetTransaction - %s\n Input: %s", tx.ToString(),in.prevout.hash.ToString());
+        }
+
+        CTxOut rOut = rTx.vout[in.prevout.n];
+        std::vector<CTxDestination> addresses;
+        txnouttype type;
+        int nRequired;
+
+        if (!ExtractDestinations(rOut.scriptPubKey, type, addresses, nRequired) || addresses.size() != 1) {
+            LogPrintf("ParseVoteKeyRegistration -- Couldn't extract address\n");
+            return false;
+        }
+
+        voteAddress = CSmartAddress(addresses[0]);
+    }
+
+    CDataStream ss(SER_GETHASH, 0);
+    ss << strMessageMagic;
+    ss << voteKey;
+    ss << voteAddress;
+
+    uint256 sigHash = Hash(ss.begin(), ss.end());
+
+    CKeyID keyId;
+
+    if( voteKey.IsValid() && voteKey.GetKeyID(keyId) ){
+
+        CPubKey pubkey;
+        if (!pubkey.RecoverCompact(sigHash, vecSigVoteKey)){
+
+            LogPrintf("ParseVoteKeyRegistration -- The voteKey signature did not match the message digest\n");
+            return false;
+        }
+
+        if (!(CVoteKey(pubkey.GetID()) == voteKey)){
+
+            LogPrintf("ParseVoteKeyRegistration -- Verification of the voteKey signature failed\n");
+            return false;
+        }
+
+        if( cRegisterOption == 0x02 ){
+
+            if( voteAddress.IsValid() && voteAddress.GetKeyID(keyId) ){
+
+                CPubKey pubkey;
+                if (!pubkey.RecoverCompact(sigHash, vecSigVoteAddress)){
+
+                    LogPrintf("ParseVoteKeyRegistration -- The voteAddress signature did not match the message digest\n");
+                    return false;
+                }
+
+                if (!(CSmartAddress(pubkey.GetID()) == voteAddress)){
+
+                    LogPrintf("ParseVoteKeyRegistration -- Verification of the voteAddress signature failed\n");
+                    return false;
+                }
+
+                LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option2] found. Key %s for address: %s\n", voteKey.ToString(), voteAddress.ToString());
+
+                return true;
+            }else{
+                LogPrintf("ParseVoteKeyRegistration -- Invalid voteAddress found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
+            }
+        }
+
+        LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option1] found. Key %s for address: %s\n", voteKey.ToString(), voteAddress.ToString());
+
+        return true;
+
+    }else{
+        LogPrintf("ParseVoteKeyRegistration -- Invalid voteKey found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
+    }
+
+    return false;
+}
+
+bool IsValidVoteKeyRegistration(const CTransaction &tx)
+{
+    CVoteKey voteKey;
+    CSmartAddress voteAddress;
+    return ParseVoteKeyRegistration(tx, voteKey, voteAddress);
+}
+
+bool IsRegisteredForVoting(const CSmartAddress &address)
+{
+    CVoteKey voteKey;
+    if( GetVoteKeyForAddress(address, voteKey) )
+        return voteKey.IsValid();
+
+    return false;
+}
+
