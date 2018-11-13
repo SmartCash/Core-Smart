@@ -5,6 +5,8 @@
 
 #include "base58.h"
 #include "core_io.h"
+#include "coincontrol.h"
+#include "consensus/validation.h"
 #include "init.h"
 #include "validation.h"
 #include "net.h"
@@ -14,10 +16,13 @@
 #include "smartmining/miningpayments.h"
 #include "smartvoting/proposal.h"
 #include "smartvoting/manager.h"
+#include "smartvoting/votekeys.h"
 #include "util.h"
 #include "wallet/wallet.h"
 #include <univalue.h>
 
+
+extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
 
 UniValue smartvoting(const UniValue& params, bool fHelp)
 {
@@ -25,16 +30,24 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
     if (params.size() >= 1)
         strCommand = params[0].get_str();
 
-    if (fHelp  ||
-        (
+    std::vector<std::string> vecCommands = {
 #ifdef ENABLE_WALLET
-         strCommand != "prepare" &&
+        "prepare",
 #endif // ENABLE_WALLET
-         strCommand != "vote-many" && strCommand != "vote-conf" && strCommand != "vote-alias" && strCommand != "submit" && strCommand != "count" &&
-         strCommand != "deserialize" && strCommand != "get" && strCommand != "getvotes" && strCommand != "getcurrentvotes" && strCommand != "list" && strCommand != "diff" &&
-         strCommand != "check" ))
+        "submit",
+        "count",
+        "deserialize",
+        "get",
+        "getvotes",
+        "getcurrentvotes",
+        "list",
+        "diff",
+        "check"
+    };
+
+    if (fHelp  || std::find(vecCommands.begin(), vecCommands.end(), strCommand) == vecCommands.end() )
         throw std::runtime_error(
-                "proposal \"command\"...\n"
+                "smartvoting \"command\"...\n"
                 "Use SmartProposal commands.\n"
                 "\nAvailable commands:\n"
                 "  check              - Validate a proposal\n"
@@ -453,6 +466,290 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         }
 
         return bResult;
+    }
+
+    return NullUniValue;
+}
+
+UniValue votekeys(const UniValue& params, bool fHelp)
+{
+
+    std::string strCommand;
+    if (params.size() >= 1)
+        strCommand = params[0].get_str();
+
+    std::vector<std::string> vecCommands = {
+        "register",
+        "get",
+        "count",
+        "list"
+    };
+
+    if( std::find(vecCommands.begin(), vecCommands.end(), strCommand) == vecCommands.end() )
+        throw std::runtime_error(
+           "votekeys \"command\"...\n"
+           "Use SmartProposal commands.\n"
+           "\nAvailable commands:\n"
+           "  register           - Register an SmartCash address for voting\n"
+           "  getvotekey         - Get the registered votekey for an address\n"
+           "  getaddress         - Get the address registered for a votekey\n"
+           "  count              - Count all registered votekeys\n"
+           "  list               - List all registered votekeys\n"
+           );
+
+    if(strCommand == "register")
+    {
+        if (params.size() != 4)  {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys register <address> <txhash> <index>' where <txhash> and <index> should describe an unspent output used to register with at least 1.002 SMART");
+        }
+
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        CVoteKey voteKey;
+        unsigned char cRegisterOption = 0x01;
+
+        uint256 txHash = uint256S(params[2].get_str());
+        int64_t txIndex = params[3].get_int64();
+
+        // **
+        // Check if the unspent output belongs to <address> or not
+        // **
+
+        CTransaction spendTx;
+        uint256 blockHash;
+
+        if( !GetTransaction(txHash, spendTx, Params().GetConsensus(), blockHash, true) )
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "<txhash> doesn't belong to a transaction");
+
+        if( txIndex < 0 || static_cast<int64_t>(spendTx.vout.size()) - 1 < txIndex )
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "<index> out of range");
+
+        const CTxOut &utxo = spendTx.vout[txIndex];
+
+        // **
+        // Validate the given address
+        // **
+
+        CSmartAddress voteAddress(params[1].get_str());
+
+        if ( !voteAddress.IsValid() )
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid address");
+
+        CKeyID voteAddressKeyID;
+        CKey vaKey;
+
+        if (!voteAddress.GetKeyID(voteAddressKeyID))
+            throw JSONRPCError(RPC_TYPE_ERROR, "<address> doesn't refer to key");
+
+        if( GetVoteKeyForAddress(voteAddress, voteKey) ){
+            throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Address is already registered for key: %s", voteKey.ToString()));
+        }
+
+        // If the given utxo is from the address to register use register option 1
+        // Option 1 - verify the vote address with the input of the register tx
+        // Option 2 - use a second signature in the op_return to verify the the vote address
+        if( utxo.scriptPubKey == voteAddress.GetScript() )
+            cRegisterOption = 0x01;
+        else
+            cRegisterOption = 0x02;
+
+        // **
+        // Get the private key of the address for option 2
+        // **
+
+        if( cRegisterOption == 0x02 && !pwalletMain->GetKey(voteAddressKeyID, vaKey) )
+                throw JSONRPCError(RPC_WALLET_ERROR, "Private key for <address> not available");
+
+        // **
+        // Generate a new voting key
+        // **
+
+        CKey secret;
+        secret.MakeNewKey(false);
+        CVoteKeySecret voteKeyPrivate(secret);
+
+        CKey vkKey = voteKeyPrivate.GetKey();
+        if (!vkKey.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Voting private key outside allowed range");
+
+        CPubKey pubkey = vkKey.GetPubKey();
+        if(!vkKey.VerifyPubKey(pubkey)) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey verification failed");
+        CKeyID vkKeyId = pubkey.GetID();
+        voteKey.Set(vkKeyId);
+
+        if( !voteKey.IsValid() ) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "VoteKey invalid");
+
+
+        // Create the message to sign with the vote key and also voteaddress if required
+        CDataStream ss(SER_GETHASH, 0);
+        ss << strMessageMagic;
+        ss << voteKey;
+        ss << voteAddress;
+
+        std::vector<unsigned char> vecSigAddress, vecSigVotekey;
+
+        // Create the signature with the voting key
+        if (!vkKey.SignCompact(Hash(ss.begin(), ss.end()), vecSigVotekey))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Signing with votekey failed");
+
+        // And if required with the vote address
+        if( cRegisterOption == 0x02 && !vaKey.SignCompact(Hash(ss.begin(), ss.end()), vecSigAddress))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Signing with votekey failed");
+
+        std::vector<unsigned char> vecData = {
+            OP_RETURN_VOTE_KEY_REG_FLAG,
+            cRegisterOption
+        };
+
+        CDataStream registerData(SER_NETWORK,0);
+
+        registerData << voteKey;
+        registerData << vecSigVotekey;
+
+        if( cRegisterOption == 0x02 ){
+            registerData << voteAddress;
+            registerData << vecSigAddress;
+        }
+
+        vecData.insert(vecData.end(), registerData.begin(), registerData.end());
+
+        CScript registerScript = CScript() << OP_RETURN << vecData;
+
+        // **
+        // Create the transaction
+        // **
+
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+
+        EnsureWalletIsUnlocked();
+
+        CCoinControl coinControl;
+        COutPoint output(txHash, txIndex);
+
+        CTxDestination change;
+
+        if( cRegisterOption == 0x01 ){
+            change = voteAddress.Get();
+        }else{
+
+            std::vector<CTxDestination> addresses;
+            txnouttype type;
+            int nRequired;
+
+            if (!ExtractDestinations(utxo.scriptPubKey, type, addresses, nRequired) || addresses.size() != 1) {
+                LogPrintf("ParseVoteKeyRegistration -- Couldn't extract address\n");
+                return false;
+            }
+
+            change = addresses[0];
+        }
+
+        coinControl.fUseInstantSend = false;
+        coinControl.Select(output);
+        coinControl.destChange = change;
+
+        // Create and send the transaction
+        CWalletTx registerTx;
+        CReserveKey reservekey(pwalletMain);
+        CAmount nFeeRequired;
+        std::string strError;
+        vector<CRecipient> vecSend;
+        int nChangePosRet = -1;
+
+        CRecipient recipient = {registerScript, VOTEKEY_REGISTER_FEE, false};
+        vecSend.push_back(recipient);
+
+        if (!pwalletMain->CreateTransaction(vecSend, registerTx, reservekey, nFeeRequired, nChangePosRet,
+                                             strError, &coinControl)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, strError);
+        }
+
+        CValidationState state;
+        if (!(CheckTransaction(registerTx, state, registerTx.GetHash(), false) || !state.IsValid())){
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("The registration transaction is invalid: %s", state.GetRejectReason()));
+        }
+
+        if (!pwalletMain->CommitTransaction(registerTx, reservekey, g_connman.get())){
+            throw JSONRPCError(RPC_WALLET_ERROR, "The transaction was rejected!");
+        }
+
+        UniValue result(UniValue::VOBJ);
+
+        UniValue objTx(UniValue::VOBJ);
+        TxToJSON(registerTx, uint256(), objTx);
+        result.pushKV("registerTx", objTx);
+        result.pushKV("voteAddress",voteAddress.ToString());
+        result.pushKV("voteKey",voteKey.ToString());
+        result.pushKV("voteKeySecret", voteKeyPrivate.ToString());
+
+        return result;
+    }
+
+    if(strCommand == "get")
+    {
+        if (params.size() != 2)  {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys get <votekey/voteaddress>");
+        }
+
+        CVoteKey voteKey(params[1].get_str());
+        CVoteKeyValue voteKeyValue;
+        CSmartAddress voteAddress(params[1].get_str());
+
+        if( !voteKey.IsValid() && !voteAddress.IsValid() )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Parameter %s is neither a votekey nor a smartcash address", params[0].get_str()));
+
+        if( voteAddress.IsValid() ){
+
+            if( !GetVoteKeyForAddress(voteAddress, voteKey) )
+                throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("No votekey found for address %s", voteAddress.ToString()));
+
+        }
+
+        if( voteKey.IsValid() ){
+
+            if( !GetVoteKeyValue(voteKey, voteKeyValue) )
+                throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("No votekey value entry found for votekey %s", voteKey.ToString()));
+
+        }
+
+        UniValue result(UniValue::VOBJ);
+
+        result.pushKV("voteKey",voteKey.ToString());
+        result.pushKV("voteAddress",voteKeyValue.voteAddress.ToString());
+        result.pushKV("registerTx",voteKeyValue.nTxHash.ToString());
+        result.pushKV("registerHeight", voteKeyValue.nBlockHeight);
+
+        return result;
+    }
+
+    if(strCommand == "count")
+    {
+        std::vector<std::pair<CVoteKey,CVoteKeyValue>> vecVoteKeys;
+        if( !GetVoteKeys(vecVoteKeys) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to load vote keys");
+
+        return static_cast<int64_t>(vecVoteKeys.size());
+    }
+
+    if(strCommand == "list")
+    {
+        std::vector<std::pair<CVoteKey,CVoteKeyValue>> vecVoteKeys;
+        if( !GetVoteKeys(vecVoteKeys) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to load vote keys");
+
+        UniValue result(UniValue::VOBJ);
+
+        for( auto vk : vecVoteKeys ){
+            UniValue obj(UniValue::VOBJ);
+
+            obj.pushKV("voteAddress",vk.second.voteAddress.ToString());
+            obj.pushKV("registerTx",vk.second.nTxHash.ToString());
+            obj.pushKV("registerHeight", vk.second.nBlockHeight);
+
+            result.pushKV(vk.first.ToString(), obj);
+        }
+
+        return result;
     }
 
     return NullUniValue;

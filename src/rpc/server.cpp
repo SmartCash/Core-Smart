@@ -362,6 +362,7 @@ static const CRPCCommand vRPCCommands[] =
     { "smartcash",               "smartnodelist",         &smartnodelist,         true  },
     { "smartcash",               "smartnodebroadcast",    &smartnodebroadcast,    true  },
     { "smartcash",               "smartvoting",           &smartvoting,           true  },
+    { "smartcash",               "votekeys",              &votekeys,              true  },
     { "smartcash",               "snsync",                 &snsync,                 true  },
     { "smartcash",               "spork",                  &spork,                  true  },
     { "smartcash",               "smartrewards",           &smartrewards,           true  },
