@@ -161,10 +161,12 @@ public:
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,191);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,125);
+        base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,82);
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;
-        
+
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
         fMiningRequiresPeers = true;
@@ -265,6 +267,8 @@ public:
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,193);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,112);
+        base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(1,160);
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;

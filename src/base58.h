@@ -136,6 +136,50 @@ public:
     CBitcoinSecret() {}
 };
 
+
+/** base58-encoded public vote key.
+ */
+class CVoteKey : public CBase58Data {
+public:
+    bool Set(const CKeyID &id);
+    bool Set(const CScriptID &id);
+    bool Set(const CTxDestination &dest);
+    bool IsValid() const;
+    bool IsValid(const CChainParams &params) const;
+
+    CVoteKey() {}
+    CVoteKey(const CKeyID &dest) { Set(dest); }
+    CVoteKey(const std::string& strAddress) { SetString(strAddress); }
+
+    CTxDestination Get() const;
+    bool GetKeyID(CKeyID &keyID) const;
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(vchVersion);
+        READWRITE(vchData);
+    }
+};
+
+/**
+ * A base58-encoded vote key secret
+ */
+class CVoteKeySecret : public CBase58Data
+{
+public:
+    void SetKey(const CKey& vchSecret);
+    CKey GetKey();
+    bool IsValid() const;
+    bool SetString(const char* pszSecret);
+    bool SetString(const std::string& strSecret);
+
+    CVoteKeySecret(const CKey& vchSecret) { SetKey(vchSecret); }
+    CVoteKeySecret() {}
+    void SetKey(const std::vector<unsigned char> prefix, const CKey &vchSecret);
+};
+
 template<typename K, int Size, CChainParams::Base58Type Type> class CBitcoinExtKeyBase : public CBase58Data
 {
 public:

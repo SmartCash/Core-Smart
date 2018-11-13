@@ -331,3 +331,74 @@ bool CBitcoinSecret::SetString(const std::string& strSecret)
 {
     return SetString(strSecret.c_str());
 }
+
+
+bool CVoteKey::Set(const CKeyID& id)
+{
+    SetData(Params().Base58Prefix(CChainParams::VOTE_KEY_PUBLIC), &id, 20);
+    return true;
+}
+
+bool CVoteKey::IsValid() const
+{
+    return IsValid(Params());
+}
+
+bool CVoteKey::IsValid(const CChainParams& params) const
+{
+    bool fCorrectSize = vchData.size() == 20;
+    bool fKnownVersion = vchVersion == params.Base58Prefix(CChainParams::VOTE_KEY_PUBLIC);
+    return fCorrectSize && fKnownVersion;
+}
+
+bool CVoteKey::GetKeyID(CKeyID& keyID) const
+{
+    if (!IsValid() || vchVersion != Params().Base58Prefix(CChainParams::VOTE_KEY_PUBLIC))
+        return false;
+    uint160 id;
+    memcpy(&id, &vchData[0], 20);
+    keyID = CKeyID(id);
+    return true;
+}
+
+
+void CVoteKeySecret::SetKey(const CKey& vchSecret)
+{
+    assert(vchSecret.IsValid());
+    SetData(Params().Base58Prefix(CChainParams::VOTE_KEY_SECRET), vchSecret.begin(), vchSecret.size());
+    if (vchSecret.IsCompressed())
+        vchData.push_back(1);
+}
+
+void CVoteKeySecret::SetKey(const std::vector<unsigned char> prefix, const CKey& vchSecret)
+{
+    assert(vchSecret.IsValid());
+    SetData(prefix, vchSecret.begin(), vchSecret.size());
+    if (vchSecret.IsCompressed())
+        vchData.push_back(1);
+}
+
+CKey CVoteKeySecret::GetKey()
+{
+    CKey ret;
+    assert(vchData.size() >= 32);
+    ret.Set(vchData.begin(), vchData.begin() + 32, vchData.size() > 32 && vchData[32] == 1);
+    return ret;
+}
+
+bool CVoteKeySecret::IsValid() const
+{
+    bool fExpectedFormat = vchData.size() == 32 || (vchData.size() == 33 && vchData[32] == 1);
+    bool fCorrectVersion = vchVersion == Params().Base58Prefix(CChainParams::VOTE_KEY_SECRET);
+    return fExpectedFormat && fCorrectVersion;
+}
+
+bool CVoteKeySecret::SetString(const char* pszSecret)
+{
+    return CBase58Data::SetString(pszSecret) && IsValid();
+}
+
+bool CVoteKeySecret::SetString(const std::string& strSecret)
+{
+    return SetString(strSecret.c_str());
+}
