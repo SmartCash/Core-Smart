@@ -615,8 +615,9 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
         if( !ParseVoteKeyRegistration(tx, voteKey, voteAddress) )
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-data-invalid");
 
+        bool fRegistered = IsRegisteredForVoting(voteAddress);
         // If its valid search for an existing entry
-        if( IsRegisteredForVoting(voteAddress) )
+        if( ( !isVerifyDB && fRegistered ) || ( isVerifyDB && !fRegistered ) )
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-address-exists");
 
     } else {
@@ -2025,7 +2026,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
 
-    if( !pblocktree->EraseVoteKeys(vecVoteKeys) ){
+    if( vecVoteKeys.size() && !pblocktree->EraseVoteKeys(vecVoteKeys) ){
         AbortNode(state, "Failed to erase vote keys");
         return DISCONNECT_FAILED;
     }
@@ -4866,7 +4867,7 @@ bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartA
     std::string strError;
     CKeyID keyId;
 
-    if( voteKey.GetKeyID(keyId) ){
+    if( !voteKey.GetKeyID(keyId) ){
         return false;
         LogPrintf("ParseVoteKeyRegistration -- Invalid voteKey found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
     }
@@ -4878,7 +4879,7 @@ bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartA
 
     if( cRegisterOption == 0x02 ){
 
-        if( voteAddress.GetKeyID(keyId) ){
+        if( !voteAddress.GetKeyID(keyId) ){
             LogPrintf("ParseVoteKeyRegistration -- Invalid voteAddress found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
             return false;
         }
@@ -4890,7 +4891,8 @@ bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartA
 
     }
 
-    LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option %d] found. Key %s for address: %s\n", cRegisterOption, voteKey.ToString(), voteAddress.ToString());
+    LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option %d] found %s. Key %s for address: %s\n",
+              cRegisterOption, tx.GetHash().ToString(), voteKey.ToString(), voteAddress.ToString());
 
     return true;
 }
@@ -4910,4 +4912,14 @@ bool IsRegisteredForVoting(const CSmartAddress &address)
 
     return false;
 }
+
+bool IsRegisteredForVoting(const CVoteKey &voteKey)
+{
+    CVoteKeyValue voteKeyValue;
+    if( GetVoteKeyValue(voteKey, voteKeyValue) )
+        return voteKeyValue.IsValid();
+
+    return false;
+}
+
 

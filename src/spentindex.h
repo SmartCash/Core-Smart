@@ -592,6 +592,10 @@ struct CVoteKeyValue {
     bool IsNull() const {
         return (nBlockHeight == -1);
     }
+
+    bool IsValid(){
+        return voteAddress.IsValid();
+    }
 };
 
 #endif // BITCOIN_SPENTINDEX_H

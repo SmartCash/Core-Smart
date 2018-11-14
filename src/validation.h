@@ -452,6 +452,11 @@ bool IsValidVoteKeyRegistration(const CTransaction &tx);
 bool IsRegisteredForVoting(const CSmartAddress &address);
 
 /**
+ * Check if the given voteKey is already registered.
+ */
+bool IsRegisteredForVoting(const CVoteKey &voteKey);
+
+/**
  * Closure representing one script verification
  * Note that this stores references to the spending transaction 
  */
