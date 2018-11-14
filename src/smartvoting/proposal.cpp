@@ -30,6 +30,11 @@ CProposal::CProposal() :
     nTimeDeletion(0),
     nFeeHash(),
     vchSig(),
+    fCachedLocalValidity(false),
+    fCachedFunding(false),
+    fCachedValid(true),
+    fDirtyCache(true),
+    fExpired(false),
     mapCurrentVKVotes(),
     cmmapOrphanVotes(),
     fileVotes(),
@@ -47,6 +52,11 @@ CProposal::CProposal(const CProposal &other) :
     nTimeDeletion(other.nTimeDeletion),
     nFeeHash(other.nFeeHash),
     vchSig(other.vchSig),
+    fCachedLocalValidity(other.fCachedLocalValidity),
+    fCachedFunding(other.fCachedFunding),
+    fCachedValid(other.fCachedValid),
+    fDirtyCache(other.fDirtyCache),
+    fExpired(other.fExpired),
     mapCurrentVKVotes(other.mapCurrentVKVotes),
     cmmapOrphanVotes(other.cmmapOrphanVotes),
     fileVotes(other.fileVotes),
@@ -69,11 +79,10 @@ void CProposal::swap(CProposal &first, CProposal &second)
     swap(first.nFeeHash, second.nFeeHash);
     swap(first.vchSig, second.vchSig);
 
-    // swap all cached valid flags
+    // swap all cached flags
+    swap(first.fCachedLocalValidity, second.fCachedLocalValidity);
     swap(first.fCachedFunding, second.fCachedFunding);
     swap(first.fCachedValid, second.fCachedValid);
-    swap(first.fCachedDelete, second.fCachedDelete);
-    swap(first.fCachedEndorsed, second.fCachedEndorsed);
     swap(first.fDirtyCache, second.fDirtyCache);
     swap(first.fExpired, second.fExpired);
 }
@@ -308,7 +317,7 @@ bool CProposal::ProcessVote(CNode* pfrom,
         return false;
     }
 
-    vote_m_it it = mapCurrentVKVotes.emplace(vote_m_t::value_type(vote.GetVotingKey(), vote_rec_t())).first;
+    vote_m_it it = mapCurrentVKVotes.emplace(vote_m_t::value_type(vote.GetVoteKey(), vote_rec_t())).first;
     vote_rec_t& voteRecordRef = it->second;
     vote_signal_enum_t eSignal = vote.GetSignal();
     if(eSignal == VOTE_SIGNAL_NONE) {
@@ -356,11 +365,13 @@ bool CProposal::ProcessVote(CNode* pfrom,
 //    }
 
     // Finally check that the vote is actually valid (done last because of cost of signature verification)
-    if(!vote.IsValid(true)) {
+    std::string strError;
+    if(!vote.IsValid(true, true, strError)) {
         std::ostringstream ostr;
-        ostr << "CProposal::ProcessVote -- Invalid vote"
-                << ", proposal hash = " << GetHash().ToString()
-                << ", vote hash = " << vote.GetHash().ToString();
+        ostr << "CProposal::ProcessVote -- Invalid vote "
+             << ", error = " << strError
+             << ", proposal hash = " << GetHash().ToString()
+             << ", vote hash = " << vote.GetHash().ToString();
         LogPrintf("%s\n", ostr.str());
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR, 20);
         smartVoting.AddInvalidVote(vote);
@@ -583,11 +594,11 @@ int CProposal::GetAbstainCount(vote_signal_enum_t eVoteSignalIn) const
     return CountMatchingVotes(eVoteSignalIn, VOTE_OUTCOME_ABSTAIN);
 }
 
-bool CProposal::GetCurrentVKVotes(const CPubKey& votingKey, vote_rec_t& voteRecord) const
+bool CProposal::GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t& voteRecord) const
 {
     LOCK(cs);
 
-    vote_m_cit it = mapCurrentVKVotes.find(votingKey);
+    vote_m_cit it = mapCurrentVKVotes.find(voteKey);
     if (it == mapCurrentVKVotes.end()) {
         return false;
     }
@@ -621,7 +632,7 @@ void CProposal::CheckOrphanVotes(CConnman& connman)
             fRemove = true;
         }
 // TODO check for valid voting key
-//        else if(!mnodeman.Has(vote.GetVotingKey())) {
+//        else if(!mnodeman.Has(vote.GetVoteKey())) {
 //            ++it;
 //            continue;
 //        }

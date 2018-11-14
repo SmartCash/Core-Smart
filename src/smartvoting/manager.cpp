@@ -633,10 +633,10 @@ void CSmartVotingManager::SyncProposalWithVotes(CNode* pnode, const uint256& nPr
     pnode->PushInventory(CInv(MSG_VOTING_PROPOSAL, it->first));
 
     auto fileVotes = proposal.GetVoteFile();
-
+    std::string strError;
     for (const auto& vote : fileVotes.GetVotes()) {
         uint256 nVoteHash = vote.GetHash();
-        if(filter.contains(nVoteHash) || !vote.IsValid(true)) {
+        if(filter.contains(nVoteHash) || !vote.IsValid(true, true, strError)) {
             continue;
         }
         pnode->PushInventory(CInv(MSG_VOTING_PROPOSAL_VOTE, nVoteHash));
@@ -667,7 +667,7 @@ void CSmartVotingManager::SyncAll(CNode* pnode, CConnman& connman) const
 
     // SYNC GOVERNANCE OBJECTS WITH OTHER CLIENT
 
-    LogPrint("proposal", "CSmartVotingManager::%s -- syncing all objects to peer=%d\n", __func__, pnode->id);
+    LogPrint("proposal", "CSmartVotingManager::%s -- syncing all proposals to peer=%d\n", __func__, pnode->id);
 
     LOCK2(cs_main, cs);
 
@@ -693,7 +693,7 @@ void CSmartVotingManager::SyncAll(CNode* pnode, CConnman& connman) const
 
     connman.PushMessage(pnode, NetMsgType::SYNCSTATUSCOUNT, SMARTNODE_SYNC_PROPOSAL, nObjCount);
     connman.PushMessage(pnode, NetMsgType::SYNCSTATUSCOUNT, SMARTNODE_SYNC_PROPOSAL_VOTE, nVoteCount);
-    LogPrintf("CSmartVotingManager::%s -- sent %d objects and %d votes to peer=%d\n", __func__, nObjCount, nVoteCount, pnode->id);
+    LogPrintf("CSmartVotingManager::%s -- sent %d proposals and %d votes to peer=%d\n", __func__, nObjCount, nVoteCount, pnode->id);
 }
 
 bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, CSmartVotingException& exception, CConnman& connman)
@@ -703,7 +703,7 @@ bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, C
     uint256 nHashProposal = vote.GetProposalHash();
 
     if(cmapVoteToProposal.HasKey(nHashVote)) {
-        LogPrint("proposal", "CProposal::ProcessVote -- skipping known valid vote %s for object %s\n", nHashVote.ToString(), nHashProposal.ToString());
+        LogPrint("proposal", "CProposal::ProcessVote -- skipping known valid vote %s for proposal %s\n", nHashVote.ToString(), nHashProposal.ToString());
         LEAVE_CRITICAL_SECTION(cs);
         return false;
     }
@@ -711,8 +711,8 @@ bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, C
     if(cmapInvalidVotes.HasKey(nHashVote)) {
         std::ostringstream ostr;
         ostr << "CSmartVotingManager::ProcessVote -- Old invalid vote "
-                << ", VK pubkey = " << vote.GetVotingKey().GetID().ToString()
-                << ", governance object hash = " << nHashProposal.ToString();
+                << ", votekey = " << vote.GetVoteKey().ToString()
+                << ", proposal hash = " << nHashProposal.ToString();
         LogPrintf("%s\n", ostr.str());
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR, 20);
         LEAVE_CRITICAL_SECTION(cs);
@@ -722,8 +722,8 @@ bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, C
     proposal_m_it it = mapProposals.find(nHashProposal);
     if(it == mapProposals.end()) {
         std::ostringstream ostr;
-        ostr << "CSmartVotingManager::ProcessVote -- Unknown parent object " << nHashProposal.ToString()
-             << ", VK pubkey = " << vote.GetVotingKey().GetID().ToString();
+        ostr << "CSmartVotingManager::ProcessVote -- Unknown proposal " << nHashProposal.ToString()
+             << ", votekey = " << vote.GetVoteKey().ToString();
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_WARNING);
         if(cmmapOrphanVotes.Insert(nHashProposal, vote_time_pair_t(vote, GetAdjustedTime() + SMARTVOTING_ORPHAN_EXPIRATION_TIME))) {
             LEAVE_CRITICAL_SECTION(cs);
@@ -739,8 +739,12 @@ bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, C
 
     CProposal& proposal = it->second;
 
-    if(proposal.IsSetCachedDelete() || proposal.IsSetExpired()) {
-        LogPrint("proposal", "CProposal::ProcessVote -- ignoring vote for expired or deleted object, hash = %s\n", nHashProposal.ToString());
+    if(!proposal.IsSetCachedValid() || proposal.IsSetExpired()) {
+        std::ostringstream ostr;
+        ostr << "CSmartVotingManager::ProcessVote -- Ignoring vote for expired or invalid proposal " << nHashProposal.ToString()
+             << ", votekey = " << vote.GetVoteKey().ToString();
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_WARNING);
+        LogPrint("proposal", "CProposal::ProcessVote -- ignoring vote for expired or invalid proposal, hash = %s\n", nHashProposal.ToString());
         LEAVE_CRITICAL_SECTION(cs);
         return false;
     }
@@ -910,7 +914,7 @@ int CSmartVotingManager::RequestProposalVotes(const std::vector<CNode*>& vNodesC
         }
     }
 
-    LogPrint("proposal", "CSmartVotingManager::RequestGovernanceObjectVotes -- start: vecProposalsTemp %d mapAskedRecently %d\n",
+    LogPrint("proposal", "CSmartVotingManager::RequestProposalVotes -- start: vecProposalsTemp %d mapAskedRecently %d\n",
                 vecProposalsTemp.size(), mapAskedRecently.size());
 
     FastRandomContext insecure_rand;

@@ -143,7 +143,7 @@ class CProposal
 {
 
 public:
-    typedef std::map<CPubKey, vote_rec_t> vote_m_t;
+    typedef std::map<CVoteKey, vote_rec_t> vote_m_t;
 
     typedef vote_m_t::iterator vote_m_it;
 
@@ -177,16 +177,8 @@ protected:
     /// true == minimum network support has been reached for this object to be funded (doesn't mean it will for sure though)
     bool fCachedFunding;
 
-    /// true == minimum network has been reached flagging this object as a valid and understood governance object (e.g, the serialized data is correct format, etc)
+    /// true == minimum network has been reached flagging this proposal as valid and it meets our terms and conditions
     bool fCachedValid;
-
-    /// true == minimum network support has been reached saying this object should be deleted from the system entirely
-    bool fCachedDelete;
-
-    /** true == minimum network support has been reached flagging this object as endorsed by an elected representative body
-     * (e.g. business review board / technecial review board /etc)
-     */
-    bool fCachedEndorsed;
 
     /// object was updated and cached values should be updated soon
     bool fDirtyCache;
@@ -244,14 +236,6 @@ public:
         return fCachedValid;
     }
 
-    bool IsSetCachedDelete() const {
-        return fCachedDelete;
-    }
-
-    bool IsSetCachedEndorsed() const {
-        return fCachedEndorsed;
-    }
-
     bool IsSetDirtyCache() const {
         return fDirtyCache;
     }
@@ -296,7 +280,7 @@ public:
     int GetYesCount(vote_signal_enum_t eVoteSignalIn) const;
     int GetNoCount(vote_signal_enum_t eVoteSignalIn) const;
     int GetAbstainCount(vote_signal_enum_t eVoteSignalIn) const;
-    bool GetCurrentVKVotes(const CPubKey &votingKey, vote_rec_t &voteRecord) const;
+    bool GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t &voteRecord) const;
 
     std::string ToString() const;
 

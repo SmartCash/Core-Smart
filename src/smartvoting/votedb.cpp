@@ -53,11 +53,11 @@ std::vector<CProposalVote> CProposalVoteFile::GetVotes() const
     return vecResult;
 }
 
-void CProposalVoteFile::RemoveVotesFromVotingKey(const CPubKey& votingKey)
+void CProposalVoteFile::RemoveVotesFromVotingKey(const CVoteKey &voteKey)
 {
     vote_l_it it = listVotes.begin();
     while(it != listVotes.end()) {
-        if(it->GetVotingKey() == votingKey) {
+        if(it->GetVoteKey() == voteKey) {
             --nMemoryVotes;
             mapVoteIndex.erase(it->GetHash());
             listVotes.erase(it++);

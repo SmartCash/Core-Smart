@@ -6,13 +6,14 @@
 #ifndef VOTING_H
 #define VOTING_H
 
+#include "base58.h"
 #include "net.h"
 #include "key.h"
 #include "primitives/transaction.h"
 
 #include <boost/lexical_cast.hpp>
 
-// INTENTION OF SMARTNODES REGARDING ITEM
+// INTENTION OF VOTE REGARDING ITEM
 enum vote_outcome_enum_t  {
     VOTE_OUTCOME_NONE      = 0,
     VOTE_OUTCOME_YES       = 1,
@@ -25,11 +26,10 @@ enum vote_outcome_enum_t  {
 enum vote_signal_enum_t  {
     VOTE_SIGNAL_NONE       = 0,
     VOTE_SIGNAL_FUNDING    = 1, //   -- fund this proposal for it's stated amount
-    VOTE_SIGNAL_VALID      = 2, //   -- this proposal checks out in sentinel engine
-    VOTE_SIGNAL_DELETE     = 3, //   -- this proposal should be deleted from memory entirely
+    VOTE_SIGNAL_VALID     = 2, //   -- this proposal should be deleted from memory entirely
 };
 
-static const int MAX_SUPPORTED_VOTE_SIGNAL = VOTE_SIGNAL_DELETE;
+static const int MAX_SUPPORTED_VOTE_SIGNAL = VOTE_SIGNAL_VALID;
 
 /**
 * Governance Voting
@@ -60,7 +60,7 @@ private:
     bool fValid; //if the vote is currently valid / counted
     bool fSynced; //if we've sent this to our peers
     int nVoteSignal; // see VOTE_ACTIONS above
-    CPubKey votingKey;
+    CVoteKey voteKey;
     uint256 nProposalHash;
     int nVoteOutcome; // see VOTE_OUTCOMES above
     int64_t nTime;
@@ -72,7 +72,7 @@ private:
 
 public:
     CProposalVote();
-    CProposalVote(const CPubKey& votingKeyIn, const uint256& nParentHashIn, vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn);
+    CProposalVote(const CVoteKey& voteKeyIn, const uint256& nParentHashIn, vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn);
 
     bool IsValid() const { return fValid; }
 
@@ -90,16 +90,16 @@ public:
 
     void SetSignature(const std::vector<unsigned char>& vchSigIn) { vchSig = vchSigIn; }
 
-    bool Sign(const CKey& keyVotingKey);
+    bool Sign(const CVoteKeySecret& voteKeySecret);
     bool CheckSignature() const;
-    bool IsValid(bool fSignatureCheck) const;
+    bool IsValid(bool fSignatureCheck, bool fRegistrationCheck, std::string &strError) const;
     void Relay(CConnman& connman) const;
 
     std::string GetVoteString() const {
         return CProposalVoting::ConvertOutcomeToString(GetOutcome());
     }
 
-    const CPubKey& GetVotingKey() const { return votingKey; }
+    const CVoteKey& GetVoteKey() const { return voteKey; }
 
     /**
     *   GetHash()
@@ -116,7 +116,7 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(votingKey);
+        READWRITE(voteKey);
         READWRITE(nProposalHash);
         READWRITE(nVoteOutcome);
         READWRITE(nVoteSignal);

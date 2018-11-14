@@ -71,7 +71,7 @@ public:
 
     std::vector<CProposalVote> GetVotes() const;
 
-    void RemoveVotesFromVotingKey(const CPubKey& votingKey);
+    void RemoveVotesFromVotingKey(const CVoteKey &voteKey);
 
     ADD_SERIALIZE_METHODS
 
