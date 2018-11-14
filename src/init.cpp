@@ -2145,7 +2145,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             }
         }
 
-        fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_NETFULLFILLED);
+        fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_VOTING);
         if( fCache ){
             strDBName = "smartvoting.dat";
             uiInterface.InitMessage(_("Loading smartvoting cache..."));
