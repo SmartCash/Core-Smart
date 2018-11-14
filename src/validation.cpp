@@ -15,6 +15,7 @@
 #include "consensus/validation.h"
 #include "hash.h"
 #include "init.h"
+#include "messagesigner.h"
 #include "net_processing.h"
 #include "policy/policy.h"
 #include "pow.h"
@@ -4862,57 +4863,36 @@ bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartA
 
     uint256 sigHash = Hash(ss.begin(), ss.end());
 
+    std::string strError;
     CKeyID keyId;
 
-    if( voteKey.IsValid() && voteKey.GetKeyID(keyId) ){
-
-        CPubKey pubkey;
-        if (!pubkey.RecoverCompact(sigHash, vecSigVoteKey)){
-
-            LogPrintf("ParseVoteKeyRegistration -- The voteKey signature did not match the message digest\n");
-            return false;
-        }
-
-        if (!(CVoteKey(pubkey.GetID()) == voteKey)){
-
-            LogPrintf("ParseVoteKeyRegistration -- Verification of the voteKey signature failed\n");
-            return false;
-        }
-
-        if( cRegisterOption == 0x02 ){
-
-            if( voteAddress.IsValid() && voteAddress.GetKeyID(keyId) ){
-
-                CPubKey pubkey;
-                if (!pubkey.RecoverCompact(sigHash, vecSigVoteAddress)){
-
-                    LogPrintf("ParseVoteKeyRegistration -- The voteAddress signature did not match the message digest\n");
-                    return false;
-                }
-
-                if (!(CSmartAddress(pubkey.GetID()) == voteAddress)){
-
-                    LogPrintf("ParseVoteKeyRegistration -- Verification of the voteAddress signature failed\n");
-                    return false;
-                }
-
-                LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option2] found. Key %s for address: %s\n", voteKey.ToString(), voteAddress.ToString());
-
-                return true;
-            }else{
-                LogPrintf("ParseVoteKeyRegistration -- Invalid voteAddress found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
-            }
-        }
-
-        LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option1] found. Key %s for address: %s\n", voteKey.ToString(), voteAddress.ToString());
-
-        return true;
-
-    }else{
+    if( voteKey.GetKeyID(keyId) ){
+        return false;
         LogPrintf("ParseVoteKeyRegistration -- Invalid voteKey found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
     }
 
-    return false;
+    if( !CHashSigner::VerifyHash(sigHash, keyId, vecSigVoteKey, strError ) ){
+        LogPrintf("ParseVoteKeyRegistration -- VoteKey signature verification failed: %s\n", strError);
+        return false;
+    }
+
+    if( cRegisterOption == 0x02 ){
+
+        if( voteAddress.GetKeyID(keyId) ){
+            LogPrintf("ParseVoteKeyRegistration -- Invalid voteAddress found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
+            return false;
+        }
+
+        if( !CHashSigner::VerifyHash(sigHash, keyId, vecSigVoteAddress, strError ) ){
+            LogPrintf("ParseVoteKeyRegistration -- VoteKey signature verification failed: %s\n", strError);
+            return false;
+        }
+
+    }
+
+    LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option %d] found. Key %s for address: %s\n", cRegisterOption, voteKey.ToString(), voteAddress.ToString());
+
+    return true;
 }
 
 bool IsValidVoteKeyRegistration(const CTransaction &tx)

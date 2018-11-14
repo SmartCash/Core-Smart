@@ -378,7 +378,7 @@ void CVoteKeySecret::SetKey(const std::vector<unsigned char> prefix, const CKey&
         vchData.push_back(1);
 }
 
-CKey CVoteKeySecret::GetKey()
+CKey CVoteKeySecret::GetKey() const
 {
     CKey ret;
     assert(vchData.size() >= 32);
@@ -395,7 +395,7 @@ bool CVoteKeySecret::IsValid() const
 
 bool CVoteKeySecret::SetString(const char* pszSecret)
 {
-    return CBase58Data::SetString(pszSecret) && IsValid();
+    return CBase58Data::SetString(pszSecret, 3) && IsValid();
 }
 
 bool CVoteKeySecret::SetString(const std::string& strSecret)
