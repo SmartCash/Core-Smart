@@ -82,8 +82,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendmany", 5 },
     { "sendmany", 6 },
     { "sendmany", 7 },
-    { "smartvoting", 4},
-    { "votekeys", 3},
     { "addmultisigaddress", 0 },
     { "addmultisigaddress", 1 },
     { "createmultisig", 0 },

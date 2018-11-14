@@ -9,6 +9,7 @@
 #include "consensus/validation.h"
 #include "init.h"
 #include "validation.h"
+#include "messagesigner.h"
 #include "net.h"
 #include "netbase.h"
 #include "rpc/server.h"
@@ -24,6 +25,15 @@
 
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
 
+UniValue ParseJSON(const std::string& strVal)
+{
+    UniValue jVal;
+    if (!jVal.read(std::string("[")+strVal+std::string("]")) ||
+        !jVal.isArray() || jVal.size()!=1)
+        throw runtime_error(string("Error parsing JSON:")+strVal);
+    return jVal[0];
+}
+
 UniValue smartvoting(const UniValue& params, bool fHelp)
 {
     std::string strCommand;
@@ -31,18 +41,17 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         strCommand = params[0].get_str();
 
     std::vector<std::string> vecCommands = {
+        "check",
 #ifdef ENABLE_WALLET
         "prepare",
 #endif // ENABLE_WALLET
         "submit",
-        "count",
         "deserialize",
+        "count",
+        "list",
         "get",
         "getvotes",
-        "getcurrentvotes",
-        "list",
-        "diff",
-        "check"
+        "vote"
     };
 
     if (fHelp  || std::find(vecCommands.begin(), vecCommands.end(), strCommand) == vecCommands.end() )
@@ -53,10 +62,12 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
                 "  check              - Validate a proposal\n"
                 "  prepare            - Create and prepare a proposal by signing and creating the fee tx\n"
                 "  submit             - Submit a proposal to the network\n"
+                "  deserialize        - Deserialize raw proposal data\n"
                 "  count              - Count proposals.\n"
                 "  list               - List all proposals.\n"
                 "  get                - Get a proposal by its hash\n"
                 "  getvotes           - Get all votes for a proposal\n"
+                "  vote               - Vote for a proposal"
                 );
 
     // VALIDATE A GOVERNANCE OBJECT PRIOR TO SUBMISSION
@@ -114,7 +125,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         proposal.SetUrl(params[2].get_str());
         proposal.SetAddress(CSmartAddress(params[3].get_str()));
 
-        for( UniValue milestone : params[4].get_array().getValues() ){
+        for( UniValue milestone : ParseJSON(params[4].get_str()).get_array().getValues() ){
 
             if( !milestone.isObject() ||
                 !milestone.exists("timestamp") || !milestone["timestamp"].isNum() ||
@@ -330,8 +341,6 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         {
             if(strCachedSignal == "valid" && !pProposal->IsSetCachedValid()) continue;
             if(strCachedSignal == "funding" && !pProposal->IsSetCachedFunding()) continue;
-            if(strCachedSignal == "delete" && !pProposal->IsSetCachedDelete()) continue;
-            if(strCachedSignal == "endorsed" && !pProposal->IsSetCachedEndorsed()) continue;
 
             UniValue bObj(UniValue::VOBJ);
             bObj.push_back(Pair("Hash",  pProposal->GetHash().ToString()));
@@ -356,8 +365,6 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
             bObj.push_back(Pair("IsValidReason",  strError.c_str()));
             bObj.push_back(Pair("fCachedValid",  pProposal->IsSetCachedValid()));
             bObj.push_back(Pair("fCachedFunding",  pProposal->IsSetCachedFunding()));
-            bObj.push_back(Pair("fCachedDelete",  pProposal->IsSetCachedDelete()));
-            bObj.push_back(Pair("fCachedEndorsed",  pProposal->IsSetCachedEndorsed()));
 
             objResult.push_back(Pair(pProposal->GetHash().ToString(), bObj));
         }
@@ -413,22 +420,12 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         objValid.push_back(Pair("AbstainCount",  pProposal->GetAbstainCount(VOTE_SIGNAL_VALID)));
         objResult.push_back(Pair("ValidResult", objValid));
 
-        // -- DELETION CRITERION VOTING RESULTS
-        UniValue objDelete(UniValue::VOBJ);
-        objDelete.push_back(Pair("AbsoluteYesCount",  pProposal->GetAbsoluteYesCount(VOTE_SIGNAL_DELETE)));
-        objDelete.push_back(Pair("YesCount",  pProposal->GetYesCount(VOTE_SIGNAL_DELETE)));
-        objDelete.push_back(Pair("NoCount",  pProposal->GetNoCount(VOTE_SIGNAL_DELETE)));
-        objDelete.push_back(Pair("AbstainCount",  pProposal->GetAbstainCount(VOTE_SIGNAL_DELETE)));
-        objResult.push_back(Pair("DeleteResult", objDelete));
-
         // --
         std::string strError = "";
         objResult.push_back(Pair("fLocalValidity",  pProposal->IsValidLocally(strError, false)));
         objResult.push_back(Pair("IsValidReason",  strError.c_str()));
         objResult.push_back(Pair("fCachedValid",  pProposal->IsSetCachedValid()));
         objResult.push_back(Pair("fCachedFunding",  pProposal->IsSetCachedFunding()));
-        objResult.push_back(Pair("fCachedDelete",  pProposal->IsSetCachedDelete()));
-        objResult.push_back(Pair("fCachedEndorsed",  pProposal->IsSetCachedEndorsed()));
         return objResult;
     }
 
@@ -437,12 +434,12 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
     {
         if (params.size() != 2)
             throw std::runtime_error(
-                "Correct usage is 'smartvoting getvotes <governance-hash>'"
+                "Correct usage is 'smartvoting getvotes <proposal-hash>'"
                 );
 
         // COLLECT PARAMETERS FROM USER
 
-        uint256 hash = ParseHashV(params[1], "Governance hash");
+        uint256 hash = ParseHashV(params[1], "Proposal hash");
 
         // FIND OBJECT USER IS LOOKING FOR
 
@@ -451,7 +448,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         CProposal* pProposal = smartVoting.FindProposal(hash);
 
         if(pProposal == NULL) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown governance-hash");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown proposal-hash");
         }
 
         // REPORT RESULTS TO USER
@@ -467,6 +464,74 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         return bResult;
     }
+
+    // MASTERNODES CAN VOTE ON GOVERNANCE OBJECTS ON THE NETWORK FOR VARIOUS SIGNALS AND OUTCOMES
+    if(strCommand == "vote")
+    {
+        if(params.size() != 5)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting vote <proposal-hash> [funding|valid] [yes|no|abstain] <vote-key-secret>'");
+
+        uint256 hash;
+        std::string strVote;
+
+        // COLLECT NEEDED PARAMETRS FROM USER
+
+        hash = ParseHashV(params[1], "Proposal hash");
+        std::string strVoteSignal = params[2].get_str();
+        std::string strVoteOutcome = params[3].get_str();
+
+        CVoteKeySecret voteKeySecret;
+
+        if( !voteKeySecret.SetString(params[4].get_str()) )
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("Invalid <vote-key-secret>: %s", params[4].get_str()));
+
+        CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
+
+        // CONVERT NAMED SIGNAL/ACTION AND CONVERT
+
+        vote_signal_enum_t eVoteSignal = CProposalVoting::ConvertVoteSignal(strVoteSignal);
+        if(eVoteSignal == VOTE_SIGNAL_NONE) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "Invalid vote signal. Please using one of the following: "
+                               "(funding|valid|delete|endorsed)");
+        }
+
+        vote_outcome_enum_t eVoteOutcome = CProposalVoting::ConvertVoteOutcome(strVoteOutcome);
+        if(eVoteOutcome == VOTE_OUTCOME_NONE) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid vote outcome. Please use one of the following: 'yes', 'no' or 'abstain'");
+        }
+
+        // EXECUTE VOTE FOR EACH MASTERNODE, COUNT SUCCESSES VS FAILURES
+
+        UniValue resultsObj(UniValue::VOBJ);
+        UniValue statusObj(UniValue::VOBJ);
+
+        // CREATE NEW PROPOSAL VOTE WITH OUTCOME/SIGNAL
+
+        CProposalVote vote(voteKey, hash, eVoteSignal, eVoteOutcome);
+        if(vote.Sign(voteKeySecret)) {
+
+            CSmartVotingException exception;
+            if(smartVoting.ProcessVoteAndRelay(vote, exception, *g_connman)) {
+                statusObj.push_back(Pair("result", "success"));
+            } else {
+                statusObj.push_back(Pair("result", "failed"));
+                statusObj.push_back(Pair("errorMessage", exception.GetMessage()));
+            }
+
+            resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
+
+        }else{
+
+            statusObj.push_back(Pair("result", "failed"));
+            statusObj.push_back(Pair("errorMessage", "Failure to sign."));
+            resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
+        }
+
+        return resultsObj;
+    }
+
 
     return NullUniValue;
 }
@@ -510,7 +575,7 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         unsigned char cRegisterOption = 0x01;
 
         uint256 txHash = uint256S(params[2].get_str());
-        int64_t txIndex = params[3].get_int64();
+        int64_t txIndex = ParseJSON(params[3].get_str()).get_int64();
 
         // **
         // Check if the unspent output belongs to <address> or not
