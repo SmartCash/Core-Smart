@@ -2,12 +2,15 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "consensus/consensus.h"
+#include "init.h"
 #include "smartrewards/rewards.h"
 #include "smarthive/hive.h"
 #include "smartnode/spork.h"
-#include "validation.h"
-#include "init.h"
+#include "smartnode/smartnodepayments.h"
 #include "ui_interface.h"
+#include "validation.h"
+
 #include <boost/thread.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
@@ -69,6 +72,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
     CSmartRewardEntry *rEntry = nullptr;
     CBlock block;
+    int nHeight = pindexNew->nHeight;
     ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
 
     BOOST_FOREACH(const CTransaction &tx, block.vtx) {
@@ -137,10 +141,11 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 if(rEntry->balance < 0 ){
                     LogPrintf("%s: Negative amount?! - %s", __func__, rEntry->ToString());
                     rEntry->balance = 0;
-                 }
+                }
 
             }
         }
+
 #ifdef DEBUG_LOCKORDER
         int nTime2 = GetTimeMicros();
 #endif
@@ -162,6 +167,17 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                     rewardEntries.insert(make_pair(ids.at(0), rEntry));
                 }
                 rEntry->balance += out.nValue;
+
+                //check for node rewards to remove node addresses from lists
+                if(tx.IsCoinBase()){
+                  if(out.nValue == (SmartNodePayments::Payment(nHeight) / HF_V1_2_NODES_PER_BLOCK)){
+                    if( rEntry->eligible ){
+                        rEntry->eligible = false;
+                        result.disqualifiedEntries++;
+                        result.disqualifiedSmart += rEntry->balanceOnStart;
+                    }
+                  }
+                }
             }
         }
 
@@ -629,4 +645,3 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
             uiInterface.NotifySmartRewardUpdate();
     }
 }
-
