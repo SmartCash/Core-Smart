@@ -169,8 +169,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 rEntry->balance += out.nValue;
 
                 //check for node rewards to remove node addresses from lists
-                if(tx.IsCoinBase()){
-                  if(out.nValue == (SmartNodePayments::Payment(nHeight) / HF_V1_2_NODES_PER_BLOCK)){
+                if(tx.IsCoinBase() && (nHeight % SmartNodePayments::PayoutInterval(nHeight)) ){
+                  if(out.nValue == (SmartNodePayments::Payment(nHeight) / SmartNodePayments::PayoutsPerBlock(nHeight))){
                     if( rEntry->eligible ){
                         rEntry->eligible = false;
                         result.disqualifiedEntries++;
