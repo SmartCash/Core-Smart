@@ -621,12 +621,11 @@ void CSmartVotingManager::SyncProposalWithVotes(CNode* pnode, const uint256& nPr
 
     LogPrint("proposal", "CSmartVotingManager::%s -- attempting to sync proposal: %s, peer=%d\n", __func__, strHash, pnode->id);
 
-    // TODO
-//    if(proposal.IsSetCachedDelete() || proposal.IsSetExpired()) {
-//        LogPrintf("CSmartVotingManager::%s -- not syncing deleted/expired proposal: %s, peer=%d\n", __func__,
-//                  strHash, pnode->id);
-//        return;
-//    }
+    if(!proposal.IsSetCachedValid() || proposal.IsSetExpired()) {
+        LogPrintf("CSmartVotingManager::%s -- not syncing deleted/expired proposal: %s, peer=%d\n", __func__,
+                  strHash, pnode->id);
+        return;
+    }
 
     // Push the proposal inventory message over to the other client
     LogPrint("proposal", "CSmartVotingManager::%s -- syncing proposal: %s, peer=%d\n", __func__, strHash, pnode->id);
@@ -678,12 +677,11 @@ void CSmartVotingManager::SyncAll(CNode* pnode, CConnman& connman) const
 
         LogPrint("proposal", "CSmartVotingManager::%s -- attempting to sync proposal: %s, peer=%d\n", __func__, strHash, pnode->id);
 
-        //TODO
-//        if(proposal.IsSetCachedDelete() || proposal.IsSetExpired()) {
-//            LogPrintf("CSmartVotingManager::%s -- not syncing deleted/expired proposal: %s, peer=%d\n", __func__,
-//                      strHash, pnode->id);
-//            continue;
-//        }
+        if( !proposal.IsSetCachedValid() || proposal.IsSetExpired()) {
+            LogPrintf("CSmartVotingManager::%s -- not syncing deleted/expired proposal: %s, peer=%d\n", __func__,
+                      strHash, pnode->id);
+            continue;
+        }
 
         // Push the inventory budget proposal message over to the other client
         LogPrint("proposal", "CSmartVotingManager::%s -- syncing proposal: %s, peer=%d\n", __func__, strHash, pnode->id);
