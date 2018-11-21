@@ -132,8 +132,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
                 rEntry->balance -= rOut.nValue;
 
-                if( rEntry->eligible ){
-                    rEntry->eligible = false;
+                if( rEntry->IsEligible() ){
+                    rEntry->fBalanceEligible = false;
                     result.disqualifiedEntries++;
                     result.disqualifiedSmart += rEntry->balanceOnStart;
                 }
@@ -169,12 +169,15 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 rEntry->balance += out.nValue;
 
                 //check for node rewards to remove node addresses from lists
-                if(tx.IsCoinBase() && (nHeight % SmartNodePayments::PayoutInterval(nHeight)) ){
-                  if(out.nValue == (SmartNodePayments::Payment(nHeight) / SmartNodePayments::PayoutsPerBlock(nHeight))){
-                    if( rEntry->eligible ){
-                        rEntry->eligible = false;
-                        result.disqualifiedEntries++;
-                        result.disqualifiedSmart += rEntry->balanceOnStart;
+                if(nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT){
+                  if(tx.IsCoinBase() && (nHeight % SmartNodePayments::PayoutInterval(nHeight)) ){
+                    if(out.nValue == (SmartNodePayments::Payment(nHeight) / SmartNodePayments::PayoutsPerBlock(nHeight))){
+                      if( rEntry->IsEligible() ){
+                          rEntry->fBalanceEligible = false;
+                          rEntry->fIsSmartNode = true;
+                          result.disqualifiedEntries++;
+                          result.disqualifiedSmart += rEntry->balanceOnStart;
+                      }
                     }
                   }
                 }
@@ -213,9 +216,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
         if( current.number ) snapshots.push_back(CSmartRewardSnapshot(entry, current));
 
         entry.balanceOnStart = entry.balance;
-        entry.eligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
+        entry.fBalanceEligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
 
-        if( entry.eligible ){
+        if( entry.IsEligible() ){
             ++next.eligibleEntries;
             next.eligibleSmart += entry.balanceOnStart;
         }

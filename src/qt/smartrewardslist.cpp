@@ -315,7 +315,7 @@ void SmartrewardsList::updateUI()
 
                         if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
                             change.balance = reward.balance;
-                            change.eligible = reward.eligible ? reward.balanceOnStart : 0;
+                            change.eligible = reward.IsEligible() ? reward.balanceOnStart : 0;
                             change.reward = current.percent * change.eligible;
                         }
 
@@ -341,7 +341,7 @@ void SmartrewardsList::updateUI()
 
                 if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward) ){
                     rewardField.balance = reward.balance;
-                    rewardField.eligible = reward.eligible ? reward.balanceOnStart : 0;
+                    rewardField.eligible = reward.IsEligible() ? reward.balanceOnStart : 0;
                     rewardField.reward = current.percent * rewardField.eligible;
                 }
 
@@ -372,8 +372,8 @@ void SmartrewardsList::updateUI()
             CSmartRewardWidgetItem *rewardItem = new CSmartRewardWidgetItem(BitcoinUnits::format(nDisplayUnit, field.reward) + " " +  BitcoinUnits::name(nDisplayUnit));
 
             ui->tableWidget->setItem(nRow, COLUMN_LABEL, createItem(field.label));
-            ui->tableWidget->setItem(nRow, COLUMN_ADDRESS, createItem(field.address));            
-            ui->tableWidget->setItem(nRow, COLUMN_AMOUNT, balanceItem);            
+            ui->tableWidget->setItem(nRow, COLUMN_ADDRESS, createItem(field.address));
+            ui->tableWidget->setItem(nRow, COLUMN_AMOUNT, balanceItem);
             balanceItem->setData(Qt::UserRole, QVariant((qlonglong)field.balance));
             ui->tableWidget->setItem(nRow, COLUMN_ELIGIBLE, eligibleItem);
             eligibleItem->setData(Qt::UserRole, QVariant((qlonglong)field.eligible));

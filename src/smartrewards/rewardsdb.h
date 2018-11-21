@@ -12,7 +12,7 @@
 #include "base58.h"
 #include "smarthive/hive.h"
 
-static constexpr uint8_t REWARDS_DB_VERSION = 0x01;
+static constexpr uint8_t REWARDS_DB_VERSION = 0x02;
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
@@ -164,21 +164,25 @@ public:
         READWRITE(id);
         READWRITE(balanceOnStart);
         READWRITE(balance);
-        READWRITE(eligible);
+        READWRITE(fBalanceEligible);
+        READWRITE(fIsSmartNode);
     }
 
     CSmartAddress id;
     CAmount balance;
     CAmount balanceOnStart;
     CAmount reward;
-    bool eligible;
+    bool fBalanceEligible;
+    bool fIsSmartNode;
 
     CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceOnStart(0),
-                          reward(0), eligible(false) {}
+                          reward(0), fBalanceEligible(false),
+                          fIsSmartNode(false) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceOnStart(0),
-                          reward(0), eligible(false) {}
+                          reward(0), fBalanceEligible(false),
+                          fIsSmartNode(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -193,6 +197,7 @@ public:
     std::string GetAddress() const;
     void setNull();
     std::string ToString() const;
+    bool IsEligible();
 };
 
 class CSmartRewardSnapshot
@@ -215,10 +220,10 @@ public:
 
     CSmartRewardSnapshot(){}
 
-    CSmartRewardSnapshot(const CSmartRewardEntry &entry, const CSmartRewardRound &round) {
+    CSmartRewardSnapshot(CSmartRewardEntry &entry, const CSmartRewardRound &round) {
         id = entry.id;
         balance = entry.balance;
-        reward = entry.eligible ? CAmount(entry.balanceOnStart * round.percent) : 0;
+        reward = entry.IsEligible() ? CAmount(entry.balanceOnStart * round.percent) : 0;
     }
 
     friend bool operator==(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
