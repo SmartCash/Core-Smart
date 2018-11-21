@@ -204,10 +204,16 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
     }
 
     // gradually request the rest of the votes after sync finished
-    if(IsSynced()) {
-        std::vector<CNode*> vNodesCopy = connman.CopyNodeVector();
-        smartVoting.RequestProposalVotes(vNodesCopy, connman);
-        connman.ReleaseNodeVector(vNodesCopy);
+    if(IsSynced()){
+
+        if( !(nTick % SMARTNODE_SYNC_REQUEST_VOTES_SECONDS) ) {
+            std::vector<CNode*> vNodesCopy = connman.CopyNodeVector();
+            smartVoting.RequestProposalVotes(vNodesCopy, connman);
+            connman.ReleaseNodeVector(vNodesCopy);
+        }
+
+        smartVoting.CheckAndRemove();
+
         return;
     }
 
