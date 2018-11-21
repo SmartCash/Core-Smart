@@ -5,6 +5,7 @@
 
 #include "smartvoting/manager.h"
 #include "smartvoting/proposal.h"
+#include "smartvoting/votevalidation.h"
 #include "smartnode/smartnodesync.h"
 #include "smartnode/instantx.h"
 #include "validation.h"
@@ -550,48 +551,57 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
     return true;
 }
 
-int CProposal::CountMatchingVotes(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const
+CAmount CProposal::GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const
 {
     LOCK(cs);
 
-    int nCount = 0;
+    CAmount nPower = 0;
     for (const auto& votepair : mapCurrentVKVotes) {
         const vote_rec_t& recVote = votepair.second;
         vote_instance_m_cit it2 = recVote.mapInstances.find(eVoteSignalIn);
         if(it2 != recVote.mapInstances.end() && it2->second.eOutcome == eVoteOutcomeIn) {
-            ++nCount;
+            nPower += ::GetVotingPower(votepair.first);
         }
     }
-    return nCount;
+    return nPower;
 }
 
 /**
 *   Get specific vote counts for each outcome (funding, validity, etc)
 */
 
-int CProposal::GetAbsoluteYesCount(vote_signal_enum_t eVoteSignalIn) const
+CAmount CProposal::GetAbsoluteYesPower(vote_signal_enum_t eVoteSignalIn) const
 {
-    return GetYesCount(eVoteSignalIn) - GetNoCount(eVoteSignalIn);
+    return GetYesPower(eVoteSignalIn) - GetNoPower(eVoteSignalIn);
 }
 
-int CProposal::GetAbsoluteNoCount(vote_signal_enum_t eVoteSignalIn) const
+CAmount CProposal::GetAbsoluteNoPower(vote_signal_enum_t eVoteSignalIn) const
 {
-    return GetNoCount(eVoteSignalIn) - GetYesCount(eVoteSignalIn);
+    return GetNoPower(eVoteSignalIn) - GetYesPower(eVoteSignalIn);
 }
 
-int CProposal::GetYesCount(vote_signal_enum_t eVoteSignalIn) const
+CAmount CProposal::GetYesPower(vote_signal_enum_t eVoteSignalIn) const
 {
-    return CountMatchingVotes(eVoteSignalIn, VOTE_OUTCOME_YES);
+    return GetVotingPower(eVoteSignalIn, VOTE_OUTCOME_YES);
 }
 
-int CProposal::GetNoCount(vote_signal_enum_t eVoteSignalIn) const
+CAmount CProposal::GetNoPower(vote_signal_enum_t eVoteSignalIn) const
 {
-    return CountMatchingVotes(eVoteSignalIn, VOTE_OUTCOME_NO);
+    return GetVotingPower(eVoteSignalIn, VOTE_OUTCOME_NO);
 }
 
-int CProposal::GetAbstainCount(vote_signal_enum_t eVoteSignalIn) const
+CAmount CProposal::GetAbstainPower(vote_signal_enum_t eVoteSignalIn) const
 {
-    return CountMatchingVotes(eVoteSignalIn, VOTE_OUTCOME_ABSTAIN);
+    return GetVotingPower(eVoteSignalIn, VOTE_OUTCOME_ABSTAIN);
+}
+
+void CProposal::GetActiveVoteKeys(std::set<CVoteKey> &setVoteKeys) const
+{
+    for( auto it : mapCurrentVKVotes ){
+        if( !setVoteKeys.count(it.first)){
+            setVoteKeys.insert(it.first);
+        }
+    }
 }
 
 bool CProposal::GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t& voteRecord) const

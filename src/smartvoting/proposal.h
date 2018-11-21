@@ -274,12 +274,13 @@ public:
     void ClearVoteKeyVotes();
     void CheckOrphanVotes(CConnman &connman);
 
-    int CountMatchingVotes(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const;
-    int GetAbsoluteYesCount(vote_signal_enum_t eVoteSignalIn) const;
-    int GetAbsoluteNoCount(vote_signal_enum_t eVoteSignalIn) const;
-    int GetYesCount(vote_signal_enum_t eVoteSignalIn) const;
-    int GetNoCount(vote_signal_enum_t eVoteSignalIn) const;
-    int GetAbstainCount(vote_signal_enum_t eVoteSignalIn) const;
+    CAmount GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const;
+    CAmount GetAbsoluteYesPower(vote_signal_enum_t eVoteSignalIn) const;
+    CAmount GetAbsoluteNoPower(vote_signal_enum_t eVoteSignalIn) const;
+    CAmount GetYesPower(vote_signal_enum_t eVoteSignalIn) const;
+    CAmount GetNoPower(vote_signal_enum_t eVoteSignalIn) const;
+    CAmount GetAbstainPower(vote_signal_enum_t eVoteSignalIn) const;
+    void GetActiveVoteKeys(std::set<CVoteKey> &setVoteKeys) const;
     bool GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t &voteRecord) const;
 
     std::string ToString() const;
@@ -294,6 +295,16 @@ public:
         READWRITE(address);
         READWRITE(vecMilestones);
         READWRITE(nFeeHash);
+
+        if(nType & SER_DISK) {
+            // Only include these for the disk file format
+            LogPrint("proposal", "CProposal::SerializationOp Reading/writing votes from/to disk\n");
+            READWRITE(nTimeDeletion);
+            READWRITE(fExpired);
+            READWRITE(mapCurrentVKVotes);
+            READWRITE(fileVotes);
+            LogPrint("proposal", "CProposal::SerializationOp hash = %s, vote count = %d\n", GetHash().ToString(), fileVotes.GetVoteCount());
+        }
     }
 
     CProposal& operator=(CProposal from)
