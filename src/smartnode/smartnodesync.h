@@ -66,6 +66,7 @@ public:
     bool IsSmartNodeSyncStarted() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_WAITING; }
     bool IsSmartnodeListSynced() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_LIST; }
     bool IsWinnersListSynced() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_MNW; }
+    bool IsProposalDataSynced() { return nRequestedSmartnodeAssets > SMARTNODE_SYNC_PROPOSAL_VOTE; }
     bool IsSynced() { return nRequestedSmartnodeAssets == SMARTNODE_SYNC_FINISHED; }
 
     int GetAssetID() { return nRequestedSmartnodeAssets; }
