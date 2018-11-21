@@ -18,11 +18,13 @@
 #include "smartvoting/proposal.h"
 #include "smartvoting/manager.h"
 #include "smartvoting/votekeys.h"
+#include "smartvoting/votevalidation.h"
 #include "util.h"
 #include "wallet/wallet.h"
 #include <univalue.h>
 
 
+extern UniValue UniValueFromAmount(int64_t nAmount);
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
 
 UniValue ParseJSON(const std::string& strVal)
@@ -354,10 +356,10 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
             }
 
             // REPORT STATUS FOR FUNDING VOTES SPECIFICALLY
-            bObj.push_back(Pair("AbsoluteYesCount",  pProposal->GetAbsoluteYesCount(VOTE_SIGNAL_FUNDING)));
-            bObj.push_back(Pair("YesCount",  pProposal->GetYesCount(VOTE_SIGNAL_FUNDING)));
-            bObj.push_back(Pair("NoCount",  pProposal->GetNoCount(VOTE_SIGNAL_FUNDING)));
-            bObj.push_back(Pair("AbstainCount",  pProposal->GetAbstainCount(VOTE_SIGNAL_FUNDING)));
+            bObj.push_back(Pair("AbsoluteYesPower", UniValueFromAmount(pProposal->GetAbsoluteYesPower(VOTE_SIGNAL_FUNDING))));
+            bObj.push_back(Pair("YesPower", UniValueFromAmount(pProposal->GetYesPower(VOTE_SIGNAL_FUNDING))));
+            bObj.push_back(Pair("NoPower",  UniValueFromAmount(pProposal->GetNoPower(VOTE_SIGNAL_FUNDING))));
+            bObj.push_back(Pair("AbstainPower",  UniValueFromAmount(pProposal->GetAbstainPower(VOTE_SIGNAL_FUNDING))));
 
             // REPORT VALIDITY AND CACHING FLAGS FOR VARIOUS SETTINGS
             std::string strError = "";
@@ -406,18 +408,18 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         // -- FUNDING VOTING RESULTS
 
         UniValue objFundingResult(UniValue::VOBJ);
-        objFundingResult.push_back(Pair("AbsoluteYesCount",  pProposal->GetAbsoluteYesCount(VOTE_SIGNAL_FUNDING)));
-        objFundingResult.push_back(Pair("YesCount",  pProposal->GetYesCount(VOTE_SIGNAL_FUNDING)));
-        objFundingResult.push_back(Pair("NoCount",  pProposal->GetNoCount(VOTE_SIGNAL_FUNDING)));
-        objFundingResult.push_back(Pair("AbstainCount",  pProposal->GetAbstainCount(VOTE_SIGNAL_FUNDING)));
+        objFundingResult.push_back(Pair("AbsoluteYesPower",  UniValueFromAmount(pProposal->GetAbsoluteYesPower(VOTE_SIGNAL_FUNDING))));
+        objFundingResult.push_back(Pair("YesPower",  UniValueFromAmount(pProposal->GetYesPower(VOTE_SIGNAL_FUNDING))));
+        objFundingResult.push_back(Pair("NoPower",  UniValueFromAmount(pProposal->GetNoPower(VOTE_SIGNAL_FUNDING))));
+        objFundingResult.push_back(Pair("AbstainPower",  UniValueFromAmount(pProposal->GetAbstainPower(VOTE_SIGNAL_FUNDING))));
         objResult.push_back(Pair("FundingResult", objFundingResult));
 
         // -- VALIDITY VOTING RESULTS
         UniValue objValid(UniValue::VOBJ);
-        objValid.push_back(Pair("AbsoluteYesCount",  pProposal->GetAbsoluteYesCount(VOTE_SIGNAL_VALID)));
-        objValid.push_back(Pair("YesCount",  pProposal->GetYesCount(VOTE_SIGNAL_VALID)));
-        objValid.push_back(Pair("NoCount",  pProposal->GetNoCount(VOTE_SIGNAL_VALID)));
-        objValid.push_back(Pair("AbstainCount",  pProposal->GetAbstainCount(VOTE_SIGNAL_VALID)));
+        objValid.push_back(Pair("AbsoluteYesPower", UniValueFromAmount( pProposal->GetAbsoluteYesPower(VOTE_SIGNAL_VALID))));
+        objValid.push_back(Pair("YesPower",  UniValueFromAmount(pProposal->GetYesPower(VOTE_SIGNAL_VALID))));
+        objValid.push_back(Pair("NoPower",  UniValueFromAmount(pProposal->GetNoPower(VOTE_SIGNAL_VALID))));
+        objValid.push_back(Pair("AbstainPower",  UniValueFromAmount(pProposal->GetAbstainPower(VOTE_SIGNAL_VALID))));
         objResult.push_back(Pair("ValidResult", objValid));
 
         // --
@@ -453,13 +455,32 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         // REPORT RESULTS TO USER
 
-        UniValue bResult(UniValue::VOBJ);
+        UniValue bResult(UniValue::VARR);
 
         // GET MATCHING VOTES BY HASH, THEN SHOW USERS VOTE INFORMATION
 
         std::vector<CProposalVote> vecVotes = smartVoting.GetMatchingVotes(hash);
         for (const auto& vote : vecVotes) {
-            bResult.push_back(Pair(vote.GetHash().ToString(),  vote.ToString()));
+            UniValue objVote(UniValue::VOBJ);
+
+            objVote.pushKV("hash", vote.GetHash().ToString());
+            objVote.pushKV("voteKey", vote.GetVoteKey().ToString());
+            objVote.pushKV("time", vote.GetTimestamp());
+            objVote.pushKV("type",CProposalVoting::ConvertSignalToString(vote.GetSignal()));
+            objVote.pushKV("voted", CProposalVoting::ConvertOutcomeToString(vote.GetOutcome()));
+
+            UniValue objPower(UniValue::VOBJ);
+
+            CVotingPower power;
+
+            GetVotingPower(vote.GetVoteKey(), power);
+
+            objPower.pushKV("address", power.address.ToString());
+            objPower.pushKV("height", power.nBlockHeight);
+            objPower.pushKV("power", UniValueFromAmount(power.nPower));
+
+            objVote.pushKV("power", objPower);
+            bResult.push_back(objVote);
         }
 
         return bResult;
