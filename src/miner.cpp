@@ -293,7 +293,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, co
 
             if (nBlockSize + nTxSize >= nBlockMaxSize) {
                 if (nBlockSize >  nBlockMaxSize - 100 || lastFewTxs > 50) {
-                    LogPrintf("stop due to size overweight", tx.GetHash().ToString());
+                    LogPrintf("tx=%s, stop due to size overweight", tx.GetHash().ToString());
                     LogPrintf("nBlockSize=%s\n", nBlockSize);
                     LogPrintf("nBlockMaxSize=%s\n", nBlockMaxSize);
                     break;
@@ -369,7 +369,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, co
             LogPrintf("MAX_BLOCK_SIGOPS_COST=%s\n", MAX_BLOCK_SIGOPS_COST);
             if (nBlockSigOps + nTxSigOps >= MAX_BLOCK_SIGOPS_COST) {
                 if (nBlockSigOps > MAX_BLOCK_SIGOPS_COST - 2) {
-                    LogPrintf("stop due to cross fee\n", tx.GetHash().ToString());
+                    LogPrintf("tx=%s, stop due to cross fee\n", tx.GetHash().ToString());
                     break;
                 }
                 LogPrintf("skip tx=%s, nBlockSigOps + nTxSigOps >= MAX_BLOCK_SIGOPS_COST\n", tx.GetHash().ToString());
