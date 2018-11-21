@@ -164,6 +164,7 @@ BITCOIN_CORE_H = \
   smartvoting/voting.h \
   smartvoting/votedb.h \
   smartvoting/votekeys.h \
+  smartvoting/votevalidation.h \
   spentindex.h \
   streams.h \
   support/allocators/secure.h \
@@ -266,6 +267,7 @@ libbitcoin_server_a_SOURCES = \
   smartvoting/manager.cpp \
   smartvoting/votedb.cpp \
   smartvoting/voting.cpp \
+  smartvoting/votevalidation.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \
