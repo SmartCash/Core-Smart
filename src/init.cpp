@@ -26,6 +26,7 @@
 #include "net.h"
 #include "smartnode/netfulfilledman.h"
 #include "smartvoting/manager.h"
+#include "smartvoting/votevalidation.h"
 #include "smartmining/miningpayments.h"
 #include "net_processing.h"
 #include "policy/policy.h"
@@ -2157,6 +2158,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 } catch (const boost::filesystem::filesystem_error& e) {
                     LogPrintf("Unable to remove smartvoting.dat: %s\n", e.what());
                 }
+            }else{
+                smartVoting.InitOnLoad();
             }
         }
     }
@@ -2168,9 +2171,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // GetMainSignals().UpdatedBlockTip(chainActive.Tip());
     pdsNotificationInterface->InitializeCurrentBlockTip();
 
-    // ********************************************************* Step 11d: start smartcash-privatesend thread
+    // ********************************************************* Step 11d: start smartcash threads
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
+    threadGroup.create_thread(&ThreadSmartVoting);
 
     // ********************************************************* Step 12: start node
 
