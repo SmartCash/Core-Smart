@@ -8,6 +8,7 @@
 #include <list>
 #include <map>
 
+#include "smarthive/hive.h"
 #include "voting.h"
 #include "serialize.h"
 #include "streams.h"

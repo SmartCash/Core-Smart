@@ -245,6 +245,12 @@ bool CProposal::IsValid(std::vector<std::string> &vecErrors) const
     return !vecErrors.size();
 }
 
+bool CProposal::IsValid() const
+{
+    std::vector<std::string> vecErrors;
+    return IsValid(vecErrors);
+}
+
 uint256 CProposal::GetHash() const
 {
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
@@ -392,7 +398,7 @@ bool CProposal::ProcessVote(CNode* pfrom,
 
     voteInstanceRef = vote_instance_t(vote.GetOutcome(), nVoteTimeUpdate, vote.GetTimestamp());
     fileVotes.AddVote(vote);
-    //fDirtyCache = true;
+    InvalidateVoteCache();
     return true;
 }
 
@@ -595,6 +601,13 @@ CAmount CProposal::GetAbstainPower(vote_signal_enum_t eVoteSignalIn) const
     return GetVotingPower(eVoteSignalIn, VOTE_OUTCOME_ABSTAIN);
 }
 
+CVoteResult CProposal::GetVotingResult(vote_signal_enum_t eVoteSignalIn) const
+{
+    return CVoteResult(GetYesPower(eVoteSignalIn),
+                       GetNoPower(eVoteSignalIn),
+                       GetAbstainPower(eVoteSignalIn));
+}
+
 void CProposal::GetActiveVoteKeys(std::set<CVoteKey> &setVoteKeys) const
 {
     for( auto it : mapCurrentVKVotes ){
@@ -657,6 +670,33 @@ void CProposal::CheckOrphanVotes(CConnman& connman)
         ++it;
         if(fRemove) {
             cmmapOrphanVotes.Erase(key, pairVote);
+        }
+    }
+}
+
+
+void CProposal::UpdateSentinelVariables()
+{
+    Consensus::Params consensus = Params().GetConsensus();
+
+    // SET SENTINEL FLAGS TO FALSE
+
+    fCachedFunding = false;
+    fCachedValid = true; //default to valid
+    fDirtyCache = false;
+
+    // SET SENTINEL FLAGS TO TRUE IF MIMIMUM SUPPORT LEVELS ARE REACHED
+    // ARE ANY OF THESE FLAGS CURRENTLY ACTIVATED?
+
+    CVoteResult fundingResult = GetVotingResult(VOTE_SIGNAL_FUNDING);
+    CVoteResult validResult = GetVotingResult(VOTE_SIGNAL_VALID);
+
+    if( fundingResult.GetYes() > consensus.nVotingMinYesPercent ) fCachedFunding = true;
+
+    if( validResult.GetTotalPower() && validResult.GetYes() < consensus.nVotingMinYesPercent) {
+        fCachedValid = false;
+        if(nTimeDeletion == 0) {
+            nTimeDeletion = GetAdjustedTime();
         }
     }
 }

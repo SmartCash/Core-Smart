@@ -228,8 +228,15 @@ public:
     void SetCreationTime(int64_t nTime) { nTimeCreated = nTime; }
     int64_t GetCreationTime() const { return nTimeCreated; }
 
+    void SetDeletionTime(int64_t nTime) { nTimeDeletion = nTime; }
+    int64_t GetDeletionTime() const { return nTimeDeletion; }
+
     bool IsSetCachedFunding() const {
         return fCachedFunding;
+    }
+
+    void SetCachedValid(bool fValid) {
+        fCachedValid = fValid;
     }
 
     bool IsSetCachedValid() const {
@@ -252,7 +259,7 @@ public:
     std::vector<CProposalMilestone> GetMilestones() const { return vecMilestones; }
 
     bool IsValid(std::vector<std::string> &vecErrors) const;
-
+    bool IsValid() const;
     uint256 GetHash() const;
 
     void Relay(CConnman& connman) const;
@@ -267,6 +274,8 @@ public:
     }
 
     void UpdateLocalValidity();
+    void UpdateSentinelVariables();
+
     bool IsValidLocally(std::string& strError, bool fCheckCollateral) const;
     bool IsValidLocally(std::string& strError, int& fMissingConfirmations, bool fCheckCollateral) const;
     bool IsCollateralValid(std::string& strError, int& fMissingConfirmations) const;
@@ -280,6 +289,7 @@ public:
     CAmount GetYesPower(vote_signal_enum_t eVoteSignalIn) const;
     CAmount GetNoPower(vote_signal_enum_t eVoteSignalIn) const;
     CAmount GetAbstainPower(vote_signal_enum_t eVoteSignalIn) const;
+    CVoteResult GetVotingResult(vote_signal_enum_t eVoteSignalIn) const;
     void GetActiveVoteKeys(std::set<CVoteKey> &setVoteKeys) const;
     bool GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t &voteRecord) const;
 

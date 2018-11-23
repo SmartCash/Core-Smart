@@ -314,112 +314,90 @@ void CSmartVotingManager::AddProposal(CProposal& proposal, CConnman& connman, CN
 
 void CSmartVotingManager::UpdateCachesAndClean()
 {
-//    LogPrint("proposal", "CSmartVotingManager::UpdateCachesAndClean\n");
+    LogPrint("proposal", "CSmartVotingManager::UpdateCachesAndClean\n");
 
-//    std::vector<uint256> vecDirtyHashes = mnodeman.GetAndClearDirtyGovernanceObjectHashes();
+    LOCK2(cs_main, cs);
 
-//    LOCK2(cs_main, cs);
+    ScopedLockBool guard(cs, fRateChecksEnabled, false);
 
-//    for(size_t i = 0; i < vecDirtyHashes.size(); ++i) {
-//        proposal_m_it it = mapProposals.find(vecDirtyHashes[i]);
-//        if(it == mapProposals.end()) {
-//            continue;
-//        }
-//        it->second.ClearMasternodeVotes();
-//        it->second.fDirtyCache = true;
-//    }
+    proposal_m_it it = mapProposals.begin();
+    int64_t nNow = GetAdjustedTime();
 
-//    ScopedLockBool guard(cs, fRateChecksEnabled, false);
+    while(it != mapProposals.end())
+    {
+        CProposal* pProposal = &((*it).second);
 
-//    // Clean up any expired or invalid triggers
-//    triggerman.CleanAndRemove();
+        if(!pProposal) {
+            ++it;
+            continue;
+        }
 
-//    proposal_m_it it = mapProposals.begin();
-//    int64_t nNow = GetAdjustedTime();
+        uint256 nHash = it->first;
+        std::string strHash = nHash.ToString();
 
-//    while(it != mapProposals.end())
-//    {
-//        CProposal* pProposal = &((*it).second);
+        // UPDATE SENTINEL SIGNALING VARIABLES
+        pProposal->UpdateSentinelVariables();
 
-//        if(!pProposal) {
-//            ++it;
-//            continue;
-//        }
+        // IF CACHE IS NOT DIRTY, WHY DO THIS?
+        if(pProposal->IsSetDirtyCache()) {
+            // UPDATE LOCAL VALIDITY AGAINST CRYPTO DATA
+            pProposal->UpdateLocalValidity();
+        }
 
-//        uint256 nHash = it->first;
-//        std::string strHash = nHash.ToString();
+        // IF DELETE=TRUE, THEN CLEAN THE MESS UP!
 
-//        // IF CACHE IS NOT DIRTY, WHY DO THIS?
-//        if(pProposal->IsSetDirtyCache()) {
-//            // UPDATE LOCAL VALIDITY AGAINST CRYPTO DATA
-//            pProposal->UpdateLocalValidity();
+        int64_t nTimeSinceDeletion = nNow - pProposal->GetDeletionTime();
 
-//            // UPDATE SENTINEL SIGNALING VARIABLES
-//            pProposal->UpdateSentinelVariables();
-//        }
+        LogPrint("proposal", "CSmartVotingManager::UpdateCachesAndClean -- Checking object for deletion: %s, deletion time = %d, time since deletion = %d, valid flag = %d, expired flag = %d\n",
+                 strHash, pProposal->GetDeletionTime(), nTimeSinceDeletion, pProposal->IsSetCachedValid(), pProposal->IsSetExpired());
 
-//        // IF DELETE=TRUE, THEN CLEAN THE MESS UP!
+        if((!pProposal->IsSetCachedValid() || pProposal->IsSetExpired()) &&
+           (nTimeSinceDeletion >= SMARTVOTING_DELETION_DELAY)) {
+            LogPrintf("CSmartVotingManager::UpdateCachesAndClean -- erase obj %s\n", (*it).first.ToString());
 
-//        int64_t nTimeSinceDeletion = nNow - pProposal->GetDeletionTime();
+            // Remove vote references
+            const object_ref_cm_t::list_t& listItems = cmapVoteToProposal.GetItemList();
+            object_ref_cm_t::list_cit lit = listItems.begin();
+            while(lit != listItems.end()) {
+                if(lit->value == pProposal) {
+                    uint256 nKey = lit->key;
+                    ++lit;
+                    cmapVoteToProposal.Erase(nKey);
+                }
+                else {
+                    ++lit;
+                }
+            }
 
-//        LogPrint("proposal", "CSmartVotingManager::UpdateCachesAndClean -- Checking object for deletion: %s, deletion time = %d, time since deletion = %d, delete flag = %d, expired flag = %d\n",
-//                 strHash, pProposal->GetDeletionTime(), nTimeSinceDeletion, pProposal->IsSetCachedDelete(), pProposal->IsSetExpired());
+            int64_t nTimeExpired{0};
 
-//        if((pProposal->IsSetCachedDelete() || pProposal->IsSetExpired()) &&
-//           (nTimeSinceDeletion >= SMARTVOTING_DELETION_DELAY)) {
-//            LogPrintf("CSmartVotingManager::UpdateCachesAndClean -- erase obj %s\n", (*it).first.ToString());
-//            mnodeman.RemoveGovernanceObject(pProposal->GetHash());
+            // keep hashes of deleted proposals forever
+            nTimeExpired = std::numeric_limits<int64_t>::max();
 
-//            // Remove vote references
-//            const object_ref_cm_t::list_t& listItems = cmapVoteToProposal.GetItemList();
-//            object_ref_cm_t::list_cit lit = listItems.begin();
-//            while(lit != listItems.end()) {
-//                if(lit->value == pProposal) {
-//                    uint256 nKey = lit->key;
-//                    ++lit;
-//                    cmapVoteToProposal.Erase(nKey);
-//                }
-//                else {
-//                    ++lit;
-//                }
-//            }
+            mapErasedProposals.insert(std::make_pair(nHash, nTimeExpired));
+            mapProposals.erase(it++);
+        } else {
 
-//            int64_t nTimeExpired{0};
+            if (!pProposal->IsValid()) {
+                LogPrintf("CSmartVotingManager::UpdateCachesAndClean -- set for deletion expired obj %s\n", (*it).first.ToString());
+                pProposal->SetCachedValid(false);
+                if (!pProposal->GetDeletionTime()) {
+                    pProposal->SetDeletionTime(nNow);
+                }
+            }
 
-//            if(pProposal->GetObjectType() == SMARTVOTING_OBJECT_PROPOSAL) {
-//                // keep hashes of deleted proposals forever
-//                nTimeExpired = std::numeric_limits<int64_t>::max();
-//            } else {
-//                int64_t nSuperblockCycleSeconds = Params().GetConsensus().nSuperblockCycle * Params().GetConsensus().nPowTargetSpacing;
-//                nTimeExpired = pProposal->GetCreationTime() + 2 * nSuperblockCycleSeconds + SMARTVOTING_DELETION_DELAY;
-//            }
+            ++it;
+        }
+    }
 
-//            mapErasedProposals.insert(std::make_pair(nHash, nTimeExpired));
-//            mapProposals.erase(it++);
-//        } else {
-//            // NOTE: triggers are handled via triggerman
-//            if (pProposal->GetObjectType() == SMARTVOTING_OBJECT_PROPOSAL) {
-//                CProposalValidator validator(pProposal->GetDataAsHexString());
-//                if (!validator.Validate()) {
-//                    LogPrintf("CSmartVotingManager::UpdateCachesAndClean -- set for deletion expired obj %s\n", (*it).first.ToString());
-//                    pProposal->fCachedDelete = true;
-//                    if (pProposal->nDeletionTime == 0) {
-//                        pProposal->nDeletionTime = nNow;
-//                    }
-//                }
-//            }
-//            ++it;
-//        }
-//    }
-
-//    // forget about expired deleted objects
-//    hash_time_m_it s_it = mapErasedProposals.begin();
-//    while(s_it != mapErasedProposals.end()) {
-//        if(s_it->second < nNow)
-//            mapErasedProposals.erase(s_it++);
-//        else
-//            ++s_it;
-//    }
+    // forget about expired deleted objects
+    hash_time_m_it s_it = mapErasedProposals.begin();
+    while(s_it != mapErasedProposals.end()) {
+        if(s_it->second < nNow)
+            mapErasedProposals.erase(s_it++);
+        else
+            ++s_it;
+    }
 
     LogPrintf("CSmartVotingManager::UpdateCachesAndClean -- %s\n", ToString());
 }
@@ -797,7 +775,6 @@ void CSmartVotingManager::CheckPostponedProposals(CConnman& connman)
 
     // Perform additional relays for triggers
     int64_t nNow = GetAdjustedTime();
-    int64_t nSuperblockCycleSeconds = Params().GetConsensus().nSuperblockCycle * Params().GetConsensus().nPowTargetSpacing;
 
     for(hash_s_it it = setAdditionalRelayObjects.begin(); it != setAdditionalRelayObjects.end();) {
 
@@ -808,7 +785,7 @@ void CSmartVotingManager::CheckPostponedProposals(CConnman& connman)
 
             int64_t nTimestamp = proposal.GetCreationTime();
 
-            bool fValid = (nTimestamp <= nNow + MAX_TIME_FUTURE_DEVIATION) && (nTimestamp >= nNow - 2 * nSuperblockCycleSeconds);
+            bool fValid = (nTimestamp <= nNow + MAX_TIME_FUTURE_DEVIATION); // TODO proposal end?
             bool fReady = (nTimestamp <= nNow + MAX_TIME_FUTURE_DEVIATION - RELIABLE_PROPAGATION_TIME);
 
             if(fValid) {

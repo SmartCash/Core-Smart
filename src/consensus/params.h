@@ -38,20 +38,17 @@ struct BIP9Deployment {
  */
 struct Params {
     uint256 hashGenesisBlock;
-    int nSubsidyHalvingInterval;
+
     int nSmartnodePaymentsStartBlock;
     int nSmartnodePaymentsIncreaseBlock;
-    int nSmartnodePaymentsIncreasePeriod; // in blocks
-    int nInstantSendKeepLock; // in blocks
-    int nBudgetPaymentsStartBlock;
-    int nBudgetPaymentsCycleBlocks;
-    int nBudgetPaymentsWindowBlocks;
-    int nBudgetProposalEstablishingTime; // in seconds
-    int nSuperblockStartBlock;
-    int nSuperblockCycle; // in blocks
-    int nGovernanceMinQuorum; // Min absolute vote count to trigger an action
-    int nVotingFilterElements;
     int nSmartnodeMinimumConfirmations;
+    int nInstantSendKeepLock; // in blocks
+
+    int nProposalValidityVoteBlocks; // in seconds
+    int nProposalFundingVoteBlocks; // in seconds
+    int nVotingMinYesPercent; // Min percent of yes votes for a proposal to become funded
+    int nVotingFilterElements;
+
     /** Used to check majorities for block version upgrade */
     int nMajorityEnforceBlockUpgrade;
     int nMajorityRejectBlockOutdated;

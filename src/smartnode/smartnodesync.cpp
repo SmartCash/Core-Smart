@@ -211,9 +211,6 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
             smartVoting.RequestProposalVotes(vNodesCopy, connman);
             connman.ReleaseNodeVector(vNodesCopy);
         }
-
-        smartVoting.CheckAndRemove();
-
         return;
     }
 
