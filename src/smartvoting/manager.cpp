@@ -173,54 +173,54 @@ void CSmartVotingManager::ProcessMessage(CNode* pfrom, const std::string& strCom
         AddProposal(proposal, connman, pfrom);
     }
 
-//    // A NEW PROPOSAL VOTE HAS ARRIVED
-//    else if (strCommand == NetMsgType::VOTINGPROPOSALVOTE)
-//    {
-//        CProposalVote vote;
-//        vRecv >> vote;
+    // A NEW PROPOSAL VOTE HAS ARRIVED
+    else if (strCommand == NetMsgType::VOTINGPROPOSALVOTE)
+    {
+        CProposalVote vote;
+        vRecv >> vote;
 
-//        uint256 nHash = vote.GetHash();
+        uint256 nHash = vote.GetHash();
 
-//        pfrom->setAskFor.erase(nHash);
+        pfrom->setAskFor.erase(nHash);
 
-//        if(pfrom->nVersion < MIN_VOTING_PEER_PROTO_VERSION) {
-//            LogPrint("proposal", "VOTINGPROPOSALVOTE -- peer=%d using obsolete version %i\n", pfrom->id, pfrom->nVersion);
-//            connman.PushMessage(pfrom, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-//                               strprintf("Version must be %d or greater", MIN_VOTING_PEER_PROTO_VERSION));
-//        }
+        if(pfrom->nVersion < MIN_VOTING_PEER_PROTO_VERSION) {
+            LogPrint("proposal", "VOTINGPROPOSALVOTE -- peer=%d using obsolete version %i\n", pfrom->id, pfrom->nVersion);
+            connman.PushMessage(pfrom, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
+                               strprintf("Version must be %d or greater", MIN_VOTING_PEER_PROTO_VERSION));
+        }
 
-//        // Ignore such messages until smartnode list is synced
-//        if(!smartnodeSync.IsSmartnodeListSynced()) {
-//            LogPrint("proposal", "VOTINGPROPOSALVOTE -- smartnode list not synced\n");
-//            return;
-//        }
+        // Ignore such messages until smartnode list is synced
+        if(!smartnodeSync.IsSmartnodeListSynced()) {
+            LogPrint("proposal", "VOTINGPROPOSALVOTE -- smartnode list not synced\n");
+            return;
+        }
 
-//        LogPrint("proposal", "VOTINGPROPOSALVOTE -- Received vote: %s\n", vote.ToString());
+        LogPrint("proposal", "VOTINGPROPOSALVOTE -- Received vote: %s\n", vote.ToString());
 
-//        std::string strHash = nHash.ToString();
+        std::string strHash = nHash.ToString();
 
-//        if(!AcceptVoteMessage(nHash)) {
-//            LogPrint("proposal", "VOTINGPROPOSALVOTE -- Received unrequested vote: %s, hash: %s, peer = %d\n",
-//                      vote.ToString(), strHash, pfrom->GetId());
-//            return;
-//        }
+        if(!AcceptVoteMessage(nHash)) {
+            LogPrint("proposal", "VOTINGPROPOSALVOTE -- Received unrequested vote: %s, hash: %s, peer = %d\n",
+                      vote.ToString(), strHash, pfrom->GetId());
+            return;
+        }
 
-//        CSmartVotingException exception;
-//        if(ProcessVote(pfrom, vote, exception, connman)) {
-//            LogPrint("proposal", "VOTINGPROPOSALVOTE -- %s new\n", strHash);
-//            smartnodeSync.BumpAssetLastTime("VOTINGPROPOSALVOTE");
-//            vote.Relay(connman);
-//        }
-//        else {
-//            LogPrint("proposal", "VOTINGPROPOSALVOTE -- Rejected vote, error = %s\n", exception.what());
-//            if((exception.GetNodePenalty() != 0) && smartnodeSync.IsSynced()) {
-//                LOCK(cs_main);
-//                Misbehaving(pfrom->GetId(), exception.GetNodePenalty());
-//            }
-//            return;
-//        }
+        CSmartVotingException exception;
+        if(ProcessVote(pfrom, vote, exception, connman)) {
+            LogPrint("proposal", "VOTINGPROPOSALVOTE -- %s new\n", strHash);
+            smartnodeSync.BumpAssetLastTime("VOTINGPROPOSALVOTE");
+            vote.Relay(connman);
+        }
+        else {
+            LogPrint("proposal", "VOTINGPROPOSALVOTE -- Rejected vote, error = %s\n", exception.what());
+            if((exception.GetNodePenalty() != 0) && smartnodeSync.IsSynced()) {
+                LOCK(cs_main);
+                Misbehaving(pfrom->GetId(), exception.GetNodePenalty());
+            }
+            return;
+        }
 
-//    }
+    }
 }
 
 void CSmartVotingManager::CheckOrphanVotes(CProposal& proposal, CSmartVotingException& exception, CConnman& connman)
