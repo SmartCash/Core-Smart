@@ -19,6 +19,7 @@
 #include "smartvoting/manager.h"
 #include "smartvoting/votekeys.h"
 #include "smartvoting/votevalidation.h"
+#include "smartvoting/voting.h"
 #include "util.h"
 #include "wallet/wallet.h"
 #include <univalue.h>
@@ -356,10 +357,13 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
             }
 
             // REPORT STATUS FOR FUNDING VOTES SPECIFICALLY
-            bObj.push_back(Pair("AbsoluteYesPower", UniValueFromAmount(pProposal->GetAbsoluteYesPower(VOTE_SIGNAL_FUNDING))));
-            bObj.push_back(Pair("YesPower", UniValueFromAmount(pProposal->GetYesPower(VOTE_SIGNAL_FUNDING))));
-            bObj.push_back(Pair("NoPower",  UniValueFromAmount(pProposal->GetNoPower(VOTE_SIGNAL_FUNDING))));
-            bObj.push_back(Pair("AbstainPower",  UniValueFromAmount(pProposal->GetAbstainPower(VOTE_SIGNAL_FUNDING))));
+            CVoteResult fundingResult = pProposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
+            bObj.pushKV("YesPower", fundingResult.GetYesPower());
+            bObj.pushKV("NoPower", fundingResult.GetNoPower());
+            bObj.pushKV("AbstainPower", fundingResult.GetAbstainPower());
+            bObj.pushKV("YesPercent", fundingResult.GetYes());
+            bObj.pushKV("NoPercent", fundingResult.GetNo());
+            bObj.pushKV("AbstainPercent", fundingResult.GetAbstain());
 
             // REPORT VALIDITY AND CACHING FLAGS FOR VARIOUS SETTINGS
             std::string strError = "";
@@ -407,20 +411,27 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         // SHOW (MUCH MORE) INFORMATION ABOUT VOTES FOR GOVERNANCE OBJECT (THAN LIST/DIFF ABOVE)
         // -- FUNDING VOTING RESULTS
 
-        UniValue objFundingResult(UniValue::VOBJ);
-        objFundingResult.push_back(Pair("AbsoluteYesPower",  UniValueFromAmount(pProposal->GetAbsoluteYesPower(VOTE_SIGNAL_FUNDING))));
-        objFundingResult.push_back(Pair("YesPower",  UniValueFromAmount(pProposal->GetYesPower(VOTE_SIGNAL_FUNDING))));
-        objFundingResult.push_back(Pair("NoPower",  UniValueFromAmount(pProposal->GetNoPower(VOTE_SIGNAL_FUNDING))));
-        objFundingResult.push_back(Pair("AbstainPower",  UniValueFromAmount(pProposal->GetAbstainPower(VOTE_SIGNAL_FUNDING))));
-        objResult.push_back(Pair("FundingResult", objFundingResult));
+        UniValue objFunding(UniValue::VOBJ);
+        CVoteResult fundingResult = pProposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
+        objFunding.pushKV("YesPower", fundingResult.GetYesPower());
+        objFunding.pushKV("NoPower", fundingResult.GetNoPower());
+        objFunding.pushKV("AbstainPower", fundingResult.GetAbstainPower());
+        objFunding.pushKV("YesPercent", fundingResult.GetYes());
+        objFunding.pushKV("NoPercent", fundingResult.GetNo());
+        objFunding.pushKV("AbstainPercent", fundingResult.GetAbstain());
+        objResult.pushKV("FundingResult", objFunding);
 
         // -- VALIDITY VOTING RESULTS
         UniValue objValid(UniValue::VOBJ);
-        objValid.push_back(Pair("AbsoluteYesPower", UniValueFromAmount( pProposal->GetAbsoluteYesPower(VOTE_SIGNAL_VALID))));
-        objValid.push_back(Pair("YesPower",  UniValueFromAmount(pProposal->GetYesPower(VOTE_SIGNAL_VALID))));
-        objValid.push_back(Pair("NoPower",  UniValueFromAmount(pProposal->GetNoPower(VOTE_SIGNAL_VALID))));
-        objValid.push_back(Pair("AbstainPower",  UniValueFromAmount(pProposal->GetAbstainPower(VOTE_SIGNAL_VALID))));
-        objResult.push_back(Pair("ValidResult", objValid));
+        CVoteResult validResult = pProposal->GetVotingResult(VOTE_SIGNAL_VALID);
+        objValid.pushKV("YesPower", validResult.GetYesPower());
+        objValid.pushKV("NoPower", validResult.GetNoPower());
+        objValid.pushKV("AbstainPower", validResult.GetAbstainPower());
+        objValid.pushKV("YesPercent", validResult.GetYes());
+        objValid.pushKV("NoPercent", validResult.GetNo());
+        objValid.pushKV("AbstainPercent", validResult.GetAbstain());
+        objResult.pushKV("ValidResult", objValid);
+
 
         // --
         std::string strError = "";
