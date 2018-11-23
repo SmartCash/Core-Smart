@@ -4840,8 +4840,8 @@ bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartA
         uint256 rBlockHash;
         const CTxIn &in = tx.vin[0];
 
-        if(!::GetTransaction(in.prevout.hash,rTx,Params().GetConsensus(),rBlockHash)){
-            return error("ParseVoteKeyRegistration: GetTransaction - %s\n Input: %s", tx.ToString(),in.prevout.hash.ToString());
+        if(!::GetTransaction(in.prevout.hash, rTx, Params().GetConsensus(),rBlockHash, true)){
+            return error("ParseVoteKeyRegistration: GetTransaction - %s\n Input: %s", tx.ToString(), in.prevout.hash.ToString());
         }
 
         CTxOut rOut = rTx.vout[in.prevout.n];
