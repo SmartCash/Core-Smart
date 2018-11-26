@@ -618,7 +618,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-data-invalid");
 
             // If its valid search for an existing entry
-            if( !IsRegisteredForVoting(voteAddress) )
+            if( !IsRegisteredForVoting(voteAddress) || !IsRegisteredForVoting(voteKey) )
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-index-missing");
 
         }else{
@@ -2483,8 +2483,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             CVoteKey voteKey;
             CSmartAddress voteAddress;
 
-            // If its valid search for an existing entry
-            if( ParseVoteKeyRegistration(tx, voteKey, voteAddress) && !IsRegisteredForVoting(voteAddress) ){
+            // Parse the registration and check if either the votekey or the address
+            // is already registered, if yes ignore the tx.
+            if( ParseVoteKeyRegistration(tx, voteKey, voteAddress) &&
+                !IsRegisteredForVoting(voteAddress) &&
+                !IsRegisteredForVoting(voteKey) ){
 
                 CVoteKeyValue voteKeyValue(voteAddress, tx.GetHash(), pindex->nHeight);
 
