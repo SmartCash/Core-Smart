@@ -435,11 +435,15 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp = NULL
  */ 
 bool GetBlockHash(uint256& hashRet, int nBlockHeight = -1); 
 
+/**
+ * Basic check if transaction is a valid vote key registration transaction.
+ */
+bool CheckVoteKeyRegistration(const CTransaction &tx);
 
 /**
- * Check if transaction is a valid vote key registration transaction.
+ * Parse a vote key registration transaction.
  */
-bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress);
+bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress, bool fValidate = true);
 
 /**
  * Check if transaction is a valid vote key registration transaction.
