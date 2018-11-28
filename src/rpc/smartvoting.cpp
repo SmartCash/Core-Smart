@@ -579,7 +579,11 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         "register",
         "get",
         "count",
-        "list"
+        "list",
+        "import",
+        "remove",
+        "export",
+        "show",
     };
 
     if( std::find(vecCommands.begin(), vecCommands.end(), strCommand) == vecCommands.end() )
@@ -592,6 +596,9 @@ UniValue votekeys(const UniValue& params, bool fHelp)
            "  getaddress         - Get the address registered for a votekey\n"
            "  count              - Count all registered votekeys\n"
            "  list               - List all registered votekeys\n"
+           "  import             - Import a votekey-secret to your wallet\n"
+           "  remove             - Remove a votekey-secret from your wallet\n"
+           "  export             - Export all available votekey-secrets from your wallet\n"
            );
 
     if(strCommand == "register")
@@ -844,6 +851,89 @@ UniValue votekeys(const UniValue& params, bool fHelp)
             obj.pushKV("registerHeight", vk.second.nBlockHeight);
 
             result.pushKV(vk.first.ToString(), obj);
+        }
+
+        return result;
+    }
+
+    if(strCommand == "import")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if(params.size() != 2)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys import <vote-key-secret>'");
+
+        CVoteKeySecret voteKeySecret;
+
+        if( !voteKeySecret.SetString(params[1].get_str()) )
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("Invalid <vote-key-secret>: %s", params[1].get_str()));
+
+        CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
+
+        LOCK(pwalletMain->cs_wallet);
+
+        CWalletDB walletdb(pwalletMain->strWalletFile);
+
+        if( !walletdb.AddVoteKeySecret(voteKeySecret) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to import votekey-secret");
+
+         UniValue result(UniValue::VOBJ);
+
+         result.pushKV("imported", voteKey.ToString());
+
+         return result;
+    }
+
+    if(strCommand == "remove")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if(params.size() != 2)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys remove <vote-key-secret>'");
+
+        CVoteKeySecret voteKeySecret;
+
+        if( !voteKeySecret.SetString(params[1].get_str()) )
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("Invalid <vote-key-secret>: %s", params[1].get_str()));
+
+        CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
+
+        LOCK(pwalletMain->cs_wallet);
+
+        CWalletDB walletdb(pwalletMain->strWalletFile);
+
+        if( !walletdb.EraseVoteKeySecret(voteKeySecret) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to remove votekey-secret");
+
+         UniValue result(UniValue::VOBJ);
+
+         result.pushKV("removed", voteKey.ToString());
+
+         return result;
+    }
+
+    if(strCommand == "export")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        std::set<CVoteKeySecret> setVoteKeySecrets;
+
+        LOCK(pwalletMain->cs_wallet);
+
+        CWalletDB walletdb(pwalletMain->strWalletFile);
+
+        if( !walletdb.ReadVoteKeySecrets(setVoteKeySecrets) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to read votekey-secrets");
+
+        UniValue result(UniValue::VARR);
+
+        for( const CVoteKeySecret &voteKeySecret : setVoteKeySecrets ){
+            result.push_back(voteKeySecret.ToString());
         }
 
         return result;
