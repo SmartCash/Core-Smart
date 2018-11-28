@@ -309,6 +309,40 @@ bool CWalletDB::WriteProposals(const std::map<uint256, CInternalProposal> &mapPr
     return Write(std::string(key), mapProposals);
 }
 
+bool CWalletDB::ReadVoteKeySecrets(std::set<CVoteKeySecret> &setVoteKeySecrets)
+{
+    return Read(std::string("votekeysecrets"), setVoteKeySecrets);
+}
+
+bool CWalletDB::AddVoteKeySecret(const CVoteKeySecret &voteKeySecret)
+{
+    std::set<CVoteKeySecret> setVoteKeySecrets;
+    ReadVoteKeySecrets(setVoteKeySecrets);
+
+    if( setVoteKeySecrets.find(voteKeySecret) == setVoteKeySecrets.end() ){
+        setVoteKeySecrets.insert(voteKeySecret);
+        return Write(std::string("votekeysecrets"), setVoteKeySecrets);
+    }
+
+    return false;
+}
+
+bool CWalletDB::EraseVoteKeySecret(const CVoteKeySecret &voteKeySecret)
+{
+    std::set<CVoteKeySecret> setVoteKeySecrets;
+    if( ReadVoteKeySecrets(setVoteKeySecrets) );
+
+    auto it = setVoteKeySecrets.find(voteKeySecret);
+
+    if( it != setVoteKeySecrets.end() ){
+        setVoteKeySecrets.erase(voteKeySecret);
+        return Write(std::string("votekeysecrets"), setVoteKeySecrets);
+    }
+
+    return false;
+}
+
+
 void CWalletDB::ListPubCoin(std::list<CZerocoinEntry>& listPubCoin)
 {
     Dbc* pcursor = GetCursor();

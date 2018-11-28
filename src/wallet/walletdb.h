@@ -32,6 +32,7 @@ class CWalletTx;
 class uint160;
 class uint256;
 class CInternalProposal;
+class CVoteKeySecret;
 
 class CZerocoinEntry;
 class CZerocoinSpendEntry;
@@ -147,6 +148,11 @@ public:
     // Used to store created proposals
     bool ReadProposals(std::map<uint256, CInternalProposal> &mapProposals);
     bool WriteProposals(const std::map<uint256, CInternalProposal> &mapProposals);
+
+    // Used to store created proposals
+    bool ReadVoteKeySecrets(std::set<CVoteKeySecret> &setVoteKeySecrets);
+    bool AddVoteKeySecret(const CVoteKeySecret &voteKeySecret);
+    bool EraseVoteKeySecret(const CVoteKeySecret &voteKeySecret);
 
     bool WriteZerocoinEntry(const CZerocoinEntry& zerocoin);
     bool EarseZerocoinEntry(const CZerocoinEntry& zerocoin);
