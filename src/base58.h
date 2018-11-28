@@ -178,6 +178,14 @@ public:
     CVoteKeySecret(const CKey& vchSecret) { SetKey(vchSecret); }
     CVoteKeySecret() {}
     void SetKey(const std::vector<unsigned char> prefix, const CKey &vchSecret);
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(vchVersion);
+        READWRITE(vchData);
+    }
 };
 
 template<typename K, int Size, CChainParams::Base58Type Type> class CBitcoinExtKeyBase : public CBase58Data
