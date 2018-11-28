@@ -37,6 +37,55 @@ UniValue ParseJSON(const std::string& strVal)
     return jVal[0];
 }
 
+UniValue sendVote( const CVoteKeySecret &voteKeySecret, const uint256 &hash, const std::string strVoteSignal, const std::string strVoteOutcome )
+{
+    CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
+
+    // CONVERT NAMED SIGNAL/ACTION AND CONVERT
+
+    vote_signal_enum_t eVoteSignal = CProposalVoting::ConvertVoteSignal(strVoteSignal);
+    if(eVoteSignal == VOTE_SIGNAL_NONE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           "Invalid vote signal. Please using one of the following: "
+                           "(funding|valid|delete|endorsed)");
+    }
+
+    vote_outcome_enum_t eVoteOutcome = CProposalVoting::ConvertVoteOutcome(strVoteOutcome);
+    if(eVoteOutcome == VOTE_OUTCOME_NONE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid vote outcome. Please use one of the following: 'yes', 'no' or 'abstain'");
+    }
+
+    // EXECUTE VOTE FOR EACH MASTERNODE, COUNT SUCCESSES VS FAILURES
+
+    UniValue resultsObj(UniValue::VOBJ);
+    UniValue statusObj(UniValue::VOBJ);
+
+    // CREATE NEW PROPOSAL VOTE WITH OUTCOME/SIGNAL
+
+    CProposalVote vote(voteKey, hash, eVoteSignal, eVoteOutcome);
+    if(vote.Sign(voteKeySecret)) {
+
+        CSmartVotingException exception;
+        if(smartVoting.ProcessVoteAndRelay(vote, exception, *g_connman)) {
+            statusObj.push_back(Pair("result", "success"));
+        } else {
+            statusObj.push_back(Pair("result", "failed"));
+            statusObj.push_back(Pair("errorMessage", exception.GetMessage()));
+        }
+
+        resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
+
+    }else{
+
+        statusObj.push_back(Pair("result", "failed"));
+        statusObj.push_back(Pair("errorMessage", "Failure to sign."));
+        resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
+    }
+
+    return resultsObj;
+
+}
+
 UniValue smartvoting(const UniValue& params, bool fHelp)
 {
     std::string strCommand;
@@ -54,6 +103,8 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         "list",
         "get",
         "getvotes",
+        "voteraw",
+        "votewithkey",
         "vote"
     };
 
@@ -70,7 +121,9 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
                 "  list               - List all proposals.\n"
                 "  get                - Get a proposal by its hash\n"
                 "  getvotes           - Get all votes for a proposal\n"
-                "  vote               - Vote for a proposal"
+                "  voteraw            - Broadcast a raw signed vote"
+                "  votewithkey        - Vote for a proposal with a specific votekey"
+                "  vote               - Vote for a proposal with all available votekeys"
                 );
 
     // VALIDATE A GOVERNANCE OBJECT PRIOR TO SUBMISSION
@@ -497,11 +550,51 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         return bResult;
     }
 
-    // MASTERNODES CAN VOTE ON GOVERNANCE OBJECTS ON THE NETWORK FOR VARIOUS SIGNALS AND OUTCOMES
-    if(strCommand == "vote")
+    if(strCommand == "voteraw")
+    {
+        if(params.size() != 2)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting voteraw <raw-vote-data>'");
+
+        std::string strRawVote = params[1].get_str();
+
+        if (!IsHex(strRawVote))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid vote data. Must be hex-string");
+
+        vector<unsigned char> rawData(ParseHex(strRawVote));
+
+        CDataStream ssProposal( rawData ,SER_NETWORK, PROTOCOL_VERSION);
+
+        CProposalVote vote;
+
+        ssProposal >> vote;
+
+        UniValue resultsObj(UniValue::VOBJ);
+        UniValue statusObj(UniValue::VOBJ);
+
+        if( vote.CheckSignature() ) {
+
+            CSmartVotingException exception;
+            if(smartVoting.ProcessVoteAndRelay(vote, exception, *g_connman)) {
+                statusObj.push_back(Pair("result", "success"));
+            } else {
+                statusObj.push_back(Pair("result", "failed"));
+                statusObj.push_back(Pair("errorMessage", exception.GetMessage()));
+            }
+
+            resultsObj.push_back(Pair(vote.GetVoteKey().ToString(), statusObj));
+
+        }else{
+
+            statusObj.push_back(Pair("result", "failed"));
+            statusObj.push_back(Pair("errorMessage", "Invalid signature."));
+            resultsObj.push_back(Pair(vote.GetVoteKey().ToString(), statusObj));
+        }
+    }
+
+    if(strCommand == "votewithkey")
     {
         if(params.size() != 5)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting vote <proposal-hash> [funding|valid] [yes|no|abstain] <vote-key-secret>'");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting votewithkey <proposal-hash> [funding|valid] [yes|no|abstain] <vote-key-secret>'");
 
         uint256 hash;
         std::string strVote;
@@ -518,52 +611,43 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                strprintf("Invalid <vote-key-secret>: %s", params[4].get_str()));
 
-        CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
-
-        // CONVERT NAMED SIGNAL/ACTION AND CONVERT
-
-        vote_signal_enum_t eVoteSignal = CProposalVoting::ConvertVoteSignal(strVoteSignal);
-        if(eVoteSignal == VOTE_SIGNAL_NONE) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER,
-                               "Invalid vote signal. Please using one of the following: "
-                               "(funding|valid|delete|endorsed)");
-        }
-
-        vote_outcome_enum_t eVoteOutcome = CProposalVoting::ConvertVoteOutcome(strVoteOutcome);
-        if(eVoteOutcome == VOTE_OUTCOME_NONE) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid vote outcome. Please use one of the following: 'yes', 'no' or 'abstain'");
-        }
-
-        // EXECUTE VOTE FOR EACH MASTERNODE, COUNT SUCCESSES VS FAILURES
-
-        UniValue resultsObj(UniValue::VOBJ);
-        UniValue statusObj(UniValue::VOBJ);
-
-        // CREATE NEW PROPOSAL VOTE WITH OUTCOME/SIGNAL
-
-        CProposalVote vote(voteKey, hash, eVoteSignal, eVoteOutcome);
-        if(vote.Sign(voteKeySecret)) {
-
-            CSmartVotingException exception;
-            if(smartVoting.ProcessVoteAndRelay(vote, exception, *g_connman)) {
-                statusObj.push_back(Pair("result", "success"));
-            } else {
-                statusObj.push_back(Pair("result", "failed"));
-                statusObj.push_back(Pair("errorMessage", exception.GetMessage()));
-            }
-
-            resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
-
-        }else{
-
-            statusObj.push_back(Pair("result", "failed"));
-            statusObj.push_back(Pair("errorMessage", "Failure to sign."));
-            resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
-        }
-
-        return resultsObj;
+        return sendVote(voteKeySecret, hash, strVoteSignal, strVoteOutcome);
     }
 
+    if(strCommand == "vote")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if(params.size() != 4)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting vote <proposal-hash> [funding|valid] [yes|no|abstain]'");
+
+        uint256 hash;
+        std::string strVote;
+
+        // COLLECT NEEDED PARAMETRS FROM USER
+
+        hash = ParseHashV(params[1], "Proposal hash");
+        std::string strVoteSignal = params[2].get_str();
+        std::string strVoteOutcome = params[3].get_str();
+
+        std::set<CVoteKeySecret> setVoteKeySecrets;
+
+        LOCK(pwalletMain->cs_wallet);
+
+        CWalletDB walletdb(pwalletMain->strWalletFile);
+
+        if( !walletdb.ReadVoteKeySecrets(setVoteKeySecrets) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to read votekey-secrets");
+
+        UniValue result(UniValue::VARR);
+
+        for( const CVoteKeySecret &voteKeySecret : setVoteKeySecrets ){
+            result.push_back(sendVote(voteKeySecret, hash, strVoteSignal, strVoteOutcome));
+        }
+
+        return result;
+    }
 
     return NullUniValue;
 }
