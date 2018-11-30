@@ -38,6 +38,22 @@ class QSortFilterProxyModel;
 class QTableView;
 QT_END_NAMESPACE
 
+
+class VoteKeyWidgetItem : public QTableWidgetItem
+{
+public:
+    VoteKeyWidgetItem() : QTableWidgetItem() {}
+    VoteKeyWidgetItem(const QString &text, int type = Type) : QTableWidgetItem(text, type) {}
+    bool operator<(const QTableWidgetItem &other) const;
+
+    enum Columns{
+        COLUMN_KEY,
+        COLUMN_ADDRESS,
+        COLUMN_POWER
+    };
+};
+
+
 /** SmartrewardsList Manager page widget */
 class SmartVotingPage : public QWidget
 {
@@ -58,6 +74,7 @@ private:
     WalletModel *walletModel;
 
     QTimer lockTimer;
+    QTimer voteKeyUpdateTimer;
     SmartVotingManager *votingManager;
     std::vector<SmartProposalWidget*> vecProposalWidgets;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
@@ -73,6 +90,9 @@ public Q_SLOTS:
     void showVotingUI();
     void updateProposalUI();
     void createProposal();
+    void showVoteKeysUI();
+    void updateVoteKeyUI();
+    void importVoteKey();
     void proposalsUpdated(const std::string &strErr);
     void voteChanged();
     void selectAddresses();

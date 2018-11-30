@@ -35,10 +35,17 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="generatePage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <widget class="QTabWidget" name="proposalTabs">
+         <property name="currentIndex">
+          <number>-1</number>
+         </property>
+        </widget>
+       </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
@@ -85,13 +92,6 @@
           </spacer>
          </item>
         </layout>
-       </item>
-       <item>
-        <widget class="QTabWidget" name="proposalTabs">
-         <property name="currentIndex">
-          <number>-1</number>
-         </property>
-        </widget>
        </item>
       </layout>
      </widget>
@@ -250,7 +250,7 @@
               <item>
                <widget class="QPushButton" name="selectAddressesButton">
                 <property name="text">
-                 <string>Select addresses</string>
+                 <string>Select voting keys</string>
                 </property>
                </widget>
               </item>
@@ -271,8 +271,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>80</width>
-            <height>18</height>
+            <width>791</width>
+            <height>339</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -312,6 +312,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="manageVotingKeysButton">
+           <property name="text">
+            <string>Manage your voting keys</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -332,7 +339,82 @@
           </widget>
          </item>
          <item>
-          <spacer name="horizontalSpacer_7">
+          <widget class="QPushButton" name="castVotesButton">
+           <property name="text">
+            <string>Vote for X proposals</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="voteKeysPage">
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Available Vote Keys</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="voteKeysTable">
+         <column>
+          <property name="text">
+           <string>Vote Key</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Vote Address</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Voting Power</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QPushButton" name="vkBackButton">
+           <property name="text">
+            <string>Back</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_9">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -345,16 +427,42 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="castVotesButton">
+          <widget class="QPushButton" name="registerVoteKeyButton">
            <property name="text">
-            <string>Vote for X proposals</string>
+            <string>Register </string>
            </property>
           </widget>
          </item>
          <item>
-          <spacer name="horizontalSpacer_4">
+          <spacer name="horizontalSpacer_5">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Maximum</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="importVoteKeyButton">
+           <property name="text">
+            <string>Import</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_8">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Maximum</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>

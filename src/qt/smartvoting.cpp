@@ -21,6 +21,7 @@
 #include "castvotesdialog.h"
 #include "validation.h"
 #include "voteaddressesdialog.h"
+#include "smartvoting/votevalidation.h"
 
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 
@@ -31,6 +32,7 @@
 #include <QTableWidgetItem>
 #include <QScrollBar>
 #include <QDateTime>
+#include <QInputDialog>
 
 const int nRefreshLockSeconds = 120;
 const int nForceRefreshSeconds = 300;
@@ -46,6 +48,26 @@ struct QSmartVortingField
                           balance(0){}
 };
 
+bool VoteKeyWidgetItem::operator<(const QTableWidgetItem &other) const {
+    int column = other.column();
+    if (column == VoteKeyWidgetItem::COLUMN_POWER){
+        QString t1 = text();
+        QString t2 = other.text();
+
+        t1 = t1.simplified();
+        t1.replace( " ", "" );
+        t1.replace("SMART", "");
+
+        t2 = t2.simplified();
+        t2.replace( " ", "" );
+        t2.replace("SMART", "");
+
+        return t1.toInt() < t2.toInt();
+
+    }
+    return QTableWidgetItem::operator<(other);
+}
+
 SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::SmartVotingPage),
@@ -55,16 +77,36 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
 {
     ui->setupUi(this);
 
+    QTableWidget *table = ui->voteKeysTable;
+
+    table->setAlternatingRowColors(true);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setSortingEnabled(true);
+    table->setShowGrid(false);
+    table->verticalHeader()->hide();
+
+    table->horizontalHeader()->setSectionResizeMode(VoteKeyWidgetItem::COLUMN_KEY, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(VoteKeyWidgetItem::COLUMN_ADDRESS, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(VoteKeyWidgetItem::COLUMN_POWER, QHeaderView::Stretch);
+
     connect(votingManager, SIGNAL(proposalsUpdated(const std::string&)),this,SLOT(proposalsUpdated(const std::string&)));
     connect(votingManager, SIGNAL(addressesUpdated()), this, SLOT(updateUI()));
     connect(ui->manageProposalsButton, SIGNAL(clicked()),this,SLOT(showManagementUI()));
+    connect(ui->manageVotingKeysButton, SIGNAL(clicked()),this,SLOT(showVoteKeysUI()));
     connect(ui->createProposalButton, SIGNAL(clicked()),this,SLOT(createProposal()));
+
     connect(ui->backButton, SIGNAL(clicked()),this,SLOT(showVotingUI()));
+    connect(ui->vkBackButton, SIGNAL(clicked()),this,SLOT(showVotingUI()));
+
+    connect(ui->importVoteKeyButton, SIGNAL(clicked()), this, SLOT(importVoteKey()));
+
     connect(ui->selectAddressesButton, SIGNAL(clicked()),this,SLOT(selectAddresses()));
     connect(ui->castVotesButton, SIGNAL(clicked()),this,SLOT(castVotes()));
     connect(ui->refreshButton, SIGNAL(clicked()),this,SLOT(refreshProposals()));
     connect(ui->scrollArea->verticalScrollBar(), SIGNAL(valueChanged(int)),this,SLOT(scrollChanged(int)));
     connect(&lockTimer, SIGNAL(timeout()), this, SLOT(updateRefreshLock()));
+    connect(&voteKeyUpdateTimer, SIGNAL(timeout()), this, SLOT(updateVoteKeyUI()));
     voteChanged();
 
     lockTimer.start(1000);
@@ -187,8 +229,16 @@ void SmartVotingPage::showManagementUI()
     ui->stackedWidget->setCurrentIndex(0);
 }
 
+void SmartVotingPage::showVoteKeysUI()
+{
+    voteKeyUpdateTimer.start(60000);
+    updateVoteKeyUI();
+    ui->stackedWidget->setCurrentIndex(3);
+}
+
 void SmartVotingPage::showVotingUI()
 {
+    voteKeyUpdateTimer.stop();
     ui->stackedWidget->setCurrentIndex(2);
 }
 
@@ -233,12 +283,8 @@ void SmartVotingPage::updateUI()
         return;
     }
 
-    QString votingPowerString = QString::number(std::round(votingManager->GetVotingPower()),'f',0);
-
-    AddThousandsSpaces(votingPowerString);
-
-    ui->votingPowerLabel->setText(votingPowerString  + " SMART" );
-    ui->addressesLabel->setText( QString("%1 addresses").arg(votingManager->GetEnabledAddressCount()));
+    ui->votingPowerLabel->setText( walletModel->enabledVotingPowerString() );
+    ui->addressesLabel->setText( QString("%1 VoteKeys").arg(walletModel->enabledVoteKeys()));
 
     voteChanged();
 }
@@ -263,7 +309,7 @@ void SmartVotingPage::voteChanged(){
         };
     }
 
-    ui->castVotesButton->setEnabled(mapVoteProposals.size() && votingManager->GetVotingPower());
+//    ui->castVotesButton->setEnabled(mapVoteProposals.size() && votingManager->GetVotingPower());
     ui->castVotesButton->setText(QString("Vote for %1 proposals").arg(mapVoteProposals.size()));
 
     this->repaint();
@@ -271,7 +317,7 @@ void SmartVotingPage::voteChanged(){
 
 void SmartVotingPage::selectAddresses(){
 
-    VoteAddressesDialog dialog(platformStyle, votingManager);
+    VoteAddressesDialog dialog(platformStyle, walletModel);
     dialog.exec();
 
     updateUI();
@@ -310,7 +356,7 @@ void SmartVotingPage::refreshProposals(bool fForce)
     nLastRefreshTime = GetTime();
     ui->refreshButton->setEnabled(false);
     lockTimer.start(1000);
-    votingManager->UpdateProposals();
+//    votingManager->UpdateProposals();
 }
 
 void SmartVotingPage::scrollChanged(int value)
@@ -362,3 +408,111 @@ void SmartVotingPage::removalRequested(SmartProposalTabWidget *tab)
     ui->proposalTabs->removeTab(idx);
     delete tab;
 }
+
+void SmartVotingPage::updateVoteKeyUI()
+{
+    std::function<VoteKeyWidgetItem * (QString)> createItem = [](QString title) {
+        VoteKeyWidgetItem * item = new VoteKeyWidgetItem(title);
+        return item;
+    };
+
+    if( !pwalletMain || !walletModel ) return;
+
+    std::set<CKeyID> setVotingKeyIds;
+    {
+        LOCK(pwalletMain->cs_wallet);
+        pwalletMain->GetVotingKeys(setVotingKeyIds);
+    }
+
+    int nRow = 0;
+
+    QTableWidget *table = ui->voteKeysTable;
+
+    table->clearContents();
+    table->setRowCount(0);
+
+    table->setSortingEnabled(false);
+    for( auto keyId : setVotingKeyIds){
+
+        table->insertRow(nRow);
+
+        CVoteKey voteKey(keyId);
+
+        std::string voteAddressString = "Not registered";
+
+        CVoteKeyValue voteKeyValue;
+        if( GetVoteKeyValue(voteKey, voteKeyValue) ){
+            voteAddressString = voteKeyValue.voteAddress.ToString();
+        }
+
+        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_KEY, createItem(QString::fromStdString(voteKey.ToString())));
+        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_ADDRESS, createItem(QString::fromStdString(voteAddressString)));
+        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_POWER, createItem(walletModel->votingPowerString(voteKey)));
+
+        nRow++;
+    }
+
+    table->setSortingEnabled(true);
+}
+
+void SmartVotingPage::importVoteKey()
+{
+
+    if( !pwalletMain ) return;
+
+    QString keyStr = QInputDialog::getText(this,"Import VoteKey secret","Insert your VoteKey secret here...");
+
+    if( keyStr == QString() ) return;
+
+    CVoteKeySecret voteKeySecret;
+
+    if( !voteKeySecret.SetString( keyStr.toStdString() ) ){
+
+        QMessageBox::critical(this, tr("Error"),
+                                    tr("Invalid VoteKey secret provided\n\n") +
+                                    keyStr,
+                                    QMessageBox::Ok);
+        return;
+    }
+
+    {
+        LOCK(pwalletMain->cs_wallet);
+
+        if( pwalletMain->HaveVotingKey(voteKeySecret.GetKey().GetPubKey().GetID()) ){
+
+            QMessageBox::critical(this, tr("Error"),
+                                        tr("The provided VotingKey secret already exists in the voting storage.\n\n") +
+                                        keyStr,
+                                        QMessageBox::Ok);
+            return;
+        }
+
+        WalletModel::EncryptionStatus encStatus = walletModel->getVotingEncryptionStatus();
+        bool fLocked = encStatus == WalletModel::Locked;
+
+        std::unique_ptr<WalletModel::VotingUnlockContext> ctx = fLocked ?
+                    std::unique_ptr<WalletModel::VotingUnlockContext>(new WalletModel::VotingUnlockContext(walletModel->requestVotingUnlock())) :
+                    std::unique_ptr<WalletModel::VotingUnlockContext>(nullptr);
+
+        if( ctx.get() && !ctx->isValid() )
+            return;
+
+        if( !pwalletMain->AddVotingKey(voteKeySecret.GetKey()) ){
+
+            QMessageBox::critical(this, tr("Error"),
+                                        tr("Failed to import VoteKey secret\n\n") +
+                                        keyStr,
+                                        QMessageBox::Ok);
+            return;
+        }
+    }
+
+    CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
+
+    updateVoteKeyUI();
+
+    QMessageBox::information(this, tr("Success"),
+                                   QString("VoteKey %1 imported!").arg(QString::fromStdString(voteKey.ToString())),
+                                   QMessageBox::Ok);
+}
+
