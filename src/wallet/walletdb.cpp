@@ -113,6 +113,57 @@ bool CWalletDB::WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey)
     return Write(std::make_pair(std::string("mkey"), nID), kMasterKey, true);
 }
 
+
+bool CWalletDB::UpdateVotingKeyMeta(const CKeyID& keyId, const CVotingKeyMetadata& keyMeta)
+{
+    nWalletDBUpdated++;
+    return Write(std::make_pair(std::string("vkeymeta"), keyId),
+               keyMeta, true);
+}
+
+bool CWalletDB::WriteVotingKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CVotingKeyMetadata& keyMeta)
+{
+    nWalletDBUpdated++;
+
+    if (!Write(std::make_pair(std::string("vkeymeta"), vchPubKey),
+               keyMeta, false))
+        return false;
+
+    // hash pubkey/privkey to accelerate wallet load
+    std::vector<unsigned char> vchKey;
+    vchKey.reserve(vchPubKey.size() + vchPrivKey.size());
+    vchKey.insert(vchKey.end(), vchPubKey.begin(), vchPubKey.end());
+    vchKey.insert(vchKey.end(), vchPrivKey.begin(), vchPrivKey.end());
+
+    return Write(std::make_pair(std::string("vkey"), vchPubKey), std::make_pair(vchPrivKey, Hash(vchKey.begin(), vchKey.end())), false);
+}
+
+bool CWalletDB::WriteCryptedVotingKey(const CPubKey& vchPubKey,
+                                const std::vector<unsigned char>& vchCryptedSecret,
+                                const CVotingKeyMetadata &keyMeta)
+{
+    const bool fEraseUnencryptedKey = true;
+    nWalletDBUpdated++;
+
+    if (!Write(std::make_pair(std::string("vkeymeta"), vchPubKey.GetID()),
+            keyMeta))
+        return false;
+
+    if (!Write(std::make_pair(std::string("vckey"), vchPubKey), vchCryptedSecret, false))
+        return false;
+    if (fEraseUnencryptedKey)
+    {
+        Erase(std::make_pair(std::string("vkey"), vchPubKey));
+    }
+    return true;
+}
+
+bool CWalletDB::WriteVotingMasterKey(unsigned int nID, const CMasterKey& kMasterKey)
+{
+    nWalletDBUpdated++;
+    return Write(std::make_pair(std::string("vmkey"), nID), kMasterKey, true);
+}
+
 bool CWalletDB::WriteCScript(const uint160& hash, const CScript& redeemScript)
 {
     nWalletDBUpdated++;
@@ -254,166 +305,18 @@ void CWalletDB::ListAccountCreditDebit(const string& strAccount, list<CAccountin
     pcursor->close();
 }
 
-bool CWalletDB::WriteCoinSpendSerialEntry(const CZerocoinSpendEntry& zerocoinSpend)
-{
-    return Write(make_pair(string("zcserial"), zerocoinSpend.coinSerial), zerocoinSpend, true);
-}
-
-bool CWalletDB::EraseCoinSpendSerialEntry(const CZerocoinSpendEntry& zerocoinSpend)
-{
-    return Erase(make_pair(string("zcserial"), zerocoinSpend.coinSerial));
-}
-
-bool CWalletDB::WriteZerocoinAccumulator(libzerocoin::Accumulator accumulator, libzerocoin::CoinDenomination denomination, int pubcoinid)
-{
-    return Write(std::make_tuple(std::string("zcaccumulator"), (unsigned int) denomination, pubcoinid), accumulator);
-}
-
-bool CWalletDB::ReadZerocoinAccumulator(libzerocoin::Accumulator& accumulator, libzerocoin::CoinDenomination denomination, int pubcoinid)
-{
-    return Read(std::make_tuple(std::string("zcaccumulator"), (unsigned int) denomination, pubcoinid), accumulator);
-}
-
-bool CWalletDB::WriteZerocoinEntry(const CZerocoinEntry& zerocoin)
-{
-    return Write(make_pair(string("zerocoin"), zerocoin.value), zerocoin, true);
-}
-
-bool CWalletDB::EarseZerocoinEntry(const CZerocoinEntry& zerocoin)
-{
-    return Erase(make_pair(string("zerocoin"), zerocoin.value));
-}
-// Check Calculated Blocked for Zerocoin
-bool CWalletDB::ReadCalculatedZCBlock(int& height)
-{
-    height = 0;
-    return Read(std::string("calculatedzcblock"), height);
-}
-
-bool CWalletDB::WriteCalculatedZCBlock(int height)
-{
-    return Write(std::string("calculatedzcblock"), height);
-}
-
 bool CWalletDB::ReadProposals(std::map<uint256, CInternalProposal> &mapProposals)
 {
     std::string key = "proposals-V1";
-    if( !CLIENT_VERSION_IS_RELEASE) key += "-dev";
+    if( !CLIENT_VERSION_IS_RELEASE) key += "-dev1";
     return Read(std::string(key), mapProposals);
 }
 
 bool CWalletDB::WriteProposals(const std::map<uint256, CInternalProposal> &mapProposals)
 {
     std::string key = "proposals-V1";
-    if( !CLIENT_VERSION_IS_RELEASE) key += "-dev";
+    if( !CLIENT_VERSION_IS_RELEASE) key += "-dev1";
     return Write(std::string(key), mapProposals);
-}
-
-bool CWalletDB::ReadVoteKeySecrets(std::set<CVoteKeySecret> &setVoteKeySecrets)
-{
-    return Read(std::string("votekeysecrets"), setVoteKeySecrets);
-}
-
-bool CWalletDB::AddVoteKeySecret(const CVoteKeySecret &voteKeySecret)
-{
-    std::set<CVoteKeySecret> setVoteKeySecrets;
-    ReadVoteKeySecrets(setVoteKeySecrets);
-
-    if( setVoteKeySecrets.find(voteKeySecret) == setVoteKeySecrets.end() ){
-        setVoteKeySecrets.insert(voteKeySecret);
-        return Write(std::string("votekeysecrets"), setVoteKeySecrets);
-    }
-
-    return false;
-}
-
-bool CWalletDB::EraseVoteKeySecret(const CVoteKeySecret &voteKeySecret)
-{
-    std::set<CVoteKeySecret> setVoteKeySecrets;
-    if( ReadVoteKeySecrets(setVoteKeySecrets) );
-
-    auto it = setVoteKeySecrets.find(voteKeySecret);
-
-    if( it != setVoteKeySecrets.end() ){
-        setVoteKeySecrets.erase(voteKeySecret);
-        return Write(std::string("votekeysecrets"), setVoteKeySecrets);
-    }
-
-    return false;
-}
-
-
-void CWalletDB::ListPubCoin(std::list<CZerocoinEntry>& listPubCoin)
-{
-    Dbc* pcursor = GetCursor();
-    if (!pcursor)
-        throw runtime_error("CWalletDB::ListPubCoin() : cannot create DB cursor");
-    unsigned int fFlags = DB_SET_RANGE;
-    while (true) {
-        // Read next record
-        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-        if (fFlags == DB_SET_RANGE)
-            ssKey << make_pair(string("zerocoin"), CBigNum(0));
-        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
-        fFlags = DB_NEXT;
-        if (ret == DB_NOTFOUND)
-            break;
-        else if (ret != 0)
-        {
-            pcursor->close();
-            throw runtime_error("CWalletDB::ListPubCoin() : error scanning DB");
-        }
-        // Unserialize
-        string strType;
-        ssKey >> strType;
-        if (strType != "zerocoin")
-            break;
-        CBigNum value;
-        ssKey >> value;
-        CZerocoinEntry zerocoinItem;
-        ssValue >> zerocoinItem;
-        listPubCoin.push_back(zerocoinItem);
-    }
-    pcursor->close();
-}
-
-void CWalletDB::ListCoinSpendSerial(std::list<CZerocoinSpendEntry>& listCoinSpendSerial)
-{
-    Dbc* pcursor = GetCursor();
-    if (!pcursor)
-        throw runtime_error("CWalletDB::ListCoinSpendSerial() : cannot create DB cursor");
-    unsigned int fFlags = DB_SET_RANGE;
-    while (true)
-    {
-        // Read next record
-        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-        if (fFlags == DB_SET_RANGE)
-            ssKey << make_pair(string("zcserial"), CBigNum(0));
-        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
-        fFlags = DB_NEXT;
-        if (ret == DB_NOTFOUND)
-            break;
-        else if (ret != 0)
-        {
-            pcursor->close();
-            throw runtime_error("CWalletDB::ListCoinSpendSerial() : error scanning DB");
-        }
-
-        // Unserialize
-        string strType;
-        ssKey >> strType;
-        if (strType != "zcserial")
-            break;
-        CBigNum value;
-        ssKey >> value;
-        CZerocoinSpendEntry zerocoinSpendItem;
-        ssValue >> zerocoinSpendItem;
-        listCoinSpendSerial.push_back(zerocoinSpendItem);
-    }
-
-    pcursor->close();
 }
 
 DBErrors CWalletDB::ReorderTransactions(CWallet* pwallet)
@@ -497,14 +400,19 @@ public:
     unsigned int nKeys;
     unsigned int nCKeys;
     unsigned int nKeyMeta;
+    unsigned int nVKeys;
+    unsigned int nVCKeys;
+    unsigned int nVKeyMeta;
     bool fIsEncrypted;
+    bool fIsVotingEncrypted;
     bool fAnyUnordered;
     int nFileVersion;
     vector<uint256> vWalletUpgrade;
 
     CWalletScanState() {
-        nKeys = nCKeys = nKeyMeta = 0;
+        nKeys = nCKeys = nKeyMeta = nVKeys = nVCKeys = nVKeyMeta = 0;
         fIsEncrypted = false;
+        fIsVotingEncrypted = false;
         fAnyUnordered = false;
         nFileVersion = 0;
     }
@@ -710,6 +618,93 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 (keyMeta.nCreateTime < pwallet->nTimeFirstKey))
                 pwallet->nTimeFirstKey = keyMeta.nCreateTime;
         }
+        else if (strType == "vkey")
+        {
+            CPubKey vchPubKey;
+            ssKey >> vchPubKey;
+            if (!vchPubKey.IsValid())
+            {
+                strErr = "Error reading wallet database: CPubKey corrupt";
+                return false;
+            }
+            CKey key;
+            CPrivKey pkey;
+            uint256 hash;
+
+            wss.nVKeys++;
+            ssValue >> pkey;
+            ssValue >> hash;
+
+            bool fSkipCheck = false;
+
+            // hash pubkey/privkey to accelerate wallet load
+            std::vector<unsigned char> vchKey;
+            vchKey.reserve(vchPubKey.size() + pkey.size());
+            vchKey.insert(vchKey.end(), vchPubKey.begin(), vchPubKey.end());
+            vchKey.insert(vchKey.end(), pkey.begin(), pkey.end());
+
+            if (Hash(vchKey.begin(), vchKey.end()) != hash)
+            {
+                strErr = "Error reading wallet database: CPubKey/CPrivKey corrupt";
+                return false;
+            }
+
+            if (!key.Load(pkey, vchPubKey, true))
+            {
+                strErr = "Error reading wallet database: CPrivKey corrupt";
+                return false;
+            }
+            if (!pwallet->LoadVotingKey(key, vchPubKey))
+            {
+                strErr = "Error reading wallet database: LoadKey failed";
+                return false;
+            }
+        }
+        else if (strType == "vmkey")
+        {
+            unsigned int nID;
+            ssKey >> nID;
+            CMasterKey kMasterKey;
+            ssValue >> kMasterKey;
+            if(pwallet->mapVotingMasterKeys.count(nID) != 0)
+            {
+                strErr = strprintf("Error reading wallet database: duplicate CMasterKey id %u", nID);
+                return false;
+            }
+            pwallet->mapVotingMasterKeys[nID] = kMasterKey;
+            if (pwallet->nVotingMasterKeyMaxID < nID)
+                pwallet->nVotingMasterKeyMaxID = nID;
+        }
+        else if (strType == "vckey")
+        {
+            CPubKey vchPubKey;
+            ssKey >> vchPubKey;
+            if (!vchPubKey.IsValid())
+            {
+                strErr = "Error reading wallet database: CPubKey corrupt";
+                return false;
+            }
+            vector<unsigned char> vchPrivKey;
+            ssValue >> vchPrivKey;
+            wss.nVCKeys++;
+
+            if (!pwallet->LoadCryptedVotingKey(vchPubKey, vchPrivKey))
+            {
+                strErr = "Error reading wallet database: LoadCryptedVotingKey failed";
+                return false;
+            }
+            wss.fIsVotingEncrypted = true;
+        }
+        else if (strType == "vkeymeta")
+        {
+            CKeyID keyId;
+            ssKey >> keyId;
+            CVotingKeyMetadata keyMeta;
+            ssValue >> keyMeta;
+            wss.nVKeyMeta++;
+
+            pwallet->LoadVotingKeyMetadata(keyId, keyMeta);
+        }
         else if (strType == "defaultkey")
         {
             ssValue >> pwallet->vchDefaultKey;
@@ -805,7 +800,9 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
 static bool IsKeyType(string strType)
 {
     return (strType== "key" || strType == "wkey" ||
-            strType == "mkey" || strType == "ckey");
+            strType == "mkey" || strType == "ckey" ||
+            strType== "vkey" || strType == "vmkey" ||
+            strType == "vckey");
 }
 
 DBErrors CWalletDB::LoadWallet(CWallet* pwallet)

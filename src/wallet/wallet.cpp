@@ -46,7 +46,6 @@ bool bSpendZeroConfChange = DEFAULT_SPEND_ZEROCONF_CHANGE;
 bool fSendFreeTransactions = DEFAULT_SEND_FREE_TRANSACTIONS;
 
 const char *DEFAULT_WALLET_DAT = "wallet.dat";
-const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;
 
 /**
  * Fees smaller than this (in satoshi) are considered zero fee (for transaction creation)
@@ -383,6 +382,93 @@ bool CWallet::LoadWatchOnly(const CScript &dest) {
     return CCryptoKeyStore::AddWatchOnly(dest);
 }
 
+
+
+bool CWallet::GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const
+{
+    LOCK(cs_wallet);
+    return CCryptoKeyStore::GetVotingPubKey(address, vchPubKeyOut);
+}
+
+bool CWallet::GetVotingKey(const CKeyID &address, CKey& keyOut) const
+{
+    LOCK(cs_wallet);
+    return CCryptoKeyStore::GetVotingKey(address, keyOut);
+}
+
+bool CWallet::HaveVotingKey(const CKeyID &address) const
+{
+    LOCK(cs_wallet);
+    return CCryptoKeyStore::HaveVotingKey(address);
+}
+
+bool CWallet::AddVotingKeyPubKey(const CKey &secret, const CPubKey &pubkey) {
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    if (!CCryptoKeyStore::AddVotingKeyPubKey(secret, pubkey))
+        return false;
+
+    if (!fFileBacked)
+        return true;
+    if (!IsVotingCrypted()) {
+        return CWalletDB(strWalletFile).WriteVotingKey(pubkey,
+                                                 secret.GetPrivKey(),
+                                                 mapVotingKeyMetadata[pubkey.GetID()]);
+    }
+    return true;
+}
+
+bool CWallet::AddCryptedVotingKey(const CPubKey &vchPubKey,
+                            const vector<unsigned char> &vchCryptedSecret) {
+    if (!CCryptoKeyStore::AddCryptedVotingKey(vchPubKey, vchCryptedSecret))
+        return false;
+    if (!fFileBacked)
+        return true;
+    {
+        LOCK(cs_wallet);
+        if (pvotingdbEncryption)
+            return pvotingdbEncryption->WriteCryptedVotingKey(vchPubKey,
+                                                        vchCryptedSecret,
+                                                        mapVotingKeyMetadata[vchPubKey.GetID()]);
+        else
+            return CWalletDB(strWalletFile).WriteCryptedVotingKey(vchPubKey,
+                                                            vchCryptedSecret,
+                                                            mapVotingKeyMetadata[vchPubKey.GetID()]);
+    }
+    return false;
+}
+
+bool CWallet::LoadVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadata &meta) {
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    mapVotingKeyMetadata[keyId] = meta;
+    return true;
+}
+
+bool CWallet::UpdateVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadata &meta) {
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    mapVotingKeyMetadata[keyId] = meta;
+    return CWalletDB(strWalletFile).UpdateVotingKeyMeta(keyId, meta);
+}
+
+bool CWallet::UpdateVotingKeyMetadata(const CKeyID &keyId) {
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    return CWalletDB(strWalletFile).UpdateVotingKeyMeta(keyId, mapVotingKeyMetadata[keyId]);
+}
+
+bool CWallet::GetVotingKeyMetadata(const CKeyID &keyId, CVotingKeyMetadata &meta) {
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+
+    if(!mapVotingKeyMetadata.count(keyId) ) return false;
+
+    meta = mapVotingKeyMetadata[keyId];
+
+    return true;
+}
+
+bool CWallet::LoadCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret) {
+    return CCryptoKeyStore::AddCryptedVotingKey(vchPubKey, vchCryptedSecret);
+}
+
+
 bool CWallet::Unlock(const SecureString &strWalletPassphrase) {
     CCrypter crypter;
     CKeyingMaterial vMasterKey;
@@ -460,6 +546,289 @@ bool CWallet::ChangeWalletPassphrase(const SecureString &strOldWalletPassphrase,
     }
 
     return false;
+}
+
+bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
+{
+    if (IsCrypted())
+        return false;
+
+    CKeyingMaterial vMasterKey;
+
+    vMasterKey.resize(WALLET_CRYPTO_KEY_SIZE);
+    GetStrongRandBytes(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
+
+    CMasterKey kMasterKey;
+
+    kMasterKey.vchSalt.resize(WALLET_CRYPTO_SALT_SIZE);
+    GetStrongRandBytes(&kMasterKey.vchSalt[0], WALLET_CRYPTO_SALT_SIZE);
+
+    CCrypter crypter;
+    int64_t nStartTime = GetTimeMillis();
+    crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, 25000, kMasterKey.nDerivationMethod);
+    kMasterKey.nDeriveIterations = 2500000 / ((double)(GetTimeMillis() - nStartTime));
+
+    nStartTime = GetTimeMillis();
+    crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod);
+    kMasterKey.nDeriveIterations = (kMasterKey.nDeriveIterations + kMasterKey.nDeriveIterations * 100 / ((double)(GetTimeMillis() - nStartTime))) / 2;
+
+    if (kMasterKey.nDeriveIterations < 25000)
+        kMasterKey.nDeriveIterations = 25000;
+
+    LogPrintf("Encrypting Wallet with an nDeriveIterations of %i\n", kMasterKey.nDeriveIterations);
+
+    if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod))
+        return false;
+    if (!crypter.Encrypt(vMasterKey, kMasterKey.vchCryptedKey))
+        return false;
+
+    {
+        LOCK(cs_wallet);
+        mapMasterKeys[++nMasterKeyMaxID] = kMasterKey;
+        if (fFileBacked)
+        {
+            assert(!pwalletdbEncryption);
+            pwalletdbEncryption = new CWalletDB(strWalletFile);
+            if (!pwalletdbEncryption->TxnBegin()) {
+                delete pwalletdbEncryption;
+                pwalletdbEncryption = NULL;
+                return false;
+            }
+            pwalletdbEncryption->WriteMasterKey(nMasterKeyMaxID, kMasterKey);
+        }
+
+        // must get current HD chain before EncryptKeys
+        CHDChain hdChainCurrent;
+        GetHDChain(hdChainCurrent);
+
+        if (!EncryptKeys(vMasterKey))
+        {
+            if (fFileBacked) {
+                pwalletdbEncryption->TxnAbort();
+                delete pwalletdbEncryption;
+            }
+            // We now probably have half of our keys encrypted in memory, and half not...
+            // die and let the user reload the unencrypted wallet.
+            assert(false);
+        }
+
+        if (!hdChainCurrent.IsNull()) {
+            assert(EncryptHDChain(vMasterKey));
+
+            CHDChain hdChainCrypted;
+            assert(GetHDChain(hdChainCrypted));
+
+            DBG(
+                printf("EncryptWallet -- current seed: '%s'\n", HexStr(hdChainCurrent.GetSeed()).c_str());
+                printf("EncryptWallet -- crypted seed: '%s'\n", HexStr(hdChainCrypted.GetSeed()).c_str());
+            );
+
+            // ids should match, seed hashes should not
+            assert(hdChainCurrent.GetID() == hdChainCrypted.GetID());
+            assert(hdChainCurrent.GetSeedHash() != hdChainCrypted.GetSeedHash());
+
+            assert(SetCryptedHDChain(hdChainCrypted, false));
+        }
+
+        // Encryption was introduced in version 0.4.0
+        SetMinVersion(FEATURE_WALLETCRYPT, pwalletdbEncryption, true);
+
+        if (fFileBacked)
+        {
+            if (!pwalletdbEncryption->TxnCommit()) {
+                delete pwalletdbEncryption;
+                // We now have keys encrypted in memory, but not on disk...
+                // die to avoid confusion and let the user reload the unencrypted wallet.
+                assert(false);
+            }
+
+            delete pwalletdbEncryption;
+            pwalletdbEncryption = NULL;
+        }
+
+        Lock();
+        Unlock(strWalletPassphrase);
+
+        // if we are not using HD, generate new keypool
+        if(IsHDEnabled()) {
+            TopUpKeyPool();
+        }
+        else {
+            NewKeyPool();
+        }
+
+        Lock();
+
+        // Need to completely rewrite the wallet file; if we don't, bdb might keep
+        // bits of the unencrypted private key in slack space in the database file.
+        CDB::Rewrite(strWalletFile);
+
+    }
+    NotifyStatusChanged(this);
+
+    return true;
+}
+
+bool CWallet::UnlockVoting(const SecureString &strWalletPassphrase) {
+    CCrypter crypter;
+    CKeyingMaterial vMasterKey;
+
+    {
+        LOCK(cs_wallet);
+        BOOST_FOREACH(const MasterKeyMap::value_type& pMasterKey, mapVotingMasterKeys)
+        {
+            if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
+                return false;
+            if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, vMasterKey))
+                continue; // try another master key
+            if (CCryptoKeyStore::UnlockVoting(vMasterKey)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool CWallet::ChangeVotingPassphrase(const SecureString &strOldWalletPassphrase,
+                                     const SecureString &strNewWalletPassphrase) {
+    bool fWasLocked = IsVotingLocked();
+
+    {
+        LOCK(cs_wallet);
+        LockVoting();
+
+        CCrypter crypter;
+        CKeyingMaterial vMasterKey;
+        BOOST_FOREACH(MasterKeyMap::value_type & pMasterKey, mapVotingMasterKeys)
+        {
+            if (!crypter.SetKeyFromPassphrase(strOldWalletPassphrase, pMasterKey.second.vchSalt,
+                                              pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
+                return false;
+            if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, vMasterKey))
+                return false;
+            if (CCryptoKeyStore::UnlockVoting(vMasterKey)) {
+                int64_t nStartTime = GetTimeMillis();
+                crypter.SetKeyFromPassphrase(strNewWalletPassphrase, pMasterKey.second.vchSalt,
+                                             pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod);
+                pMasterKey.second.nDeriveIterations =
+                        pMasterKey.second.nDeriveIterations * (100 / ((double) (GetTimeMillis() - nStartTime)));
+
+                nStartTime = GetTimeMillis();
+                crypter.SetKeyFromPassphrase(strNewWalletPassphrase, pMasterKey.second.vchSalt,
+                                             pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod);
+                pMasterKey.second.nDeriveIterations = (pMasterKey.second.nDeriveIterations +
+                                                       pMasterKey.second.nDeriveIterations * 100 /
+                                                       ((double) (GetTimeMillis() - nStartTime))) / 2;
+
+                if (pMasterKey.second.nDeriveIterations < 25000)
+                    pMasterKey.second.nDeriveIterations = 25000;
+
+                LogPrintf("Voting passphrase changed to an nDeriveIterations of %i\n",
+                          pMasterKey.second.nDeriveIterations);
+
+                if (!crypter.SetKeyFromPassphrase(strNewWalletPassphrase, pMasterKey.second.vchSalt,
+                                                  pMasterKey.second.nDeriveIterations,
+                                                  pMasterKey.second.nDerivationMethod))
+                    return false;
+                if (!crypter.Encrypt(vMasterKey, pMasterKey.second.vchCryptedKey))
+                    return false;
+                CWalletDB(strWalletFile).WriteVotingMasterKey(pMasterKey.first, pMasterKey.second);
+                if (fWasLocked)
+                    LockVoting();
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool CWallet::EncryptVoting(const SecureString& strWalletPassphrase)
+{
+    if (IsVotingCrypted())
+        return false;
+
+    CKeyingMaterial vMasterKey;
+
+    vMasterKey.resize(WALLET_CRYPTO_KEY_SIZE);
+    GetStrongRandBytes(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
+
+    CMasterKey kMasterKey;
+
+    kMasterKey.vchSalt.resize(WALLET_CRYPTO_SALT_SIZE);
+    GetStrongRandBytes(&kMasterKey.vchSalt[0], WALLET_CRYPTO_SALT_SIZE);
+
+    CCrypter crypter;
+    int64_t nStartTime = GetTimeMillis();
+    crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, 25000, kMasterKey.nDerivationMethod);
+    kMasterKey.nDeriveIterations = 2500000 / ((double)(GetTimeMillis() - nStartTime));
+
+    nStartTime = GetTimeMillis();
+    crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod);
+    kMasterKey.nDeriveIterations = (kMasterKey.nDeriveIterations + kMasterKey.nDeriveIterations * 100 / ((double)(GetTimeMillis() - nStartTime))) / 2;
+
+    if (kMasterKey.nDeriveIterations < 25000)
+        kMasterKey.nDeriveIterations = 25000;
+
+    LogPrintf("Encrypting Voting with an nDeriveIterations of %i\n", kMasterKey.nDeriveIterations);
+
+    if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod))
+        return false;
+    if (!crypter.Encrypt(vMasterKey, kMasterKey.vchCryptedKey))
+        return false;
+
+    {
+        LOCK(cs_wallet);
+        mapVotingMasterKeys[++nVotingMasterKeyMaxID] = kMasterKey;
+        if (fFileBacked)
+        {
+            assert(!pvotingdbEncryption);
+            pvotingdbEncryption = new CWalletDB(strWalletFile);
+            if (!pvotingdbEncryption->TxnBegin()) {
+                delete pvotingdbEncryption;
+                pvotingdbEncryption = NULL;
+                return false;
+            }
+            pvotingdbEncryption->WriteVotingMasterKey(nVotingMasterKeyMaxID, kMasterKey);
+        }
+
+        if (!EncryptVotingKeys(vMasterKey))
+        {
+            if (fFileBacked) {
+                pvotingdbEncryption->TxnAbort();
+                delete pvotingdbEncryption;
+            }
+            // We now probably have half of our keys encrypted in memory, and half not...
+            // die and let the user reload the unencrypted wallet.
+            assert(false);
+        }
+
+        // Encryption was introduced in version 0.4.0
+        SetMinVersion(FEATURE_VOTINGCRYPT, pvotingdbEncryption, true);
+
+        if (fFileBacked)
+        {
+            if (!pvotingdbEncryption->TxnCommit()) {
+                delete pvotingdbEncryption;
+                // We now have keys encrypted in memory, but not on disk...
+                // die to avoid confusion and let the user reload the unencrypted wallet.
+                assert(false);
+            }
+
+            delete pvotingdbEncryption;
+            pvotingdbEncryption = NULL;
+        }
+
+        LockVoting();
+
+        // Need to completely rewrite the wallet file; if we don't, bdb might keep
+        // bits of the unencrypted private key in slack space in the database file.
+        CDB::Rewrite(strWalletFile);
+
+    }
+    NotifyStatusChanged(this);
+
+    return true;
 }
 
 void CWallet::SetBestChain(const CBlockLocator &loc) {
@@ -651,126 +1020,6 @@ void CWallet::AddToSpends(const uint256 &wtxid) {
     AddToSpends(txin.prevout, wtxid);
 }
 
-bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
-{
-    if (IsCrypted())
-        return false;
-
-    CKeyingMaterial vMasterKey;
-
-    vMasterKey.resize(WALLET_CRYPTO_KEY_SIZE);
-    GetStrongRandBytes(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
-
-    CMasterKey kMasterKey;
-
-    kMasterKey.vchSalt.resize(WALLET_CRYPTO_SALT_SIZE);
-    GetStrongRandBytes(&kMasterKey.vchSalt[0], WALLET_CRYPTO_SALT_SIZE);
-
-    CCrypter crypter;
-    int64_t nStartTime = GetTimeMillis();
-    crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, 25000, kMasterKey.nDerivationMethod);
-    kMasterKey.nDeriveIterations = 2500000 / ((double)(GetTimeMillis() - nStartTime));
-
-    nStartTime = GetTimeMillis();
-    crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod);
-    kMasterKey.nDeriveIterations = (kMasterKey.nDeriveIterations + kMasterKey.nDeriveIterations * 100 / ((double)(GetTimeMillis() - nStartTime))) / 2;
-
-    if (kMasterKey.nDeriveIterations < 25000)
-        kMasterKey.nDeriveIterations = 25000;
-
-    LogPrintf("Encrypting Wallet with an nDeriveIterations of %i\n", kMasterKey.nDeriveIterations);
-
-    if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod))
-        return false;
-    if (!crypter.Encrypt(vMasterKey, kMasterKey.vchCryptedKey))
-        return false;
-
-    {
-        LOCK(cs_wallet);
-        mapMasterKeys[++nMasterKeyMaxID] = kMasterKey;
-        if (fFileBacked)
-        {
-            assert(!pwalletdbEncryption);
-            pwalletdbEncryption = new CWalletDB(strWalletFile);
-            if (!pwalletdbEncryption->TxnBegin()) {
-                delete pwalletdbEncryption;
-                pwalletdbEncryption = NULL;
-                return false;
-            }
-            pwalletdbEncryption->WriteMasterKey(nMasterKeyMaxID, kMasterKey);
-        }
-
-        // must get current HD chain before EncryptKeys
-        CHDChain hdChainCurrent;
-        GetHDChain(hdChainCurrent);
-
-        if (!EncryptKeys(vMasterKey))
-        {
-            if (fFileBacked) {
-                pwalletdbEncryption->TxnAbort();
-                delete pwalletdbEncryption;
-            }
-            // We now probably have half of our keys encrypted in memory, and half not...
-            // die and let the user reload the unencrypted wallet.
-            assert(false);
-        }
-
-        if (!hdChainCurrent.IsNull()) {
-            assert(EncryptHDChain(vMasterKey));
-
-            CHDChain hdChainCrypted;
-            assert(GetHDChain(hdChainCrypted));
-
-            DBG(
-                printf("EncryptWallet -- current seed: '%s'\n", HexStr(hdChainCurrent.GetSeed()).c_str());
-                printf("EncryptWallet -- crypted seed: '%s'\n", HexStr(hdChainCrypted.GetSeed()).c_str());
-            );
-
-            // ids should match, seed hashes should not
-            assert(hdChainCurrent.GetID() == hdChainCrypted.GetID());
-            assert(hdChainCurrent.GetSeedHash() != hdChainCrypted.GetSeedHash());
-
-            assert(SetCryptedHDChain(hdChainCrypted, false));
-        }
-
-        // Encryption was introduced in version 0.4.0
-        SetMinVersion(FEATURE_WALLETCRYPT, pwalletdbEncryption, true);
-
-        if (fFileBacked)
-        {
-            if (!pwalletdbEncryption->TxnCommit()) {
-                delete pwalletdbEncryption;
-                // We now have keys encrypted in memory, but not on disk...
-                // die to avoid confusion and let the user reload the unencrypted wallet.
-                assert(false);
-            }
-
-            delete pwalletdbEncryption;
-            pwalletdbEncryption = NULL;
-        }
-
-        Lock();
-        Unlock(strWalletPassphrase);
-
-        // if we are not using HD, generate new keypool
-        if(IsHDEnabled()) {
-            TopUpKeyPool();
-        }
-        else {
-            NewKeyPool();
-        }
-
-        Lock();
-
-        // Need to completely rewrite the wallet file; if we don't, bdb might keep
-        // bits of the unencrypted private key in slack space in the database file.
-        CDB::Rewrite(strWalletFile);
-
-    }
-    NotifyStatusChanged(this);
-
-    return true;
-}
 
 int64_t CWallet::IncOrderPosNext(CWalletDB *pwalletdb) {
     AssertLockHeld(cs_wallet); // nOrderPosNext

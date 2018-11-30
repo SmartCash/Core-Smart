@@ -87,6 +87,8 @@ enum WalletFeature
     FEATURE_WALLETCRYPT = 40000, // wallet encryption
     FEATURE_COMPRPUBKEY = 60000, // compressed public keys
 
+    FEATURE_VOTINGCRYPT = 80000, // voting encryption
+
     FEATURE_HD = 130000, // Hierarchical key derivation after BIP32 (HD Wallet)
     FEATURE_LATEST = FEATURE_COMPRPUBKEY // HD is optional, use FEATURE_COMPRPUBKEY as latest version
 };
@@ -600,6 +602,7 @@ private:
     bool SelectCoins(const CAmount& nTargetValue, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, CAmount& nValueRet, const CCoinControl *coinControl = NULL, AvailableCoinsType nCoinType=ALL_COINS, bool fUseInstantSend = false) const;
 
     CWalletDB *pwalletdbEncryption;
+    CWalletDB *pvotingdbEncryption;
 
     //! the current wallet version: clients below this version are not able to load the wallet
     int nWalletVersion;
@@ -668,10 +671,13 @@ public:
     std::set<int64_t> setInternalKeyPool;
     std::set<int64_t> setExternalKeyPool;
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
+    std::map<CKeyID, CVotingKeyMetadata> mapVotingKeyMetadata;
 
     typedef std::map<unsigned int, CMasterKey> MasterKeyMap;
     MasterKeyMap mapMasterKeys;
     unsigned int nMasterKeyMaxID;
+    MasterKeyMap mapVotingMasterKeys;
+    unsigned int nVotingMasterKeyMaxID;
 
     CWallet()
     {
@@ -690,6 +696,8 @@ public:
     {
         delete pwalletdbEncryption;
         pwalletdbEncryption = NULL;
+        delete pvotingdbEncryption;
+        pvotingdbEncryption = NULL;
     }
 
     void SetNull()
@@ -699,6 +707,7 @@ public:
         fFileBacked = false;
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
+        pvotingdbEncryption = NULL;
         nOrderPosNext = 0;
         nNextResend = 0;
         nLastResend = 0;
@@ -806,6 +815,29 @@ public:
     bool AddCScript(const CScript& redeemScript);
     bool LoadCScript(const CScript& redeemScript);
 
+    //! HaveKey implementation that also checks the mapHdPubKeys
+    bool HaveVotingKey(const CKeyID &address) const;
+    //! GetPubKey implementation that also checks the mapHdPubKeys
+    bool GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
+    //! GetKey implementation that can derive a HD private key on the fly
+    bool GetVotingKey(const CKeyID &address, CKey& keyOut) const;
+    //! Adds a key to the store, and saves it to disk.
+    bool AddVotingKeyPubKey(const CKey& key, const CPubKey &pubkey);
+    //! Adds a key to the store, without saving it to disk (used by LoadWallet)
+    bool LoadVotingKey(const CKey& key, const CPubKey &pubkey) { return CCryptoKeyStore::AddVotingKeyPubKey(key, pubkey); }
+    //! Load metadata (used by LoadWallet)
+    bool LoadVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadata &metadata);
+    //! Load metadata (used by LoadWallet)
+    bool GetVotingKeyMetadata(const CKeyID &keyId, CVotingKeyMetadata &metadata);
+    //! Update votekeys metadata
+    bool UpdateVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadata &meta);
+    bool UpdateVotingKeyMetadata(const CKeyID &keyId);
+    //! Adds an encrypted key to the store, and saves it to disk.
+    bool AddCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
+    //! Adds an encrypted key to the store, without saving it to disk (used by LoadWallet)
+    bool LoadCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
+
+
     //! Adds a destination data tuple to the store, and saves it to disk
     bool AddDestData(const CTxDestination &dest, const std::string &key, const std::string &value);
     //! Erases a destination data tuple in the store and on disk
@@ -824,6 +856,10 @@ public:
     bool Unlock(const SecureString& strWalletPassphrase);
     bool ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase);
     bool EncryptWallet(const SecureString& strWalletPassphrase);
+
+    bool UnlockVoting(const SecureString& strWalletPassphrase);
+    bool ChangeVotingPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase);
+    bool EncryptVoting(const SecureString& strWalletPassphrase);
 
     void GetKeyBirthTimes(std::map<CKeyID, int64_t> &mapKeyBirth) const;
 
@@ -948,7 +984,7 @@ public:
     {
         LOCK(cs_wallet);
         mapRequestCount[hash] = 0;
-    };
+    }
 
     unsigned int GetKeyPoolSize()
     {
@@ -1036,6 +1072,7 @@ public:
     bool SetHDChain(const CHDChain& chain, bool memonly);
     bool SetCryptedHDChain(const CHDChain& chain, bool memonly);
     bool GetDecryptedHDChain(CHDChain& hdChainRet);
+
 };
 
 /** A key allocated from the key pool. */
