@@ -29,7 +29,7 @@ struct CVotingPower{
     bool IsValid() const { return nBlockHeight > 0; }
     void SetNull() {
         nBlockHeight = -1;
-        nPower = 0;
+        nPower = -1;
         address = CSmartAddress();
     }
 };

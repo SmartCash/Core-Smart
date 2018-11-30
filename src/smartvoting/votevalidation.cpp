@@ -9,6 +9,7 @@
 #include "smartvoting/manager.h"
 #include "spentindex.h"
 #include "validation.h"
+#include "wallet/wallet.h"
 
 static CCriticalSection cs;
 
@@ -32,7 +33,7 @@ void ThreadSmartVoting()
     {
         MilliSleep(1000);
 
-        if(smartnodeSync.IsSynced() && !ShutdownRequested()) {
+        if(smartnodeSync.IsBlockchainSynced() && !ShutdownRequested()) {
 
             int nHeight = chainActive.Height();
 
@@ -44,16 +45,35 @@ void ThreadSmartVoting()
             if( nHeight % nValidationInterval )
                 continue;
 
-            // First add all missing active addresses
             std::set<CVoteKey> setActiveKeys;
-            std::vector<const CProposal*> vecProposals = smartVoting.GetAllNewerThan(0);
 
-            for( auto proposal : vecProposals ){
-                proposal->GetActiveVoteKeys(setActiveKeys);
+            // Update votekeys active from proposals
+            if( smartnodeSync.IsSynced() ){
+
+                std::vector<const CProposal*> vecProposals = smartVoting.GetAllNewerThan(0);
+
+                for( auto proposal : vecProposals ){
+                    proposal->GetActiveVoteKeys(setActiveKeys);
+                }
+
+                for( auto it : setActiveKeys ){
+                    AddActiveVoteKey(it);
+                }
+
             }
 
-            for( auto it : setActiveKeys ){
-                AddActiveVoteKey(it);
+            // Update votekeys available in the wallet
+            if( pwalletMain ){
+
+                std::set<CKeyID> setVotingKeyIds;
+                {
+                    LOCK(pwalletMain->cs_wallet);
+                    pwalletMain->GetVotingKeys(setVotingKeyIds);
+                }
+
+                for( auto keyId : setVotingKeyIds ){
+                    AddActiveVoteKey(CVoteKey(keyId));
+                }
             }
 
             LOCK(cs);
@@ -61,7 +81,7 @@ void ThreadSmartVoting()
             for (auto it = mapActiveVoteKeys.begin(); it != mapActiveVoteKeys.end();){
 
                 // Check if the address we validate is not longer active in any proposal
-                if( !setActiveKeys.count(it->first) ){
+                if( setActiveKeys.size() && !setActiveKeys.count(it->first) ){
                     it = mapActiveVoteKeys.erase(it);
                     continue;
                 }
@@ -76,7 +96,6 @@ void ThreadSmartVoting()
                         ++it;
                         continue;
                     }
-
 
                 }
 
