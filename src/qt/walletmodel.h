@@ -146,6 +146,7 @@ public:
     CAmount getWatchUnconfirmedBalance() const;
     CAmount getWatchImmatureBalance() const;
     EncryptionStatus getEncryptionStatus() const;
+    EncryptionStatus getVotingEncryptionStatus() const;
 
     // Check address for validity
     bool validateAddress(const QString &address);
@@ -169,6 +170,18 @@ public:
     // Passphrase only needed when unlocking
     bool setWalletLocked(bool locked, const SecureString &passPhrase=SecureString());
     bool changePassphrase(const SecureString &oldPass, const SecureString &newPass);
+
+    // Voting encryption
+    bool setVotingEncrypted(bool encrypted, const SecureString &passphrase);
+    // Passphrase only needed when unlocking
+    bool setVotingLocked(bool locked, const SecureString &passPhrase=SecureString());
+    bool changeVotingPassphrase(const SecureString &oldPass, const SecureString &newPass);
+
+    int enabledVoteKeys();
+    void updateVoteKeys(bool fEnabled);
+    QString enabledVotingPowerString();
+    QString votingPowerString(const CVoteKey &voteKey);
+
     // Wallet backup
     bool backupWallet(const QString &filename);
 
@@ -193,6 +206,28 @@ public:
     };
 
     UnlockContext requestUnlock();
+
+    // RAI object for unlocking wallet, returned by requestUnlock()
+    class VotingUnlockContext
+    {
+    public:
+        VotingUnlockContext(WalletModel *wallet, bool valid, bool relock);
+        ~VotingUnlockContext();
+
+        bool isValid() const { return valid; }
+
+        // Copy operator and constructor transfer the context
+        VotingUnlockContext(const UnlockContext& obj) { CopyFrom(obj); }
+        VotingUnlockContext& operator=(const UnlockContext& rhs) { CopyFrom(rhs); return *this; }
+    private:
+        WalletModel *wallet;
+        bool valid;
+        mutable bool relock; // mutable, as it can be set to false by copying
+
+        void CopyFrom(const VotingUnlockContext& rhs);
+    };
+
+    VotingUnlockContext requestVotingUnlock();
 
     bool getPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
     bool havePrivKey(const CKeyID &address) const;
@@ -254,6 +289,11 @@ Q_SIGNALS:
     // It is valid behaviour for listeners to keep the wallet locked after this signal;
     // this means that the unlocking failed or was cancelled.
     void requireUnlock();
+
+    // Signal emitted when voting needs to be unlocked
+    // It is valid behaviour for listeners to keep the voting locked after this signal;
+    // this means that the unlocking failed or was cancelled.
+    void requireVotingUnlock();
 
     // Fired when a message should be reported to the user
     void message(const QString &title, const QString &message, unsigned int style);

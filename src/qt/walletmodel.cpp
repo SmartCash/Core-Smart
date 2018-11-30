@@ -17,6 +17,7 @@
 #include "sync.h"
 #include "../smartnode/instantx.h"
 #include "../smartnode/spork.h"
+#include "smartvoting/votevalidation.h"
 #include "ui_interface.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h" // for BackupWallet
@@ -478,6 +479,139 @@ bool WalletModel::changePassphrase(const SecureString &oldPass, const SecureStri
     return retval;
 }
 
+
+WalletModel::EncryptionStatus WalletModel::getVotingEncryptionStatus() const
+{
+    if(!wallet->IsVotingCrypted())
+    {
+        return Unencrypted;
+    }
+    else if(wallet->IsVotingLocked())
+    {
+        return Locked;
+    }
+    else
+    {
+        return Unlocked;
+    }
+}
+
+bool WalletModel::setVotingEncrypted(bool encrypted, const SecureString &passphrase)
+{
+    if(encrypted)
+    {
+        // Encrypt
+        return wallet->EncryptVoting(passphrase);
+    }
+    else
+    {
+        // Decrypt -- TODO; not supported yet
+        return false;
+    }
+}
+
+bool WalletModel::setVotingLocked(bool locked, const SecureString &passPhrase)
+{
+    if(locked)
+    {
+        // Lock
+        return wallet->LockVoting();
+    }
+    else
+    {
+        // Unlock
+        return wallet->UnlockVoting(passPhrase);
+    }
+}
+
+bool WalletModel::changeVotingPassphrase(const SecureString &oldPass, const SecureString &newPass)
+{
+    bool retval;
+    {
+        LOCK(wallet->cs_wallet);
+        wallet->LockVoting(); // Make sure wallet is locked before attempting pass change
+        retval = wallet->ChangeVotingPassphrase(oldPass, newPass);
+    }
+    return retval;
+}
+
+int WalletModel::enabledVoteKeys()
+{
+    LOCK(wallet->cs_wallet);
+    int nCount = 0;
+    for( auto it : wallet->mapVotingKeyMetadata )
+        if( it.second.fEnabled ) ++nCount;
+
+    return nCount;
+}
+
+QString WalletModel::enabledVotingPowerString()
+{
+    LOCK(wallet->cs_wallet);
+    QString votingPowerString;
+    int nTotalPower = 0;
+
+    for( auto it : wallet->mapVotingKeyMetadata ){
+
+        if( !it.second.fEnabled ) continue;
+
+        CVoteKey voteKey(it.first);
+
+        if( !voteKey.IsValid() ) return "Key error";
+
+        CAmount nVotingPower = GetVotingPower(voteKey);
+
+        if( nVotingPower >= 0){
+            nTotalPower += std::round(CAmountToDouble(nVotingPower));
+        }else if( nVotingPower == -1 ){
+            return "Updating";
+        }
+
+    }
+
+    votingPowerString = QString::number(nTotalPower);
+    AddThousandsSpaces(votingPowerString);
+    return votingPowerString + " SMART";
+}
+
+QString WalletModel::votingPowerString(const CVoteKey &voteKey)
+{
+    LOCK(wallet->cs_wallet);
+    QString votingPowerString;
+    int nTotalPower = 0;
+    CKeyID keyId;
+
+    if( !voteKey.GetKeyID(keyId) ) return "Key error";
+
+    if( !wallet->HaveVotingKey(keyId) ) return "Unavailable";
+
+    CAmount nVotingPower = GetVotingPower(voteKey);
+
+    if( nVotingPower >= 0){
+        nTotalPower = std::round(CAmountToDouble(nVotingPower));
+    }else if( nVotingPower == -1 ){
+        return "Updating";
+    }
+
+    votingPowerString = QString::number(nTotalPower);
+    AddThousandsSpaces(votingPowerString);
+    return votingPowerString + " SMART";
+}
+
+void WalletModel::updateVoteKeys(bool fEnabled)
+{
+    LOCK(wallet->cs_wallet);
+
+    auto it = wallet->mapVotingKeyMetadata.begin();
+    while( it != wallet->mapVotingKeyMetadata.end() ){
+        it->second.fEnabled = fEnabled;
+        wallet->UpdateVotingKeyMetadata(it->first);
+        ++it;
+    }
+
+}
+
+
 bool WalletModel::backupWallet(const QString &filename)
 {
     return wallet->BackupWallet(filename.toLocal8Bit().data());
@@ -580,6 +714,44 @@ WalletModel::UnlockContext::~UnlockContext()
 }
 
 void WalletModel::UnlockContext::CopyFrom(const UnlockContext& rhs)
+{
+    // Transfer context; old object no longer relocks wallet
+    *this = rhs;
+    rhs.relock = false;
+}
+
+// WalletModel::VotingUnlockContext implementation
+
+WalletModel::VotingUnlockContext WalletModel::requestVotingUnlock()
+{
+    bool was_locked = getVotingEncryptionStatus() == Locked;
+    if(was_locked)
+    {
+        // Request UI to unlock wallet
+        Q_EMIT requireVotingUnlock();
+    }
+    // If wallet is still locked, unlock was failed or cancelled, mark context as invalid
+    bool valid = getVotingEncryptionStatus() != Locked;
+
+    return VotingUnlockContext(this, valid, was_locked);
+}
+
+WalletModel::VotingUnlockContext::VotingUnlockContext(WalletModel *wallet, bool valid, bool relock):
+        wallet(wallet),
+        valid(valid),
+        relock(relock)
+{
+}
+
+WalletModel::VotingUnlockContext::~VotingUnlockContext()
+{
+    if(valid && relock)
+    {
+        wallet->setVotingLocked(true);
+    }
+}
+
+void WalletModel::VotingUnlockContext::CopyFrom(const VotingUnlockContext& rhs)
 {
     // Transfer context; old object no longer relocks wallet
     *this = rhs;
