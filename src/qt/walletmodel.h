@@ -285,6 +285,9 @@ Q_SIGNALS:
     // Encryption status of wallet changed
     void encryptionStatusChanged(int status);
 
+    // Encryption status of voting storage changed
+    void votingEncryptionStatusChanged(int status);
+
     // Signal emitted when wallet needs to be unlocked
     // It is valid behaviour for listeners to keep the wallet locked after this signal;
     // this means that the unlocking failed or was cancelled.

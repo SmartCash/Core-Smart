@@ -102,8 +102,10 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *platformStyle, const NetworkStyle *n
     optionsAction(0),
     toggleHideAction(0),
     encryptWalletAction(0),
+    encryptVotingAction(0),
     backupWalletAction(0),
     changePassphraseAction(0),
+    changeVotingPassphraseAction(0),
     aboutQtAction(0),
     smartnodeAction(0),
     smartrewardsAction(0),
@@ -378,10 +380,15 @@ void BitcoinGUI::createActions()
     encryptWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/lock_closed"), tr("&Encrypt Wallet..."), this);
     encryptWalletAction->setStatusTip(tr("Encrypt the private keys that belong to your wallet"));
     encryptWalletAction->setCheckable(true);
+    encryptVotingAction = new QAction(platformStyle->TextColorIcon(":/icons/lock_closed"), tr("&Encrypt Voting storage..."), this);
+    encryptVotingAction->setStatusTip(tr("Encrypt the private keys that belong to your voting keys"));
+    encryptVotingAction->setCheckable(true);
     backupWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
     backupWalletAction->setStatusTip(tr("Backup wallet to another location"));
     changePassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Passphrase..."), this);
     changePassphraseAction->setStatusTip(tr("Change the passphrase used for wallet encryption"));
+    changeVotingPassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Voting Passphrase..."), this);
+    changeVotingPassphraseAction->setStatusTip(tr("Change the passphrase used for voting storage encryption"));
     signMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/edit"), tr("Sign &message..."), this);
     signMessageAction->setStatusTip(tr("Sign messages with your SmartCash addresses to prove you own them"));
     verifyMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/verify"), tr("&Verify message..."), this);
@@ -422,8 +429,10 @@ void BitcoinGUI::createActions()
     if(walletFrame)
     {
         connect(encryptWalletAction, SIGNAL(triggered(bool)), walletFrame, SLOT(encryptWallet(bool)));
+        connect(encryptVotingAction, SIGNAL(triggered(bool)), walletFrame, SLOT(encryptVoting(bool)));
         connect(backupWalletAction, SIGNAL(triggered()), walletFrame, SLOT(backupWallet()));
         connect(changePassphraseAction, SIGNAL(triggered()), walletFrame, SLOT(changePassphrase()));
+        connect(changeVotingPassphraseAction, SIGNAL(triggered()), walletFrame, SLOT(changeVotingPassphrase()));
         connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
         connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
         connect(usedSendingAddressesAction, SIGNAL(triggered()), walletFrame, SLOT(usedSendingAddresses()));
@@ -466,6 +475,9 @@ void BitcoinGUI::createMenuBar()
     {
         settings->addAction(encryptWalletAction);
         settings->addAction(changePassphraseAction);
+        settings->addSeparator();
+        settings->addAction(encryptVotingAction);
+        settings->addAction(changeVotingPassphraseAction);
         settings->addSeparator();
     }
     settings->addAction(optionsAction);
@@ -600,8 +612,10 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     smartrewardsAction->setEnabled(enabled);
     smartvotingAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
+    encryptVotingAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
+    changeVotingPassphraseAction->setEnabled(enabled);
     signMessageAction->setEnabled(enabled);
     verifyMessageAction->setEnabled(enabled);
     usedSendingAddressesAction->setEnabled(enabled);
@@ -1184,6 +1198,28 @@ void BitcoinGUI::setEncryptionStatus(int status)
         encryptWalletAction->setChecked(true);
         changePassphraseAction->setEnabled(true);
         encryptWalletAction->setEnabled(false); // TODO: decrypt currently not supported
+        break;
+    }
+}
+
+void BitcoinGUI::setVotingEncryptionStatus(int status)
+{
+    switch(status)
+    {
+    case WalletModel::Unencrypted:
+        encryptVotingAction->setChecked(false);
+        changeVotingPassphraseAction->setEnabled(false);
+        encryptVotingAction->setEnabled(true);
+        break;
+    case WalletModel::Unlocked:
+        encryptVotingAction->setChecked(true);
+        changeVotingPassphraseAction->setEnabled(true);
+        encryptVotingAction->setEnabled(false); // TODO: decrypt currently not supported
+        break;
+    case WalletModel::Locked:
+        encryptVotingAction->setChecked(true);
+        changeVotingPassphraseAction->setEnabled(true);
+        encryptVotingAction->setEnabled(false); // TODO: decrypt currently not supported
         break;
     }
 }

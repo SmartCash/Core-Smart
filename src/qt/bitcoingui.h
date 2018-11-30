@@ -108,8 +108,10 @@ private:
     QAction *optionsAction;
     QAction *toggleHideAction;
     QAction *encryptWalletAction;
+    QAction *encryptVotingAction;
     QAction *backupWalletAction;
     QAction *changePassphraseAction;
+    QAction *changeVotingPassphraseAction;
     QAction *aboutQtAction;
     QAction *smartnodeAction;
     QAction *smartrewardsAction;
@@ -192,6 +194,8 @@ public Q_SLOTS:
        @see WalletModel::EncryptionStatus
     */
     void setEncryptionStatus(int status);
+
+    void setVotingEncryptionStatus(int status);
 
     bool handlePaymentRequest(const SendCoinsRecipient& recipient);
 

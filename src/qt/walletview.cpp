@@ -121,6 +121,9 @@ void WalletView::setBitcoinGUI(BitcoinGUI *gui)
         // Pass through encryption status changed signals
         connect(this, SIGNAL(encryptionStatusChanged(int)), gui, SLOT(setEncryptionStatus(int)));
 
+        // Pass through encryption status changed signals
+        connect(this, SIGNAL(votingEncryptionStatusChanged(int)), gui, SLOT(setVotingEncryptionStatus(int)));
+
         // Pass through transaction notifications
         connect(this, SIGNAL(incomingTransaction(QString,int,CAmount,QString,QString,QString)), gui, SLOT(incomingTransaction(QString,int,CAmount,QString,QString,QString)));
 
@@ -162,6 +165,10 @@ void WalletView::setWalletModel(WalletModel *walletModel)
         // Handle changes in encryption status
         connect(walletModel, SIGNAL(encryptionStatusChanged(int)), this, SIGNAL(encryptionStatusChanged(int)));
         updateEncryptionStatus();
+
+        // Handle changes in encryption status
+        connect(walletModel, SIGNAL(votingEncryptionStatusChanged(int)), this, SIGNAL(votingEncryptionStatusChanged(int)));
+        updateVotingEncryptionStatus();
 
         // update HD status
         Q_EMIT hdEnabledStatusChanged(walletModel->hdEnabled());
@@ -278,6 +285,11 @@ void WalletView::updateEncryptionStatus()
     Q_EMIT encryptionStatusChanged(walletModel->getEncryptionStatus());
 }
 
+void WalletView::updateVotingEncryptionStatus()
+{
+    Q_EMIT votingEncryptionStatusChanged(walletModel->getVotingEncryptionStatus());
+}
+
 void WalletView::encryptWallet(bool status)
 {
     if(!walletModel)
@@ -287,6 +299,17 @@ void WalletView::encryptWallet(bool status)
     dlg.exec();
 
     updateEncryptionStatus();
+}
+
+void WalletView::encryptVoting(bool status)
+{
+    if(!walletModel)
+        return;
+    AskPassphraseDialog dlg(status ? AskPassphraseDialog::EncryptVoting : AskPassphraseDialog::DecryptVoting, this);
+    dlg.setModel(walletModel);
+    dlg.exec();
+
+    updateVotingEncryptionStatus();
 }
 
 void WalletView::backupWallet()
@@ -311,6 +334,13 @@ void WalletView::backupWallet()
 void WalletView::changePassphrase()
 {
     AskPassphraseDialog dlg(AskPassphraseDialog::ChangePass, this);
+    dlg.setModel(walletModel);
+    dlg.exec();
+}
+
+void WalletView::changeVotingPassphrase()
+{
+    AskPassphraseDialog dlg(AskPassphraseDialog::ChangeVotingPass, this);
     dlg.setModel(walletModel);
     dlg.exec();
 }

@@ -178,6 +178,13 @@ void WalletFrame::encryptWallet(bool status)
         walletView->encryptWallet(status);
 }
 
+void WalletFrame::encryptVoting(bool status)
+{
+    WalletView *walletView = currentWalletView();
+    if (walletView)
+        walletView->encryptVoting(status);
+}
+
 void WalletFrame::backupWallet()
 {
     WalletView *walletView = currentWalletView();
@@ -190,6 +197,13 @@ void WalletFrame::changePassphrase()
     WalletView *walletView = currentWalletView();
     if (walletView)
         walletView->changePassphrase();
+}
+
+void WalletFrame::changeVotingPassphrase()
+{
+    WalletView *walletView = currentWalletView();
+    if (walletView)
+        walletView->changeVotingPassphrase();
 }
 
 void WalletFrame::unlockWallet()

@@ -106,10 +106,14 @@ public Q_SLOTS:
     void processNewTransaction(const QModelIndex& parent, int start, int /*end*/);
     /** Encrypt the wallet */
     void encryptWallet(bool status);
+    /** Encrypt the voting storage */
+    void encryptVoting(bool status);
     /** Backup the wallet */
     void backupWallet();
     /** Change encrypted wallet passphrase */
     void changePassphrase();
+    /** Change encrypted voting passphrase */
+    void changeVotingPassphrase();
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
     /** Ask for passphrase to unlock voting temporarily */
@@ -122,6 +126,9 @@ public Q_SLOTS:
 
     /** Re-emit encryption status signal */
     void updateEncryptionStatus();
+
+    /** Re-emit voting encryption status signal */
+    void updateVotingEncryptionStatus();
 
     /** Show progress dialog e.g. for rescan */
     void showProgress(const QString &title, int nProgress);
@@ -138,6 +145,8 @@ Q_SIGNALS:
     void message(const QString &title, const QString &message, unsigned int style);
     /** Encryption status of wallet changed */
     void encryptionStatusChanged(int status);
+    /** Encryption status of wallet changed */
+    void votingEncryptionStatusChanged(int status);
     /** HD-Enabled status of wallet changed (only possible during startup) */
     void hdEnabledStatusChanged(int hdEnabled);
     /** Notify that a new transaction appeared */
