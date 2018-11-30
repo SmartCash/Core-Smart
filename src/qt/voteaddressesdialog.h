@@ -18,6 +18,7 @@
 #include "smartproposal.h"
 
 class PlatformStyle;
+class WalletModel;
 
 namespace Ui {
     class VoteAddressesDialog;
@@ -36,24 +37,23 @@ class VoteAddressesDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit VoteAddressesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, QWidget *parent = 0);
+    explicit VoteAddressesDialog(const PlatformStyle *platformStyle, WalletModel *walletModel, QWidget *parent = 0);
     ~VoteAddressesDialog();
 
     enum{
         COLUMN_CHECKBOX,
-        COLUMN_AMOUNT,
-        COLUMN_ADDRESS
+        COLUMN_KEY,
+        COLUMN_ADDRESS,
+        COLUMN_AMOUNT
     };
 
 private:
-
-
 
     Ui::VoteAddressesDialog *ui;
 
     const PlatformStyle *platformStyle;
 
-    SmartVotingManager * votingManager;
+    WalletModel *walletModel;
     std::map<std::string,CAmount> vecAddresses;
 
 private Q_SLOTS:

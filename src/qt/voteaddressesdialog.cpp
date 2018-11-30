@@ -13,8 +13,10 @@
 #include "walletmodel.h"
 #include "init.h"
 #include "smartnode/smartnodeconfig.h"
+#include "smartvoting/votevalidation.h"
 #include "messagesigner.h"
 #include "util.h"
+#include "validation.h"
 
 #include <regex>
 
@@ -57,11 +59,11 @@ bool VoteAddressesWidgetItem::operator<(const QTableWidgetItem &other) const {
     return QTableWidgetItem::operator<(other);
 }
 
-VoteAddressesDialog::VoteAddressesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, QWidget *parent) :
+VoteAddressesDialog::VoteAddressesDialog(const PlatformStyle *platformStyle, WalletModel *walletModel, QWidget *parent) :
     QDialog(parent, Qt::WindowTitleHint),
     ui(new Ui::VoteAddressesDialog),
     platformStyle(platformStyle),
-    votingManager(votingManager)
+    walletModel(walletModel)
 {
     ui->setupUi(this);
 
@@ -76,12 +78,12 @@ VoteAddressesDialog::VoteAddressesDialog(const PlatformStyle *platformStyle, Sma
 
     addressTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     addressTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    addressTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    addressTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    addressTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
 
     connect(ui->button, SIGNAL(clicked()), this, SLOT(close()));
     connect(ui->selectionButton, SIGNAL(clicked()),this,SLOT(selectionButtonPressed()));
     connect(ui->addressTable, SIGNAL(cellChanged(int, int)), this, SLOT(cellChanged(int, int)));
-    connect(votingManager, SIGNAL(addressesUpdated()), this, SLOT(updateUI()));
 
     this->setWindowTitle("Change your voting power");
 
@@ -100,40 +102,36 @@ void VoteAddressesDialog::close()
 
 void VoteAddressesDialog::cellChanged(int row, int column)
 {
-    LOCK(votingManager->cs_addresses);
+    if( !pwalletMain ) return;
 
-    QTableWidgetItem *addressItem = ui->addressTable->item(row,COLUMN_ADDRESS);
+    QTableWidgetItem *voteKeyItem = ui->addressTable->item(row,COLUMN_KEY);
     QTableWidgetItem *checkBoxItem = ui->addressTable->item(row,COLUMN_CHECKBOX);
 
-    if( addressItem && checkBoxItem ){
+    if( voteKeyItem && checkBoxItem ){
 
-        QString address = addressItem->text();
+        QString voteKey = voteKeyItem->text();
+
         bool fChecked = checkBoxItem->checkState() == Qt::Checked;
 
-        auto voteAddress = std::find_if(votingManager->GetAddresses().begin(),
-                                        votingManager->GetAddresses().end(),
-                                        [address](const SmartVotingAddress& voteAddress) -> bool{
-            if( voteAddress.GetAddress() == address ) return true;
-            return false;
-        });
+        CVoteKey vk(voteKey.toStdString());
+        CKeyID keyId;
 
-        if( voteAddress != votingManager->GetAddresses().end() ){
-            voteAddress->SetEnabled(fChecked);
+        if( vk.GetKeyID(keyId) ){
+            LOCK(pwalletMain->cs_wallet);
+
+            CVotingKeyMetadata meta;
+            pwalletMain->GetVotingKeyMetadata(keyId, meta);
+            meta.fEnabled = fChecked;
+            pwalletMain->UpdateVotingKeyMetadata(keyId, meta);
         }
-
     }
 
-    QString votingPowerString = QString::number(std::round(votingManager->GetVotingPower()),'f',0);
-
-    AddThousandsSpaces(votingPowerString);
-
-    ui->votingPowerLabel->setText(votingPowerString + " SMART");
+    ui->votingPowerLabel->setText(walletModel->enabledVotingPowerString());
 }
 
 void VoteAddressesDialog::updateUI()
 {
-
-    LOCK(votingManager->cs_addresses);
+    if( !pwalletMain || !walletModel ) return;
 
     std::function<VoteAddressesWidgetItem * (QString)> createItem = [](QString title) {
         VoteAddressesWidgetItem * item = new VoteAddressesWidgetItem(title);
@@ -141,14 +139,31 @@ void VoteAddressesDialog::updateUI()
     };
 
     int nRow = 0;
-
     QTableWidget *table = ui->addressTable;
+
+    std::set<CKeyID> setVotingKeyIds;
+    {
+        LOCK(pwalletMain->cs_wallet);
+        pwalletMain->GetVotingKeys(setVotingKeyIds);
+    }
 
     table->clearContents();
     table->setRowCount(0);
 
     table->setSortingEnabled(false);
-    for( auto address : votingManager->GetAddresses() ){
+    for( auto keyId : setVotingKeyIds ){
+
+        CVoteKey voteKey(keyId);
+        CVoteKeyValue voteKeyValue;
+        CVotingKeyMetadata meta;
+
+        if( !GetVoteKeyValue(voteKey, voteKeyValue) )
+            continue;
+
+        {
+            LOCK(pwalletMain->cs_wallet);
+            pwalletMain->GetVotingKeyMetadata(keyId, meta);
+        }
 
         table->insertRow(nRow);
 
@@ -156,43 +171,33 @@ void VoteAddressesDialog::updateUI()
 
         checkBoxItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
 
-        if( address.IsEnabled() ){
+        if( meta.fEnabled ){
             checkBoxItem->setCheckState(Qt::Checked);
         }else{
             checkBoxItem->setCheckState(Qt::Unchecked);
         }
 
         table->setItem(nRow, COLUMN_CHECKBOX, checkBoxItem);
-        table->setItem(nRow, COLUMN_ADDRESS, createItem(address.GetAddress()));
-
-        QString votingPowerString = QString::number(std::round(address.GetVotingPower()),'f',0);
-
-        AddThousandsSpaces(votingPowerString);
-
-        table->setItem(nRow, COLUMN_AMOUNT, createItem(votingPowerString + " SMART"));
+        table->setItem(nRow, COLUMN_KEY, createItem(QString::fromStdString(voteKey.ToString())));
+        table->setItem(nRow, COLUMN_ADDRESS, createItem(QString::fromStdString(voteKeyValue.voteAddress.ToString())));
+        table->setItem(nRow, COLUMN_AMOUNT, createItem(walletModel->votingPowerString(voteKey)));
 
         nRow++;
     }
     table->setSortingEnabled(true);
 
-    QString votingPowerString = QString::number(std::round(votingManager->GetVotingPower()),'f',0);
-
-    AddThousandsSpaces(votingPowerString);
-
-    ui->votingPowerLabel->setText(votingPowerString + " SMART");
+    ui->votingPowerLabel->setText(walletModel->enabledVotingPowerString());
 
 }
 
 void VoteAddressesDialog::selectionButtonPressed()
 {
-    LOCK(votingManager->cs_addresses);
+    if( !walletModel ) return;
 
-    if( votingManager->GetEnabledAddressCount() ){
-        for( SmartVotingAddress &address : votingManager->GetAddresses() )
-            address.SetEnabled(false);
+    if( walletModel->enabledVoteKeys() ){
+        walletModel->updateVoteKeys(false);
     }else{
-        for( SmartVotingAddress &address : votingManager->GetAddresses() )
-            address.SetEnabled(true);
+        walletModel->updateVoteKeys(true);
     }
 
     updateUI();

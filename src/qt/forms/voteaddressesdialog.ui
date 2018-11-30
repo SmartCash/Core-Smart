@@ -98,12 +98,17 @@
      </column>
      <column>
       <property name="text">
-       <string>Voting power</string>
+       <string>Vote Key</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>Address</string>
+       <string>Vote Address</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Voting Power</string>
       </property>
      </column>
     </widget>
