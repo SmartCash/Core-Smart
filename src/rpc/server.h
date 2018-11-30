@@ -181,6 +181,7 @@ extern std::vector<unsigned char> ParseHexV(const UniValue& v, std::string strNa
 extern std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKey);
 
 extern int64_t nWalletUnlockTime;
+extern int64_t nVotingUnlockTime;
 extern CAmount AmountFromValue(const UniValue& value);
 extern UniValue ValueFromAmount(const CAmount& amount);
 extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
@@ -258,10 +259,10 @@ extern UniValue gettransaction(const UniValue& params, bool fHelp);
 extern UniValue abandontransaction(const UniValue& params, bool fHelp);
 extern UniValue backupwallet(const UniValue& params, bool fHelp);
 extern UniValue keypoolrefill(const UniValue& params, bool fHelp);
+extern UniValue encryptwallet(const UniValue& params, bool fHelp);
 extern UniValue walletpassphrase(const UniValue& params, bool fHelp);
 extern UniValue walletpassphrasechange(const UniValue& params, bool fHelp);
 extern UniValue walletlock(const UniValue& params, bool fHelp);
-extern UniValue encryptwallet(const UniValue& params, bool fHelp);
 extern UniValue validateaddress(const UniValue& params, bool fHelp);
 extern UniValue getinfo(const UniValue& params, bool fHelp);
 extern UniValue debug(const UniValue& params, bool fHelp);
@@ -318,6 +319,7 @@ extern UniValue getmoneysupply(const UniValue& params, bool fHelp);
 extern UniValue sentinelping(const UniValue& params, bool fHelp);
 
 extern void EnsureWalletIsUnlocked();
+extern void EnsureVotingIsUnlocked();
 
 bool StartRPC();
 void InterruptRPC();

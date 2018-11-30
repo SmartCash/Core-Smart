@@ -24,9 +24,24 @@
 #include "wallet/wallet.h"
 #include <univalue.h>
 
+int64_t nVotingUnlockTime;
+static CCriticalSection cs_nVotingUnlockTime;
 
 extern UniValue UniValueFromAmount(int64_t nAmount);
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
+
+static void LockVoting(CWallet* pWallet)
+{
+    LOCK(cs_nVotingUnlockTime);
+    nVotingUnlockTime = 0;
+    pWallet->LockVoting();
+}
+
+void EnsureVotingIsUnlocked()
+{
+    if (pwalletMain->IsVotingLocked())
+        throw JSONRPCError(RPC_VOTEKEYS_UNLOCK_NEEDED, "Error: Voting storage encrypted and locked. Use \"votekeys unlock\" first to unlock.");
+}
 
 UniValue ParseJSON(const std::string& strVal)
 {
@@ -111,7 +126,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
     if (fHelp  || std::find(vecCommands.begin(), vecCommands.end(), strCommand) == vecCommands.end() )
         throw std::runtime_error(
                 "smartvoting \"command\"...\n"
-                "Use SmartProposal commands.\n"
+                "Use SmartVoting commands.\n"
                 "\nAvailable commands:\n"
                 "  check              - Validate a proposal\n"
                 "  prepare            - Create and prepare a proposal by signing and creating the fee tx\n"
@@ -596,12 +611,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         if(params.size() != 5)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting votewithkey <proposal-hash> [funding|valid] [yes|no|abstain] <vote-key-secret>'");
 
-        uint256 hash;
-        std::string strVote;
-
-        // COLLECT NEEDED PARAMETRS FROM USER
-
-        hash = ParseHashV(params[1], "Proposal hash");
+        uint256 hash = ParseHashV(params[1], "Proposal hash");
         std::string strVoteSignal = params[2].get_str();
         std::string strVoteOutcome = params[3].get_str();
 
@@ -619,31 +629,24 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         if( !pwalletMain )
             throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
 
+        EnsureVotingIsUnlocked();
+
         if(params.size() != 4)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting vote <proposal-hash> [funding|valid] [yes|no|abstain]'");
 
-        uint256 hash;
-        std::string strVote;
-
-        // COLLECT NEEDED PARAMETRS FROM USER
-
-        hash = ParseHashV(params[1], "Proposal hash");
+        uint256 hash = ParseHashV(params[1], "Proposal hash");
         std::string strVoteSignal = params[2].get_str();
         std::string strVoteOutcome = params[3].get_str();
 
-        std::set<CVoteKeySecret> setVoteKeySecrets;
+        std::set<CKeyID> setVoteKeyIds;
 
-        LOCK(pwalletMain->cs_wallet);
-
-        CWalletDB walletdb(pwalletMain->strWalletFile);
-
-        if( !walletdb.ReadVoteKeySecrets(setVoteKeySecrets) )
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to read votekey-secrets");
+        pwalletMain->GetVotingKeys(setVoteKeyIds);
 
         UniValue result(UniValue::VARR);
-
-        for( const CVoteKeySecret &voteKeySecret : setVoteKeySecrets ){
-            result.push_back(sendVote(voteKeySecret, hash, strVoteSignal, strVoteOutcome));
+        for( auto keyId : setVoteKeyIds ){
+            CKey secret;
+            pwalletMain->GetVotingKey(keyId, secret);
+            result.push_back(sendVote(secret, hash, strVoteSignal, strVoteOutcome));
         }
 
         return result;
@@ -660,29 +663,39 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         strCommand = params[0].get_str();
 
     std::vector<std::string> vecCommands = {
-        "register",
-        "get",
-        "count",
         "list",
+        "count",
+        "get",
+        "encrypt",
+        "changepassphrase",
+        "unlock",
+        "lock",
+        "register",
         "import",
-        "remove",
+        "available",
+        "update",
         "export",
-        "show",
     };
 
     if( std::find(vecCommands.begin(), vecCommands.end(), strCommand) == vecCommands.end() )
         throw std::runtime_error(
            "votekeys \"command\"...\n"
-           "Use SmartProposal commands.\n"
-           "\nAvailable commands:\n"
-           "  register           - Register an SmartCash address for voting\n"
-           "  getvotekey         - Get the registered votekey for an address\n"
-           "  getaddress         - Get the address registered for a votekey\n"
-           "  count              - Count all registered votekeys\n"
+           "Commands to manage your SmartCash VoteKeys.\n"
+           "\nGlobal VoteKeys:\n"
            "  list               - List all registered votekeys\n"
-           "  import             - Import a votekey-secret to your wallet\n"
-           "  remove             - Remove a votekey-secret from your wallet\n"
-           "  export             - Export all available votekey-secrets from your wallet\n"
+           "  count              - Count all registered votekeys\n"
+           "  get                - Get the registration information about a votekey or an address\n"
+           "\nVoting storage encryption:\n"
+           "  encrypt            - Encrypt the voting storage with a voting only password\n"
+           "  changepassphrase   - Change the voting encryption password\n"
+           "  unlock             - Unlock the encrypted voting storage\n"
+           "  lock               - Lock the unlocked and encrypted voting storage\n"
+           "\nVoting storage management:\n"
+           "  register           - Register a SmartCash address for voting\n"
+           "  import             - Import a VoteKey secret to your wallet\n"
+           "  available          - Show all available VoteKeys\n"
+           "  update             - Enable/Disable a specific VoteKey for voting\n"
+           "  export             - Export all available VoteKeys with their secrets\n"
            );
 
     if(strCommand == "register")
@@ -939,6 +952,185 @@ UniValue votekeys(const UniValue& params, bool fHelp)
 
         return result;
     }
+    if(strCommand == "encrypt")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if (!pwalletMain->IsVotingCrypted() && params.size() != 2)
+            throw runtime_error(
+                "votekeys encrypt \"passphrase\"\n"
+                "\nEncrypts the voting storage with 'passphrase'. This is for first time encryption.\n"
+                "If the voting storage is already encrypted, use the \"votekeys unlock\" command.\n"
+                "Note that this will shutdown the server.\n"
+                "\nArguments:\n"
+                "1. \"passphrase\"    (string) The pass phrase to encrypt the voting storage with. It must be at least 1 character, but should be long.\n"
+                "\nExamples:\n"
+                "\nEncrypt you votekey storage\n"
+                + HelpExampleCli("votekeys", "encrypt \"my pass phrase\"") +
+                "\nNow set the passphrase to unlock the voting storage and use the voting features.\n"
+                + HelpExampleCli("votekeys", "unlock \"my pass phrase\"") +
+                "\nTo lock the voting storage again by removing the passphrase\n"
+                + HelpExampleCli("votekeys", "lock") +
+                "\nAs a json rpc call\n"
+                + HelpExampleRpc("votekeys", "encrypt \"my pass phrase\"")
+            );
+
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+
+        if (pwalletMain->IsVotingCrypted())
+            throw JSONRPCError(RPC_VOTEKEYS_WRONG_ENC_STATE, "Error: running with an encrypted voting storage, but encrypt was called.");
+
+        // TODO: get rid of this .c_str() by implementing SecureString::operator=(std::string)
+        // Alternately, find a way to make params[0] mlock()'d to begin with.
+        SecureString strWalletPass;
+        strWalletPass.reserve(100);
+        strWalletPass = params[1].get_str().c_str();
+
+        if (strWalletPass.length() < 1)
+            throw runtime_error(
+                "votekeys encrypt <passphrase>\n"
+                "Encrypts the voting storage with <passphrase>.");
+
+        if (!pwalletMain->EncryptVoting(strWalletPass))
+            throw JSONRPCError(RPC_VOTEKEYS_ENCRYPTION_FAILED, "Error: Failed to encrypt the voting storage.");
+
+        // BDB seems to have a bad habit of writing old data into
+        // slack space in .dat files; that is bad if the old data is
+        // unencrypted private keys. So:
+        StartShutdown();
+        return "voting encrypted; SmartCash server stopping, restart to run with encrypted voting storage. You need to make a new backup.";
+    }
+
+    if(strCommand == "changepassphrase")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if (pwalletMain->IsVotingCrypted() &&  params.size() != 3)
+            throw runtime_error(
+                "votekeys changepassphrase \"oldpassphrase\" \"newpassphrase\"\n"
+                "\nChanges the voting passphrase from 'oldpassphrase' to 'newpassphrase'.\n"
+                "\nArguments:\n"
+                "1. \"oldpassphrase\"      (string) The current passphrase\n"
+                "2. \"newpassphrase\"      (string) The new passphrase\n"
+                "\nExamples:\n"
+                + HelpExampleCli("votekeys", "changepassphrase \"old one\" \"new one\"")
+                + HelpExampleRpc("votekeys", "changepassphrase \"old one\", \"new one\"")
+            );
+
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+
+        if (fHelp)
+            return true;
+        if (!pwalletMain->IsVotingCrypted())
+            throw JSONRPCError(RPC_VOTEKEYS_WRONG_ENC_STATE, "Error: running with an unencrypted voting storage, but changepassphrase was called.");
+
+        // TODO: get rid of these .c_str() calls by implementing SecureString::operator=(std::string)
+        // Alternately, find a way to make params[0] mlock()'d to begin with.
+        SecureString strOldWalletPass;
+        strOldWalletPass.reserve(100);
+        strOldWalletPass = params[1].get_str().c_str();
+
+        SecureString strNewWalletPass;
+        strNewWalletPass.reserve(100);
+        strNewWalletPass = params[2].get_str().c_str();
+
+        if (strOldWalletPass.length() < 1 || strNewWalletPass.length() < 1)
+            throw runtime_error(
+                "votekeys changepassphrase <oldpassphrase> <newpassphrase>\n"
+                "Changes the voting storages passphrase from <oldpassphrase> to <newpassphrase>.");
+
+        if (!pwalletMain->ChangeVotingPassphrase(strOldWalletPass, strNewWalletPass))
+            throw JSONRPCError(RPC_VOTEKEYS_PASSPHRASE_INCORRECT, "Error: The voting passphrase entered was incorrect.");
+
+        return NullUniValue;
+    }
+
+    if(strCommand == "unlock")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if (pwalletMain->IsVotingCrypted() && params.size() != 3)
+            throw runtime_error(
+                "votekeys unlock \"passphrase\" timeout\n"
+                "\nStores the voting decryption key in memory for 'timeout' seconds.\n"
+                "This is needed prior to performing actions related to voting keys\n"
+                "\nArguments:\n"
+                "1. \"passphrase\"     (string, required) The voting passphrase\n"
+                "2. timeout            (numeric, required) The time to keep the decryption key in seconds.\n"
+                "\nNote:\n"
+                "Issuing the unlock command while the voting is already unlocked will set a new unlock\n"
+                "time that overrides the old one.\n"
+                "\nExamples:\n"
+                "\nunlock voting for 60 seconds\n"
+                + HelpExampleCli("votekeys", "unlock \"my pass phrase\" 60") +
+                "\nLock the voting again (before 60 seconds)\n"
+                + HelpExampleCli("votekeys", "lock") +
+                "\nAs json rpc call\n"
+                + HelpExampleRpc("votekeys", "unlock \"my pass phrase\", 60")
+            );
+
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+
+        if (!pwalletMain->IsVotingCrypted())
+            throw JSONRPCError(RPC_VOTEKEYS_WRONG_ENC_STATE, "Error: running with an unencrypted voting storage, but unlock was called.");
+
+        // Note that the walletpassphrase is stored in params[1] which is not mlock()ed
+        SecureString strWalletPass;
+        strWalletPass.reserve(100);
+        // TODO: get rid of this .c_str() by implementing SecureString::operator=(std::string)
+        // Alternately, find a way to make params[1] mlock()'d to begin with.
+        strWalletPass = params[1].get_str().c_str();
+
+        if (strWalletPass.length() > 0)
+        {
+            if (!pwalletMain->UnlockVoting(strWalletPass))
+                throw JSONRPCError(RPC_VOTEKEYS_PASSPHRASE_INCORRECT, "Error: The voting passphrase entered was incorrect.");
+        }
+        else
+            throw runtime_error(
+                "votekeys unlock <passphrase> <timeout>\n"
+                "Stores the voting decryption key in memory for <timeout> seconds.");
+
+        int64_t nSleepTime = ParseJSON(params[2].get_str()).get_int64();
+        LOCK(cs_nVotingUnlockTime);
+        nVotingUnlockTime = GetTime() + nSleepTime;
+        RPCRunLater("lockvoting", boost::bind(LockVoting, pwalletMain), nSleepTime);
+
+        return NullUniValue;
+    }
+
+    if(strCommand == "lock")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if (pwalletMain->IsVotingCrypted() && params.size() != 1)
+            throw runtime_error(
+                "votekeys lock\n"
+                "\nRemoves the voting encryption key from memory, locking the voting storage.\n"
+                "After calling this method, you will need to call \"votekeys unlock\" again\n"
+                "before being able to call any methods which require the voting to be unlocked.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("votekeys", "lock")
+                + HelpExampleRpc("votekeys", "lock")
+            );
+
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+
+        if (!pwalletMain->IsVotingCrypted())
+            throw JSONRPCError(RPC_VOTEKEYS_WRONG_ENC_STATE, "Error: running with an unencrypted voting storage, but walletlock was called.");
+
+        {
+            LOCK(cs_nVotingUnlockTime);
+            pwalletMain->LockVoting();
+            nWalletUnlockTime = 0;
+        }
+
+        return NullUniValue;
+    }
 
     if(strCommand == "import")
     {
@@ -948,6 +1140,8 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         if(params.size() != 2)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys import <vote-key-secret>'");
 
+        EnsureVotingIsUnlocked();
+
         CVoteKeySecret voteKeySecret;
 
         if( !voteKeySecret.SetString(params[1].get_str()) )
@@ -958,9 +1152,14 @@ UniValue votekeys(const UniValue& params, bool fHelp)
 
         LOCK(pwalletMain->cs_wallet);
 
-        CWalletDB walletdb(pwalletMain->strWalletFile);
+        if( !voteKey.IsValid() )
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               strprintf("Invalid voteKey public: %s", voteKey.ToString()));
 
-        if( !walletdb.AddVoteKeySecret(voteKeySecret) )
+        if( pwalletMain->HaveVotingKey(voteKeySecret.GetKey().GetPubKey().GetID()) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "VoteKey secret exists already in the voting storage");
+
+        if( !pwalletMain->AddVotingKeyPubKey(voteKeySecret.GetKey(), voteKeySecret.GetKey().GetPubKey()) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to import votekey-secret");
 
          UniValue result(UniValue::VOBJ);
@@ -970,34 +1169,90 @@ UniValue votekeys(const UniValue& params, bool fHelp)
          return result;
     }
 
-    if(strCommand == "remove")
+    if(strCommand == "available")
     {
         if( !pwalletMain )
             throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
 
-        if(params.size() != 2)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys remove <vote-key-secret>'");
-
-        CVoteKeySecret voteKeySecret;
-
-        if( !voteKeySecret.SetString(params[1].get_str()) )
-            throw JSONRPCError(RPC_INVALID_PARAMETER,
-                               strprintf("Invalid <vote-key-secret>: %s", params[1].get_str()));
-
-        CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
+        if(params.size() != 1)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys available'");
 
         LOCK(pwalletMain->cs_wallet);
 
-        CWalletDB walletdb(pwalletMain->strWalletFile);
+        std::set<CKeyID> setVoteKeyIds;
 
-        if( !walletdb.EraseVoteKeySecret(voteKeySecret) )
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to remove votekey-secret");
+        pwalletMain->GetVotingKeys(setVoteKeyIds);
 
-         UniValue result(UniValue::VOBJ);
+        UniValue result(UniValue::VARR);
 
-         result.pushKV("removed", voteKey.ToString());
+        for( auto keyId : setVoteKeyIds ){
 
-         return result;
+            UniValue obj(UniValue::VOBJ);
+
+            CVoteKey voteKey(keyId);
+
+            CVoteKeyValue voteKeyValue;
+            std::string strVoteAddress;
+            if(GetVoteKeyValue(voteKey, voteKeyValue)){
+                strVoteAddress = voteKeyValue.voteAddress.ToString();
+            }else{
+                strVoteAddress = "Not registered";
+            }
+
+            CVotingKeyMetadata meta;
+            pwalletMain->GetVotingKeyMetadata(keyId, meta);
+
+            obj.pushKV("voteKey", voteKey.ToString());
+            obj.pushKV("voteAddress", strVoteAddress);
+            obj.pushKV("enabled", meta.fEnabled);
+
+            result.push_back(obj);
+        }
+
+        return result;
+    }
+
+    if(strCommand == "update")
+    {
+        if( !pwalletMain )
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
+
+        if(params.size() != 3)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'votekeys update <vote-key> <true/false (enabled/disabled)>'");
+
+        CVoteKey voteKey(params[1].get_str());
+        bool fEnabled = ParseJSON(params[2].get_str()).get_bool();
+
+        CKeyID keyId;
+        if( !voteKey.GetKeyID(keyId) )
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid <vote-key>: %s'",params[1].get_str()));
+
+        LOCK(pwalletMain->cs_wallet);
+
+        if( !pwalletMain->HaveVotingKey(keyId) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("VoteKey %s is not available in the voting storage", voteKey.ToString()));
+
+        CVotingKeyMetadata meta = pwalletMain->mapVotingKeyMetadata[keyId];
+        meta.fEnabled = fEnabled;
+
+        if( !pwalletMain->UpdateVotingKeyMetadata(keyId, meta) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to update the VoteKey");
+
+        UniValue obj(UniValue::VOBJ);
+
+        CVoteKeyValue voteKeyValue;
+        std::string strVoteAddress;
+        if(GetVoteKeyValue(voteKey, voteKeyValue)){
+            strVoteAddress = voteKeyValue.voteAddress.ToString();
+        }else{
+            strVoteAddress = "Not registered";
+        }
+
+        obj.pushKV("voteKey", voteKey.ToString());
+        obj.pushKV("voteAddress", strVoteAddress);
+        obj.pushKV("enabled", meta.fEnabled);
+
+        return obj;
     }
 
     if(strCommand == "export")
@@ -1005,19 +1260,27 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         if( !pwalletMain )
             throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
 
-        std::set<CVoteKeySecret> setVoteKeySecrets;
+        EnsureVotingIsUnlocked();
 
-        LOCK(pwalletMain->cs_wallet);
+        std::set<CKeyID> setVoteKeyIds;
 
-        CWalletDB walletdb(pwalletMain->strWalletFile);
-
-        if( !walletdb.ReadVoteKeySecrets(setVoteKeySecrets) )
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to read votekey-secrets");
+        pwalletMain->GetVotingKeys(setVoteKeyIds);
 
         UniValue result(UniValue::VARR);
+        for( auto keyId : setVoteKeyIds ){
+            UniValue obj(UniValue::VOBJ);
 
-        for( const CVoteKeySecret &voteKeySecret : setVoteKeySecrets ){
-            result.push_back(voteKeySecret.ToString());
+            obj.pushKV("voteKey", CVoteKey(keyId).ToString());
+
+            CKey secret;
+            if( pwalletMain->GetVotingKey(keyId, secret) ){
+                CVoteKeySecret voteKeySecret(secret);
+                obj.pushKV("voteKeySecret", voteKeySecret.ToString());
+            }else{
+                obj.pushKV("voteKeySecret", "Failed to export");
+            }
+
+            result.push_back(obj);
         }
 
         return result;
