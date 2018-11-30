@@ -34,9 +34,6 @@ class uint256;
 class CInternalProposal;
 class CVoteKeySecret;
 
-class CZerocoinEntry;
-class CZerocoinSpendEntry;
-
 /** Error statuses for the wallet database */
 enum DBErrors
 {
@@ -192,18 +189,6 @@ public:
     // Used to store created proposals
     bool ReadProposals(std::map<uint256, CInternalProposal> &mapProposals);
     bool WriteProposals(const std::map<uint256, CInternalProposal> &mapProposals);
-
-    bool WriteZerocoinEntry(const CZerocoinEntry& zerocoin);
-    bool EarseZerocoinEntry(const CZerocoinEntry& zerocoin);
-    void ListPubCoin(std::list<CZerocoinEntry>& listPubCoin);
-    void ListCoinSpendSerial(std::list<CZerocoinSpendEntry>& listCoinSpendSerial);
-    bool WriteCoinSpendSerialEntry(const CZerocoinSpendEntry& zerocoinSpend);
-    bool EraseCoinSpendSerialEntry(const CZerocoinSpendEntry& zerocoinSpend);
-    bool WriteZerocoinAccumulator(libzerocoin::Accumulator accumulator, libzerocoin::CoinDenomination denomination, int pubcoinid);
-    bool ReadZerocoinAccumulator(libzerocoin::Accumulator& accumulator, libzerocoin::CoinDenomination denomination, int pubcoinid);
-
-    bool ReadCalculatedZCBlock(int& height);
-    bool WriteCalculatedZCBlock(int height);
 
     DBErrors ReorderTransactions(CWallet* pwallet);
     DBErrors LoadWallet(CWallet* pwallet);
