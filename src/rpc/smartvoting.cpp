@@ -1149,7 +1149,8 @@ UniValue votekeys(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                strprintf("Invalid <vote-key-secret>: %s", params[1].get_str()));
 
-        CVoteKey voteKey(voteKeySecret.GetKey().GetPubKey().GetID());
+        CKeyID keyId = voteKeySecret.GetKey().GetPubKey().GetID();
+        CVoteKey voteKey(keyId);
 
         LOCK(pwalletMain->cs_wallet);
 
@@ -1157,11 +1158,20 @@ UniValue votekeys(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                strprintf("Invalid voteKey public: %s", voteKey.ToString()));
 
-        if( pwalletMain->HaveVotingKey(voteKeySecret.GetKey().GetPubKey().GetID()) )
+        if( pwalletMain->HaveVotingKey(keyId) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, "VoteKey secret exists already in the voting storage");
 
         if( !pwalletMain->AddVotingKeyPubKey(voteKeySecret.GetKey(), voteKeySecret.GetKey().GetPubKey()) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to import votekey-secret");
+
+        if( !pwalletMain->HaveVotingKey(keyId) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("VoteKey %s is not available in the voting storage", voteKey.ToString()));
+
+        CVotingKeyMetadata meta = pwalletMain->mapVotingKeyMetadata[keyId];
+        meta.fImported = true;
+
+        if( !pwalletMain->UpdateVotingKeyMetadata(keyId, meta) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to update the VoteKey metadata");
 
          UniValue result(UniValue::VOBJ);
 
