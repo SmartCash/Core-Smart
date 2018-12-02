@@ -99,6 +99,7 @@ public:
     int nVersion;
     int64_t nCreateTime; // 0 means unknown
     bool fEnabled;
+    bool fImported;
 
     CVotingKeyMetadata()
     {
@@ -118,6 +119,7 @@ public:
         nVersion = this->nVersion;
         READWRITE(nCreateTime);
         READWRITE(fEnabled);
+        READWRITE(fImported);
     }
 
     void SetNull()
@@ -125,6 +127,7 @@ public:
         nVersion = CKeyMetadata::CURRENT_VERSION;
         nCreateTime = 0;
         fEnabled = false;
+        fImported = false;
     }
 };
 
