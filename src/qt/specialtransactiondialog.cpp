@@ -7,6 +7,7 @@
 
 #include "addresstablemodel.h"
 #include "bitcoinunits.h"
+#include "coincontroldialog.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
 #include "platformstyle.h"
@@ -38,13 +39,6 @@
 #include <QTreeWidgetItem>
 
 #define SEND_CONFIRM_DELAY 5
-
-bool CCoinControlWidgetItem::operator<(const QTreeWidgetItem &other) const {
-    int column = treeWidget()->sortColumn();
-    if (column == SpecialTransactionDialog::COLUMN_AMOUNT)
-        return data(column, Qt::UserRole).toLongLong() < other.data(column, Qt::UserRole).toLongLong();
-    return QTreeWidgetItem::operator<(other);
-}
 
 bool Error(std::string where, std::string message, QString &strError)
 {

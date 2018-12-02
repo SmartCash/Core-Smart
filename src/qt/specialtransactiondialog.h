@@ -18,10 +18,12 @@
 
 class PlatformStyle;
 class WalletModel;
+class CCoinControlWidgetItem;
 
 class COutPoint;
 class CTxMemPool;
 class CWalletTx;
+
 
 namespace Ui {
     class SpecialTransactionDialog;
@@ -33,17 +35,6 @@ enum SpecialTransactionType {
 };
 
 #define ASYMP_UTF8 "\xE2\x89\x88"
-
-class CCoinControlWidgetItem : public QTreeWidgetItem
-{
-public:
-    CCoinControlWidgetItem(QTreeWidget *parent, int type = Type) : QTreeWidgetItem(parent, type) {}
-    CCoinControlWidgetItem(int type = Type) : QTreeWidgetItem(type) {}
-    CCoinControlWidgetItem(QTreeWidgetItem *parent, int type = Type) : QTreeWidgetItem(parent, type) {}
-
-    bool operator<(const QTreeWidgetItem &other) const;
-};
-
 
 class SpecialTransactionDialog : public QDialog
 {
