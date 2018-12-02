@@ -1,4 +1,4 @@
-Smartcash Core 1.1.0
+Smartcash Core
 =====================
 
 Setup
