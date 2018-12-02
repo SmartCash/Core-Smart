@@ -771,18 +771,26 @@ UniValue votekeys(const UniValue& params, bool fHelp)
 
         CKey secret;
         secret.MakeNewKey(false);
-        CVoteKeySecret voteKeyPrivate(secret);
+        CVoteKeySecret voteKeySecret(secret);
 
-        CKey vkKey = voteKeyPrivate.GetKey();
-        if (!vkKey.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Voting private key outside allowed range");
+        CKey vkKey = voteKeySecret.GetKey();
+
+        if (!vkKey.IsValid())
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Voting private key outside allowed range");
+
+        if( pwalletMain->HaveVotingKey(voteKeySecret.GetKey().GetPubKey().GetID()) )
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("VoteKey secret exists already in the voting storage %s", voteKeySecret.ToString()));
 
         CPubKey pubkey = vkKey.GetPubKey();
-        if(!vkKey.VerifyPubKey(pubkey)) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey verification failed");
+
+        if(!vkKey.VerifyPubKey(pubkey))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey verification failed");
+
         CKeyID vkKeyId = pubkey.GetID();
         voteKey.Set(vkKeyId);
 
-        if( !voteKey.IsValid() ) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "VoteKey invalid");
-
+        if( !voteKey.IsValid() )
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "VoteKey invalid");
 
         // Create the message to sign with the vote key and also voteaddress if required
         CDataStream ss(SER_GETHASH, 0);
@@ -862,18 +870,18 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         vecSend.push_back(recipient);
 
         if (!pwalletMain->CreateTransaction(vecSend, registerTx, reservekey, nFeeRequired, nChangePosRet,
-                                             strError, &coinControl)) {
+                                             strError, &coinControl))
             throw JSONRPCError(RPC_WALLET_ERROR, strError);
-        }
 
         CValidationState state;
-        if (!(CheckTransaction(registerTx, state, registerTx.GetHash(), false) || !state.IsValid())){
+        if (!(CheckTransaction(registerTx, state, registerTx.GetHash(), false) || !state.IsValid()))
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("The registration transaction is invalid: %s", state.GetRejectReason()));
-        }
 
-        if (!pwalletMain->CommitTransaction(registerTx, reservekey, g_connman.get())){
+        if( !pwalletMain->AddVotingKeyPubKey(voteKeySecret.GetKey(), voteKeySecret.GetKey().GetPubKey()) )
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Failed to import VoteKey secret %s", voteKeySecret.ToString()));
+
+        if (!pwalletMain->CommitTransaction(registerTx, reservekey, g_connman.get()))
             throw JSONRPCError(RPC_WALLET_ERROR, "The transaction was rejected!");
-        }
 
         UniValue result(UniValue::VOBJ);
 
@@ -882,7 +890,7 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         result.pushKV("registerTx", objTx);
         result.pushKV("voteAddress",voteAddress.ToString());
         result.pushKV("voteKey",voteKey.ToString());
-        result.pushKV("voteKeySecret", voteKeyPrivate.ToString());
+        result.pushKV("voteKeySecret", voteKeySecret.ToString());
 
         return result;
     }
@@ -900,19 +908,11 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         if( !voteKey.IsValid() && !voteAddress.IsValid() )
             throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Parameter %s is neither a votekey nor a smartcash address", params[0].get_str()));
 
-        if( voteAddress.IsValid() ){
-
-            if( !GetVoteKeyForAddress(voteAddress, voteKey) )
+        if( voteAddress.IsValid() && !GetVoteKeyForAddress(voteAddress, voteKey) )
                 throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("No votekey found for address %s", voteAddress.ToString()));
 
-        }
-
-        if( voteKey.IsValid() ){
-
-            if( !GetVoteKeyValue(voteKey, voteKeyValue) )
-                throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("No votekey value entry found for votekey %s", voteKey.ToString()));
-
-        }
+        if( voteKey.IsValid() && !GetVoteKeyValue(voteKey, voteKeyValue) )
+            throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("No votekey value entry found for votekey %s", voteKey.ToString()));
 
         UniValue result(UniValue::VOBJ);
 
