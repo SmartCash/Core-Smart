@@ -20,8 +20,8 @@ static const unsigned int DEFAULT_BLOCK_MAX_SIZE = 500000;
 static const unsigned int DEFAULT_BLOCK_PRIORITY_SIZE = 50000;
 /** Default for -blockmaxweight, which controls the range of block weights the mining code will create **/
 static const unsigned int DEFAULT_BLOCK_MAX_WEIGHT = 3000000;
-/** Default for -txmaxcount, which controls the maximum number of transactions in a block (0 is unlimited) **/
-static const unsigned int DEFAULT_TX_MAX_COUNT = 0;
+/** Default for -txmaxcount, which controls the maximum number of transactions in a block **/
+static const unsigned int DEFAULT_TX_MAX_COUNT = 3000;
 /** The maximum weight for transactions we're willing to relay/mine */
 static const unsigned int MAX_STANDARD_TX_WEIGHT = 300000;
 /** Maximum number of signature check operations in an IsStandard() P2SH script */
