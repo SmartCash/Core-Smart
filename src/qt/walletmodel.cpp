@@ -535,17 +535,19 @@ bool WalletModel::changeVotingPassphrase(const SecureString &oldPass, const Secu
     return retval;
 }
 
-int WalletModel::enabledVoteKeys()
+int WalletModel::voteKeyCount(const bool fActiveOnly)
 {
     LOCK(wallet->cs_wallet);
     int nCount = 0;
-    for( auto it : wallet->mapVotingKeyMetadata )
-        if( it.second.fEnabled ) ++nCount;
+    for( auto it : wallet->mapVotingKeyMetadata ){
+        if( !it.second.fEnabled && fActiveOnly ) continue;
+        ++nCount;
+    }
 
     return nCount;
 }
 
-QString WalletModel::enabledVotingPowerString()
+QString WalletModel::votingPowerString(const bool fActiveOnly)
 {
     LOCK(wallet->cs_wallet);
     QString votingPowerString;
@@ -553,7 +555,7 @@ QString WalletModel::enabledVotingPowerString()
 
     for( auto it : wallet->mapVotingKeyMetadata ){
 
-        if( !it.second.fEnabled ) continue;
+        if( !it.second.fEnabled && fActiveOnly ) continue;
 
         CVoteKey voteKey(it.first);
 
@@ -596,6 +598,23 @@ QString WalletModel::votingPowerString(const CVoteKey &voteKey)
     votingPowerString = QString::number(nTotalPower);
     AddThousandsSpaces(votingPowerString);
     return votingPowerString + " SMART";
+}
+
+QString WalletModel::voteAddressString(const CVoteKey& voteKey)
+{
+    QString voteAddressString = "Not registered";
+
+    CKeyID keyId;
+    CVoteKeyValue voteKeyValue;
+    if( !voteKey.GetKeyID(keyId) ){
+        voteAddressString = "Invalid Key";
+    }else if( GetVoteKeyValue(voteKey, voteKeyValue) ){
+        voteAddressString = QString::fromStdString(voteKeyValue.voteAddress.ToString());
+    }else if( !pwalletMain->mapVotingKeyMetadata[keyId].fImported ){
+        voteAddressString = "Confirmation required";
+    }
+
+    return voteAddressString;
 }
 
 void WalletModel::updateVoteKeys(bool fEnabled)
@@ -789,7 +808,7 @@ bool WalletModel::isSpent(const COutPoint& outpoint) const
 }
 
 // AvailableCoins + LockedCoins grouped by wallet address (put change in one group with wallet address)
-void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins) const
+void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins, const bool fSeperateChange) const
 {
     std::vector<COutput> vCoins;
     wallet->AvailableCoins(vCoins);
@@ -813,12 +832,13 @@ void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins) 
     {
         COutput cout = out;
 
-        while (wallet->IsChange(cout.tx->vout[cout.i]) && cout.tx->vin.size() > 0 && wallet->IsMine(cout.tx->vin[0]))
-        {
-            if (!wallet->mapWallet.count(cout.tx->vin[0].prevout.hash)) break;
-            cout = COutput(&wallet->mapWallet[cout.tx->vin[0].prevout.hash], cout.tx->vin[0].prevout.n, 0, true, true);
+        if( fSeperateChange ){
+            while (wallet->IsChange(cout.tx->vout[cout.i]) && cout.tx->vin.size() > 0 && wallet->IsMine(cout.tx->vin[0]))
+            {
+                if (!wallet->mapWallet.count(cout.tx->vin[0].prevout.hash)) break;
+                cout = COutput(&wallet->mapWallet[cout.tx->vin[0].prevout.hash], cout.tx->vin[0].prevout.n, 0, true, true);
+            }
         }
-
         CTxDestination address;
         if(!out.fSpendable || !ExtractDestination(cout.tx->vout[cout.i].scriptPubKey, address))
             continue;

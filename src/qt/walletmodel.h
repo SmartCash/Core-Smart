@@ -177,10 +177,12 @@ public:
     bool setVotingLocked(bool locked, const SecureString &passPhrase=SecureString());
     bool changeVotingPassphrase(const SecureString &oldPass, const SecureString &newPass);
 
-    int enabledVoteKeys();
     void updateVoteKeys(bool fEnabled);
-    QString enabledVotingPowerString();
+
+    int voteKeyCount(const bool fActiveOnly);
+    QString votingPowerString(const bool fActiveOnly);
     QString votingPowerString(const CVoteKey &voteKey);
+    QString voteAddressString(const CVoteKey& voteKey);
 
     // Wallet backup
     bool backupWallet(const QString &filename);
@@ -233,7 +235,7 @@ public:
     bool havePrivKey(const CKeyID &address) const;
     void getOutputs(const std::vector<COutPoint>& vOutpoints, std::vector<COutput>& vOutputs);
     bool isSpent(const COutPoint& outpoint) const;
-    void listCoins(std::map<QString, std::vector<COutput> >& mapCoins) const;
+    void listCoins(std::map<QString, std::vector<COutput> >& mapCoins, const bool fSeperateChange = true) const;
 
     bool isLockedCoin(uint256 hash, unsigned int n) const;
     void lockCoin(COutPoint& output);
