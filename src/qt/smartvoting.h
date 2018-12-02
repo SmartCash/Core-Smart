@@ -47,10 +47,21 @@ public:
     bool operator<(const QTableWidgetItem &other) const;
 
     enum Columns{
+        COLUMN_CHECKBOX,
         COLUMN_KEY,
         COLUMN_ADDRESS,
         COLUMN_POWER
     };
+};
+
+struct VoteKeyItems
+{
+    VoteKeyWidgetItem* checkbox;
+    VoteKeyWidgetItem* address;
+    VoteKeyWidgetItem* power;
+
+    VoteKeyItems(VoteKeyWidgetItem* checkbox, VoteKeyWidgetItem* address, VoteKeyWidgetItem* power) :
+        checkbox(checkbox), address(address), power(power){}
 };
 
 
@@ -79,6 +90,8 @@ private:
     std::vector<SmartProposalWidget*> vecProposalWidgets;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
 
+    std::map<CKeyID, VoteKeyItems> mapVisibleKeys;
+
     void connectProposalTab(SmartProposalTabWidget *tabWidget);
     void disconnectProposalTab(SmartProposalTabWidget *tabWidget);
     
@@ -91,11 +104,14 @@ public Q_SLOTS:
     void updateProposalUI();
     void createProposal();
     void showVoteKeysUI();
+    void updateVotingElements();
     void updateVoteKeyUI();
+    void registerVoteKey();
+    void voteKeyCellChanged(int, int);
+    void selectAllVoteKeys();
     void importVoteKey();
     void proposalsUpdated(const std::string &strErr);
     void voteChanged();
-    void selectAddresses();
     void castVotes();
     void updateRefreshLock();
     void refreshProposals(bool fForce = false);

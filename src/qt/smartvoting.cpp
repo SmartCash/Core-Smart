@@ -20,8 +20,8 @@
 #include "clientmodel.h"
 #include "castvotesdialog.h"
 #include "validation.h"
-#include "voteaddressesdialog.h"
 #include "smartvoting/votevalidation.h"
+#include "specialtransactiondialog.h"
 
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 
@@ -77,6 +77,8 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
 {
     ui->setupUi(this);
 
+    mapVisibleKeys.clear();
+
     QTableWidget *table = ui->voteKeysTable;
 
     table->setAlternatingRowColors(true);
@@ -86,9 +88,13 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
     table->setShowGrid(false);
     table->verticalHeader()->hide();
 
+    table->horizontalHeader()->setSectionResizeMode(VoteKeyWidgetItem::COLUMN_CHECKBOX, QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(VoteKeyWidgetItem::COLUMN_KEY, QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(VoteKeyWidgetItem::COLUMN_ADDRESS, QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(VoteKeyWidgetItem::COLUMN_POWER, QHeaderView::Stretch);
+
+    table->clearContents();
+    table->setRowCount(0);
 
     connect(votingManager, SIGNAL(proposalsUpdated(const std::string&)),this,SLOT(proposalsUpdated(const std::string&)));
     connect(votingManager, SIGNAL(addressesUpdated()), this, SLOT(updateUI()));
@@ -99,11 +105,12 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
     connect(ui->backButton, SIGNAL(clicked()),this,SLOT(showVotingUI()));
     connect(ui->vkBackButton, SIGNAL(clicked()),this,SLOT(showVotingUI()));
 
+    connect(ui->voteKeysTable, SIGNAL(cellChanged(int,int)), this, SLOT(voteKeyCellChanged(int,int)));
+    connect(ui->changeAllButton, SIGNAL(clicked()), this, SLOT(selectAllVoteKeys()));
     connect(ui->importVoteKeyButton, SIGNAL(clicked()), this, SLOT(importVoteKey()));
+    connect(ui->registerVoteKeyButton, SIGNAL(clicked()), this, SLOT(registerVoteKey()));
 
-    connect(ui->selectAddressesButton, SIGNAL(clicked()),this,SLOT(selectAddresses()));
     connect(ui->castVotesButton, SIGNAL(clicked()),this,SLOT(castVotes()));
-    connect(ui->refreshButton, SIGNAL(clicked()),this,SLOT(refreshProposals()));
     connect(ui->scrollArea->verticalScrollBar(), SIGNAL(valueChanged(int)),this,SLOT(scrollChanged(int)));
     connect(&lockTimer, SIGNAL(timeout()), this, SLOT(updateRefreshLock()));
     connect(&voteKeyUpdateTimer, SIGNAL(timeout()), this, SLOT(updateVoteKeyUI()));
@@ -117,6 +124,7 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
 
 SmartVotingPage::~SmartVotingPage()
 {
+    mapVisibleKeys.clear();
     delete ui;
 }
 
@@ -283,9 +291,6 @@ void SmartVotingPage::updateUI()
         return;
     }
 
-    ui->votingPowerLabel->setText( walletModel->enabledVotingPowerString() );
-    ui->addressesLabel->setText( QString("%1 VoteKeys").arg(walletModel->enabledVoteKeys()));
-
     voteChanged();
 }
 
@@ -315,14 +320,6 @@ void SmartVotingPage::voteChanged(){
     this->repaint();
 }
 
-void SmartVotingPage::selectAddresses(){
-
-    VoteAddressesDialog dialog(platformStyle, walletModel);
-    dialog.exec();
-
-    updateUI();
-}
-
 void SmartVotingPage::castVotes(){
 
     CastVotesDialog dialog(platformStyle, votingManager, walletModel);
@@ -338,13 +335,11 @@ void SmartVotingPage::updateRefreshLock()
     int64_t nSecondsTillUnlock = nLastRefreshTime + nRefreshLockSeconds - GetTime();
 
     if( nSecondsTillUnlock <= 0 ){
-        ui->refreshButton->setText("Refresh list");
-        ui->refreshButton->setEnabled(true);
+
         lockTimer.stop();
         return;
     }
 
-    ui->refreshButton->setText(QString("Locked (%1s)").arg(nSecondsTillUnlock));
 }
 
 void SmartVotingPage::refreshProposals(bool fForce)
@@ -354,7 +349,6 @@ void SmartVotingPage::refreshProposals(bool fForce)
     if( nSecondsTillUnlock > 0 && !fForce ) return;
 
     nLastRefreshTime = GetTime();
-    ui->refreshButton->setEnabled(false);
     lockTimer.start(1000);
 //    votingManager->UpdateProposals();
 }
@@ -409,6 +403,20 @@ void SmartVotingPage::removalRequested(SmartProposalTabWidget *tab)
     delete tab;
 }
 
+void SmartVotingPage::updateVotingElements()
+{
+    if( !walletModel ) return;
+
+    ui->labelVoteKeyCount->setText(QString::number(walletModel->voteKeyCount(false)));
+    ui->labelActiveVoteKeyCount->setText(QString::number(walletModel->voteKeyCount(true)));
+
+    ui->labelTotalPower->setText(walletModel->votingPowerString(false));
+    ui->labelActivePower->setText(walletModel->votingPowerString(true));
+
+    ui->votingPowerLabel->setText( walletModel->votingPowerString(true) );
+    ui->manageVotingKeysButton->setText( QString("Manage voting keys (%1 active)").arg(walletModel->voteKeyCount(true) ) );
+}
+
 void SmartVotingPage::updateVoteKeyUI()
 {
     std::function<VoteKeyWidgetItem * (QString)> createItem = [](QString title) {
@@ -418,41 +426,111 @@ void SmartVotingPage::updateVoteKeyUI()
 
     if( !pwalletMain || !walletModel ) return;
 
+    updateVotingElements();
+
     std::set<CKeyID> setVotingKeyIds;
+    std::set<CKeyID> setKeyIdsToAdd;
     {
         LOCK(pwalletMain->cs_wallet);
         pwalletMain->GetVotingKeys(setVotingKeyIds);
     }
 
-    int nRow = 0;
-
     QTableWidget *table = ui->voteKeysTable;
+    int nRow = table->rowCount();
 
-    table->clearContents();
-    table->setRowCount(0);
+    if( setVotingKeyIds.size() > mapVisibleKeys.size() ){
+
+        for( auto keyId : setVotingKeyIds ){
+
+            if( !mapVisibleKeys.count(keyId) )
+                setKeyIdsToAdd.insert(keyId);
+        }
+
+    }else{
+        // Update voting power only
+
+        for( auto it :  mapVisibleKeys ){
+
+            CVoteKey voteKey(it.first);
+
+            it.second.power->setText(walletModel->votingPowerString(voteKey));
+            it.second.address->setText(walletModel->voteAddressString(voteKey));
+
+            if( pwalletMain->mapVotingKeyMetadata[it.first].fEnabled )
+                it.second.checkbox->setCheckState(Qt::Checked);
+            else
+                it.second.checkbox->setCheckState(Qt::Unchecked);
+        }
+
+        return;
+    }
 
     table->setSortingEnabled(false);
-    for( auto keyId : setVotingKeyIds){
+    for( auto keyId : setKeyIdsToAdd){
 
         table->insertRow(nRow);
 
         CVoteKey voteKey(keyId);
 
-        std::string voteAddressString = "Not registered";
+        VoteKeyWidgetItem* checkBoxItem = new VoteKeyWidgetItem();
 
-        CVoteKeyValue voteKeyValue;
-        if( GetVoteKeyValue(voteKey, voteKeyValue) ){
-            voteAddressString = voteKeyValue.voteAddress.ToString();
+        VoteKeyWidgetItem* votingPowerItem = createItem(walletModel->votingPowerString(voteKey));
+        VoteKeyWidgetItem* voteAddressItem = createItem(walletModel->voteAddressString(voteKey));
+
+        checkBoxItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+
+        if( pwalletMain->mapVotingKeyMetadata[keyId].fEnabled ){
+            checkBoxItem->setCheckState(Qt::Checked);
+        }else{
+            checkBoxItem->setCheckState(Qt::Unchecked);
         }
 
+        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_CHECKBOX, checkBoxItem);
         table->setItem(nRow, VoteKeyWidgetItem::COLUMN_KEY, createItem(QString::fromStdString(voteKey.ToString())));
-        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_ADDRESS, createItem(QString::fromStdString(voteAddressString)));
-        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_POWER, createItem(walletModel->votingPowerString(voteKey)));
+        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_ADDRESS, voteAddressItem);
+        table->setItem(nRow, VoteKeyWidgetItem::COLUMN_POWER, votingPowerItem);
+
+        mapVisibleKeys.insert(std::make_pair(keyId,VoteKeyItems(checkBoxItem, voteAddressItem, votingPowerItem)));
 
         nRow++;
     }
 
     table->setSortingEnabled(true);
+}
+
+void SmartVotingPage::voteKeyCellChanged(int row, int column)
+{
+    if( !pwalletMain ) return;
+
+    QTableWidgetItem *voteKeyItem = ui->voteKeysTable->item(row,VoteKeyWidgetItem::COLUMN_KEY);
+    QTableWidgetItem *checkBoxItem = ui->voteKeysTable->item(row,VoteKeyWidgetItem::COLUMN_CHECKBOX);
+
+    if( voteKeyItem && checkBoxItem ){
+
+        QString voteKey = voteKeyItem->text();
+
+        bool fChecked = checkBoxItem->checkState() == Qt::Checked;
+
+        CVoteKey vk(voteKey.toStdString());
+        CKeyID keyId;
+
+        if( vk.GetKeyID(keyId) ){
+            LOCK(pwalletMain->cs_wallet);
+            pwalletMain->mapVotingKeyMetadata[keyId].fEnabled = fChecked;
+            pwalletMain->UpdateVotingKeyMetadata(keyId);
+        }
+    }
+
+    updateVotingElements();
+}
+
+
+void SmartVotingPage::registerVoteKey()
+{
+    SpecialTransactionDialog dlg(REGISTRATION_TRANSACTIONS, platformStyle);
+    dlg.setModel(walletModel);
+    dlg.exec();
+    updateVoteKeyUI();
 }
 
 void SmartVotingPage::importVoteKey()
@@ -537,3 +615,9 @@ void SmartVotingPage::importVoteKey()
                                    QMessageBox::Ok);
 }
 
+void SmartVotingPage::selectAllVoteKeys()
+{
+    if( !walletModel ) return;
+    walletModel->updateVoteKeys(!walletModel->voteKeyCount(true));
+    updateVoteKeyUI();
+}

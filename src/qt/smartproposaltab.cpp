@@ -127,6 +127,8 @@ bool SmartProposalTabWidget::save()
         return false;
     }
 
+    LOCK(pwalletMain->cs_wallet);
+
     CWalletDB walletdb(pwalletMain->strWalletFile);
 
     std::map<uint256, CInternalProposal> mapProposals;
