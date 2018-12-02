@@ -478,7 +478,9 @@ void SmartVotingPage::importVoteKey()
     {
         LOCK(pwalletMain->cs_wallet);
 
-        if( pwalletMain->HaveVotingKey(voteKeySecret.GetKey().GetPubKey().GetID()) ){
+        CKeyID keyId = voteKeySecret.GetKey().GetPubKey().GetID();
+
+        if( pwalletMain->HaveVotingKey(keyId) ){
 
             QMessageBox::critical(this, tr("Error"),
                                         tr("The provided VotingKey secret already exists in the voting storage.\n\n") +
@@ -501,6 +503,25 @@ void SmartVotingPage::importVoteKey()
 
             QMessageBox::critical(this, tr("Error"),
                                         tr("Failed to import VoteKey secret\n\n") +
+                                        keyStr,
+                                        QMessageBox::Ok);
+            return;
+        }
+
+        if( !pwalletMain->HaveVotingKey(keyId) ){
+            QMessageBox::critical(this, tr("Error"),
+                                        tr("VoteKey is not available in the voting storage\n\n") +
+                                        keyStr,
+                                        QMessageBox::Ok);
+            return;
+        }
+
+        CVotingKeyMetadata meta = pwalletMain->mapVotingKeyMetadata[keyId];
+        meta.fImported = true;
+
+        if( !pwalletMain->UpdateVotingKeyMetadata(keyId, meta) ){
+            QMessageBox::critical(this, tr("Error"),
+                                        tr("Failed to update the VoteKey's metadata\n\n") +
                                         keyStr,
                                         QMessageBox::Ok);
             return;
