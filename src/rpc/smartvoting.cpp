@@ -707,6 +707,9 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         if( !pwalletMain )
             throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
 
+        EnsureWalletIsUnlocked();
+        EnsureVotingIsUnlocked();
+
         CVoteKey voteKey;
         unsigned char cRegisterOption = 0x01;
 
@@ -821,8 +824,6 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         // **
 
         LOCK2(cs_main, pwalletMain->cs_wallet);
-
-        EnsureWalletIsUnlocked();
 
         CCoinControl coinControl;
         COutPoint output(txHash, txIndex);
