@@ -29,7 +29,7 @@
       </font>
      </property>
      <property name="text">
-      <string>Your proposal will be published to the SmartCash network as soon as your proposal fee transaction has 6 confirmations.</string>
+      <string>Your proposal will be published to the SmartCash network as soon as your proposal fee transaction has 3 confirmations.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

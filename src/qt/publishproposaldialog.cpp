@@ -96,8 +96,6 @@ void PublishProposalDialog::update()
 
     if( nConfirmations >= SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS){
 
-        LOCK(cs_main);
-
         if(smartVoting.HaveProposalForHash(proposal.GetHash())) {
             LogPrint("proposal", "VOTINGPROPOSAL -- Received already seen object: %s\n", proposal.GetHash().ToString());
             return;
@@ -107,7 +105,11 @@ void PublishProposalDialog::update()
         // CHECK PROPOSAL AGAINST LOCAL BLOCKCHAIN
 
         int fMissingConfirmations;
-        bool fIsValid = proposal.IsValidLocally(strError, fMissingConfirmations, true);
+        bool fIsValid;
+        {
+            LOCK(cs_main);
+            fIsValid = proposal.IsValidLocally(strError, fMissingConfirmations, true);
+        }
 
         if(!fIsValid) {
 
@@ -137,7 +139,7 @@ void PublishProposalDialog::update()
         ui->loadingWidget->hide();
 
     }else{
-        ui->confirmationsLabel->setText(QString("%1/%2").arg(nConfirmations, SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS));
+        ui->confirmationsLabel->setText(QString("%1/%2").arg(nConfirmations).arg(SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS));
     }
 
 }
