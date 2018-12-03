@@ -321,11 +321,6 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, co
                 continue;
             }
 
-            if(nBlockTx >= nTxMaxCount && nTxMaxCount > 0){
-                LogPrintf("skip tx=%s, over the max tx count set\n", tx.GetHash().ToString());
-                continue;
-            }
-
             unsigned int nTxSigOps = iter->GetSigOpCount();
             LogPrintf("nTxSigOps=%s\n", nTxSigOps);
             LogPrintf("nBlockSigOps=%s\n", nBlockSigOps);
@@ -376,6 +371,11 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, co
                         waitSet.erase(child);
                     }
                 }
+            }
+
+            if(nBlockTx >= nTxMaxCount && nTxMaxCount > 0){
+                LogPrintf("skip tx=%s, over the max tx count set\n", tx.GetHash().ToString());
+                break;
             }
         }
 
