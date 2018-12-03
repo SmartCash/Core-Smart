@@ -631,12 +631,13 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         EnsureVotingIsUnlocked();
 
-        if(params.size() != 4)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting vote <proposal-hash> [funding|valid] [yes|no|abstain]'");
+        if(params.size() != 5)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting vote <proposal-hash> [funding|valid] [yes|no|abstain] enabledVoteKeysOnly'");
 
         uint256 hash = ParseHashV(params[1], "Proposal hash");
         std::string strVoteSignal = params[2].get_str();
         std::string strVoteOutcome = params[3].get_str();
+        bool fEnabledOnly = ParseJSON(params[4].get_str()).get_bool();
 
         std::set<CKeyID> setVoteKeyIds;
 
@@ -644,6 +645,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         UniValue result(UniValue::VARR);
         for( auto keyId : setVoteKeyIds ){
+            if( fEnabledOnly && !pwalletMain->mapVotingKeyMetadata[keyId].fEnabled) continue;
             CKey secret;
             pwalletMain->GetVotingKey(keyId, secret);
             result.push_back(sendVote(secret, hash, strVoteSignal, strVoteOutcome));
