@@ -7,7 +7,7 @@
 
 #include "amount.h"
 
-static const CAmount VOTEKEY_REGISTER_FEE = 0.00000005 * COIN;
+static const CAmount VOTEKEY_REGISTER_FEE = 1 * COIN;
 static const CAmount VOTEKEY_REGISTER_TX_FEE = 0.002 * COIN;
 
 static const int VOTEKEY_REGISTRATION_O1_SCRIPT_SIZE = 0x5E;
