@@ -291,7 +291,7 @@ void SmartVotingPage::voteChanged(){
         };
     }
 
-    ui->castVotesButton->setEnabled(mapVoteProposals.size() && 1);
+    ui->castVotesButton->setEnabled(mapVoteProposals.size() && walletModel->voteKeyCount(true));
     ui->castVotesButton->setText(QString("Vote for %1 proposals").arg(mapVoteProposals.size()));
 
     this->repaint();
