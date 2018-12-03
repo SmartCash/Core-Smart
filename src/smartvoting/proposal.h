@@ -186,6 +186,8 @@ protected:
     /// Object is no longer of interest
     bool fExpired;
 
+    int nVotingStartHeight;
+
     vote_m_t mapCurrentVKVotes;
 
     /// Limited map of votes orphaned by MN
@@ -281,6 +283,8 @@ public:
     bool IsValidLocally(std::string& strError, int& fMissingConfirmations, bool fCheckCollateral) const;
     bool IsCollateralValid(std::string& strError, int& fMissingConfirmations) const;
 
+    bool UpdateProposalStartHeight();
+
     void ClearVoteKeyVotes();
     void CheckOrphanVotes(CConnman &connman);
 
@@ -294,6 +298,9 @@ public:
     CVoteResult GetVotingResult(vote_signal_enum_t eVoteSignalIn) const;
     void GetActiveVoteKeys(std::set<CVoteKey> &setVoteKeys) const;
     bool GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t &voteRecord) const;
+
+    int GetValidVoteEndHeight() const;
+    int GetFundingVoteEndHeight() const;
 
     std::string ToString() const;
 

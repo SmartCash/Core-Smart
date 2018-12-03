@@ -459,6 +459,33 @@ bool CProposal::IsValidLocally(std::string& strError, int& fMissingConfirmations
     return true;
 }
 
+bool CProposal::UpdateProposalStartHeight(){
+
+    std::string strError;
+
+    CTransaction txCollateral;
+    uint256 nBlockHash;
+    if(!GetTransaction(nFeeHash, txCollateral, Params().GetConsensus(), nBlockHash, true)){
+        strError = strprintf("Can't find fee tx %s", nFeeHash.ToString());
+        LogPrintf("CProposal::IsCollateralValid -- %s\n", strError);
+        return false;
+    }
+
+    AssertLockHeld(cs_main);
+
+    if (nBlockHash != uint256()) {
+        BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
+        if (mi != mapBlockIndex.end() && (*mi).second) {
+            CBlockIndex* pindex = (*mi).second;
+            if (chainActive.Contains(pindex)) {
+                nVotingStartHeight = pindex->nHeight;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmations) const
 {
     strError = "";
@@ -674,6 +701,16 @@ bool CProposal::GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t& voteRecor
     }
     voteRecord = it->second;
     return  true;
+}
+
+int CProposal::GetValidVoteEndHeight() const
+{
+    return nVotingStartHeight + Params().GetConsensus().nProposalValidityVoteBlocks;
+}
+
+int CProposal::GetFundingVoteEndHeight() const
+{
+    return nVotingStartHeight + Params().GetConsensus().nProposalFundingVoteBlocks;
 }
 
 void CProposal::Relay(CConnman& connman) const
