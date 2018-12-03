@@ -12,6 +12,7 @@
 #include "walletmodel.h"
 #include "init.h"
 #include "smartnode/smartnodeconfig.h"
+#include "smartvoting/exceptions.h"
 #include "smartvoting/votevalidation.h"
 #include "messagesigner.h"
 #include "util.h"

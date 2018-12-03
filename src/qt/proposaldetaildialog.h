@@ -40,6 +40,7 @@ private Q_SLOTS:
     void copyProposalHash();
     void copySignature();
     void copyTransactionHash();
+    void copyRawProposal();
 };
 
 #endif // SMARTCASH_QT_PROPOSALDETAILDIALOG_H

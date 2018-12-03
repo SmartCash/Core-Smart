@@ -18,6 +18,7 @@ ProposalDetailDialog::ProposalDetailDialog(const CInternalProposal& proposal, QW
     connect(ui->hashCopyButton, SIGNAL(clicked()), this, SLOT(copyProposalHash()));
     connect(ui->sigCopyButton, SIGNAL(clicked()), this, SLOT(copySignature()));
     connect(ui->txCopyButton, SIGNAL(clicked()), this, SLOT(copyTransactionHash()));
+    connect(ui->copyRawProposalButton, SIGNAL(clicked()), this, SLOT(copyRawProposal()));
 
     ui->hashLabel->setText(QString::fromStdString(proposal.GetHash().ToString()));
     ui->signatureLabel->setText(QString::fromStdString(proposal.GetSignedHash()));
@@ -54,4 +55,12 @@ void ProposalDetailDialog::copySignature()
 void ProposalDetailDialog::copyTransactionHash()
 {
     GUIUtil::setClipboard(ui->txLabel->text());
+}
+
+void ProposalDetailDialog::copyRawProposal()
+{
+    CDataStream ssProposal(SER_NETWORK, PROTOCOL_VERSION);
+    ssProposal << static_cast<CProposal>(proposal);
+    std::string strRawProposal = HexStr(ssProposal.begin(), ssProposal.end());
+    GUIUtil::setClipboard(QString::fromStdString(strRawProposal));
 }
