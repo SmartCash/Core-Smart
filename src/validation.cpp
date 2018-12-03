@@ -75,7 +75,7 @@ int nScriptCheckThreads = 0;
 bool fImporting = false;
 bool fReindex = false;
 bool fTxIndex = true;
-bool fAddressIndex = false;
+bool fAddressIndex = true;
 bool fTimestampIndex = false;
 bool fSpentIndex = false;
 bool fDepositIndex = false;
@@ -4188,9 +4188,18 @@ bool static LoadBlockIndexDB()
     pblocktree->ReadReindexing(fReindexing);
     fReindex |= fReindexing;
 
+    bool fCheckIndex = false;
     // Check whether we have a transaction index
-    pblocktree->ReadFlag("txindex", fTxIndex);
-    LogPrintf("%s: transaction index %s\n", __func__, fTxIndex ? "enabled" : "disabled");
+    pblocktree->ReadFlag("txindex", fCheckIndex);
+    // If there is no txindex we need to reindex
+    fReindex |= !fCheckIndex;
+    LogPrintf("%s: transaction index %s\n", __func__, fCheckIndex ? "enabled" : "disabled");
+
+    // Check whether we have a transaction index
+    pblocktree->ReadFlag("addressindex", fCheckIndex);
+    // If there is no txindex we need to reindex
+    fReindex |= !fCheckIndex;
+    LogPrintf("%s: addressindex index %s\n", __func__, fCheckIndex ? "enabled" : "disabled");
 
     // Load pointer to end of best chain
     BlockMap::iterator it = mapBlockIndex.find(pcoinsTip->GetBestBlock());
@@ -4343,8 +4352,9 @@ bool InitBlockIndex(const CChainParams& chainparams)
     //fTxIndex = GetBoolArg("-txindex", DEFAULT_TXINDEX);
     pblocktree->WriteFlag("txindex", fTxIndex);
 
+    // addressindex option is currently disabled, defaults to true.
     // Use the provided setting for -addressindex in the new database
-    fAddressIndex = GetBoolArg("-addressindex", DEFAULT_ADDRESSINDEX);
+    //fAddressIndex = GetBoolArg("-addressindex", DEFAULT_ADDRESSINDEX);
     pblocktree->WriteFlag("addressindex", fAddressIndex);
 
     // Use the provided setting for -timestampindex in the new database
