@@ -2960,7 +2960,7 @@ bool CWallet::GetProposalFeeTX(CWalletTx& tx, const CSmartAddress& fromAddress, 
     vector< CRecipient > vecSend;
     vecSend.push_back(dataRecipient);
 
-    CScript hiveScript = CSmartAddress("ScfFzBriv2kDXwdgJvndha6Qf9qAZ21t8t").GetScript(); //SmartHive::Script(SmartHive::ProjectTreasury);
+    CScript hiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
     CRecipient hiveRecipient = {hiveScript, nAmount, false};
     vecSend.push_back(hiveRecipient);
 

@@ -485,7 +485,7 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
     CScript findDataScript;
     findDataScript << OP_RETURN << ToByteVector(nExpectedHash);
 
-    CScript findHiveScript = CSmartAddress("ScfFzBriv2kDXwdgJvndha6Qf9qAZ21t8t").GetScript(); //SmartHive::Script(SmartHive::ProjectTreasury);
+    CScript findHiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
 
     bool fFoundOpReturn = false;
     bool fFoundFee = false;
