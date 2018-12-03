@@ -403,6 +403,8 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
             UniValue bObj(UniValue::VOBJ);
             bObj.push_back(Pair("Hash",  pProposal->GetHash().ToString()));
             bObj.push_back(Pair("FeeHash",  pProposal->GetFeeHash().ToString()));
+            bObj.push_back(Pair("Title",  pProposal->GetTitle()));
+            bObj.push_back(Pair("Url",  pProposal->GetUrl()));
             bObj.push_back(Pair("CreationTime", pProposal->GetCreationTime()));
             const CSmartAddress& proposalAddress = pProposal->GetAddress();
             if(proposalAddress.IsValid()) {
@@ -455,6 +457,8 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         UniValue objResult(UniValue::VOBJ);
         objResult.push_back(Pair("Hash",  pProposal->GetHash().ToString()));
         objResult.push_back(Pair("FeeHash",  pProposal->GetFeeHash().ToString()));
+        objResult.push_back(Pair("Title",  pProposal->GetTitle()));
+        objResult.push_back(Pair("Url",  pProposal->GetUrl()));
         objResult.push_back(Pair("CreationTime", pProposal->GetCreationTime()));
         const CSmartAddress& proposalAddress = pProposal->GetAddress();
         if(proposalAddress.IsValid()) {
