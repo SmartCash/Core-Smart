@@ -12,8 +12,11 @@
 #include "walletmodel.h"
 #include "init.h"
 #include "smartnode/smartnodeconfig.h"
-#include "smartvoting/exceptions.h"
+#include "smartvoting/proposal.h"
+#include "smartvoting/manager.h"
+#include "smartvoting/votekeys.h"
 #include "smartvoting/votevalidation.h"
+#include "smartvoting/voting.h"
 #include "messagesigner.h"
 #include "util.h"
 
@@ -87,9 +90,9 @@ bool CastVotesDialog::castVote( const CVoteKeySecret &voteKeySecret, const uint2
     CProposalVote vote(voteKey, hash, eVoteSignal, eVoteOutcome);
     if(vote.Sign(voteKeySecret)) {
 
-        CSmartVotingException exception;
-        if(!smartVoting.ProcessVoteAndRelay(vote, exception, *g_connman)) {
-            strError = QString::fromStdString(exception.GetMessage());
+        std::string error;
+        if(!smartVoting.ProcessVoteAndRelay(vote, error, *g_connman)) {
+            strError = QString::fromStdString(error);
         }
 
     }else{

@@ -233,13 +233,8 @@ public:
 
     void AddSeenVote(const uint256& nHash, int status);
 
-    bool ProcessVoteAndRelay(const CProposalVote& vote, CSmartVotingException& exception, CConnman& connman) {
-        bool fOK = ProcessVote(NULL, vote, exception, connman);
-        if(fOK) {
-            vote.Relay(connman);
-        }
-        return fOK;
-    }
+    bool ProcessVoteAndRelay(const CProposalVote& vote, CSmartVotingException& exception, CConnman& connman);
+    bool ProcessVoteAndRelay(const CProposalVote& vote, std::string &strError, CConnman& connman);
 
     void CheckMasternodeOrphanVotes(CConnman& connman);
 

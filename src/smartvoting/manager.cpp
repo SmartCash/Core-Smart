@@ -72,6 +72,26 @@ bool CSmartVotingManager::SerializeVoteForHash(const uint256& nHash, CDataStream
     return cmapVoteToProposal.Get(nHash,pProposal) && pProposal->GetVoteFile().SerializeVoteToStream(nHash, ss);
 }
 
+bool CSmartVotingManager::ProcessVoteAndRelay(const CProposalVote &vote, CSmartVotingException &exception, CConnman &connman){
+    bool fOK = ProcessVote(NULL, vote, exception, connman);
+    if(fOK) {
+        vote.Relay(connman);
+    }
+    return fOK;
+}
+
+bool CSmartVotingManager::ProcessVoteAndRelay(const CProposalVote &vote, string &strError, CConnman &connman)
+{
+    CSmartVotingException exception;
+    bool fOK = ProcessVote(NULL, vote, exception, connman);
+    if(fOK) {
+        vote.Relay(connman);
+    }else{
+        strError = exception.GetMessage();
+    }
+    return fOK;
+}
+
 void CSmartVotingManager::ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
     // lite mode is not supported
