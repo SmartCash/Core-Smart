@@ -436,6 +436,31 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp = NULL
 bool GetBlockHash(uint256& hashRet, int nBlockHeight = -1); 
 
 /**
+ * Basic check if transaction is a valid vote key registration transaction.
+ */
+bool CheckVoteKeyRegistration(const CTransaction &tx);
+
+/**
+ * Parse a vote key registration transaction.
+ */
+bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress, bool fValidate = true);
+
+/**
+ * Check if transaction is a valid vote key registration transaction.
+ */
+bool IsValidVoteKeyRegistration(const CTransaction &tx);
+
+/**
+ * Check if the given address has already an registered voting key.
+ */
+bool IsRegisteredForVoting(const CSmartAddress &address);
+
+/**
+ * Check if the given voteKey is already registered.
+ */
+bool IsRegisteredForVoting(const CVoteKey &voteKey);
+
+/**
  * Closure representing one script verification
  * Note that this stores references to the spending transaction 
  */
@@ -489,6 +514,10 @@ bool GetDepositIndex(uint160 addressHash, int type,
                      std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex,
                      int start, int offset, int limit, bool reverse);
 
+bool GetVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys);
+bool GetVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey);
+bool GetVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue);
+
 /** Functions for disk access for blocks */
 bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMessageHeader::MessageStartChars& messageStart);
 bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus::Params& consensusParams);
@@ -498,7 +527,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 
 /** Context-independent validity checks */
 bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool fCheckPOW = true);
-bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
+bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW = true, bool fCheckMerkleRoot = true, bool isVerifyDB = false);
 
 /** Context-dependent validity checks */
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex *pindexPrev);

@@ -38,6 +38,28 @@ bool CBasicKeyStore::AddKeyPubKey(const CKey& key, const CPubKey &pubkey)
     return true;
 }
 
+
+bool CKeyStore::AddVotingKey(const CKey &key) {
+    return AddVotingKeyPubKey(key, key.GetPubKey());
+}
+
+bool CBasicKeyStore::GetVotingPubKey(const CKeyID &address, CPubKey &vchPubKeyOut) const
+{
+    CKey key;
+    if (!GetVotingKey(address, key)) {
+        return false;
+    }
+    vchPubKeyOut = key.GetPubKey();
+    return true;
+}
+
+bool CBasicKeyStore::AddVotingKeyPubKey(const CKey& key, const CPubKey &pubkey)
+{
+    LOCK(cs_VotingKeyStore);
+    mapVotingKeys[pubkey.GetID()] = key;
+    return true;
+}
+
 bool CBasicKeyStore::AddCScript(const CScript& redeemScript)
 {
     if (redeemScript.size() > MAX_SCRIPT_ELEMENT_SIZE)

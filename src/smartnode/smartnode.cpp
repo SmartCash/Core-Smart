@@ -13,6 +13,7 @@
 #include "smartnodepayments.h"
 #include "smartnodesync.h"
 #include "smartnodeman.h"
+#include "smartvoting/manager.h"
 #include "netfulfilledman.h"
 #include "../util.h"
 #ifdef ENABLE_WALLET
@@ -938,6 +939,10 @@ void ThreadSmartnode(CConnman& connman)
 
             if(fSmartNode && (nTick % (60 * 5) == 0)) {
                 mnodeman.DoFullVerificationStep(connman);
+            }
+
+            if(nTick % (60 * 5) == 0) {
+                smartVoting.DoMaintenance(connman);
             }
 
         }

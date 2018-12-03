@@ -75,11 +75,11 @@ src/qt/test/moc*.cpp
 Makefile
 smartcash-qt
 Smartcash-Qt.app
-smartcash.creator
-smartcash.creator.user
-smartcash.config
-smartcash.files
-smartcash.includes
+Core-Smart.creator
+Core-Smart.creator.user
+Core-Smart.config
+Core-Smart.files
+Core-Smart.includes
 
 # Unit-tests
 Makefile.test

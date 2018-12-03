@@ -31,9 +31,8 @@ class CWallet;
 class CWalletTx;
 class uint160;
 class uint256;
-
-class CZerocoinEntry;
-class CZerocoinSpendEntry;
+class CInternalProposal;
+class CVoteKeySecret;
 
 /** Error statuses for the wallet database */
 enum DBErrors
@@ -90,6 +89,48 @@ public:
     }
 };
 
+
+class CVotingKeyMetadata
+{
+public:
+    static const int VERSION_BASIC=1;
+    static const int VERSION_WITH_HDDATA=10;
+    static const int CURRENT_VERSION=VERSION_WITH_HDDATA;
+    int nVersion;
+    int64_t nCreateTime; // 0 means unknown
+    bool fEnabled;
+    bool fImported;
+
+    CVotingKeyMetadata()
+    {
+        SetNull();
+    }
+    CVotingKeyMetadata(int64_t nCreateTime_)
+    {
+        SetNull();
+        nCreateTime = nCreateTime_;
+    }
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(this->nVersion);
+        nVersion = this->nVersion;
+        READWRITE(nCreateTime);
+        READWRITE(fEnabled);
+        READWRITE(fImported);
+    }
+
+    void SetNull()
+    {
+        nVersion = CKeyMetadata::CURRENT_VERSION;
+        nCreateTime = 0;
+        fEnabled = false;
+        fImported = false;
+    }
+};
+
 /** Access to the wallet database */
 class CWalletDB : public CDB
 {
@@ -110,6 +151,11 @@ public:
     bool WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta);
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
+
+    bool WriteVotingKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CVotingKeyMetadata &keyMeta);
+    bool WriteCryptedVotingKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CVotingKeyMetadata &keyMeta);
+    bool WriteVotingMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
+    bool UpdateVotingKeyMeta(const CKeyID& keyId, const CVotingKeyMetadata& keyMeta);
 
     bool WriteCScript(const uint160& hash, const CScript& redeemScript);
 
@@ -143,20 +189,9 @@ public:
     CAmount GetAccountCreditDebit(const std::string& strAccount);
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& acentries);
 
-    bool WriteDummyBalance(CAmount dummyBalance);
-    bool ReadDummyBalance(CAmount& dummyBalance);
-
-    bool WriteZerocoinEntry(const CZerocoinEntry& zerocoin);
-    bool EarseZerocoinEntry(const CZerocoinEntry& zerocoin);
-    void ListPubCoin(std::list<CZerocoinEntry>& listPubCoin);
-    void ListCoinSpendSerial(std::list<CZerocoinSpendEntry>& listCoinSpendSerial);
-    bool WriteCoinSpendSerialEntry(const CZerocoinSpendEntry& zerocoinSpend);
-    bool EraseCoinSpendSerialEntry(const CZerocoinSpendEntry& zerocoinSpend);
-    bool WriteZerocoinAccumulator(libzerocoin::Accumulator accumulator, libzerocoin::CoinDenomination denomination, int pubcoinid);
-    bool ReadZerocoinAccumulator(libzerocoin::Accumulator& accumulator, libzerocoin::CoinDenomination denomination, int pubcoinid);
-
-    bool ReadCalculatedZCBlock(int& height);
-    bool WriteCalculatedZCBlock(int height);
+    // Used to store created proposals
+    bool ReadProposals(std::map<uint256, CInternalProposal> &mapProposals);
+    bool WriteProposals(const std::map<uint256, CInternalProposal> &mapProposals);
 
     DBErrors ReorderTransactions(CWallet* pwallet);
     DBErrors LoadWallet(CWallet* pwallet);

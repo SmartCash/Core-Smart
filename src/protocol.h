@@ -274,11 +274,11 @@ extern const char *DSTX;
 extern const char *DSQUEUE;
 extern const char *DSEG;
 extern const char *SYNCSTATUSCOUNT;
-extern const char *MNGOVERNANCESYNC;
-extern const char *MNGOVERNANCEOBJECT;
-extern const char *MNGOVERNANCEOBJECTVOTE;
+extern const char *VOTINGSYNC;
+extern const char *VOTINGPROPOSAL;
+extern const char *VOTINGPROPOSALVOTE;
 extern const char *MNVERIFY;
-};
+}
 
 /* Get a vector of all valid message types (see above) */
 const std::vector<std::string> &getAllNetMessageTypes();
@@ -404,8 +404,8 @@ enum {
     MSG_SMARTNODE_ANNOUNCE,
     MSG_SMARTNODE_PING,
     MSG_DSTX,
-    MSG_GOVERNANCE_OBJECT,
-    MSG_GOVERNANCE_OBJECT_VOTE,
+    MSG_VOTING_PROPOSAL,
+    MSG_VOTING_PROPOSAL_VOTE,
     MSG_SMARTNODE_VERIFY,
 };
 

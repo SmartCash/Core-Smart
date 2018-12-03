@@ -29,6 +29,9 @@ static const char DB_SPENTINDEX = 'p';
 static const char DB_DEPOSITINDEX = 'd';
 static const char DB_BLOCK_INDEX = 'b';
 
+static const char DB_VOTE_MAP_ADDRESS_TO_KEY = 'v';
+static const char DB_VOTE_MAP_KEY_TO_ADDRESS = 'V';
+
 static const char DB_BEST_BLOCK = 'B';
 static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
@@ -559,6 +562,114 @@ bool CBlockTreeDB::ReadDepositIndexCount(uint160 addressHash, int type,
 
     return true;
 }
+
+bool CBlockTreeDB::WriteVoteKeys(const std::vector<std::pair<CVoteKey, CVoteKeyValue>> &vecVoteKeys)
+{
+    CDBBatch batch(*this);
+
+    for( auto it : vecVoteKeys ){
+        batch.Write(make_pair(DB_VOTE_MAP_ADDRESS_TO_KEY, it.second.voteAddress), it.first);
+        batch.Write(make_pair(DB_VOTE_MAP_KEY_TO_ADDRESS, it.first), it.second);
+    }
+
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::EraseVoteKeys(const std::vector<CVoteKey> &vecVoteKeys)
+{
+    CDBBatch batch(*this);
+
+    for( const CVoteKey &voteKey : vecVoteKeys ){
+
+        CVoteKeyValue voteKeyValue;
+
+        if( !ReadVoteKeyValue(voteKey, voteKeyValue)) return false;
+
+        batch.Erase(make_pair(DB_VOTE_MAP_ADDRESS_TO_KEY, voteKeyValue.voteAddress));
+        batch.Erase(make_pair(DB_VOTE_MAP_KEY_TO_ADDRESS, voteKey));
+    }
+
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::ReadVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey)
+{
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(make_pair(DB_VOTE_MAP_ADDRESS_TO_KEY, voteAddress));
+
+    if (pcursor->Valid()) {
+
+        std::pair<char,CSmartAddress> key;
+
+        if (pcursor->GetKey(key) && key.first == DB_VOTE_MAP_ADDRESS_TO_KEY && key.second == voteAddress) {
+
+            if (!pcursor->GetValue(voteKey)) {
+                return error("failed to get vote key");
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+bool CBlockTreeDB::ReadVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys)
+{
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(DB_VOTE_MAP_KEY_TO_ADDRESS);
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char, CVoteKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_VOTE_MAP_KEY_TO_ADDRESS) {
+
+            CVoteKeyValue nValue;
+
+            if (pcursor->GetValue(nValue)) {
+
+                vecVoteKeys.push_back(std::make_pair(key.second,nValue));
+
+            } else {
+                return error("failed to get vote key value");
+            }
+
+            pcursor->Next();
+
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool CBlockTreeDB::ReadVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue)
+{
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(make_pair(DB_VOTE_MAP_KEY_TO_ADDRESS, voteKey));
+
+    if (pcursor->Valid()) {
+
+        std::pair<char,CSmartAddress> key;
+
+        if (pcursor->GetKey(key) && key.first == DB_VOTE_MAP_KEY_TO_ADDRESS && key.second == voteKey) {
+
+            if (!pcursor->GetValue(voteKeyValue)) {
+                return error("failed to get vote key value");
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 
 bool CBlockTreeDB::WriteFlag(const std::string &name, bool fValue) {
     return Write(std::make_pair(DB_FLAG, name), fValue ? '1' : '0');

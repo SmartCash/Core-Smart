@@ -361,18 +361,13 @@ static const CRPCCommand vRPCCommands[] =
     { "smartcash",               "smartnode",             &smartnode,             true  },
     { "smartcash",               "smartnodelist",         &smartnodelist,         true  },
     { "smartcash",               "smartnodebroadcast",    &smartnodebroadcast,    true  },
-    //{ "smartcash",               "gobject",                &gobject,                true  },
-    //{ "smartcash",               "getgovernanceinfo",      &getgovernanceinfo,      true  },
-    //{ "smartcash",               "getsuperblockbudget",    &getsuperblockbudget,    true  },
-    //{ "smartcash",               "voteraw",                &voteraw,                true  },
+    { "smartcash",               "smartvoting",           &smartvoting,           true  },
+    { "smartcash",               "votekeys",              &votekeys,              true  },
     { "smartcash",               "snsync",                 &snsync,                 true  },
     { "smartcash",               "spork",                  &spork,                  true  },
-    //{ "smartcash",               "getpoolinfo",            &getpoolinfo,            true  },
-    //{ "smartcash",               "sentinelping",           &sentinelping,           true  },
     { "smartcash",               "smartrewards",           &smartrewards,           true  },
     { "smartcash",               "smartmining",            &smartmining,            true  },
 #ifdef ENABLE_WALLET
-    //{ "smartcash",               "privatesend",            &privatesend,            false },
 
     /* Wallet */
     //{ "wallet",             "keepass",                &keepass,                true },

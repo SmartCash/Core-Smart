@@ -489,7 +489,7 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
         throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "SmartCash Core is not connected!");
 
-    if (IsInitialBlockDownload())
+    if (IsInitialBlockDownload() && !fDebug)
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is downloading blocks...");
 
     if (!smartnodeSync.IsSynced() && !fDebug)

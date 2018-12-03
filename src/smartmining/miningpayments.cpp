@@ -162,7 +162,7 @@ static bool CheckSignature(const CBlock &block, const CBlockIndex *pindex)
 
     // Check if it is an OP_RETURN and if the startvalue is OP_DATA_MINING_FLAG
     if( sigScript.size() > nMiningSignatureMinScriptLength &&
-        sigScript[0] == OP_RETURN && sigScript[2] == OP_DATA_MINING_FLAG ){
+        sigScript[0] == OP_RETURN && sigScript[2] == OP_RETURN_MINING_FLAG ){
 
         LOCK(cs_miningkeys);
 
@@ -285,7 +285,7 @@ void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlo
         }
 
         std::vector<unsigned char> vSigData = {
-            OP_DATA_MINING_FLAG,
+            OP_RETURN_MINING_FLAG,
             searchAddress->first
         };
 

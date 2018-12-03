@@ -66,11 +66,11 @@ const char *DSTX="dstx";
 const char *DSQUEUE="dsq";
 const char *DSEG="dseg";
 const char *SYNCSTATUSCOUNT="ssc";
-const char *MNGOVERNANCESYNC="govsync";
-const char *MNGOVERNANCEOBJECT="govobj";
-const char *MNGOVERNANCEOBJECTVOTE="govobjvote";
+const char *VOTINGSYNC="votesync";
+const char *VOTINGPROPOSAL="proposal";
+const char *VOTINGPROPOSALVOTE="proposalvote";
 const char *MNVERIFY="mnv";
-};
+}
 
 static const char* ppszTypeName[] =
 {
@@ -94,8 +94,8 @@ static const char* ppszTypeName[] =
     NetMsgType::MNANNOUNCE,
     NetMsgType::MNPING,
     NetMsgType::DSTX,
-    NetMsgType::MNGOVERNANCEOBJECT,
-    NetMsgType::MNGOVERNANCEOBJECTVOTE,
+    NetMsgType::VOTINGPROPOSAL,
+    NetMsgType::VOTINGPROPOSALVOTE,
     NetMsgType::MNVERIFY,
 };
 
@@ -151,9 +151,9 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::DSQUEUE,
     NetMsgType::DSEG,
     NetMsgType::SYNCSTATUSCOUNT,
-    NetMsgType::MNGOVERNANCESYNC,
-    NetMsgType::MNGOVERNANCEOBJECT,
-    NetMsgType::MNGOVERNANCEOBJECTVOTE,
+    NetMsgType::VOTINGSYNC,
+    NetMsgType::VOTINGPROPOSAL,
+    NetMsgType::VOTINGPROPOSALVOTE,
     NetMsgType::MNVERIFY,
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes+ARRAYLEN(allNetMessageTypes));
@@ -271,8 +271,6 @@ bool CInv::IsKnownType() const
         case MSG_WITNESS_BLOCK:
         case MSG_WITNESS_TX:
         case MSG_FILTERED_WITNESS_BLOCK:
-        case MSG_GOVERNANCE_OBJECT:
-        case MSG_GOVERNANCE_OBJECT_VOTE:
             return false;
         default:
         if(typeValue >= MSG_TXLOCK_REQUEST ) typeValue -= (MSG_WITNESS_FLAG - 1);

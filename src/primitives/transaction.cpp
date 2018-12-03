@@ -205,6 +205,23 @@ bool CTransaction::IsZerocoinMint(const CTransaction& tx) const
     return false;
 }
 
+bool CTransaction::IsVoteKeyRegistration() const
+{
+    // Vote key registration transactions must contain only 1 input
+    // which is from the address to register and maximum 2 outputs
+    // 1. OP_RETURN with the VoteKeyData
+    // 2. change (optional)
+    if( vin.size() > 1 || vout.size() > 2 ) return false;
+
+    for (std::vector<CTxOut>::const_iterator it(vout.begin()); it != vout.end(); ++it)
+    {
+        if (it->IsVoteKeyRegistrationData() ) return true;
+    }
+
+    return false;
+}
+
+
 unsigned int CTransaction::CalculateModifiedSize(unsigned int nTxSize) const
 {
     // In order to avoid disincentivizing cleaning up the UTXO set we don't count

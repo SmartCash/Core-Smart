@@ -33,8 +33,8 @@ public:
     /*! Constructor for "standard" widget behaviour - use this
    * constructor if you wish to, e.g. embed your widget in another. */
     WaitingSpinnerWidget(QWidget *parent = 0,
-                         bool centerOnParent = true,
-                         bool disableParentWhenSpinning = true);
+                         bool centerOnParent = false,
+                         bool disableParentWhenSpinning = false);
 
     /*! Constructor - use this constructor to automatically create a modal
    * ("blocking") spinner on top of the calling widget/window.  If a valid
@@ -43,8 +43,8 @@ public:
    * "centreOnParent" is ignored. */
     WaitingSpinnerWidget(Qt::WindowModality modality,
                          QWidget *parent = 0,
-                         bool centerOnParent = true,
-                         bool disableParentWhenSpinning = true);
+                         bool centerOnParent = false,
+                         bool disableParentWhenSpinning = false);
 
 public Q_SLOTS:
     void start();

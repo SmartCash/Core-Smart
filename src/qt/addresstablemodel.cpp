@@ -97,20 +97,6 @@ public:
                                   QString::fromStdString(strName),
                                   QString::fromStdString(address.ToString())));
             }
-            //[zcoin] add load pubcoin
-            std::list<CZerocoinEntry> listPubcoin;
-            CWalletDB(wallet->strWalletFile).ListPubCoin(listPubcoin);
-            BOOST_FOREACH(const CZerocoinEntry& item, listPubcoin)
-            {
-                if(item.randomness != 0 && item.serialNumber != 0){
-                    const std::string& pubCoin = item.value.GetHex();
-                    const std::string& isUsed = item.IsUsed ? "Used" : "New";
-                    cachedAddressTable.append(AddressTableEntry(AddressTableEntry::Zerocoin,
-                                                                QString::fromStdString(isUsed),
-                                                                QString::fromStdString(pubCoin)));
-                }
-
-            }
         }
         // qLowerBound() and qUpperBound() require our cachedAddressTable list to be sorted in asc order
         // Even though the map is already sorted this re-sorting step is needed because the originating map

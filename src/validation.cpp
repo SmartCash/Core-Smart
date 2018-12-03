@@ -15,6 +15,7 @@
 #include "consensus/validation.h"
 #include "hash.h"
 #include "init.h"
+#include "messagesigner.h"
 #include "net_processing.h"
 #include "policy/policy.h"
 #include "pow.h"
@@ -58,8 +59,6 @@ using namespace std;
 #if defined(NDEBUG)
 # error "smartcash cannot be compiled without assertions."
 #endif
-
-#define ZEROCOIN_MODULUS   "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784406918290641249515082189298559149176184502808489120072844992687392807287776735971418347270261896375014971824691165077613379859095700097330459748808428401797429100642458691817195118746121515172654632282216869987549182422433637259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133844143603833904414952634432190114657544454178424020924616515723350778707749817125772467962926386356373289912154831438167899885040445364023527381951378636564391212010397122822120720357"
 
 /**
  * Global state
@@ -606,6 +605,26 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
     if (tx.IsCoinBase()) {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-length");
+    } else if( tx.IsVoteKeyRegistration() ) {
+
+        if( isVerifyDB) {
+
+            CVoteKey voteKey;
+            CSmartAddress voteAddress;
+
+            if( !ParseVoteKeyRegistration(tx, voteKey, voteAddress) )
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-data-invalid");
+
+            // If its valid search for an existing entry
+            if( !IsRegisteredForVoting(voteAddress) || !IsRegisteredForVoting(voteKey) )
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-index-missing");
+
+        }else{
+
+            if( !CheckVoteKeyRegistration(tx) )
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-votekey-data-invalid");
+        }
+
     } else {
 
         BOOST_FOREACH(const CTxIn &txin, tx.vin){
@@ -1831,6 +1850,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    std::vector<CVoteKey> vecVoteKeys;
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -1839,6 +1859,21 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         bool is_coinbase = tx.IsCoinBase();
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
+
+        if( tx.IsVoteKeyRegistration()  ){
+
+            CVoteKey voteKey;
+            CSmartAddress voteAddress;
+            if( ParseVoteKeyRegistration(tx, voteKey, voteAddress) ){
+
+                CVoteKeyValue voteKeyValue;
+                if( GetVoteKeyValue(voteKey, voteKeyValue) ){
+                    if( voteKeyValue.nBlockHeight == pindex->nHeight )
+                        vecVoteKeys.push_back(voteKey);
+                }
+            }
+
+        }
 
         if (fAddressIndex || fDepositIndex) {
 
@@ -1999,6 +2034,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
+
+
+    if( vecVoteKeys.size() && !pblocktree->EraseVoteKeys(vecVoteKeys) ){
+        AbortNode(state, "Failed to erase vote keys");
+        return DISCONNECT_FAILED;
+    }
 
     if (fDepositIndex) {
 
@@ -2262,6 +2303,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    std::vector<std::pair<CVoteKey, CVoteKeyValue>> vecVoteKeys;
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
@@ -2434,6 +2476,24 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             }
         }
 
+        if( tx.IsVoteKeyRegistration() ){
+
+            CVoteKey voteKey;
+            CSmartAddress voteAddress;
+
+            // Parse the registration and check if either the votekey or the address
+            // is already registered, if yes ignore the tx.
+            if( ParseVoteKeyRegistration(tx, voteKey, voteAddress) &&
+                !IsRegisteredForVoting(voteAddress) &&
+                !IsRegisteredForVoting(voteKey) ){
+
+                CVoteKeyValue voteKeyValue(voteAddress, tx.GetHash(), pindex->nHeight);
+
+                vecVoteKeys.push_back(std::make_pair(voteKey, voteKeyValue));
+            }
+
+        }
+
         CTxUndo undoDummy;
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
@@ -2515,6 +2575,12 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
         if( !pblocktree->WriteDepositIndex(depositIndex) ){
             return AbortNode(state, "Failed to write deposit index");
+        }
+    }
+
+    if( vecVoteKeys.size() ){
+        if ( !pblocktree->WriteVoteKeys(vecVoteKeys)){
+            return AbortNode(state, "Failed to write vote keys");
         }
     }
 
@@ -2728,86 +2794,6 @@ bool static DisconnectTip(CValidationState& state, const Consensus::Params& cons
         assert(view.Flush());
     }
     LogPrint("bench", "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * 0.001);
-
-    // Zerocoin reorg, set mint to height -1, id -1
-    list <CZerocoinEntry> listPubCoin = list<CZerocoinEntry>();
-    CWalletDB walletdb(pwalletMain->strWalletFile);
-    walletdb.ListPubCoin(listPubCoin);
-
-    list <CZerocoinSpendEntry> listCoinSpendSerial;
-    walletdb.ListCoinSpendSerial(listCoinSpendSerial);
-
-    BOOST_FOREACH(const CTransaction &tx, block.vtx){
-        // Check Spend Zerocoin Transaction
-        if (tx.IsZerocoinSpend()) {
-            BOOST_FOREACH(const CZerocoinSpendEntry &item, listCoinSpendSerial) {
-                if (item.hashTx == tx.GetHash()) {
-                    BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-                        if (pubCoinItem.value == item.pubCoin) {
-                            CZerocoinEntry pubCoinTx;
-                            pubCoinTx.nHeight = pubCoinItem.nHeight;
-                            pubCoinTx.denomination = pubCoinItem.denomination;
-                            // UPDATE FOR INDICATE IT HAS BEEN RESET
-                            pubCoinTx.IsUsed = false;
-                            pubCoinTx.randomness = pubCoinItem.randomness;
-                            pubCoinTx.serialNumber = pubCoinItem.serialNumber;
-                            pubCoinTx.value = pubCoinItem.value;
-                            pubCoinTx.id = pubCoinItem.id;
-                            walletdb.WriteZerocoinEntry(pubCoinTx);
-                            LogPrintf("DisconnectTip() -> NotifyZerocoinChanged\n");
-                            LogPrintf("pubcoin=%s, isUsed=New\n", pubCoinItem.value.GetHex());
-                            pwalletMain->NotifyZerocoinChanged(pwalletMain, pubCoinItem.value.GetHex(), "New", CT_UPDATED);
-                            walletdb.EraseCoinSpendSerialEntry(item);
-                            pwalletMain->EraseFromWallet(item.hashTx);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Check Mint Zerocoin Transaction
-        BOOST_FOREACH(const CTxOut txout, tx.vout) {
-            if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsZerocoinMint()) {
-                vector<unsigned char> vchZeroMint;
-                vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + 6, txout.scriptPubKey.begin() + txout.scriptPubKey.size());
-                CBigNum pubCoin;
-                pubCoin.setvch(vchZeroMint);
-                int zerocoinMintHeight = -1;
-                BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-                    if (pubCoinItem.value == pubCoin) {
-                        zerocoinMintHeight = pubCoinItem.nHeight;
-                        CZerocoinEntry pubCoinTx;
-                        pubCoinTx.id = -1;
-                        pubCoinTx.IsUsed = pubCoinItem.IsUsed;
-                        pubCoinTx.randomness = pubCoinItem.randomness;
-                        pubCoinTx.denomination = pubCoinItem.denomination;
-                        pubCoinTx.serialNumber = pubCoinItem.serialNumber;
-                        pubCoinTx.value = pubCoin;
-                        pubCoinTx.nHeight = -1;
-                        LogPrintf("- Pubcoin Disconnect Reset Pubcoin Id: %d Height: %d\n", pubCoinTx.id, pindexDelete->nHeight);
-                        walletdb.WriteZerocoinEntry(pubCoinTx);
-                    }
-
-                }
-
-                BOOST_FOREACH(const CZerocoinEntry &pubCoinItem, listPubCoin) {
-                    if (pubCoinItem.nHeight > zerocoinMintHeight) {
-                        CZerocoinEntry pubCoinTx;
-                        pubCoinTx.id = -1;
-                        pubCoinTx.IsUsed = pubCoinItem.IsUsed;
-                        pubCoinTx.randomness = pubCoinItem.randomness;
-                        pubCoinTx.denomination = pubCoinItem.denomination;
-                        pubCoinTx.serialNumber = pubCoinItem.serialNumber;
-                        pubCoinTx.value = pubCoin;
-                        pubCoinTx.nHeight = -1;
-                        LogPrintf("- Disconnect Reset Pubcoin Id: %d Height: %d\n", pubCoinTx.id, pindexDelete->nHeight);
-                        walletdb.WriteZerocoinEntry(pubCoinTx);
-                    }
-
-                }
-            }
-        }
-    }
 
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(state, FLUSH_STATE_IF_NEEDED))
@@ -3457,7 +3443,7 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bool fCheckMerkleRoot)
+bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bool fCheckMerkleRoot, bool isVerifyDB)
 {
      // These are checks that are independent of context.
 
@@ -3535,7 +3521,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, block.vtx)
-        if (!CheckTransaction(tx, state, tx.GetHash(), false, getNHeight(block)))
+        if (!CheckTransaction(tx, state, tx.GetHash(), isVerifyDB, getNHeight(block)))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s", tx.GetHash().ToString(), state.GetDebugMessage()));
 
@@ -4261,7 +4247,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
             return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
         // check level 1: verify block validity
-        if (nCheckLevel >= 1 && !CheckBlock(block, state))
+        if (nCheckLevel >= 1 && !CheckBlock(block, state, true, true, true))
             return error("VerifyDB(): *** found bad block at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
         // check level 2: verify undo validity
         if (nCheckLevel >= 2 && pindex) {
@@ -4726,3 +4712,165 @@ public:
         mapBlockIndex.clear();
     }
 } instance_of_cmaincleanup;
+
+bool GetVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys)
+{
+    if (!pblocktree->ReadVoteKeys(vecVoteKeys))
+        return error("unable to get votekeys");
+
+    return true;
+}
+
+bool GetVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey)
+{
+    if (!pblocktree->ReadVoteKeyForAddress(voteAddress, voteKey))
+        return error("unable to get votekey for address");
+
+    return voteKey.IsValid();
+}
+
+bool GetVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue)
+{
+    if (!pblocktree->ReadVoteKeyValue(voteKey, voteKeyValue))
+        return error("unable to get votekey value");
+
+    return voteKeyValue.voteAddress.IsValid();
+}
+
+bool CheckVoteKeyRegistration(const CTransaction &tx)
+{
+    CVoteKey voteKey;
+    CSmartAddress voteAddress;
+    return ParseVoteKeyRegistration(tx, voteKey, voteAddress, false);
+}
+
+bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress, bool fValidate)
+{
+
+    if( !tx.IsVoteKeyRegistration() ) return false;
+
+    unsigned char cRegisterOption;
+    std::vector<unsigned char> vecSigVoteKey, vecSigVoteAddress;
+
+    for( const CTxOut& out : tx.vout ){
+
+        if( out.IsVoteKeyRegistrationData() ){
+            std::vector<unsigned char> scriptData;
+            scriptData.insert(scriptData.end(), out.scriptPubKey.begin() + 4, out.scriptPubKey.end());
+            CDataStream ss(scriptData, SER_NETWORK, 0);
+
+            ss >> cRegisterOption;
+            ss >> voteKey;
+            ss >> vecSigVoteKey;
+
+            if( cRegisterOption == 0x02 ){
+                ss >> voteAddress;
+                ss >> vecSigVoteAddress;
+            }
+
+            break;
+        }
+
+    }
+
+    if( cRegisterOption < 0x01 || cRegisterOption > 0x02 ){
+        LogPrintf("ParseVoteKeyRegistration -- Invalid register option found: %d, tx: %s\n", cRegisterOption, tx.ToString());
+        return false;
+    }
+
+    if( fValidate && cRegisterOption == 0x01 ){
+        CTransaction rTx;
+        uint256 rBlockHash;
+        const CTxIn &in = tx.vin[0];
+
+        if(!::GetTransaction(in.prevout.hash, rTx, Params().GetConsensus(),rBlockHash, true)){
+            return error("ParseVoteKeyRegistration: GetTransaction - %s\n Input: %s", tx.ToString(), in.prevout.hash.ToString());
+        }
+
+        CTxOut rOut = rTx.vout[in.prevout.n];
+
+        std::vector<CTxDestination> addresses;
+        txnouttype type;
+        int nRequired;
+
+        if (!ExtractDestinations(rOut.scriptPubKey, type, addresses, nRequired) || addresses.size() != 1) {
+            LogPrintf("ParseVoteKeyRegistration -- Couldn't extract address, %s\n", tx.ToString());
+            return false;
+        }
+
+        voteAddress = CSmartAddress(addresses[0]);
+    }
+
+    CDataStream ss(SER_GETHASH, 0);
+    uint256 sigHash;
+    if( fValidate ){
+        ss << strMessageMagic;
+        ss << voteKey;
+        ss << voteAddress;
+        sigHash = Hash(ss.begin(), ss.end());
+    }
+
+    std::string strError;
+    CKeyID keyId;
+
+    if( !voteKey.GetKeyID(keyId) ){
+        LogPrintf("ParseVoteKeyRegistration -- Invalid voteKey found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
+        return false;
+    }
+
+    if( fValidate && !CHashSigner::VerifyHash(sigHash, keyId, vecSigVoteKey, strError ) ){
+        LogPrintf("ParseVoteKeyRegistration -- VoteKey signature verification failed: %s\n", strError);
+        return false;
+    }
+
+    if( cRegisterOption == 0x02 ){
+
+        if( !voteAddress.GetKeyID(keyId) ){
+            LogPrintf("ParseVoteKeyRegistration -- Invalid voteAddress found: %s, tx: %s\n", voteKey.ToString(), tx.ToString());
+            return false;
+        }
+
+        if( fValidate && !CHashSigner::VerifyHash(sigHash, keyId, vecSigVoteAddress, strError ) ){
+            LogPrintf("ParseVoteKeyRegistration -- VoteKey signature verification failed: %s\n", strError);
+            return false;
+        }
+
+    }
+
+    if( fValidate){
+        LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option %d] found %s. Key %s for address: %s\n",
+              cRegisterOption, tx.GetHash().ToString(), voteKey.ToString(), voteAddress.ToString());
+    }else{
+        LogPrintf("ParseVoteKeyRegistration -- Valid vote key registration [Option %d] found %s. Key %s\n",
+              cRegisterOption, tx.GetHash().ToString(), voteKey.ToString());
+    }
+
+    return true;
+}
+
+bool IsValidVoteKeyRegistration(const CTransaction &tx)
+{
+    CVoteKey voteKey;
+    CSmartAddress voteAddress;
+    return ParseVoteKeyRegistration(tx, voteKey, voteAddress);
+}
+
+bool IsRegisteredForVoting(const CSmartAddress &address)
+{
+    CVoteKey voteKey;
+    if( GetVoteKeyForAddress(address, voteKey) )
+        return voteKey.IsValid();
+
+    return false;
+}
+
+bool IsRegisteredForVoting(const CVoteKey &voteKey)
+{
+    CVoteKeyValue voteKeyValue;
+    if( GetVoteKeyValue(voteKey, voteKeyValue) )
+        return voteKeyValue.IsValid();
+
+    return false;
+}
+
+

@@ -259,7 +259,7 @@ bool LogAcceptCategory(const char* category)
                 ptrCategory->insert(string("mnpayments"));
                 ptrCategory->insert(string("mnpaymentvote"));
                 ptrCategory->insert(string("smartrewards"));
-                ptrCategory->insert(string("gobject"));
+                ptrCategory->insert(string("proposal"));
             }
         }
         const set<string>& setCategories = *ptrCategory.get();

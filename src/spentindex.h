@@ -9,6 +9,7 @@
 #include "uint256.h"
 #include "amount.h"
 #include "script/script.h"
+#include "smarthive/hive.h"
 
 struct CSpentIndexKey {
     uint256 txid;
@@ -557,6 +558,44 @@ struct CDepositIndexIteratorTimeKey {
     }
 };
 
+struct CVoteKeyValue {
 
+    CSmartAddress voteAddress;
+    uint256 nTxHash;
+    int nBlockHeight;
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(voteAddress);
+        READWRITE(nTxHash);
+        READWRITE(nBlockHeight);
+    }
+
+    CVoteKeyValue(const CSmartAddress &voteAddress, const uint256 &nTxHash, int nBlockHeight):
+        voteAddress(voteAddress),
+        nTxHash(nTxHash),
+        nBlockHeight(nBlockHeight)
+    { }
+
+    CVoteKeyValue() {
+        SetNull();
+    }
+
+    void SetNull() {
+        voteAddress = CSmartAddress();
+        nTxHash.SetNull();
+        nBlockHeight = -1;
+    }
+
+    bool IsNull() const {
+        return (nBlockHeight == -1);
+    }
+
+    bool IsValid(){
+        return voteAddress.IsValid();
+    }
+};
 
 #endif // BITCOIN_SPENTINDEX_H

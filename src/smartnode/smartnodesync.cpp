@@ -9,6 +9,7 @@
 #include "smartnodepayments.h"
 #include "smartnodesync.h"
 #include "smartnodeman.h"
+#include "smartvoting/manager.h"
 #include "netfulfilledman.h"
 #include "spork.h"
 #include "ui_interface.h"
@@ -69,6 +70,7 @@ std::string CSmartnodeSync::GetAssetName()
         case(SMARTNODE_SYNC_WAITING):      return "SMARTNODE_SYNC_WAITING";
         case(SMARTNODE_SYNC_LIST):         return "SMARTNODE_SYNC_LIST";
         case(SMARTNODE_SYNC_MNW):          return "SMARTNODE_SYNC_MNW";
+        case(SMARTNODE_SYNC_VOTING):       return "SMARTNODE_SYNC_VOTING";
         case(SMARTNODE_SYNC_FAILED):       return "SMARTNODE_SYNC_FAILED";
         case SMARTNODE_SYNC_FINISHED:      return "SMARTNODE_SYNC_FINISHED";
         default:                            return "UNKNOWN";
@@ -109,6 +111,12 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
             break;
         case(SMARTNODE_SYNC_MNW):
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
+            nRequestedSmartnodeAssets = SMARTNODE_SYNC_VOTING;
+            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
+            break;
+        case(SMARTNODE_SYNC_VOTING):
+
+            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
             nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
             uiInterface.NotifyAdditionalDataSyncProgressChanged(1);
 
@@ -144,6 +152,7 @@ std::string CSmartnodeSync::GetSyncStatus()
         case SMARTNODE_SYNC_WAITING:       return _("Synchronization pending...");
         case SMARTNODE_SYNC_LIST:          return _("Synchronizing smartnodes...");
         case SMARTNODE_SYNC_MNW:           return _("Synchronizing smartnode payments...");
+        case SMARTNODE_SYNC_VOTING:        return _("Synchronizing smartvoting proposals...");
         case SMARTNODE_SYNC_FAILED:        return _("Synchronization failed");
         case SMARTNODE_SYNC_FINISHED:      return _("Synchronization finished");
         default:                            return "";
@@ -195,10 +204,13 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
     }
 
     // gradually request the rest of the votes after sync finished
-    if(IsSynced()) {
-        //std::vector<CNode*> vNodesCopy = connman.CopyNodeVector();
-        //governance.RequestGovernanceObjectVotes(vNodesCopy, connman);
-        //connman.ReleaseNodeVector(vNodesCopy);
+    if(IsSynced()){
+
+        if( !(nTick % SMARTNODE_SYNC_REQUEST_VOTES_SECONDS) ) {
+            std::vector<CNode*> vNodesCopy = connman.CopyNodeVector();
+            smartVoting.RequestProposalVotes(vNodesCopy, connman);
+            connman.ReleaseNodeVector(vNodesCopy);
+        }
         return;
     }
 
@@ -272,6 +284,12 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                     return;
                 }
 
+                // request from three peers max
+                if (nRequestedSmartnodeAttempt > 2) {
+                    connman.ReleaseNodeVector(vNodesCopy);
+                    return;
+                }
+
                 // only request once from each peer
                 if(netfulfilledman.HasFulfilledRequest(pnode->addr, "smartnode-list-sync")) continue;
                 netfulfilledman.AddFulfilledRequest(pnode->addr, "smartnode-list-sync");
@@ -332,6 +350,70 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                 connman.PushMessage(pnode, NetMsgType::SMARTNODEPAYMENTSYNC, mnpayments.GetStorageLimit());
                 // ask node for missing pieces only (old nodes will not be asked)
                 mnpayments.RequestLowDataPaymentBlocks(pnode, connman);
+
+                connman.ReleaseNodeVector(vNodesCopy);
+                return; //this will cause each peer to get one request each six seconds for the various assets we need
+            }
+
+            // VOTING : SYNC PROPOSAL ITEMS FROM OUR PEERS
+
+            if(nRequestedSmartnodeAssets == SMARTNODE_SYNC_VOTING) {
+                LogPrint("mnsync", "CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nTimeLastBumped %lld GetTime() %lld diff %lld\n", nTick, nRequestedSmartnodeAssets, nTimeLastBumped, GetTime(), GetTime() - nTimeLastBumped);
+
+                // check for timeout first
+                if(GetTime() - nTimeLastBumped > SMARTNODE_SYNC_TIMEOUT_SECONDS) {
+                    LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- timeout\n", nTick, nRequestedSmartnodeAssets);
+                    if(nRequestedSmartnodeAttempt == 0) {
+                        LogPrintf("CSmartnodeSync::ProcessTick -- WARNING: failed to sync %s\n", GetAssetName());
+                        // it's kind of ok to skip this for now, hopefully we'll catch up later?
+                    }
+                    SwitchToNextAsset(connman);
+                    connman.ReleaseNodeVector(vNodesCopy);
+                    return;
+                }
+
+                // only request obj sync once from each peer, then request votes on per-obj basis
+                if(netfulfilledman.HasFulfilledRequest(pnode->addr, "voting-sync")) {
+                    int nProposalsLeftToAsk = smartVoting.RequestProposalVotes(pnode, connman);
+                    static int64_t nTimeNoProposalsLeft = 0;
+                    // check for data
+                    if(nProposalsLeftToAsk == 0) {
+                        static int nLastTick = 0;
+                        static int nLastVotes = 0;
+                        if(nTimeNoProposalsLeft == 0) {
+                            // asked all objects for votes for the first time
+                            nTimeNoProposalsLeft = GetTime();
+                        }
+                        // make sure the condition below is checked only once per tick
+                        if(nLastTick == nTick) continue;
+                        if(GetTime() - nTimeNoProposalsLeft > SMARTNODE_SYNC_TIMEOUT_SECONDS &&
+                            smartVoting.GetVoteCount() - nLastVotes < std::max(int(0.0001 * nLastVotes), SMARTNODE_SYNC_TICK_SECONDS)
+                        ) {
+                            // We already asked for all objects, waited for SMARTNOODE_SYNC_TIMEOUT_SECONDS
+                            // after that and less then 0.01% or SMARTNODE_SYNC_TICK_SECONDS
+                            // (i.e. 1 per second) votes were recieved during the last tick.
+                            // We can be pretty sure that we are done syncing.
+                            LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d -- asked for all objects, nothing to do\n", nTick, nRequestedSmartnodeAssets);
+                            // reset nTimeNoProposalsLeft to be able to use the same condition on resync
+                            nTimeNoProposalsLeft = 0;
+                            SwitchToNextAsset(connman);
+                            connman.ReleaseNodeVector(vNodesCopy);
+                            return;
+                        }
+                        nLastTick = nTick;
+                        nLastVotes = smartVoting.GetVoteCount();
+                    }
+                    continue;
+                }
+                netfulfilledman.AddFulfilledRequest(pnode->addr, "voting-sync");
+
+                if (pnode->nVersion < MIN_VOTING_PEER_PROTO_VERSION) continue;
+                nRequestedSmartnodeAttempt++;
+
+                CBloomFilter filter;
+                filter.clear();
+
+                connman.PushMessage(pnode, NetMsgType::VOTINGSYNC, uint256(), filter);
 
                 connman.ReleaseNodeVector(vNodesCopy);
                 return; //this will cause each peer to get one request each six seconds for the various assets we need

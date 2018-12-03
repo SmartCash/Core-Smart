@@ -108,6 +108,19 @@ class CTransaction;
 class CNodeStats;
 class CClientUIInterface;
 
+struct CSerializedNetMsg
+{
+    CSerializedNetMsg() = default;
+    CSerializedNetMsg(CSerializedNetMsg&&) = default;
+    CSerializedNetMsg& operator=(CSerializedNetMsg&&) = default;
+    // No copying, only moves.
+    CSerializedNetMsg(const CSerializedNetMsg& msg) = delete;
+    CSerializedNetMsg& operator=(const CSerializedNetMsg&) = delete;
+
+    std::vector<unsigned char> data;
+    std::string command;
+};
+
 class CConnman
 {
 public:
@@ -217,7 +230,7 @@ public:
                 if(!func(node))
                     return false;
         return true;
-    };
+    }
 
     template<typename Callable>
     bool ForEachNodeContinueIf(Callable&& func)
@@ -875,14 +888,14 @@ public:
         addrKnown.insert(_addr.GetKey());
     }
 
-    void PushAddress(const CAddress& addr)
+    void PushAddress(const CAddress& addr, FastRandomContext &insecure_rand)
     {
         // Known checking here is only to save space from duplicates.
         // SendMessages will filter it again for knowns that were added
         // after addresses were pushed.
         if (addr.IsValid() && !addrKnown.contains(addr.GetKey())) {
             if (vAddrToSend.size() >= MAX_ADDR_TO_SEND) {
-                vAddrToSend[insecure_rand() % vAddrToSend.size()] = addr;
+                vAddrToSend[insecure_rand.rand32() % vAddrToSend.size()] = addr;
             } else {
                 vAddrToSend.push_back(addr);
             }

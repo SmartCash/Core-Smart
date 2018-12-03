@@ -96,6 +96,7 @@ QT_TS = \
 
 QT_FORMS_UI = \
   qt/forms/addressbookpage.ui \
+  qt/forms/addmilestonedialog.ui \
   qt/forms/askpassphrasedialog.ui \
   qt/forms/coincontroldialog.ui \
   qt/forms/castvotesdialog.ui \
@@ -108,21 +109,26 @@ QT_FORMS_UI = \
   qt/forms/openuridialog.ui \
   qt/forms/optionsdialog.ui \
   qt/forms/overviewpage.ui \
+  qt/forms/proposaladdressdialog.ui \
+  qt/forms/proposaldetaildialog.ui \
+  qt/forms/publishproposaldialog.ui \
   qt/forms/receivecoinsdialog.ui \
   qt/forms/receiverequestdialog.ui \
   qt/forms/smartnodelist.ui \
   qt/forms/smartrewardslist.ui \
   qt/forms/smartvoting.ui \
   qt/forms/smartproposal.ui \
+  qt/forms/smartproposaltab.ui \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
+  qt/forms/specialtransactiondialog.ui \
   qt/forms/transactiondescdialog.ui \
-  qt/forms/voteaddressesdialog.ui \
   qt/forms/zerocoinpage.ui
 
 QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
+  qt/moc_addmilestonedialog.cpp \
   qt/moc_addresstablemodel.cpp \
   qt/moc_askpassphrasedialog.cpp \
   qt/moc_bantablemodel.cpp \
@@ -147,6 +153,9 @@ QT_MOC_CPP = \
   qt/moc_optionsdialog.cpp \
   qt/moc_optionsmodel.cpp \
   qt/moc_overviewpage.cpp \
+  qt/moc_proposaladdressdialog.cpp \
+  qt/moc_proposaldetaildialog.cpp \
+  qt/moc_publishproposaldialog.cpp \
   qt/moc_peertablemodel.cpp \
   qt/moc_paymentserver.cpp \
   qt/moc_qvalidatedlineedit.cpp \
@@ -162,8 +171,9 @@ QT_MOC_CPP = \
   qt/moc_smartrewardslist.cpp \
   qt/moc_smartvoting.cpp \
   qt/moc_smartproposal.cpp \
-  qt/moc_smartvotingmanager.cpp \
+  qt/moc_smartproposaltab.cpp \
   qt/moc_splashscreen.cpp \
+  qt/moc_specialtransactiondialog.cpp \
   qt/moc_trafficgraphwidget.cpp \
   qt/moc_transactiondesc.cpp \
   qt/moc_transactiondescdialog.cpp \
@@ -171,7 +181,6 @@ QT_MOC_CPP = \
   qt/moc_transactiontablemodel.cpp \
   qt/moc_transactionview.cpp \
   qt/moc_utilitydialog.cpp \
-  qt/moc_voteaddressesdialog.cpp \
   qt/moc_walletframe.cpp \
   qt/moc_walletmodel.cpp \
   qt/moc_walletview.cpp \
@@ -200,6 +209,7 @@ PROTOBUF_PROTO = qt/paymentrequest.proto
 
 BITCOIN_QT_H = \
   qt/addressbookpage.h \
+  qt/addmilestonedialog.h \
   qt/addresstablemodel.h \
   qt/askpassphrasedialog.h \
   qt/bantablemodel.h \
@@ -226,6 +236,9 @@ BITCOIN_QT_H = \
   qt/optionsdialog.h \
   qt/optionsmodel.h \
   qt/overviewpage.h \
+  qt/proposaladdressdialog.h \
+  qt/proposaldetaildialog.h \
+  qt/publishproposaldialog.h \
   qt/paymentrequestplus.h \
   qt/paymentserver.h \
   qt/peertablemodel.h \
@@ -242,9 +255,10 @@ BITCOIN_QT_H = \
   qt/smartnodelist.h \
   qt/smartrewardslist.h \
   qt/smartvoting.h \
-  qt/smartvotingmanager.h \
   qt/smartproposal.h \
+  qt/smartproposaltab.h \
   qt/splashscreen.h \
+  qt/specialtransactiondialog.h \
   qt/trafficgraphdata.h \
   qt/trafficgraphwidget.h \
   qt/transactiondesc.h \
@@ -254,7 +268,6 @@ BITCOIN_QT_H = \
   qt/transactiontablemodel.h \
   qt/transactionview.h \
   qt/utilitydialog.h \
-  qt/voteaddressesdialog.h \
   qt/walletframe.h \
   qt/walletmodel.h \
   qt/walletmodeltransaction.h \
@@ -351,6 +364,7 @@ BITCOIN_QT_WINDOWS_CPP = qt/winshutdownmonitor.cpp
 
 BITCOIN_QT_WALLET_CPP = \
   qt/addressbookpage.cpp \
+  qt/addmilestonedialog.cpp \
   qt/addresstablemodel.cpp \
   qt/askpassphrasedialog.cpp \
   qt/castvotesdialog.cpp \
@@ -360,6 +374,9 @@ BITCOIN_QT_WALLET_CPP = \
   qt/nodecontroldialog.cpp \
   qt/openuridialog.cpp \
   qt/overviewpage.cpp \
+  qt/proposaladdressdialog.cpp \
+  qt/proposaldetaildialog.cpp \
+  qt/publishproposaldialog.cpp \
   qt/paymentrequestplus.cpp \
   qt/paymentserver.cpp \
   qt/receivecoinsdialog.cpp \
@@ -372,14 +389,14 @@ BITCOIN_QT_WALLET_CPP = \
   qt/smartrewardslist.cpp \
   qt/smartvoting.cpp \
   qt/smartproposal.cpp \
-  qt/smartvotingmanager.cpp \
+  qt/smartproposaltab.cpp \
+  qt/specialtransactiondialog.cpp \
   qt/transactiondesc.cpp \
   qt/transactiondescdialog.cpp \
   qt/transactionfilterproxy.cpp \
   qt/transactionrecord.cpp \
   qt/transactiontablemodel.cpp \
   qt/transactionview.cpp \
-  qt/voteaddressesdialog.cpp \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
