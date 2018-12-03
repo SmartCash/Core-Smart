@@ -15,6 +15,8 @@
 #include <QTableWidgetItem>
 
 #include "primitives/transaction.h"
+#include "smartvoting/proposal.h"
+#include "smartvoting/proposal.h"
 #include "smartproposal.h"
 
 class PlatformStyle;

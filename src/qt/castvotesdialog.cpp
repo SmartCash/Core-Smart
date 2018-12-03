@@ -29,6 +29,7 @@
 #include <QIcon>
 #include <QSettings>
 #include <QString>
+#include <QTimer>
 #include <QRegularExpression>
 
 
@@ -73,7 +74,6 @@ int CastVotesDialog::exec()
 
 void CastVotesDialog::close()
 {
-    //votingManager->cancelAll();
     done(QDialog::Accepted);
 }
 
@@ -106,7 +106,6 @@ void CastVotesDialog::start()
         return;
     }
 
-    std::map<SmartProposalVote, std::string> mapResults;
     std::set<CKeyID> setKeyIds;
     int activeCount = walletModel->voteKeyCount(true);
 

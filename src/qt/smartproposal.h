@@ -4,6 +4,9 @@
 #include <QFrame>
 #include <QButtonGroup>
 
+#include "smartvoting/manager.h"
+#include "smartvoting/proposal.h"
+
 class WalletModel;
 
 namespace Ui {
@@ -20,7 +23,6 @@ public:
 
     vote_signal_enum_t GetVoteSignal();
     vote_outcome_enum_t GetVoteOutcome();
-    void setVoted(const SmartProposalVote &vote);
     bool votedValid();
     bool votedFunding();
 
