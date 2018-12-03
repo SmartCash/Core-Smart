@@ -34,10 +34,6 @@
 #include <QDateTime>
 #include <QInputDialog>
 
-const int nRefreshLockSeconds = 120;
-const int nForceRefreshSeconds = 300;
-static int nLastRefreshTime = 0;
-
 struct QSmartVortingField
 {
     QString label;
@@ -72,8 +68,7 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
     QWidget(parent),
     ui(new Ui::SmartVotingPage),
     platformStyle(platformStyle),
-    walletModel(nullptr),
-    votingManager(new SmartVotingManager())
+    walletModel(nullptr)
 {
     ui->setupUi(this);
 
@@ -96,8 +91,6 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
     table->clearContents();
     table->setRowCount(0);
 
-    connect(votingManager, SIGNAL(proposalsUpdated(const std::string&)),this,SLOT(proposalsUpdated(const std::string&)));
-    connect(votingManager, SIGNAL(addressesUpdated()), this, SLOT(updateUI()));
     connect(ui->manageProposalsButton, SIGNAL(clicked()),this,SLOT(showManagementUI()));
     connect(ui->manageVotingKeysButton, SIGNAL(clicked()),this,SLOT(showVoteKeysUI()));
     connect(ui->createProposalButton, SIGNAL(clicked()),this,SLOT(createProposal()));
@@ -112,11 +105,11 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
 
     connect(ui->castVotesButton, SIGNAL(clicked()),this,SLOT(castVotes()));
     connect(ui->scrollArea->verticalScrollBar(), SIGNAL(valueChanged(int)),this,SLOT(scrollChanged(int)));
-    connect(&lockTimer, SIGNAL(timeout()), this, SLOT(updateRefreshLock()));
+    connect(&lockTimer, SIGNAL(timeout()), this, SLOT(updateProposalUI()));
     connect(&voteKeyUpdateTimer, SIGNAL(timeout()), this, SLOT(updateVoteKeyUI()));
     voteChanged();
 
-    lockTimer.start(1000);
+    lockTimer.start(5000);
 
     showVotingUI();
 
@@ -133,33 +126,19 @@ void SmartVotingPage::setWalletModel(WalletModel *model)
     if( walletModel ) return;
 
     walletModel = model;
-    votingManager->setWalletModel(model);
 }
 
 void SmartVotingPage::showEvent(QShowEvent *event)
 {
-    int64_t nSecondsTillRefresh = nLastRefreshTime + nForceRefreshSeconds - GetTime();
-
-    if( nSecondsTillRefresh <= 0 ){
-        refreshProposals();
-    }else{
-        updateProposalUI();
-    }
-
+    updateVoteKeyUI();
+    updateVotingElements();
+    updateProposalUI();
     updateUI();
-
 }
 
 void SmartVotingPage::hideEvent(QHideEvent *event)
 {
-    QLayoutItem * item;
 
-    while( ( item = ui->proposalList->layout()->takeAt(0) ) != 0){
-        delete item->widget();
-        delete item;
-    }
-
-    vecProposalWidgets.clear();
 }
 
 void SmartVotingPage::connectProposalTab(SmartProposalTabWidget *tabWidget)
@@ -250,37 +229,44 @@ void SmartVotingPage::showVotingUI()
     ui->stackedWidget->setCurrentIndex(2);
 }
 
-
 void SmartVotingPage::updateProposalUI()
 {
-    QLayoutItem * item;
+    LOCK(smartVoting.cs);
 
-    while( ( item = ui->proposalList->layout()->takeAt(0) ) != 0){
-        delete item->widget();
-        delete item;
+    int votedValid = 0, votedFunding = 0;
+
+    std::vector<const CProposal*> vecProposals = smartVoting.GetAllNewerThan(0);
+
+    // Search for proposals which are not in the view yet
+    for( auto entry : vecProposals ){
+        if( !mapProposalWidgets.count(entry->GetHash()) ){
+            SmartProposalWidget * proposalWidget = new SmartProposalWidget(entry, walletModel);
+            ui->proposalList->layout()->addWidget(proposalWidget);
+            mapProposalWidgets.insert(std::make_pair(entry->GetHash(), proposalWidget));
+            connect(proposalWidget,SIGNAL(voteChanged()), this, SLOT(voteChanged()));
+        }else{
+            mapProposalWidgets[entry->GetHash()]->UpdateFromProposal(entry);
+        }
     }
 
-    vecProposalWidgets.clear();
+    // Search for proposals that are currently in the view
+    // but not longer in the proposal list
+    for( auto widget : mapProposalWidgets ){
 
-    int voted = 0;
+        auto find = std::find_if(vecProposals.begin(), vecProposals.end(), [widget](const CProposal* p) -> bool {
+            return widget.first == p->GetHash();
+        });
 
-    for( SmartProposal *proposal : votingManager->GetProposals() ){
-
-        SmartProposalWidget * proposalWidget = new SmartProposalWidget(proposal);
-
-        ui->proposalList->layout()->addWidget(proposalWidget);
-        vecProposalWidgets.push_back(proposalWidget);
-        connect(proposalWidget,SIGNAL(voteChanged()), this, SLOT(voteChanged()));
-
-        if( proposalWidget->voted() ) voted++;
-
-        LogPrint("smartvoting", "SmartVotingPage::updateUI -- added proposal %s", proposal->getTitle().toStdString());
+        if( find == vecProposals.end()  ){
+            ui->proposalList->layout()->removeWidget(widget.second);
+            delete widget.second;
+        }
     }
 
     voteChanged();
 
-    ui->openProposalsLabel->setText(QString("%1").arg(votingManager->GetProposals().size()));
-    ui->votedForLabel->setText(QString("%1").arg(voted));
+    ui->openProposalsLabel->setText(QString("%1").arg(vecProposals.size()));
+    ui->votedForLabel->setText(QString("%1").arg(votedValid));
 }
 
 void SmartVotingPage::updateUI()
@@ -294,27 +280,18 @@ void SmartVotingPage::updateUI()
     voteChanged();
 }
 
-void SmartVotingPage::proposalsUpdated(const string &strErr)
-{
-    if( strErr != ""){
-        QMessageBox::warning(this, "Error", QString("Could not update proposal list\n\n%1").arg(QString::fromStdString(strErr)));
-        return;
-    }
-
-    updateProposalUI();
-}
-
 void SmartVotingPage::voteChanged(){
 
     mapVoteProposals.clear();
 
-    for( SmartProposalWidget * proposalWidget : vecProposalWidgets){
-        if( proposalWidget->getVoteType() != SmartHiveVoting::Disabled ){
-            mapVoteProposals.insert(make_pair(proposalWidget->proposal, proposalWidget->getVoteType()));
+    for( auto entry : mapProposalWidgets){
+        if( entry.second->GetVoteSignal() != VOTE_SIGNAL_NONE ){
+            mapVoteProposals.insert(make_pair(entry.first,
+                                              make_pair(entry.second->GetVoteSignal(), entry.second->GetVoteOutcome())));
         };
     }
 
-//    ui->castVotesButton->setEnabled(mapVoteProposals.size() && votingManager->GetVotingPower());
+    ui->castVotesButton->setEnabled(mapVoteProposals.size() && 1);
     ui->castVotesButton->setText(QString("Vote for %1 proposals").arg(mapVoteProposals.size()));
 
     this->repaint();
@@ -322,35 +299,9 @@ void SmartVotingPage::voteChanged(){
 
 void SmartVotingPage::castVotes(){
 
-    CastVotesDialog dialog(platformStyle, votingManager, walletModel);
-    dialog.setVoting(mapVoteProposals);
-
+    CastVotesDialog dialog(platformStyle, walletModel, mapVoteProposals);
     dialog.exec();
-
-    refreshProposals(true);
-}
-
-void SmartVotingPage::updateRefreshLock()
-{
-    int64_t nSecondsTillUnlock = nLastRefreshTime + nRefreshLockSeconds - GetTime();
-
-    if( nSecondsTillUnlock <= 0 ){
-
-        lockTimer.stop();
-        return;
-    }
-
-}
-
-void SmartVotingPage::refreshProposals(bool fForce)
-{
-    int64_t nSecondsTillUnlock = nLastRefreshTime + nRefreshLockSeconds - GetTime();
-
-    if( nSecondsTillUnlock > 0 && !fForce ) return;
-
-    nLastRefreshTime = GetTime();
-    lockTimer.start(1000);
-//    votingManager->UpdateProposals();
+    updateProposalUI();
 }
 
 void SmartVotingPage::scrollChanged(int value)

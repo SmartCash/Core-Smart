@@ -94,7 +94,7 @@ void PublishProposalDialog::update()
     if( nTxHeight )
         nConfirmations = nHeight - nTxHeight + 1;
 
-    if( nConfirmations >= 2){
+    if( nConfirmations >= SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS){
 
         LOCK(cs_main);
 
@@ -137,7 +137,7 @@ void PublishProposalDialog::update()
         ui->loadingWidget->hide();
 
     }else{
-        ui->confirmationsLabel->setText(QString("%1/6").arg(nConfirmations));
+        ui->confirmationsLabel->setText(QString("%1/%2").arg(nConfirmations, SMARTVOTING_MIN_RELAY_FEE_CONFIRMATIONS));
     }
 
 }

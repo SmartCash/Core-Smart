@@ -44,8 +44,8 @@ struct Params {
     int nSmartnodeMinimumConfirmations;
     int nInstantSendKeepLock; // in blocks
 
-    int nProposalValidityVoteBlocks; // in seconds
-    int nProposalFundingVoteBlocks; // in seconds
+    int nProposalValidityVoteBlocks;
+    int nProposalFundingVoteBlocks;
     int nVotingMinYesPercent; // Min percent of yes votes for a proposal to become funded
     int nVotingFilterElements;
 

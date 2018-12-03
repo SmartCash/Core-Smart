@@ -37,6 +37,6 @@ struct CVotingPower{
 void ThreadSmartVoting();
 void AddActiveVoteKey(const CVoteKey &voteKey);
 void GetVotingPower(const CVoteKey &voteKey, CVotingPower &votingPower);
-CAmount GetVotingPower(const CVoteKey &voteKey);
+int GetVotingPower(const CVoteKey &voteKey);
 
 #endif

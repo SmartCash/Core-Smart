@@ -131,39 +131,38 @@ public:
 
 };
 
-class CVoteResult{
+struct CVoteOutcomes{
 
     int64_t nYesPower;
     int64_t nNoPower;
     int64_t nAbstainPower;
-    int64_t nTotalPower;
+
+    CVoteOutcomes() : nYesPower(0), nNoPower(0), nAbstainPower(0) {}
+    CVoteOutcomes(CAmount nYes, CAmount nNo, CAmount nAbstain):
+                nYesPower(nYes), nNoPower(nNo), nAbstainPower(nAbstain) {
+
+    }
+
+    int64_t GetTotalPower() { return nYesPower+nNoPower+nAbstainPower; }
+};
+
+
+struct CVoteResult : CVoteOutcomes{
 
     double percentYes;
     double percentNo;
     double percentAbstain;
-public:
 
     CVoteResult(CAmount nYes, CAmount nNo, CAmount nAbstain):
-                nYesPower(nYes / COIN), nNoPower(nNo / COIN), nAbstainPower(nAbstain / COIN),
+                CVoteOutcomes(nYes, nNo, nAbstain),
                 percentYes(0.0), percentNo(0.0), percentAbstain(0.0){
 
-        nTotalPower = nYesPower + nNoPower + nAbstainPower;
-
-        if( nTotalPower ){
-            percentYes = ( static_cast<double>(nYesPower) / nTotalPower ) * 100;
-            percentNo = ( static_cast<double>(nNoPower) / nTotalPower ) * 100;
-            percentAbstain = ( static_cast<double>(nAbstainPower) / nTotalPower ) * 100;
+        if( GetTotalPower() ){
+            percentYes = ( static_cast<double>(nYesPower) / GetTotalPower() ) * 100;
+            percentNo = ( static_cast<double>(nNoPower) / GetTotalPower() ) * 100;
+            percentAbstain = ( static_cast<double>(nAbstainPower) / GetTotalPower() ) * 100;
         }
     }
-
-    int64_t GetYesPower() { return nYesPower; }
-    int64_t GetNoPower() { return nNoPower; }
-    int64_t GetAbstainPower() { return nAbstainPower; }
-    int64_t GetTotalPower() { return nTotalPower; }
-
-    double GetYes() { return percentYes; }
-    double GetNo() { return percentNo; }
-    double GetAbstain() { return percentAbstain; }
 };
 
 #endif // VOTING_H

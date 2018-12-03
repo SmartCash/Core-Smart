@@ -8,7 +8,6 @@
 #include "primitives/transaction.h"
 #include "platformstyle.h"
 #include "sync.h"
-#include "smartvotingmanager.h"
 #include "smartproposal.h"
 #include "smartvoting/proposal.h"
 #include "util.h"
@@ -86,15 +85,14 @@ private:
 
     QTimer lockTimer;
     QTimer voteKeyUpdateTimer;
-    SmartVotingManager *votingManager;
-    std::vector<SmartProposalWidget*> vecProposalWidgets;
-    std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
+    std::map<uint256, SmartProposalWidget*> mapProposalWidgets;
+    std::map<uint256, std::pair<vote_signal_enum_t, vote_outcome_enum_t>> mapVoteProposals;
 
     std::map<CKeyID, VoteKeyItems> mapVisibleKeys;
 
     void connectProposalTab(SmartProposalTabWidget *tabWidget);
     void disconnectProposalTab(SmartProposalTabWidget *tabWidget);
-    
+
     bool LoadProposalTabs();
     bool RemoveProposal(const CInternalProposal &proposal);
 public Q_SLOTS:
@@ -110,11 +108,8 @@ public Q_SLOTS:
     void voteKeyCellChanged(int, int);
     void selectAllVoteKeys();
     void importVoteKey();
-    void proposalsUpdated(const std::string &strErr);
     void voteChanged();
     void castVotes();
-    void updateRefreshLock();
-    void refreshProposals(bool fForce = false);
     void scrollChanged(int value);
     void balanceChanged(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                         const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);

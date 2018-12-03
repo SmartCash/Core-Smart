@@ -535,8 +535,30 @@ bool WalletModel::changeVotingPassphrase(const SecureString &oldPass, const Secu
     return retval;
 }
 
+void WalletModel::VoteKeys(std::set<CVoteKey> &setVoteKeys)
+{
+    if( !wallet ) return;
+    LOCK(wallet->cs_wallet);
+    std::set<CKeyID> setKeyIds;
+    setVoteKeys.clear();
+
+    pwalletMain->GetVotingKeys(setKeyIds);
+
+    for( auto it : setKeyIds ){
+        setVoteKeys.insert(CVoteKey(it));
+    }
+}
+
+void WalletModel::VoteKeyIDs(std::set<CKeyID> &setKeyIds)
+{
+    if( !wallet ) return;
+    LOCK(wallet->cs_wallet);
+    pwalletMain->GetVotingKeys(setKeyIds);
+}
+
 int WalletModel::voteKeyCount(const bool fActiveOnly)
 {
+    if( !wallet ) return 0;
     LOCK(wallet->cs_wallet);
     int nCount = 0;
     for( auto it : wallet->mapVotingKeyMetadata ){
@@ -549,6 +571,7 @@ int WalletModel::voteKeyCount(const bool fActiveOnly)
 
 QString WalletModel::votingPowerString(const bool fActiveOnly)
 {
+    if( !wallet ) return "Wallet not available";
     LOCK(wallet->cs_wallet);
     QString votingPowerString;
     int nTotalPower = 0;
@@ -561,10 +584,10 @@ QString WalletModel::votingPowerString(const bool fActiveOnly)
 
         if( !voteKey.IsValid() ) return "Key error";
 
-        CAmount nVotingPower = GetVotingPower(voteKey);
+        int nVotingPower = GetVotingPower(voteKey);
 
         if( nVotingPower >= 0){
-            nTotalPower += std::round(CAmountToDouble(nVotingPower));
+            nTotalPower += nVotingPower;
         }else if( nVotingPower == -1 ){
             return "Updating";
         }
@@ -578,6 +601,7 @@ QString WalletModel::votingPowerString(const bool fActiveOnly)
 
 QString WalletModel::votingPowerString(const CVoteKey &voteKey)
 {
+    if( !wallet ) return "Wallet not available";
     LOCK(wallet->cs_wallet);
     QString votingPowerString;
     int nTotalPower = 0;
@@ -587,10 +611,10 @@ QString WalletModel::votingPowerString(const CVoteKey &voteKey)
 
     if( !wallet->HaveVotingKey(keyId) ) return "Unavailable";
 
-    CAmount nVotingPower = GetVotingPower(voteKey);
+    int nVotingPower = GetVotingPower(voteKey);
 
     if( nVotingPower >= 0){
-        nTotalPower = std::round(CAmountToDouble(nVotingPower));
+        nTotalPower = nVotingPower;
     }else if( nVotingPower == -1 ){
         return "Updating";
     }
@@ -619,6 +643,7 @@ QString WalletModel::voteAddressString(const CVoteKey& voteKey)
 
 void WalletModel::updateVoteKeys(bool fEnabled)
 {
+    if( !wallet ) return;
     LOCK(wallet->cs_wallet);
 
     auto it = wallet->mapVotingKeyMetadata.begin();

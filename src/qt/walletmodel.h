@@ -179,6 +179,8 @@ public:
 
     void updateVoteKeys(bool fEnabled);
 
+    void VoteKeys(std::set<CVoteKey> &setVoteKeys);
+    void VoteKeyIDs(std::set<CKeyID> &setKeyIds);
     int voteKeyCount(const bool fActiveOnly);
     QString votingPowerString(const bool fActiveOnly);
     QString votingPowerString(const CVoteKey &voteKey);

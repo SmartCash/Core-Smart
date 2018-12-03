@@ -136,9 +136,9 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
                 "  list               - List all proposals.\n"
                 "  get                - Get a proposal by its hash\n"
                 "  getvotes           - Get all votes for a proposal\n"
-                "  voteraw            - Broadcast a raw signed vote"
-                "  votewithkey        - Vote for a proposal with a specific votekey"
-                "  vote               - Vote for a proposal with all available votekeys"
+                "  voteraw            - Broadcast a raw signed vote\n"
+                "  votewithkey        - Vote for a proposal with a specific votekey\n"
+                "  vote               - Vote for a proposal with votekeys available in the votekey storage\n"
                 );
 
     // VALIDATE A GOVERNANCE OBJECT PRIOR TO SUBMISSION
@@ -375,25 +375,14 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
     // USERS CAN QUERY THE SYSTEM FOR A LIST OF PROPOSALS
     if(strCommand == "list")
     {
-        if (params.size() > 3)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting [list|diff] ( signal type )'");
+        if (params.size() != 2)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting list [active|all]'");
 
         // GET MAIN PARAMETER FOR THIS MODE, VALID OR ALL?
 
-        std::string strCachedSignal = "valid";
-        if (params.size() >= 2) strCachedSignal = params[1].get_str();
-        if (strCachedSignal != "valid" && strCachedSignal != "funding" && strCachedSignal != "delete" && strCachedSignal != "endorsed" && strCachedSignal != "all")
-            return "Invalid signal, should be 'valid', 'funding', 'delete', 'endorsed' or 'all'";
-
-        std::string strType = "all";
-        if (params.size() == 3) strType = params[2].get_str();
-        if (strType != "proposals" && strType != "triggers" && strType != "all")
-            return "Invalid type, should be 'proposals', 'triggers' or 'all'";
-
-        // GET STARTING TIME TO QUERY SYSTEM WITH
-
-        int nStartTime = 0; //list
-        if(strCommand == "diff") nStartTime = smartVoting.GetLastDiffTime();
+        std::string strType = params[1].get_str();
+        if (strType != "active" && strType != "all")
+             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid type, should be 'active' or 'all'");
 
         // SETUP BLOCK INDEX VARIABLE / RESULTS VARIABLE
 
@@ -403,15 +392,13 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         LOCK2(cs_main, smartVoting.cs);
 
-        std::vector<const CProposal*> objs = smartVoting.GetAllNewerThan(nStartTime);
-        smartVoting.UpdateLastDiffTime(GetTime());
+        std::vector<const CProposal*> objs = smartVoting.GetAllNewerThan(0);
 
         // CREATE RESULTS FOR USER
 
         for (const auto& pProposal : objs)
         {
-            if(strCachedSignal == "valid" && !pProposal->IsSetCachedValid()) continue;
-            if(strCachedSignal == "funding" && !pProposal->IsSetCachedFunding()) continue;
+            //if(strType == "active" && !pProposal->IsOpenToVote()) continue;
 
             UniValue bObj(UniValue::VOBJ);
             bObj.push_back(Pair("Hash",  pProposal->GetHash().ToString()));
@@ -426,12 +413,12 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
             // REPORT STATUS FOR FUNDING VOTES SPECIFICALLY
             CVoteResult fundingResult = pProposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
-            bObj.pushKV("YesPower", fundingResult.GetYesPower());
-            bObj.pushKV("NoPower", fundingResult.GetNoPower());
-            bObj.pushKV("AbstainPower", fundingResult.GetAbstainPower());
-            bObj.pushKV("YesPercent", fundingResult.GetYes());
-            bObj.pushKV("NoPercent", fundingResult.GetNo());
-            bObj.pushKV("AbstainPercent", fundingResult.GetAbstain());
+            bObj.pushKV("YesPower", fundingResult.nYesPower);
+            bObj.pushKV("NoPower", fundingResult.nNoPower);
+            bObj.pushKV("AbstainPower", fundingResult.nAbstainPower);
+            bObj.pushKV("YesPercent", fundingResult.percentYes);
+            bObj.pushKV("NoPercent", fundingResult.percentNo);
+            bObj.pushKV("AbstainPercent", fundingResult.percentAbstain);
 
             // REPORT VALIDITY AND CACHING FLAGS FOR VARIOUS SETTINGS
             std::string strError = "";
@@ -481,23 +468,23 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         UniValue objFunding(UniValue::VOBJ);
         CVoteResult fundingResult = pProposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
-        objFunding.pushKV("YesPower", fundingResult.GetYesPower());
-        objFunding.pushKV("NoPower", fundingResult.GetNoPower());
-        objFunding.pushKV("AbstainPower", fundingResult.GetAbstainPower());
-        objFunding.pushKV("YesPercent", fundingResult.GetYes());
-        objFunding.pushKV("NoPercent", fundingResult.GetNo());
-        objFunding.pushKV("AbstainPercent", fundingResult.GetAbstain());
+        objFunding.pushKV("YesPower", fundingResult.nYesPower);
+        objFunding.pushKV("NoPower", fundingResult.nNoPower);
+        objFunding.pushKV("AbstainPower", fundingResult.nAbstainPower);
+        objFunding.pushKV("YesPercent", fundingResult.percentYes);
+        objFunding.pushKV("NoPercent", fundingResult.percentNo);
+        objFunding.pushKV("AbstainPercent", fundingResult.percentAbstain);
         objResult.pushKV("FundingResult", objFunding);
 
         // -- VALIDITY VOTING RESULTS
         UniValue objValid(UniValue::VOBJ);
         CVoteResult validResult = pProposal->GetVotingResult(VOTE_SIGNAL_VALID);
-        objValid.pushKV("YesPower", validResult.GetYesPower());
-        objValid.pushKV("NoPower", validResult.GetNoPower());
-        objValid.pushKV("AbstainPower", validResult.GetAbstainPower());
-        objValid.pushKV("YesPercent", validResult.GetYes());
-        objValid.pushKV("NoPercent", validResult.GetNo());
-        objValid.pushKV("AbstainPercent", validResult.GetAbstain());
+        objValid.pushKV("YesPower", validResult.nYesPower);
+        objValid.pushKV("NoPower", validResult.nNoPower);
+        objValid.pushKV("AbstainPower", validResult.nAbstainPower);
+        objValid.pushKV("YesPercent", validResult.percentYes);
+        objValid.pushKV("NoPercent", validResult.percentNo);
+        objValid.pushKV("AbstainPercent", validResult.percentAbstain);
         objResult.pushKV("ValidResult", objValid);
 
 
@@ -556,7 +543,7 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
             objPower.pushKV("address", power.address.ToString());
             objPower.pushKV("height", power.nBlockHeight);
-            objPower.pushKV("power", UniValueFromAmount(power.nPower));
+            objPower.pushKV("power", power.nPower);
 
             objVote.pushKV("power", objPower);
             bResult.push_back(objVote);

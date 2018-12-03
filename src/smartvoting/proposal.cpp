@@ -232,6 +232,15 @@ bool CProposal::IsMilestoneVectorValid(std::string& strError) const
     return strError.empty();
 }
 
+int CProposal::GetRequestedAmount() const
+{
+    int nAmount = 0;
+    for( const CProposalMilestone& milestone : vecMilestones ){
+        nAmount += milestone.GetAmount();
+    }
+    return nAmount;
+}
+
 bool CProposal::IsValid(std::vector<std::string> &vecErrors) const
 {
     vecErrors.clear();
@@ -561,15 +570,53 @@ CAmount CProposal::GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome
 {
     LOCK(cs);
 
-    CAmount nPower = 0;
+    int nTotalPower = 0;
     for (const auto& votepair : mapCurrentVKVotes) {
         const vote_rec_t& recVote = votepair.second;
         vote_instance_m_cit it2 = recVote.mapInstances.find(eVoteSignalIn);
         if(it2 != recVote.mapInstances.end() && it2->second.eOutcome == eVoteOutcomeIn) {
-            nPower += ::GetVotingPower(votepair.first);
+            int nPower = ::GetVotingPower(votepair.first);
+            nTotalPower += nPower >= 0 ? nPower : 0;
         }
     }
-    return nPower;
+    return nTotalPower;
+}
+
+CVoteOutcomes CProposal::GetVotingPower(const std::set<CVoteKey> &setVoteKeys, vote_signal_enum_t eVoteSignalIn) const
+{
+    LOCK(cs);
+
+    CVoteOutcomes outcome;
+
+    for (const auto& vk : setVoteKeys) {
+
+        int nPower = ::GetVotingPower(vk);
+        // Its -1 if the votekey got not updated yet
+        nPower = nPower >= 0 ? nPower : 0;
+
+        vote_rec_t recVotes;
+        if( GetCurrentVKVotes(vk, recVotes) ){
+            vote_instance_m_cit it = recVotes.mapInstances.find(eVoteSignalIn);
+            if( it == recVotes.mapInstances.end()  ) continue;
+
+            switch(it->second.eOutcome){
+            case VOTE_OUTCOME_YES:
+                outcome.nYesPower += nPower;
+                break;
+            case VOTE_OUTCOME_NO:
+                outcome.nNoPower += nPower;
+                break;
+            case VOTE_OUTCOME_ABSTAIN:
+                outcome.nAbstainPower += nPower;
+                break;
+            case VOTE_OUTCOME_NONE:
+                break;
+
+            }
+
+        }
+    }
+    return outcome;
 }
 
 /**
@@ -691,9 +738,9 @@ void CProposal::UpdateSentinelVariables()
     CVoteResult fundingResult = GetVotingResult(VOTE_SIGNAL_FUNDING);
     CVoteResult validResult = GetVotingResult(VOTE_SIGNAL_VALID);
 
-    if( fundingResult.GetYes() > consensus.nVotingMinYesPercent ) fCachedFunding = true;
+    if( fundingResult.percentYes > consensus.nVotingMinYesPercent ) fCachedFunding = true;
 
-    if( validResult.GetTotalPower() && validResult.GetYes() < consensus.nVotingMinYesPercent) {
+    if( validResult.GetTotalPower() && validResult.percentYes < consensus.nVotingMinYesPercent) {
         fCachedValid = false;
         if(nTimeDeletion == 0) {
             nTimeDeletion = GetAdjustedTime();

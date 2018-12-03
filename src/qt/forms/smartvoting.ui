@@ -349,8 +349,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>791</width>
-            <height>379</height>
+            <width>66</width>
+            <height>18</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -682,6 +682,9 @@
        </item>
        <item>
         <widget class="QTableWidget" name="voteKeysTable">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
          <column>
           <property name="text">
            <string>Active</string>

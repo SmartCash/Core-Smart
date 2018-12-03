@@ -172,7 +172,6 @@ QT_MOC_CPP = \
   qt/moc_smartvoting.cpp \
   qt/moc_smartproposal.cpp \
   qt/moc_smartproposaltab.cpp \
-  qt/moc_smartvotingmanager.cpp \
   qt/moc_splashscreen.cpp \
   qt/moc_specialtransactiondialog.cpp \
   qt/moc_trafficgraphwidget.cpp \
@@ -256,7 +255,6 @@ BITCOIN_QT_H = \
   qt/smartnodelist.h \
   qt/smartrewardslist.h \
   qt/smartvoting.h \
-  qt/smartvotingmanager.h \
   qt/smartproposal.h \
   qt/smartproposaltab.h \
   qt/splashscreen.h \
@@ -392,7 +390,6 @@ BITCOIN_QT_WALLET_CPP = \
   qt/smartvoting.cpp \
   qt/smartproposal.cpp \
   qt/smartproposaltab.cpp \
-  qt/smartvotingmanager.cpp \
   qt/specialtransactiondialog.cpp \
   qt/transactiondesc.cpp \
   qt/transactiondescdialog.cpp \

@@ -142,18 +142,23 @@ void GetVotingPower(const CVoteKey &voteKey, CVotingPower &votingPower)
 
     if( it != mapActiveVoteKeys.end() && it->second.IsValid() ){
         votingPower = it->second;
+        votingPower.nPower /= COIN;
     }else{
         votingPower.SetNull();
     }
 }
 
-CAmount GetVotingPower(const CVoteKey &voteKey)
+int GetVotingPower(const CVoteKey &voteKey)
 {
     LOCK(cs);
     auto it = mapActiveVoteKeys.find(voteKey);
 
     if( it != mapActiveVoteKeys.end() && it->second.IsValid() ){
-        return it->second.nPower;
+
+        if( it->second.nPower > 0 )
+            return it->second.nPower / COIN;
+        else
+            return it->second.nPower;
     }
 
     return 0;

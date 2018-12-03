@@ -222,6 +222,7 @@ public:
     bool IsAddressValid(std::string &strError) const;
 
     bool IsMilestoneVectorValid(std::string &strError) const;
+    int GetRequestedAmount() const;
 
     uint256 GetFeeHash() const { return nFeeHash; }
 
@@ -284,6 +285,7 @@ public:
     void CheckOrphanVotes(CConnman &connman);
 
     CAmount GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const;
+    CVoteOutcomes GetVotingPower(const std::set<CVoteKey> &setVoteKeys, vote_signal_enum_t eVoteSignalIn) const;
     CAmount GetAbsoluteYesPower(vote_signal_enum_t eVoteSignalIn) const;
     CAmount GetAbsoluteNoPower(vote_signal_enum_t eVoteSignalIn) const;
     CAmount GetYesPower(vote_signal_enum_t eVoteSignalIn) const;
