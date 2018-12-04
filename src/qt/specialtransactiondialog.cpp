@@ -223,8 +223,8 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
             }
 
             strResult.append("<hr />");
-            strResult.append(("Make sure to backup your wallet each time you register new VoteKeys."
-                              " They are not derived from the wallet's seed so you are not able to recover them"
+            strResult.append(("Make sure to backup your wallet each time you register new VoteKeys. "
+                              "They are not derived from the wallet's seed so you are not able to recover them "
                               "with any earlier backup of your wallet."));
         }
 
