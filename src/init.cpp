@@ -421,8 +421,8 @@ std::string HelpMessage(HelpMessageMode mode)
 
     // When adding new options to the categories, please keep and ensure alphabetical ordering.
     // Do not translate _(...) -help-debug options, Many technical terms, and only a very small audience, so is unnecessary stress to translators.
-    string strUsage = HelpMessageGroup(_("Options:"));
-    strUsage += HelpMessageOpt("-?", _("Print this help message and exit"));
+    string strUsage = HelpMessageGroup(_("smartcashd Options:"));
+    strUsage += HelpMessageOpt("-? or -help", _("smartcashd startup and connect options"));
     strUsage += HelpMessageOpt("-version", _("Print version and exit"));
     strUsage += HelpMessageOpt("-alertnotify=<cmd>", _("Execute command when a relevant alert is received or we see a really long fork (%s in cmd is replaced by message)"));
     strUsage += HelpMessageOpt("-blocknotify=<cmd>", _("Execute command when the best block changes (%s in cmd is replaced by block hash)"));
@@ -438,6 +438,7 @@ std::string HelpMessage(HelpMessageMode mode)
 #endif
     }
     strUsage += HelpMessageOpt("-datadir=<dir>", _("Specify data directory"));
+    strUsage += HelpMessageOpt("-wallet=<file>", _("Specify wallet file in the data directory"));
     strUsage += HelpMessageOpt("-dbcache=<n>", strprintf(_("Set database cache size in megabytes (%d to %d, default: %d)"), nMinDbCache, nMaxDbCache, nDefaultDbCache));
     if (showDebug)
         strUsage += HelpMessageOpt("-feefilter", strprintf("Tell other nodes to filter invs to us by our mempool min fee (default: %u)", DEFAULT_FEEFILTER));
