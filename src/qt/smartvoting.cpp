@@ -233,7 +233,7 @@ void SmartVotingPage::updateProposalUI()
 {
     TRY_LOCK(smartVoting.cs, locked);
     if( !locked ){
-        LogPrintf("SmartVotingPage::updateProposalUI lock failed");
+        LogPrintf("SmartVotingPage::updateProposalUI lock failed\n");
         return;
     }
 
@@ -263,14 +263,17 @@ void SmartVotingPage::updateProposalUI()
         });
 
         if( find == vecProposals.end()  ){
-            ui->proposalList->layout()->removeWidget(widget->second);
-            delete widget->second;
-            mapProposalWidgets.erase(widget);
+            int idx = ui->proposalList->layout()->indexOf(widget->second);
+            QLayoutItem *child = ui->proposalList->layout()->takeAt(idx);
+            delete child->widget();
+            delete child;
+            widget = mapProposalWidgets.erase(widget);
         }else{
             if( widget->second->votedValid() ) votedValid++;
             if( widget->second->votedFunding() ) votedFunding++;
+            ++widget;
         }
-        widget++;
+
     }
 
     voteChanged();
