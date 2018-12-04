@@ -231,7 +231,11 @@ void SmartVotingPage::showVotingUI()
 
 void SmartVotingPage::updateProposalUI()
 {
-    LOCK(smartVoting.cs);
+    TRY_LOCK(smartVoting.cs, locked);
+    if( !locked ){
+        LogPrintf("SmartVotingPage::updateProposalUI lock failed");
+        return;
+    }
 
     int votedValid = 0, votedFunding = 0;
 
@@ -251,16 +255,22 @@ void SmartVotingPage::updateProposalUI()
 
     // Search for proposals that are currently in the view
     // but not longer in the proposal list
-    for( auto widget : mapProposalWidgets ){
+    auto widget = mapProposalWidgets.begin();
+    while( widget != mapProposalWidgets.end() ){
 
         auto find = std::find_if(vecProposals.begin(), vecProposals.end(), [widget](const CProposal* p) -> bool {
-            return widget.first == p->GetHash();
+            return widget->first == p->GetHash();
         });
 
         if( find == vecProposals.end()  ){
-            ui->proposalList->layout()->removeWidget(widget.second);
-            delete widget.second;
+            ui->proposalList->layout()->removeWidget(widget->second);
+            delete widget->second;
+            mapProposalWidgets.erase(widget);
+        }else{
+            if( widget->second->votedValid() ) votedValid++;
+            if( widget->second->votedFunding() ) votedFunding++;
         }
+        widget++;
     }
 
     voteChanged();
