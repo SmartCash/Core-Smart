@@ -239,8 +239,8 @@ public:
 
         // Smartvoting params
 
-        consensus.nProposalValidityVoteBlocks = 65; // ~1hour
-        consensus.nProposalFundingVoteBlocks = 325; // ~5hours
+        consensus.nProposalValidityVoteBlocks = 130; // ~2hour
+        consensus.nProposalFundingVoteBlocks = 390; // ~6hours
         consensus.nVotingMinYesPercent = 50;
         consensus.nVotingFilterElements = 200000;
 
