@@ -14,9 +14,8 @@
 #include "streams.h"
 #include "uint256.h"
 
-// Update all vote's voting power every nValidationInterval blocks
-static const int nValidationInterval = 1;
-static const int nValidationConfirmations = 2;
+// Update all vote's voting power every nValidationConfirmations blocks
+static const int nValidationConfirmations = 6;
 
 struct CVotingPower{
     int nBlockHeight;

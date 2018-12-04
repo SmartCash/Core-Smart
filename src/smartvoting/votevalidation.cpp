@@ -29,6 +29,7 @@ void ThreadSmartVoting()
     // Make this thread recognisable as the SmartVoting thread
     RenameThread("smartvoting");
 
+
     while (true)
     {
         MilliSleep(1000);
@@ -36,14 +37,6 @@ void ThreadSmartVoting()
         if(smartnodeSync.IsBlockchainSynced() && !ShutdownRequested()) {
 
             int nHeight = chainActive.Height();
-
-            if( nHeight < nValidationConfirmations )
-                continue;
-
-            nHeight -= nValidationConfirmations;
-
-            if( nHeight % nValidationInterval )
-                continue;
 
             std::set<CVoteKey> setActiveKeys;
 
@@ -65,22 +58,29 @@ void ThreadSmartVoting()
             // Update votekeys available in the wallet
             if( pwalletMain ){
 
-                std::set<CKeyID> setVotingKeyIds;
+                std::set<CKeyID> setWalletKeyIds;
                 {
                     LOCK(pwalletMain->cs_wallet);
-                    pwalletMain->GetVotingKeys(setVotingKeyIds);
+                    pwalletMain->GetVotingKeys(setWalletKeyIds);
                 }
 
-                for( auto keyId : setVotingKeyIds ){
-                    AddActiveVoteKey(CVoteKey(keyId));
+                for( auto keyId : setWalletKeyIds ){
+
+                    CVoteKey vk(keyId);
+
+                    if( !setActiveKeys.count(vk) )
+                        setActiveKeys.insert(vk);
+
+                    AddActiveVoteKey(vk);
                 }
+
             }
 
             LOCK(cs);
 
             for (auto it = mapActiveVoteKeys.begin(); it != mapActiveVoteKeys.end();){
 
-                // Check if the address we validate is not longer active in any proposal
+                // Check if the address we validate is not longer active
                 if( setActiveKeys.size() && !setActiveKeys.count(it->first) ){
                     it = mapActiveVoteKeys.erase(it);
                     continue;
@@ -97,6 +97,16 @@ void ThreadSmartVoting()
                         continue;
                     }
 
+                }
+
+                if( nHeight < nValidationConfirmations ){
+                    ++it;
+                    continue;
+                }
+
+                if( ( nHeight - nStart ) < nValidationConfirmations ){
+                    ++it;
+                    continue;
                 }
 
                 CAmount nDelta = 0;
