@@ -373,7 +373,7 @@ void CSmartVotingManager::UpdateCachesAndClean()
 
         if((!pProposal->IsSetCachedValid() || pProposal->IsSetExpired()) &&
            (nTimeSinceDeletion >= SMARTVOTING_DELETION_DELAY)) {
-            LogPrintf("CSmartVotingManager::UpdateCachesAndClean -- erase obj %s\n", (*it).first.ToString());
+            LogPrintf("CSmartVotingManager::UpdateCachesAndClean -- erase proposal %s\n", (*it).first.ToString());
 
             // Remove vote references
             const object_ref_cm_t::list_t& listItems = cmapVoteToProposal.GetItemList();

@@ -460,6 +460,9 @@ bool CProposal::UpdateProposalStartHeight(){
 
     std::string strError;
 
+    // If we already set the height successully
+    if( nVotingStartHeight ) return true;
+
     CTransaction txCollateral;
     uint256 nBlockHash;
     if(!GetTransaction(nFeeHash, txCollateral, Params().GetConsensus(), nBlockHash, true)){
@@ -775,16 +778,20 @@ void CProposal::UpdateSentinelVariables()
     CVoteResult fundingResult = GetVotingResult(VOTE_SIGNAL_FUNDING);
     CVoteResult validResult = GetVotingResult(VOTE_SIGNAL_VALID);
 
-    if( fundingResult.percentYes > consensus.nVotingMinYesPercent ) fCachedFunding = true;
+    if( UpdateProposalStartHeight() ){
 
-    if( nCurrentHeight > GetValidVoteEndHeight() &&
-        validResult.GetTotalPower() &&
-        validResult.percentYes < consensus.nVotingMinYesPercent) {
+        if( fundingResult.percentYes > consensus.nVotingMinYesPercent ) fCachedFunding = true;
 
-        fCachedValid = false;
-        if(nTimeDeletion == 0) {
-            nTimeDeletion = GetAdjustedTime();
+        if( nCurrentHeight > GetValidVoteEndHeight() &&
+            validResult.GetTotalPower() &&
+            validResult.percentYes < consensus.nVotingMinYesPercent) {
+
+            fCachedValid = false;
+            if(nTimeDeletion == 0) {
+                nTimeDeletion = GetAdjustedTime();
+            }
         }
+
     }
 }
 
