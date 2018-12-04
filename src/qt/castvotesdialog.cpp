@@ -173,5 +173,5 @@ void CastVotesDialog::start()
         }
     }
 
-
+    ui->button->setText("Close");
 }
