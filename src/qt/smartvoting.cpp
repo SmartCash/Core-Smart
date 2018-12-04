@@ -276,7 +276,8 @@ void SmartVotingPage::updateProposalUI()
     voteChanged();
 
     ui->openProposalsLabel->setText(QString("%1").arg(vecProposals.size()));
-    ui->votedForLabel->setText(QString("%1").arg(votedValid));
+    ui->votedForValidityLabel->setText(QString("%1").arg(votedValid));
+    ui->votedForFundingLabel->setText(QString("%1").arg(votedFunding));
 }
 
 void SmartVotingPage::updateUI()
