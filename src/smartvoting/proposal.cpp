@@ -30,7 +30,6 @@ CProposal::CProposal() :
     nTimeCreated(0),
     nTimeDeletion(0),
     nFeeHash(),
-    vchSig(),
     fCachedLocalValidity(false),
     fCachedFunding(false),
     fCachedValid(true),
@@ -52,7 +51,6 @@ CProposal::CProposal(const CProposal &other) :
     nTimeCreated(other.nTimeCreated),
     nTimeDeletion(other.nTimeDeletion),
     nFeeHash(other.nFeeHash),
-    vchSig(other.vchSig),
     fCachedLocalValidity(other.fCachedLocalValidity),
     fCachedFunding(other.fCachedFunding),
     fCachedValid(other.fCachedValid),
@@ -78,7 +76,6 @@ void CProposal::swap(CProposal &first, CProposal &second)
     swap(first.nTimeCreated, second.nTimeCreated);
     swap(first.nTimeDeletion, second.nTimeDeletion);
     swap(first.nFeeHash, second.nFeeHash);
-    swap(first.vchSig, second.vchSig);
 
     // swap all cached flags
     swap(first.fCachedLocalValidity, second.fCachedLocalValidity);

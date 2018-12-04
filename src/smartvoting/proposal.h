@@ -165,9 +165,6 @@ protected:
 
     uint256 nFeeHash;
 
-    /// Signature data
-    std::vector<unsigned char> vchSig;
-
     /// is valid by blockchain
     bool fCachedLocalValidity;
     std::string strLocalValidityError;
