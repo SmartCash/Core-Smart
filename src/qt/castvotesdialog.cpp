@@ -162,7 +162,7 @@ void CastVotesDialog::start()
                                     .arg(QString::fromStdString(vk.ToString()))
                                     .arg(strError));
             }else{
-                int nPower = GetVotingPower(vk);
+                int64_t nPower = GetVotingPower(vk);
                 nPower = std::max<int>(0,nPower);
 
                 ui->results->append(QString("%1 | %2 SMART <b>%3<b>")

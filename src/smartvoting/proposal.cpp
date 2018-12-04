@@ -593,17 +593,17 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
     return true;
 }
 
-CAmount CProposal::GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const
+int64_t CProposal::GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const
 {
     LOCK(cs);
 
-    int nTotalPower = 0;
+    int64_t nTotalPower = 0;
     for (const auto& votepair : mapCurrentVKVotes) {
         const vote_rec_t& recVote = votepair.second;
         vote_instance_m_cit it2 = recVote.mapInstances.find(eVoteSignalIn);
         if(it2 != recVote.mapInstances.end() && it2->second.eOutcome == eVoteOutcomeIn) {
-            int nPower = ::GetVotingPower(votepair.first);
-            nTotalPower += nPower >= 0 ? nPower : 0;
+            int64_t nPower = ::GetVotingPower(votepair.first);
+            nTotalPower += std::max<int64_t>(0,nPower);
         }
     }
     return nTotalPower;
@@ -617,9 +617,9 @@ CVoteOutcomes CProposal::GetVotingPower(const std::set<CVoteKey> &setVoteKeys, v
 
     for (const auto& vk : setVoteKeys) {
 
-        int nPower = ::GetVotingPower(vk);
+        int64_t nPower = ::GetVotingPower(vk);
         // Its -1 if the votekey got not updated yet
-        nPower = nPower >= 0 ? nPower : 0;
+        nPower = std::max<int64_t>(0,nPower);
 
         vote_rec_t recVotes;
         if( GetCurrentVKVotes(vk, recVotes) ){

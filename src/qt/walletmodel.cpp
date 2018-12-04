@@ -584,7 +584,7 @@ QString WalletModel::votingPowerString(const bool fActiveOnly)
 
         if( !voteKey.IsValid() ) return "Key error";
 
-        int nVotingPower = GetVotingPower(voteKey);
+        int64_t nVotingPower = GetVotingPower(voteKey);
 
         if( nVotingPower >= 0){
             nTotalPower += nVotingPower;
@@ -604,14 +604,14 @@ QString WalletModel::votingPowerString(const CVoteKey &voteKey)
     if( !wallet ) return "Wallet not available";
     LOCK(wallet->cs_wallet);
     QString votingPowerString;
-    int nTotalPower = 0;
+    int64_t nTotalPower = 0;
     CKeyID keyId;
 
     if( !voteKey.GetKeyID(keyId) ) return "Key error";
 
     if( !wallet->HaveVotingKey(keyId) ) return "Unavailable";
 
-    int nVotingPower = GetVotingPower(voteKey);
+    int64_t nVotingPower = GetVotingPower(voteKey);
 
     if( nVotingPower >= 0){
         nTotalPower = nVotingPower;

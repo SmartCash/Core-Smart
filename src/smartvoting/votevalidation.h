@@ -20,7 +20,7 @@ static const int nValidationConfirmations = 2;
 
 struct CVotingPower{
     int nBlockHeight;
-    CAmount nPower;
+    int64_t nPower;
     CSmartAddress address;
 
     CVotingPower(){ SetNull(); }
@@ -37,6 +37,6 @@ struct CVotingPower{
 void ThreadSmartVoting();
 void AddActiveVoteKey(const CVoteKey &voteKey);
 void GetVotingPower(const CVoteKey &voteKey, CVotingPower &votingPower);
-int GetVotingPower(const CVoteKey &voteKey);
+int64_t GetVotingPower(const CVoteKey &voteKey);
 
 #endif

@@ -148,7 +148,7 @@ void GetVotingPower(const CVoteKey &voteKey, CVotingPower &votingPower)
     }
 }
 
-int GetVotingPower(const CVoteKey &voteKey)
+int64_t GetVotingPower(const CVoteKey &voteKey)
 {
     LOCK(cs);
     auto it = mapActiveVoteKeys.find(voteKey);

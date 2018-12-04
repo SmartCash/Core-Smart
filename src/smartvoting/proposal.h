@@ -285,7 +285,7 @@ public:
     void ClearVoteKeyVotes();
     void CheckOrphanVotes(CConnman &connman);
 
-    CAmount GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const;
+    int64_t GetVotingPower(vote_signal_enum_t eVoteSignalIn, vote_outcome_enum_t eVoteOutcomeIn) const;
     CVoteOutcomes GetVotingPower(const std::set<CVoteKey> &setVoteKeys, vote_signal_enum_t eVoteSignalIn) const;
     CAmount GetAbsoluteYesPower(vote_signal_enum_t eVoteSignalIn) const;
     CAmount GetAbsoluteNoPower(vote_signal_enum_t eVoteSignalIn) const;

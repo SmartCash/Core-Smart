@@ -207,7 +207,7 @@ void SmartProposalWidget::UpdateVotes(const CProposal *proposal)
     for( auto vk : setVoteKeys ){
 
         vote_rec_t recVotes;
-        int nPower = GetVotingPower(vk);
+        int64_t nPower = GetVotingPower(vk);
         nPower = std::max<CAmount>(0,nPower);
 
         if( proposal->GetCurrentVKVotes(vk, recVotes) ){
