@@ -5,6 +5,7 @@
 #include "overviewpage.h"
 #include "ui_overviewpage.h"
 
+#include "askpassphrasedialog.h"
 #include "bitcoinunits.h"
 #include "clientmodel.h"
 #include "guiconstants.h"
@@ -237,10 +238,33 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
         updateWatchOnlyLabels(model->haveWatchOnly());
         connect(model, SIGNAL(notifyWatchonlyChanged(bool)), this, SLOT(updateWatchOnlyLabels(bool)));
+
+        WalletModel::EncryptionStatus status = walletModel->getEncryptionStatus();
+
+        if( status != WalletModel::Unencrypted )
+            ui->unencryptedWidget->hide();
+        else
+            connect(ui->encryptButton, SIGNAL(clicked()), this, SLOT(encryptWallet()));
     }
 
     // update the display unit, to not use the default ("BTC")
     updateDisplayUnit();
+}
+
+void OverviewPage::encryptWallet()
+{
+    if( !walletModel ) return;
+
+    AskPassphraseDialog dlg(AskPassphraseDialog::Encrypt, this);
+    dlg.setModel(walletModel);
+    dlg.exec();
+
+    WalletModel::EncryptionStatus status = walletModel->getEncryptionStatus();
+
+    if( status != WalletModel::Unencrypted )
+        ui->unencryptedWidget->hide();
+
+    walletModel->updateStatus();
 }
 
 void OverviewPage::updateDisplayUnit()

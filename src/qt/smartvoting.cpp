@@ -7,6 +7,7 @@
 #include "smartproposal.h"
 #include "smartproposaltab.h"
 
+#include "askpassphrasedialog.h"
 #include "addresstablemodel.h"
 #include "bitcoinunits.h"
 #include "bitcoingui.h"
@@ -126,6 +127,12 @@ void SmartVotingPage::setWalletModel(WalletModel *model)
     if( walletModel ) return;
 
     walletModel = model;
+    WalletModel::EncryptionStatus status = walletModel->getVotingEncryptionStatus();
+
+    if( status != WalletModel::Unencrypted )
+        ui->unencryptedWidget->hide();
+    else
+        connect(ui->encryptButton, SIGNAL(clicked()), this, SLOT(encryptVoting()));
 }
 
 void SmartVotingPage::showEvent(QShowEvent *event)
@@ -214,6 +221,21 @@ void SmartVotingPage::showManagementUI()
     }
 
     ui->stackedWidget->setCurrentIndex(0);
+}
+
+void SmartVotingPage::encryptVoting()
+{
+    if( !walletModel ) return;
+
+    AskPassphraseDialog dlg(AskPassphraseDialog::EncryptVoting, this);
+    dlg.setModel(walletModel);
+    dlg.exec();
+
+    WalletModel::EncryptionStatus status = walletModel->getVotingEncryptionStatus();
+
+    if( status != WalletModel::Unencrypted )
+        ui->unencryptedWidget->hide();
+
 }
 
 void SmartVotingPage::showVoteKeysUI()

@@ -101,6 +101,7 @@ public Q_SLOTS:
     void showVotingUI();
     void updateProposalUI();
     void createProposal();
+    void encryptVoting();
     void showVoteKeysUI();
     void updateVotingElements();
     void updateVoteKeyUI();
