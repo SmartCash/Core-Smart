@@ -282,7 +282,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,112);
-        base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(1,160);
+        base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,160);
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;
