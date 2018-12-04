@@ -35,6 +35,7 @@ CProposal::CProposal() :
     fCachedValid(true),
     fDirtyCache(true),
     fExpired(false),
+    nCreationHeight(-1),
     mapCurrentVKVotes(),
     cmmapOrphanVotes(),
     fileVotes(),
@@ -56,6 +57,7 @@ CProposal::CProposal(const CProposal &other) :
     fCachedValid(other.fCachedValid),
     fDirtyCache(other.fDirtyCache),
     fExpired(other.fExpired),
+    nCreationHeight(other.nCreationHeight),
     mapCurrentVKVotes(other.mapCurrentVKVotes),
     cmmapOrphanVotes(other.cmmapOrphanVotes),
     fileVotes(other.fileVotes),
@@ -83,6 +85,7 @@ void CProposal::swap(CProposal &first, CProposal &second)
     swap(first.fCachedValid, second.fCachedValid);
     swap(first.fDirtyCache, second.fDirtyCache);
     swap(first.fExpired, second.fExpired);
+    swap(first.nCreationHeight, second.nCreationHeight);
 }
 
 
@@ -461,7 +464,7 @@ bool CProposal::UpdateProposalStartHeight(){
     std::string strError;
 
     // If we already set the height successully
-    if( nVotingStartHeight ) return true;
+    if( nCreationHeight != -1 ) return true;
 
     CTransaction txCollateral;
     uint256 nBlockHash;
@@ -478,7 +481,7 @@ bool CProposal::UpdateProposalStartHeight(){
         if (mi != mapBlockIndex.end() && (*mi).second) {
             CBlockIndex* pindex = (*mi).second;
             if (chainActive.Contains(pindex)) {
-                nVotingStartHeight = pindex->nHeight;
+                nCreationHeight = pindex->nHeight;
                 return true;
             }
         }
@@ -705,12 +708,18 @@ bool CProposal::GetCurrentVKVotes(const CVoteKey &voteKey, vote_rec_t& voteRecor
 
 int CProposal::GetValidVoteEndHeight() const
 {
-    return nVotingStartHeight + Params().GetConsensus().nProposalValidityVoteBlocks;
+    if( GetVotingStartHeight() > 0 )
+        return GetVotingStartHeight() + Params().GetConsensus().nProposalValidityVoteBlocks;
+
+    return 0;
 }
 
 int CProposal::GetFundingVoteEndHeight() const
 {
-    return nVotingStartHeight + Params().GetConsensus().nProposalFundingVoteBlocks;
+    if( GetVotingStartHeight() > 0 )
+        return GetVotingStartHeight() + Params().GetConsensus().nProposalFundingVoteBlocks;
+
+    return 0;
 }
 
 void CProposal::Relay(CConnman& connman) const
@@ -780,9 +789,12 @@ void CProposal::UpdateSentinelVariables()
 
     if( UpdateProposalStartHeight() ){
 
+        int nValidEndHeight = GetValidVoteEndHeight();
+        int nFundingEndHeight = GetFundingVoteEndHeight();
+
         if( fundingResult.percentYes > consensus.nVotingMinYesPercent ) fCachedFunding = true;
 
-        if( nCurrentHeight > GetValidVoteEndHeight() &&
+        if( nValidEndHeight && nCurrentHeight > nValidEndHeight &&
             validResult.GetTotalPower() &&
             validResult.percentYes < consensus.nVotingMinYesPercent) {
 
@@ -791,7 +803,6 @@ void CProposal::UpdateSentinelVariables()
                 nTimeDeletion = GetAdjustedTime();
             }
         }
-
     }
 }
 

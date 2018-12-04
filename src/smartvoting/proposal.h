@@ -183,7 +183,7 @@ protected:
     /// Object is no longer of interest
     bool fExpired;
 
-    int nVotingStartHeight;
+    int nCreationHeight;
 
     vote_m_t mapCurrentVKVotes;
 
@@ -227,6 +227,12 @@ public:
 
     void SetCreationTime(int64_t nTime) { nTimeCreated = nTime; }
     int64_t GetCreationTime() const { return nTimeCreated; }
+
+    int64_t GetVotingStartHeight() const {
+        if( nCreationHeight != -1 )
+            return nCreationHeight + SMARTVOTING_FEE_CONFIRMATIONS;
+        return nCreationHeight;
+    }
 
     void SetDeletionTime(int64_t nTime) { nTimeDeletion = nTime; }
     int64_t GetDeletionTime() const { return nTimeDeletion; }
