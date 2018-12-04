@@ -82,19 +82,19 @@ UniValue sendVote( const CVoteKeySecret &voteKeySecret, const uint256 &hash, con
 
         CSmartVotingException exception;
         if(smartVoting.ProcessVoteAndRelay(vote, exception, *g_connman)) {
-            statusObj.push_back(Pair("result", "success"));
+            statusObj.pushKV("result", "success");
         } else {
-            statusObj.push_back(Pair("result", "failed"));
-            statusObj.push_back(Pair("errorMessage", exception.GetMessage()));
+            statusObj.pushKV("result", "failed");
+            statusObj.pushKV("errorMessage", exception.GetMessage());
         }
 
-        resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
+        resultsObj.pushKV(voteKey.ToString(), statusObj);
 
     }else{
 
-        statusObj.push_back(Pair("result", "failed"));
-        statusObj.push_back(Pair("errorMessage", "Failure to sign."));
-        resultsObj.push_back(Pair(voteKey.ToString(), statusObj));
+        statusObj.pushKV("result", "failed");
+        statusObj.pushKV("errorMessage", "Failure to sign.");
+        resultsObj.pushKV(voteKey.ToString(), statusObj);
     }
 
     return resultsObj;
@@ -128,10 +128,9 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
                 "smartvoting \"command\"...\n"
                 "Use SmartVoting commands.\n"
                 "\nAvailable commands:\n"
-                "  check              - Validate a proposal\n"
+                "  check              - Validate raw proposal data\n"
                 "  prepare            - Create and prepare a proposal by signing and creating the fee tx\n"
                 "  submit             - Submit a proposal to the network\n"
-                "  deserialize        - Deserialize raw proposal data\n"
                 "  count              - Count proposals.\n"
                 "  list               - List all proposals.\n"
                 "  get                - Get a proposal by its hash\n"
@@ -141,39 +140,56 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
                 "  vote               - Vote for a proposal with votekeys available in the votekey storage\n"
                 );
 
-    // VALIDATE A GOVERNANCE OBJECT PRIOR TO SUBMISSION
     if(strCommand == "check")
     {
-//        if (params.size() != 2) {
-//            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting check <data-hex>'");
-//        }
+        if (params.size() != 2) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Correct usage is 'smartvoting check <data-hex>'");
+        }
 
-//        // ASSEMBLE NEW GOVERNANCE OBJECT FROM USER PARAMETERS
+        std::string strRawProposal = params[1].get_str();
 
-//        uint256 hashParent;
+        if (!IsHex(strRawProposal))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid proposal data. Must be hex-string");
 
-//        int nRevision = 1;
+        vector<unsigned char> rawData(ParseHex(strRawProposal));
 
-//        int64_t nTime = GetAdjustedTime();
-//        std::string strDataHex = params[1].get_str();
+        CDataStream ssProposal( rawData ,SER_NETWORK, PROTOCOL_VERSION);
 
-//        CProposal proposal(hashParent, nRevision, nTime, uint256(), strDataHex);
+        CProposal proposal;
 
-//        if(proposal.GetObjectType() == SMARTVOTING_OBJECT_PROPOSAL) {
-//            CProposalValidator validator(strDataHex);
-//            if(!validator.Validate())  {
-//                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid proposal data, error messages:" + validator.GetErrorMessages());
-//            }
-//        }
-//        else {
-//            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid object type, only proposals can be validated");
-//        }
+        ssProposal >> proposal;
 
-//        UniValue objResult(UniValue::VOBJ);
+        UniValue objResult(UniValue::VOBJ);
 
-//        objResult.push_back(Pair("Proposal status", "OK"));
+        std::string result = "OK";
+        int nMissingConfirmations;
+        std::string strError;
+        {
+            LOCK(cs_main);
 
-//        return objResult;
+            if( !proposal.IsValidLocally(strError, nMissingConfirmations, true) ){
+                result = strError;
+            }
+        }
+
+        objResult.pushKV("Proposal status", result);
+
+        UniValue bObj(UniValue::VOBJ);
+        bObj.pushKV("Hash",  proposal.GetHash().ToString());
+        bObj.pushKV("FeeHash",  proposal.GetFeeHash().ToString());
+        bObj.pushKV("Title",  proposal.GetTitle());
+        bObj.pushKV("Url",  proposal.GetUrl());
+        bObj.pushKV("CreationTime", proposal.GetCreationTime());
+        const CSmartAddress& proposalAddress = proposal.GetAddress();
+        if(proposalAddress.IsValid()) {
+            bObj.pushKV("ProposalAddress", proposalAddress.ToString());
+        }else{
+            bObj.pushKV("ProposalAddress", "Invalid");
+        }
+
+        objResult.pushKV("Data", bObj);
+
+        return objResult;
     }
 
 
@@ -393,17 +409,20 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
             //if(strType == "active" && !pProposal->IsOpenToVote()) continue;
 
             UniValue bObj(UniValue::VOBJ);
-            bObj.push_back(Pair("Hash",  pProposal->GetHash().ToString()));
-            bObj.push_back(Pair("FeeHash",  pProposal->GetFeeHash().ToString()));
-            bObj.push_back(Pair("Title",  pProposal->GetTitle()));
-            bObj.push_back(Pair("Url",  pProposal->GetUrl()));
-            bObj.push_back(Pair("CreationTime", pProposal->GetCreationTime()));
+            bObj.pushKV("Hash",  pProposal->GetHash().ToString());
+            bObj.pushKV("FeeHash",  pProposal->GetFeeHash().ToString());
+            bObj.pushKV("Title",  pProposal->GetTitle());
+            bObj.pushKV("Url",  pProposal->GetUrl());
+            bObj.pushKV("CreationTime", pProposal->GetCreationTime());
+            bObj.pushKV("CreationHeight", pProposal->GetVotingStartHeight());
             const CSmartAddress& proposalAddress = pProposal->GetAddress();
             if(proposalAddress.IsValid()) {
-                bObj.push_back(Pair("ProposalAddress", proposalAddress.ToString()));
+                bObj.pushKV("ProposalAddress", proposalAddress.ToString());
             }else{
-                bObj.push_back(Pair("ProposalAddress", "Invalid"));
+                bObj.pushKV("ProposalAddress", "Invalid");
             }
+            bObj.pushKV("ValidityEndHeight", pProposal->GetValidVoteEndHeight());
+            bObj.pushKV("FundingEndHeight", pProposal->GetFundingVoteEndHeight());
 
             // REPORT STATUS FOR FUNDING VOTES SPECIFICALLY
             CVoteResult fundingResult = pProposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
@@ -416,12 +435,12 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
             // REPORT VALIDITY AND CACHING FLAGS FOR VARIOUS SETTINGS
             std::string strError = "";
-            bObj.push_back(Pair("fBlockchainValidity",  pProposal->IsValidLocally(strError, false)));
-            bObj.push_back(Pair("IsValidReason",  strError.c_str()));
-            bObj.push_back(Pair("fCachedValid",  pProposal->IsSetCachedValid()));
-            bObj.push_back(Pair("fCachedFunding",  pProposal->IsSetCachedFunding()));
+            bObj.pushKV("fBlockchainValidity",  pProposal->IsValidLocally(strError, false));
+            bObj.pushKV("IsValidReason",  strError.c_str());
+            bObj.pushKV("fCachedValid",  pProposal->IsSetCachedValid());
+            bObj.pushKV("fCachedFunding",  pProposal->IsSetCachedFunding());
 
-            objResult.push_back(Pair(pProposal->GetHash().ToString(), bObj));
+            objResult.pushKV(pProposal->GetHash().ToString(), bObj);
         }
 
         return objResult;
@@ -447,17 +466,20 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
         // REPORT BASIC OBJECT STATS
 
         UniValue objResult(UniValue::VOBJ);
-        objResult.push_back(Pair("Hash",  pProposal->GetHash().ToString()));
-        objResult.push_back(Pair("FeeHash",  pProposal->GetFeeHash().ToString()));
-        objResult.push_back(Pair("Title",  pProposal->GetTitle()));
-        objResult.push_back(Pair("Url",  pProposal->GetUrl()));
-        objResult.push_back(Pair("CreationTime", pProposal->GetCreationTime()));
+        objResult.pushKV("Hash",  pProposal->GetHash().ToString());
+        objResult.pushKV("FeeHash",  pProposal->GetFeeHash().ToString());
+        objResult.pushKV("Title",  pProposal->GetTitle());
+        objResult.pushKV("Url",  pProposal->GetUrl());
+        objResult.pushKV("CreationTime", pProposal->GetCreationTime());
+        objResult.pushKV("CreationHeight", pProposal->GetVotingStartHeight());
         const CSmartAddress& proposalAddress = pProposal->GetAddress();
         if(proposalAddress.IsValid()) {
-            objResult.push_back(Pair("ProposalAddress", proposalAddress.ToString()));
+            objResult.pushKV("ProposalAddress", proposalAddress.ToString());
         }else{
-            objResult.push_back(Pair("ProposalAddress", "Invalid"));
+            objResult.pushKV("ProposalAddress", "Invalid");
         }
+        objResult.pushKV("ValidityEndHeight", pProposal->GetValidVoteEndHeight());
+        objResult.pushKV("FundingEndHeight", pProposal->GetFundingVoteEndHeight());
 
         // SHOW (MUCH MORE) INFORMATION ABOUT VOTES FOR GOVERNANCE OBJECT (THAN LIST/DIFF ABOVE)
         // -- FUNDING VOTING RESULTS
@@ -486,10 +508,10 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
         // --
         std::string strError = "";
-        objResult.push_back(Pair("fLocalValidity",  pProposal->IsValidLocally(strError, false)));
-        objResult.push_back(Pair("IsValidReason",  strError.c_str()));
-        objResult.push_back(Pair("fCachedValid",  pProposal->IsSetCachedValid()));
-        objResult.push_back(Pair("fCachedFunding",  pProposal->IsSetCachedFunding()));
+        objResult.pushKV("fLocalValidity",  pProposal->IsValidLocally(strError, false));
+        objResult.pushKV("IsValidReason",  strError.c_str());
+        objResult.pushKV("fCachedValid",  pProposal->IsSetCachedValid());
+        objResult.pushKV("fCachedFunding",  pProposal->IsSetCachedFunding());
         return objResult;
     }
 
@@ -573,19 +595,19 @@ UniValue smartvoting(const UniValue& params, bool fHelp)
 
             CSmartVotingException exception;
             if(smartVoting.ProcessVoteAndRelay(vote, exception, *g_connman)) {
-                statusObj.push_back(Pair("result", "success"));
+                statusObj.pushKV("result", "success");
             } else {
-                statusObj.push_back(Pair("result", "failed"));
-                statusObj.push_back(Pair("errorMessage", exception.GetMessage()));
+                statusObj.pushKV("result", "failed");
+                statusObj.pushKV("errorMessage", exception.GetMessage());
             }
 
-            resultsObj.push_back(Pair(vote.GetVoteKey().ToString(), statusObj));
+            resultsObj.pushKV(vote.GetVoteKey().ToString(), statusObj);
 
         }else{
 
-            statusObj.push_back(Pair("result", "failed"));
-            statusObj.push_back(Pair("errorMessage", "Invalid signature."));
-            resultsObj.push_back(Pair(vote.GetVoteKey().ToString(), statusObj));
+            statusObj.pushKV("result", "failed");
+            statusObj.pushKV("errorMessage", "Invalid signature.");
+            resultsObj.pushKV(vote.GetVoteKey().ToString(), statusObj);
         }
     }
 
