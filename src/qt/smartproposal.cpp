@@ -257,7 +257,7 @@ void SmartProposalWidget::UpdateVotes(const CProposal *proposal)
     }
 
     if( votedNoValid ){
-        QString noString = QString::number(votedYesValid);
+        QString noString = QString::number(votedNoValid);
         AddThousandsSpaces(noString);
         votedValidString +=  "NO - " + noString + "\n";
     }
