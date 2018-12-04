@@ -343,8 +343,6 @@ void CSmartVotingManager::UpdateCachesAndClean()
     proposal_m_it it = mapProposals.begin();
     int64_t nNow = GetAdjustedTime();
 
-    int64_t nCurrentHeight = chainActive.Height();
-
     while(it != mapProposals.end())
     {
         CProposal* pProposal = &((*it).second);

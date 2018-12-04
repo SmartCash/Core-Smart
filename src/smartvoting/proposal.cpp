@@ -763,6 +763,9 @@ void CProposal::UpdateSentinelVariables()
 {
     Consensus::Params consensus = Params().GetConsensus();
 
+    int64_t nCurrentHeight = chainActive.Height();
+
+
     // SET SENTINEL FLAGS TO FALSE
 
     fCachedFunding = false;
@@ -777,7 +780,10 @@ void CProposal::UpdateSentinelVariables()
 
     if( fundingResult.percentYes > consensus.nVotingMinYesPercent ) fCachedFunding = true;
 
-    if( validResult.GetTotalPower() && validResult.percentYes < consensus.nVotingMinYesPercent) {
+    if( nCurrentHeight > GetValidVoteEndHeight() &&
+        validResult.GetTotalPower() &&
+        validResult.percentYes < consensus.nVotingMinYesPercent) {
+
         fCachedValid = false;
         if(nTimeDeletion == 0) {
             nTimeDeletion = GetAdjustedTime();
