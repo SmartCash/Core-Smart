@@ -560,9 +560,12 @@ int WalletModel::voteKeyCount(const bool fActiveOnly)
 {
     if( !wallet ) return 0;
     LOCK(wallet->cs_wallet);
+    std::set<CKeyID> setKeyIds;
+    wallet->GetVotingKeys(setKeyIds);
+
     int nCount = 0;
-    for( auto it : wallet->mapVotingKeyMetadata ){
-        if( !it.second.fEnabled && fActiveOnly ) continue;
+    for( auto it : setKeyIds ){
+        if( !wallet->mapVotingKeyMetadata[it].fEnabled && fActiveOnly ) continue;
         ++nCount;
     }
 
@@ -576,11 +579,13 @@ QString WalletModel::votingPowerString(const bool fActiveOnly)
     QString votingPowerString;
     int nTotalPower = 0;
 
-    for( auto it : wallet->mapVotingKeyMetadata ){
+    std::set<CKeyID> setKeyIds;
+    wallet->GetVotingKeys(setKeyIds);
 
-        if( !it.second.fEnabled && fActiveOnly ) continue;
+    for( auto it : setKeyIds ){
+        if( !wallet->mapVotingKeyMetadata[it].fEnabled && fActiveOnly ) continue;
 
-        CVoteKey voteKey(it.first);
+        CVoteKey voteKey(it);
 
         if( !voteKey.IsValid() ) return "Key error";
 
