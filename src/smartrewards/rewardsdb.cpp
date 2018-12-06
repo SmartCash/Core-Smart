@@ -371,18 +371,25 @@ void CSmartRewardEntry::setNull()
     id = CSmartAddress();
     balanceOnStart = 0;
     balance = 0;
-    eligible = false;
+    fBalanceEligible = false;
+    fIsSmartNode = false;
 }
 
 string CSmartRewardEntry::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceStart=%d, eligible=%b)\n",
+    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceStart=%d, eligible=%b, isSmartNOde=%b)\n",
         GetAddress(),
         balance,
         balanceOnStart,
-        eligible);
+        fBalanceEligible,
+        fIsSmartNode);
     return s.str();
+}
+
+bool CSmartRewardEntry::IsEligible()
+{
+  return fBalanceEligible && !fIsSmartNode;
 }
 
 string CSmartRewardBlock::ToString() const

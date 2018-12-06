@@ -28,6 +28,8 @@ static const int HF_ZEROCOIN_DISABLE = 266765;
 static const int HF_V1_2_MULTINODE_VOTING_HEIGHT = 535000;
 static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545005;
 static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
+/** 1.3 fork blocks*/
+static const int HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT = 900000;
 
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
 static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 2;

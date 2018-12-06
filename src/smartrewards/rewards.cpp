@@ -2,12 +2,15 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "consensus/consensus.h"
+#include "init.h"
 #include "smartrewards/rewards.h"
 #include "smarthive/hive.h"
 #include "smartnode/spork.h"
-#include "validation.h"
-#include "init.h"
+#include "smartnode/smartnodepayments.h"
 #include "ui_interface.h"
+#include "validation.h"
+
 #include <boost/thread.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
@@ -69,6 +72,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
     CSmartRewardEntry *rEntry = nullptr;
     CBlock block;
+    int nHeight = pindexNew->nHeight;
     ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
 
     BOOST_FOREACH(const CTransaction &tx, block.vtx) {
@@ -128,8 +132,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
                 rEntry->balance -= rOut.nValue;
 
-                if( rEntry->eligible ){
-                    rEntry->eligible = false;
+                if( rEntry->IsEligible() ){
+                    rEntry->fBalanceEligible = false;
                     result.disqualifiedEntries++;
                     result.disqualifiedSmart += rEntry->balanceOnStart;
                 }
@@ -137,10 +141,11 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 if(rEntry->balance < 0 ){
                     LogPrintf("%s: Negative amount?! - %s", __func__, rEntry->ToString());
                     rEntry->balance = 0;
-                 }
+                }
 
             }
         }
+
 #ifdef DEBUG_LOCKORDER
         int nTime2 = GetTimeMicros();
 #endif
@@ -162,6 +167,20 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                     rewardEntries.insert(make_pair(ids.at(0), rEntry));
                 }
                 rEntry->balance += out.nValue;
+
+                //check for node rewards to remove node addresses from lists
+                if(nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT){
+                  if(tx.IsCoinBase() && (nHeight % SmartNodePayments::PayoutInterval(nHeight)) ){
+                    if(out.nValue == (SmartNodePayments::Payment(nHeight) / SmartNodePayments::PayoutsPerBlock(nHeight))){
+                      if( rEntry->IsEligible() ){
+                          rEntry->fBalanceEligible = false;
+                          rEntry->fIsSmartNode = true;
+                          result.disqualifiedEntries++;
+                          result.disqualifiedSmart += rEntry->balanceOnStart;
+                      }
+                    }
+                  }
+                }
             }
         }
 
@@ -197,9 +216,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
         if( current.number ) snapshots.push_back(CSmartRewardSnapshot(entry, current));
 
         entry.balanceOnStart = entry.balance;
-        entry.eligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
+        entry.fBalanceEligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
 
-        if( entry.eligible ){
+        if( entry.IsEligible() ){
             ++next.eligibleEntries;
             next.eligibleSmart += entry.balanceOnStart;
         }
@@ -629,4 +648,3 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
             uiInterface.NotifySmartRewardUpdate();
     }
 }
-

@@ -228,7 +228,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         obj.push_back(Pair("address",id.ToString()));
         obj.push_back(Pair("balance",format(entry.balance)));
-        obj.push_back(Pair("balance_eligible", format(entry.eligible ? entry.balanceOnStart : 0)));
+        obj.push_back(Pair("balance_eligible", format(entry.IsEligible() ? entry.balanceOnStart : 0)));
 
         return obj;
     }
