@@ -109,6 +109,8 @@ int nWalletBackups = 10;
 const char * const BITCOIN_CONF_FILENAME = "smartcash.conf";
 const char * const BITCOIN_PID_FILENAME = "smartcashd.pid";
 
+const std::string args[113] = {"version", "alertnotify", "blocknotify", "blocksonly", "checkblocks", "checklevel", "conf", "daemon", "datadir", "dbcache", "feefilter", "loadblock", "maxorphantx", "maxmempool", "mempoolexpiry", "par", "pid", "prune", "reindex-chainstate", "reindex", "sysperms", "depositindex", "addnode", "banscore", "bantime", "bind", "connect", "discover", "dns", "dnsseed", "externalip", "forcednsseed", "listen", "listenonion", "maxconnections", "maxreceivebuffer", "maxsendbuffer", "maxtimeadjustment", "onion", "onlynet", "permitbaremultisig", "peerbloomfilters", "port", "proxy", "proxyrandomize", "rpcserialversion", "seednode", "timeout", "torcontrol", "torpassword", "upnp", "whitebind", "whitelist", "whitelistrelay", "whitelistforcerelay", "maxuploadtarget", "zmqpubhashblock", "zmqpubhashtx", "zmqpubrawblock", "zmqpubrawtx", "uacomment", "checkblockindex", "checkmempool", "checkpoints", "disablesafemode", "testsafemode", "dropmessagestest", "fuzzmessagestest", "stopafterblockimport", "limitancestorcount", "limitancestorsize", "limitdescendantcount", "limitdescendantsize", "bip9params", "debug", "nodebug", "help-debug", "logips", "logtimestamps", "logtimemicros", "mocktime", "limitfreerelay", "relaypriority", "maxsigcachesize", "maxtipage", "minrelaytxfee", "maxtxfee", "printtoconsole", "printpriority", "shrinkdebugfile", "acceptnonstdtxn", "bytespersigop", "datacarrier", "datacarriersize", "mempoolreplacement", "blockmaxweight", "blockmaxsize", "txmaxcount", "blockprioritysize", "blockversion", "server", "rest", "rpcbind", "rpccookiefile", "rpcuser", "rpcpassword", "rpcauth", "rpcport", "rpcallowip", "rpcthreads", "rpcworkqueue", "rpcservertimeout", "help"};
+
 map<string, string> mapArgs;
 map<string, vector<string> > mapMultiArgs;
 bool fDebug = false;
@@ -358,6 +360,34 @@ static void InterpretNegativeSetting(std::string& strKey, std::string& strValue)
         strKey = "-" + strKey.substr(3);
         strValue = InterpretBool(strValue) ? "0" : "1";
     }
+}
+
+bool CheckDaemonParameters()
+{
+    bool ok = true;
+
+    for(map<string, string>::const_iterator it = mapArgs.begin(); it != mapArgs.end(); ++it)
+    {
+        bool found = false;
+        unsigned int j = 0;
+        while(!found && j < sizeof(args)/sizeof(args[0]))
+        {
+            if(it->first.compare("-" + args[j]) == 0)
+            {
+                found = true;
+            }
+            j++;
+        }
+
+        if(!found)
+        {
+            ok = false;
+            fprintf(stdout, "Invalid parameter %s check the help with -help command\n", it->first.c_str());
+            break;
+        }
+    }
+
+    return ok;
 }
 
 void ParseParameters(int argc, const char* const argv[])
