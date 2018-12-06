@@ -56,7 +56,7 @@ extern bool fSmartNode;
 extern bool fLiteMode; 
 extern int nWalletBackups; 
 
-extern const std::string args[113];
+extern const std::string args[136];
 extern std::map<std::string, std::string> mapArgs;
 extern std::map<std::string, std::vector<std::string> > mapMultiArgs;
 extern bool fDebug;
