@@ -140,6 +140,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
             AddTransaction(saveTx);
         }
 
+        CSmartAddress *voteKeyRegistrationCheck = nullptr;
+
         // No reason to check the input here for new coins.
         if( !tx.IsCoinBase() ){
 
@@ -181,7 +183,16 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 rEntry->balance -= rOut.nValue;
 
                 if( rEntry->IsEligible() ){
-                    rEntry->fBalanceEligible = false;
+
+                    // If its a votekey registration not instantly make the
+                    // balance ineligible. First check if the change is sent back
+                    // to the address or not to avoid exploiting fund sending
+                    // with votekey registration transactions
+                    if( nCurrentRound >= nFirst1_3_Round && tx.IsVoteKeyRegistration()  )
+                        voteKeyRegistrationCheck = new CSmartAddress(rEntry->id);
+                    else
+                        rEntry->fBalanceEligible = false;
+
                     result.disqualifiedEntries++;
                     result.disqualifiedSmart += rEntry->balanceOnStart;
                 }
@@ -209,11 +220,36 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 LogPrint("smartrewards", "Process Outputs: Could't parse CSmartAddress: %s\n",out.ToString());
                 continue;
             }else{
+
                 if(!GetCachedRewardEntry(ids.at(0),rEntry)){
                     rEntry = new CSmartRewardEntry(ids.at(0));
                     ReadRewardEntry(rEntry->id, *rEntry);
                     rewardEntries.insert(make_pair(ids.at(0), rEntry));
                 }
+
+                if( voteKeyRegistrationCheck ){
+
+                    if( tx.IsVoteKeyRegistration() &&
+                        out.IsVoteKeyRegistrationData() &&
+                        !(*voteKeyRegistrationCheck == rEntry->id) ){
+
+                        CSmartRewardEntry *vkEntry = nullptr;
+
+                        if(!GetCachedRewardEntry(*voteKeyRegistrationCheck,vkEntry)){
+                            vkEntry = new CSmartRewardEntry(*voteKeyRegistrationCheck);
+                            ReadRewardEntry(vkEntry->id, *vkEntry);
+                            rewardEntries.insert(make_pair(vkEntry->id, vkEntry));
+                        }
+
+                        // Finally invalidate the balance since the change output went not
+                        // back to the registered transaction! We don't want to allow
+                        // a exploit to send around funds withouht breaking smartrewards.
+                        vkEntry->fBalanceEligible = false;
+                    }
+
+                    delete voteKeyRegistrationCheck;
+                }
+
                 rEntry->balance += out.nValue;
 
                 // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
