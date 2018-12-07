@@ -5,6 +5,7 @@
 #include "consensus/consensus.h"
 #include "init.h"
 #include "smartrewards/rewards.h"
+#include "smartrewards/rewardspayments.h"
 #include "smarthive/hive.h"
 #include "smartnode/spork.h"
 #include "smartnode/smartnodepayments.h"
@@ -68,11 +69,58 @@ bool CSmartRewards::Verify()
     return pdb->Verify(rewardHeight);
 }
 
-bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result) {
+
+void CSmartRewards::UpdatePayoutParameter(CSmartRewardRound &round)
+{
+
+    int64_t nPayeeCount = round.eligibleEntries - round.disqualifiedEntries;
+    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+
+    if( round.number < nFirst_1_3_Round ){
+
+        round.nBlockPayees = nRewardPayouts_1_2_BlockPayees;
+        round.nBlockInterval = nRewardPayouts_1_2_BlockInterval;
+
+        if( TestNet() ){
+            if( round.number < 68 ){
+                round.nBlockPayees = nRewardPayoutsPerBlock_1_Testnet;
+                round.nBlockInterval = nRewardPayoutBlockInterval_1_Testnet;
+            }else{
+                round.nBlockPayees = nRewardPayoutsPerBlock_2_Testnet;
+                round.nBlockInterval = nRewardPayoutBlockInterval_2_Testnet;
+            }
+        }
+
+    }else{
+
+        int64_t nBlockStretch = MainNet() ? nRewardPayouts_1_3_BlockStretch :
+                                   nRewardPayouts_1_3_BlockStretch_Testnet;
+        int64_t nBlocksPerRound = MainNet() ? nRewardsBlocksPerRound_1_3 :
+                                   nRewardsBlocksPerRound_1_3_Testnet;
+        int64_t nBlockPayees = MainNet() ? nRewardPayouts_1_3_BlockPayees :
+                                           nRewardPayouts_1_3_BlockPayees_Testnet;
+
+        round.nBlockPayees = std::max<int>(nBlockPayees, (nPayeeCount / nBlockStretch * nBlockPayees) + 1);
+
+        int64_t nStartDelayBlocks = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+        int64_t nBlocksTarget = nStartDelayBlocks + nBlocksPerRound;
+        round.nBlockInterval = ((nBlockStretch * round.nBlockPayees) / nPayeeCount) + 1;
+        int64_t nStretchedLength = nPayeeCount / round.nBlockPayees * (round.nBlockInterval);
+
+        if( nStretchedLength > nBlocksTarget ){
+            round.nBlockInterval--;
+        }else if( nStretchedLength < nBlockStretch ){
+            round.nBlockInterval++;
+        }
+    }
+}
+
+bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult &result) {
 
     CSmartRewardEntry *rEntry = nullptr;
     CBlock block;
     int nHeight = pindexNew->nHeight;
+    int nFirst1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
     ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
 
     BOOST_FOREACH(const CTransaction &tx, block.vtx) {
@@ -168,18 +216,32 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 }
                 rEntry->balance += out.nValue;
 
-                //check for node rewards to remove node addresses from lists
-                if(nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT){
-                  if(tx.IsCoinBase() && (nHeight % SmartNodePayments::PayoutInterval(nHeight)) ){
-                    if(out.nValue == (SmartNodePayments::Payment(nHeight) / SmartNodePayments::PayoutsPerBlock(nHeight))){
-                      if( rEntry->IsEligible() ){
-                          rEntry->fBalanceEligible = false;
-                          rEntry->fIsSmartNode = true;
-                          result.disqualifiedEntries++;
-                          result.disqualifiedSmart += rEntry->balanceOnStart;
-                      }
+                // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
+                if( nCurrentRound >= nFirst1_3_Round && tx.IsCoinBase() ){
+
+                    int nInterval = SmartNodePayments::PayoutInterval(nHeight);
+                    int nPayoutsPerBlock = SmartNodePayments::PayoutsPerBlock(nHeight);
+                    // Just to avoid potential zero divisions
+                    nPayoutsPerBlock = std::max(1,nPayoutsPerBlock);
+
+                    CAmount nNodeReward = SmartNodePayments::Payment(nHeight) / nPayoutsPerBlock;
+
+                    // If we have an interval check if this is a node payout block
+                    if( nInterval && !(nHeight % nInterval) ){
+
+                        // If the amount matches and the entry is not yet marked as node do it
+                        if( abs(out.nValue - nNodeReward ) < 2 && rEntry->fIsSmartNode ){
+
+                            rEntry->fIsSmartNode = true;
+
+                            // If it is still eligible due to the balance disqualify it
+                            if( rEntry->fBalanceEligible ){
+                                rEntry->fBalanceEligible = false;
+                                result.disqualifiedEntries++;
+                                result.disqualifiedSmart += rEntry->balanceOnStart;
+                            }
+                        }
                     }
-                  }
                 }
             }
         }
@@ -210,6 +272,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
 {
     LOCK(cs_rewardsdb);
     snapshots.clear();
+
+    UpdatePayoutParameter(current);
 
     BOOST_FOREACH(CSmartRewardEntry &entry, entries) {
 
@@ -244,6 +308,12 @@ bool CSmartRewards::GetRewardSnapshots(const int16_t round, CSmartRewardSnapshot
 }
 
 bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts)
+{
+    LOCK(cs_rewardsdb);
+    return pdb->ReadRewardPayouts(round, payouts);
+}
+
+bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts)
 {
     LOCK(cs_rewardsdb);
     return pdb->ReadRewardPayouts(round, payouts);
@@ -346,6 +416,28 @@ int CSmartRewards::GetLastHeight()
     return rewardHeight;
 }
 
+int CSmartRewards::GetBlocksPerRound(const int nRound)
+{
+    LOCK(cs_rewardrounds);
+
+    if( MainNet() ){
+
+        if( nRound <= nRewardsFirst_1_3_Round )
+            return nRewardsBlocksPerRound_1_2;
+        else
+            return nRewardsBlocksPerRound_1_3;
+
+    }else{
+
+        if( nRound <= nRewardsFirst_1_3_Round_Testnet )
+            return nRewardsBlocksPerRound_1_2_Testnet;
+        else
+            return nRewardsBlocksPerRound_1_3_Testnet;
+
+    }
+
+}
+
 bool CSmartRewards::AddBlock(const CSmartRewardBlock &block, bool sync)
 {
     blockEntries.push_back(block);
@@ -386,6 +478,8 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
     }
 
     pdb->ReadRounds(finishedRounds);
+
+    std::sort(finishedRounds.begin(), finishedRounds.end());
 
     if( finishedRounds.size() ){
         lastRound = finishedRounds.back();
@@ -499,18 +593,25 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
 
     if( ( pLastIndex->nHeight - currentBlock.nHeight ) > nMinConfirmations){
 
+        int nCurrentRound;
+
+        {
+            LOCK(cs_rewardrounds);
+            nCurrentRound = currentRound.number;
+        }
+
         CBlockIndex* pNextIndex = pLastIndex;
 
         while(pNextIndex && pNextIndex->nHeight != currentBlock.nHeight + 1 ) pNextIndex = pNextIndex->pprev;
 
-        if(!pNextIndex || pNextIndex->nHeight != currentBlock.nHeight + 1 ) throw runtime_error("Could't find next block index!");
+        if(!pNextIndex || pNextIndex->nHeight != currentBlock.nHeight + 1 ) throw runtime_error("Failed to find next block index!");
 
         nTime1 = GetTimeMicros();
 
         // Result of the block processing.
         CSmartRewardsUpdateResult result;
         // Process the block!
-        if(!Update(pNextIndex, chainparams, result)) throw runtime_error(std::string(__func__) + ": rewards update failed");
+        if(!Update(pNextIndex, chainparams, nCurrentRound, result)) throw runtime_error(std::string(__func__) + ": rewards update failed");
 
         // Update the current block to the processed one
         currentBlock = result.block;
@@ -526,7 +627,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
             if( (MainNet() && pNextIndex->GetBlockTime() > nFirstRoundStartTime) ||
                 (TestNet() && pNextIndex->nHeight >= nFirstRoundStartBlock_Testnet) ){
 
-                if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
+                if( !SyncPrepared() ) throw runtime_error("Failed to sync current prepared entries!");
 
                 // Create the very first smartrewards round.
                 CSmartRewardRound first;
@@ -541,14 +642,14 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
                 CSmartRewardSnapshotList snapshots;
 
                 // Get the current entries
-                if( !GetRewardEntries(entries) ) throw runtime_error("Could't read all reward entries!");
+                if( !GetRewardEntries(entries) ) throw runtime_error("Failed to read all reward entries!");
 
                 // Evaluate the round and update the next rounds parameter.
                 EvaluateRound(currentRound, first, entries, snapshots );
 
                 CalculateRewardRatio(first);
 
-                if( !StartFirstRound(first, entries) ) throw runtime_error("Could't finalize round!");
+                if( !StartFirstRound(first, entries) ) throw runtime_error("Failed to finalize round!");
 
                 currentRound = first;
             }
@@ -568,7 +669,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
         if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pNextIndex->GetBlockTime() > currentRound.endBlockTime ) ||
             ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pNextIndex->nHeight >= currentRound.endBlockHeight ) ){
 
-            if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
+            if( !SyncPrepared() ) throw runtime_error("Failed to sync current prepared entries!");
 
             // Write the round to the history
             currentRound.endBlockHeight = pNextIndex->nHeight;
@@ -583,35 +684,37 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
             next.startBlockTime = currentRound.endBlockTime;
             next.startBlockHeight = currentRound.endBlockHeight + 1;
 
+            int nBlocksPerRound = GetBlocksPerRound(next.number);
             time_t startTime = (time_t)next.startBlockTime;
 
-            boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
-
-            endDate += boost::gregorian::months(1);
-            // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
-            next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
-
-            if( TestNet() ) next.endBlockTime = startTime + nRewardsBlocksPerRound_Testnet * 55;
-
             if( MainNet() ){
+
                 if( next.number == nRewardsFirstAutomatedRound - 1 ){
                     // Let the round 12 end at height 574099 so that round 13 starts at 574100
                     next.endBlockHeight = HF_V1_2_SMARTREWARD_HEIGHT - 1;
                     next.endBlockTime = startTime + ( (next.endBlockHeight - next.startBlockHeight) * 55 );
-                }else if(next.number >= nRewardsFirstAutomatedRound){
-                    next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound - 1;
-                    next.endBlockTime = startTime + nRewardsBlocksPerRound * 55;
-                }else{
+                }else if(next.number < nRewardsFirstAutomatedRound){
+
+                    boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
+
+                    endDate += boost::gregorian::months(1);
+                    // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
+                    next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
                     next.endBlockHeight = next.startBlockHeight + ( (next.endBlockTime - next.startBlockTime) / 55 );
+                }else{
+                    next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
+                    next.endBlockTime = startTime + nBlocksPerRound * 55;
                 }
+
             }else{
-                next.endBlockHeight = next.startBlockHeight + nRewardsBlocksPerRound_Testnet - 1;
+                next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
+                next.endBlockTime = startTime + nBlocksPerRound * 55;
             }
 
-            if( !SyncPrepared() ) throw runtime_error("Could't sync current prepared entries!");
+            if( !SyncPrepared() ) throw runtime_error("Failed to sync current prepared entries!");
 
             // Get the current entries
-            if( !GetRewardEntries(entries) ) throw runtime_error("Could not read all reward entries!");
+            if( !GetRewardEntries(entries) ) throw runtime_error("Failed to read all reward entries!");
 
             CalculateRewardRatio(currentRound);
 
@@ -620,7 +723,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
 
             CalculateRewardRatio(next);
 
-            if( !FinalizeRound(currentRound, next, entries, snapshots) ) throw runtime_error("Could't finalize round!");
+            if( !FinalizeRound(currentRound, next, entries, snapshots) ) throw runtime_error("Failed to finalize round!");
 
             LOCK(cs_rewardrounds);
 

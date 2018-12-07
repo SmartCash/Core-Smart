@@ -361,6 +361,37 @@ bool CSmartRewardsDB::ReadRewardPayouts(const int16_t round, CSmartRewardSnapsho
     return true;
 }
 
+bool CSmartRewardsDB::ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(make_pair(DB_ROUND_SNAPSHOT,round));
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char,std::pair<int16_t, CSmartAddress>> key;
+        if (pcursor->GetKey(key) && key.first == DB_ROUND_SNAPSHOT) {
+
+            if( key.second.first != round ) break;
+
+            CSmartRewardSnapshot nValue;
+            if (pcursor->GetValue(nValue)) {
+                if( nValue.reward ) payouts.push_back(new CSmartRewardSnapshot(nValue));
+                pcursor->Next();
+            } else {
+                // Delete everything if something fails
+                for( auto it : payouts ) delete it;
+                payouts.clear();
+                return error("failed to get reward entry");
+            }
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
 string CSmartRewardEntry::GetAddress() const
 {
     return id.ToString();
@@ -373,17 +404,19 @@ void CSmartRewardEntry::setNull()
     balance = 0;
     fBalanceEligible = false;
     fIsSmartNode = false;
+    fVoteProved = false;
 }
 
 string CSmartRewardEntry::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceStart=%d, eligible=%b, isSmartNOde=%b)\n",
+    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceStart=%d, eligible=%b, isSmartNode=%b, voteProved=%b)\n",
         GetAddress(),
         balance,
         balanceOnStart,
         fBalanceEligible,
-        fIsSmartNode);
+        fIsSmartNode,
+        fVoteProved);
     return s.str();
 }
 
@@ -431,6 +464,15 @@ string CSmartRewardSnapshot::ToString() const
         balance,
         reward);
     return s.str();
+}
+
+arith_uint256 CSmartRewardSnapshot::CalculateScore(const uint256& blockHash)
+{
+    // Deterministically calculate a "score" for a CSmartRewardSnapshot based on any given (block)hash
+    // Used to sort the payout list for 1.3 smartreward payouts
+    CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
+    ss << reward << id << blockHash;
+    return UintToArith256(ss.GetHash());
 }
 
 string CSmartRewardTransaction::ToString() const

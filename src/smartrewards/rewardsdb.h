@@ -31,6 +31,7 @@ typedef std::vector<CSmartRewardBlock> CSmartRewardBlockList;
 typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
 typedef std::vector<CSmartRewardSnapshot> CSmartRewardSnapshotList;
+typedef std::vector<CSmartRewardSnapshot*> CSmartRewardSnapshotPtrList;
 typedef std::vector<CSmartRewardTransaction> CSmartRewardTransactionList;
 
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
@@ -115,6 +116,9 @@ public:
     int64_t disqualifiedEntries;
     CAmount disqualifiedSmart;
 
+    int64_t nBlockPayees;
+    int64_t nBlockInterval;
+
     CAmount rewards;
     double percent;
 
@@ -128,6 +132,8 @@ public:
         eligibleSmart = 0;
         disqualifiedEntries = 0;
         disqualifiedSmart = 0;
+        nBlockPayees = 0;
+        nBlockInterval = 0;
         rewards = 0;
         percent = 0;
     }
@@ -145,8 +151,15 @@ public:
         READWRITE(eligibleSmart);
         READWRITE(disqualifiedEntries);
         READWRITE(disqualifiedSmart);
+        READWRITE(nBlockPayees);
+        READWRITE(nBlockInterval);
         READWRITE(rewards);
         READWRITE(percent);
+    }
+
+    friend bool operator<(const CSmartRewardRound& a, const CSmartRewardRound& b)
+    {
+        return a.number < b.number;
     }
 
     std::string ToString() const;
@@ -166,6 +179,7 @@ public:
         READWRITE(balance);
         READWRITE(fBalanceEligible);
         READWRITE(fIsSmartNode);
+        READWRITE(fVoteProved);
     }
 
     CSmartAddress id;
@@ -174,15 +188,16 @@ public:
     CAmount reward;
     bool fBalanceEligible;
     bool fIsSmartNode;
+    bool fVoteProved;
 
     CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceOnStart(0),
                           reward(0), fBalanceEligible(false),
-                          fIsSmartNode(false) {}
+                          fIsSmartNode(false), fVoteProved(false) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceOnStart(0),
                           reward(0), fBalanceEligible(false),
-                          fIsSmartNode(false) {}
+                          fIsSmartNode(false), fVoteProved(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -245,6 +260,8 @@ public:
 
     std::string GetAddress() const;
     std::string ToString() const;
+
+    arith_uint256 CalculateScore(const uint256& blockHash);
 };
 
 
@@ -284,6 +301,7 @@ public:
 
     bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
 
     bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
