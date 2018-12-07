@@ -33,7 +33,7 @@ static const int CONTINUE_EXECUTION=-1;
 std::string HelpMessageCli()
 {
     string strUsage;
-    strUsage += HelpMessageGroup(_("smartcashd Options:"));
+    strUsage += HelpMessageGroup(_("Options:"));
     strUsage += HelpMessageOpt("-? or -help", _("Show options and exit"));
     strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), BITCOIN_CONF_FILENAME));
     strUsage += HelpMessageOpt("-datadir=<dir>", _("Specify data directory"));
