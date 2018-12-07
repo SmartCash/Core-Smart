@@ -9,6 +9,7 @@
 #include "netbase.h"
 #include "rpc/server.h"
 #include "smartrewards/rewards.h"
+#include "smartrewards/rewardspayments.h"
 #include "util.h"
 #include "utilmoneystr.h"
 #include "wallet/wallet.h"
@@ -66,17 +67,17 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         if( !current.number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
 
-        obj.push_back(Pair("rewards_cycle",current.number));
-        obj.push_back(Pair("start_blockheight",current.startBlockHeight));
-        obj.push_back(Pair("start_blocktime",current.startBlockTime));
-        obj.push_back(Pair("end_blockheight",current.endBlockHeight));
-        obj.push_back(Pair("end_blocktime",current.endBlockTime));
-        obj.push_back(Pair("eligible_addresses",current.eligibleEntries - current.disqualifiedEntries));
-        obj.push_back(Pair("eligible_smart",format(current.eligibleSmart - current.disqualifiedSmart)));
-        obj.push_back(Pair("disqualified_addresses",current.disqualifiedEntries));
-        obj.push_back(Pair("disqualified_smart",format(current.disqualifiedSmart)));
-        obj.push_back(Pair("estimated_rewards",format(current.rewards)));
-        obj.push_back(Pair("estimated_percent",current.percent));
+        obj.pushKV("rewards_cycle",current.number);
+        obj.pushKV("start_blockheight",current.startBlockHeight);
+        obj.pushKV("start_blocktime",current.startBlockTime);
+        obj.pushKV("end_blockheight",current.endBlockHeight);
+        obj.pushKV("end_blocktime",current.endBlockTime);
+        obj.pushKV("eligible_addresses",current.eligibleEntries - current.disqualifiedEntries);
+        obj.pushKV("eligible_smart",format(current.eligibleSmart - current.disqualifiedSmart));
+        obj.pushKV("disqualified_addresses",current.disqualifiedEntries);
+        obj.pushKV("disqualified_smart",format(current.disqualifiedSmart));
+        obj.pushKV("estimated_rewards",format(current.rewards));
+        obj.pushKV("estimated_percent",current.percent);
 
         return obj;
     }
@@ -91,23 +92,36 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         const CSmartRewardRoundList& history = prewards->GetRewardRounds();
 
+        int64_t nPayoutDelay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+
         if(!history.size()) throw JSONRPCError(RPC_DATABASE_ERROR, "No finished reward round available yet.");
 
         BOOST_FOREACH(CSmartRewardRound round, history) {
 
             UniValue roundObj(UniValue::VOBJ);
 
-            roundObj.push_back(Pair("rewards_cycle",round.number));
-            roundObj.push_back(Pair("start_blockheight",round.startBlockHeight));
-            roundObj.push_back(Pair("start_blocktime",round.startBlockTime));
-            roundObj.push_back(Pair("end_blockheight",round.endBlockHeight));
-            roundObj.push_back(Pair("end_blocktime",round.endBlockTime));
-            roundObj.push_back(Pair("eligible_addresses",round.eligibleEntries - round.disqualifiedEntries));
-            roundObj.push_back(Pair("eligible_smart",format(round.eligibleSmart - round.disqualifiedSmart)));
-            roundObj.push_back(Pair("disqualified_addresses",round.disqualifiedEntries));
-            roundObj.push_back(Pair("disqualified_smart",format(round.disqualifiedSmart)));
-            roundObj.push_back(Pair("rewards",format(round.rewards)));
-            roundObj.push_back(Pair("percent",round.percent));
+            roundObj.pushKV("rewards_cycle",round.number);
+            roundObj.pushKV("start_blockheight",round.startBlockHeight);
+            roundObj.pushKV("start_blocktime",round.startBlockTime);
+            roundObj.pushKV("end_blockheight",round.endBlockHeight);
+            roundObj.pushKV("end_blocktime",round.endBlockTime);
+            roundObj.pushKV("eligible_addresses",round.eligibleEntries - round.disqualifiedEntries);
+            roundObj.pushKV("eligible_smart",format(round.eligibleSmart - round.disqualifiedSmart));
+            roundObj.pushKV("disqualified_addresses",round.disqualifiedEntries);
+            roundObj.pushKV("disqualified_smart",format(round.disqualifiedSmart));
+            roundObj.pushKV("rewards",format(round.rewards));
+            roundObj.pushKV("percent",round.percent);
+
+            UniValue payObj(UniValue::VOBJ);
+
+            int nFirstBlock = round.endBlockHeight + nPayoutDelay;
+            nFirstBlock += nFirstBlock % round.nBlockInterval;
+
+            payObj.pushKV("firstBlock", nFirstBlock );
+            payObj.pushKV("blockPayees",round.nBlockPayees);
+            payObj.pushKV("blockInterval",round.nBlockInterval);
+
+            roundObj.pushKV("payouts", payObj);
 
             obj.push_back(roundObj);
         }
@@ -154,8 +168,8 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         BOOST_FOREACH(CSmartRewardSnapshot payout, payouts) {
 
             UniValue addrObj(UniValue::VOBJ);
-            addrObj.push_back(Pair("address", payout.id.ToString()));
-            addrObj.push_back(Pair("reward", format(payout.reward)));
+            addrObj.pushKV("address", payout.id.ToString());
+            addrObj.pushKV("reward", format(payout.reward));
 
             obj.push_back(addrObj);
         }
@@ -202,8 +216,8 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         BOOST_FOREACH(CSmartRewardSnapshot s, snapshot) {
 
             UniValue addrObj(UniValue::VOBJ);
-            addrObj.push_back(Pair("address", s.id.ToString()));
-            addrObj.push_back(Pair("balance", format(s.balance)));
+            addrObj.pushKV("address", s.id.ToString());
+            addrObj.pushKV("balance", format(s.balance));
 
             obj.push_back(addrObj);
         }
@@ -226,9 +240,12 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         UniValue obj(UniValue::VOBJ);
 
-        obj.push_back(Pair("address",id.ToString()));
-        obj.push_back(Pair("balance",format(entry.balance)));
-        obj.push_back(Pair("balance_eligible", format(entry.IsEligible() ? entry.balanceOnStart : 0)));
+        obj.pushKV("address",id.ToString());
+        obj.pushKV("balance",format(entry.balance));
+        obj.pushKV("balance_eligible", format(entry.fBalanceEligible ? entry.balanceOnStart : 0));
+        obj.pushKV("is_smartnode", entry.fIsSmartNode);
+        obj.pushKV("voted", entry.fVoteProved);
+        obj.pushKV("eligible", entry.IsEligible());
 
         return obj;
     }
