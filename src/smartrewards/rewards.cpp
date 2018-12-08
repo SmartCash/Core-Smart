@@ -458,14 +458,14 @@ int CSmartRewards::GetBlocksPerRound(const int nRound)
 
     if( MainNet() ){
 
-        if( nRound <= nRewardsFirst_1_3_Round )
+        if( nRound < nRewardsFirst_1_3_Round )
             return nRewardsBlocksPerRound_1_2;
         else
             return nRewardsBlocksPerRound_1_3;
 
     }else{
 
-        if( nRound <= nRewardsFirst_1_3_Round_Testnet )
+        if( nRound < nRewardsFirst_1_3_Round_Testnet )
             return nRewardsBlocksPerRound_1_2_Testnet;
         else
             return nRewardsBlocksPerRound_1_3_Testnet;
