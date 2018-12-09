@@ -266,16 +266,15 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                     if( nInterval && !(nHeight % nInterval) ){
 
                         // If the amount matches and the entry is not yet marked as node do it
-                        if( abs(out.nValue - nNodeReward ) < 2 && rEntry->fIsSmartNode ){
+                        if( abs(out.nValue - nNodeReward ) < 2 && !rEntry->fIsSmartNode ){
 
-                            rEntry->fIsSmartNode = true;
-
-                            // If it is still eligible due to the balance disqualify it
-                            if( rEntry->fBalanceEligible ){
-                                rEntry->fBalanceEligible = false;
+                            // If it is currently eligible adjust the round's results
+                            if( rEntry->IsEligible() ){
                                 result.disqualifiedEntries++;
                                 result.disqualifiedSmart += rEntry->balanceOnStart;
                             }
+
+                            rEntry->fIsSmartNode = true;
                         }
                     }
                 }
