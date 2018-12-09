@@ -21,6 +21,8 @@ class CSmartVotingManager;
 class CProposal;
 class CProposalVote;
 
+static const int SMARTVOTING_START_HEIGHT = 859100;
+
 static const int MAX_SMARTVOTING_OBJECT_DATA_SIZE = 16 * 1024;
 static const int MIN_SMARTVOTING_PEER_PROTO_VERSION = 90027;
 

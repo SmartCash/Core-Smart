@@ -116,6 +116,23 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
 
 }
 
+bool SmartVotingPage::IsVotingEnabled()
+{
+    int nHeight = chainActive.Height();
+
+    if( !fDebug && MainNet() && nHeight <= SMARTVOTING_START_HEIGHT ){
+        QMessageBox::information(this, tr("Not yet!"),
+                                       QString(("SmartVoting features will be available at block %1\n\n"
+                                                "%2 blocks left.."))
+                                            .arg(SMARTVOTING_START_HEIGHT)
+                                            .arg(SMARTVOTING_START_HEIGHT - nHeight),
+                                       QMessageBox::Ok);
+        return false;
+    }
+
+    return true;
+}
+
 SmartVotingPage::~SmartVotingPage()
 {
     mapVisibleKeys.clear();
@@ -215,6 +232,8 @@ bool SmartVotingPage::RemoveProposal(const CInternalProposal& proposal)
 void SmartVotingPage::showManagementUI()
 {
 
+    if( !IsVotingEnabled() ) return;
+
     if( !LoadProposalTabs() ){
         showErrorDialog(this, "Failed to load proposals.");
         return;
@@ -240,6 +259,8 @@ void SmartVotingPage::encryptVoting()
 
 void SmartVotingPage::showVoteKeysUI()
 {
+    if( !IsVotingEnabled() ) return;
+
     voteKeyUpdateTimer.start(60000);
     updateVoteKeyUI();
     ui->stackedWidget->setCurrentIndex(3);

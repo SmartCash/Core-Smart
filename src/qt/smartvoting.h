@@ -93,6 +93,7 @@ private:
     void connectProposalTab(SmartProposalTabWidget *tabWidget);
     void disconnectProposalTab(SmartProposalTabWidget *tabWidget);
 
+    bool IsVotingEnabled();
     bool LoadProposalTabs();
     bool RemoveProposal(const CInternalProposal &proposal);
 public Q_SLOTS:
