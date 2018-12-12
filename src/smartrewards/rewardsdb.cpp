@@ -229,7 +229,6 @@ bool CSmartRewardsDB::SyncBlocks(const CSmartRewardBlockList &blocks, const CSma
         }else{
             batch.Write(make_pair(DB_REWARD_ENTRY,r.first), *r.second);
         }
-        delete r.second;
     }
 
     BOOST_FOREACH(const CSmartRewardTransaction &t, transactions) {

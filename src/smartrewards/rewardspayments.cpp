@@ -21,8 +21,10 @@ static std::pair<int,CSmartRewardSnapshotPtrList> *paymentData = nullptr;
 static void ResetPaymentData()
 {
     if( paymentData ){
-        for( auto it : paymentData->second )
-            delete it;
+
+        for( CSmartRewardSnapshot* s : paymentData->second ){
+            delete s;
+        }
 
         delete paymentData;
     }
@@ -108,14 +110,14 @@ CSmartRewardSnapshotPtrList SmartRewardPayments::GetPayments(const CSmartRewardR
                 std::vector<std::pair<arith_uint256, CSmartRewardSnapshot*>> vecScores;
                 // Since we use payouts stretched out over a week better to have some "random" sort here
                 // based on a score calculated with the round start's blockhash.
-                for (const auto& s : roundPayments) {
+                for (auto s : roundPayments) {
                     arith_uint256 nScore = s->CalculateScore(blockHash);
                     vecScores.push_back(std::make_pair(nScore,s));
                 }
 
                 std::sort(vecScores.begin(), vecScores.end(), CompareRewardScore());
 
-                for( const auto& s : vecScores)
+                for(auto s : vecScores)
                     paymentData->second.push_back(s.second);
             }
             // And set the round number the payment data belongs to
@@ -144,7 +146,6 @@ CSmartRewardSnapshotPtrList SmartRewardPayments::GetPayments(const CSmartRewardR
             return CSmartRewardSnapshotPtrList();
         }
 
-
         // Finally return the subvector with the payees of this blockHeight!
         return CSmartRewardSnapshotPtrList(paymentData->second.begin() + nStartIndex, paymentData->second.begin() + nEndIndex);
     }
@@ -168,16 +169,6 @@ CSmartRewardSnapshotPtrList SmartRewardPayments::GetPaymentsForBlock(const int n
     // If we are not yet at the 1.2 payout block time.
     if( ( MainNet() && nHeight < HF_V1_2_SMARTREWARD_HEIGHT + nRewardsBlocksPerRound_1_2 ) ||
         ( TestNet() && nHeight < nFirstRoundEndBlock_Testnet ) ){
-        result = SmartRewardPayments::NoRewardBlock;
-        return CSmartRewardSnapshotPtrList();
-    }
-
-    // TODO: If the block DB verification on startup uses check level4 we can't check
-    // for smartreward blocks at the moment since we cant load the rewardsdb before the
-    // block db. To just give an NoRewardBlock here is not optimal but should work for
-    // now. Only if the daemon gets restarted during the smartreward blocks it might require
-    // an reindex to get things running again.
-    if( prewards == nullptr ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotPtrList();
     }

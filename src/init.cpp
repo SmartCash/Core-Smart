@@ -1604,6 +1604,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     int64_t nRewardsCache = (GetArg("-rewardsdbcache", nRewardsDefaultDbCache) << 20);
     LogPrintf("* Using %.1fMiB for smart rewards database\n", nRewardsCache * (1.0 / 1024 / 1024));
 
+    delete prewards;
+
+    CSmartRewardsDB *prewardsdb = new CSmartRewardsDB(nRewardsCache, false, false);
+
+    prewards = new CSmartRewards(prewardsdb);
+
     bool fLoaded = false;
     while (!fLoaded && !fRequestShutdown) {
         bool fReset = fReindex;
@@ -1734,7 +1740,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     uiInterface.InitMessage(_("Verifying SmartRewards..."));
 
     CBlockIndex *pLastIndex = chainActive.Tip();
-    CSmartRewardsDB * prewardsdb = nullptr;
     bool fResetRewards = fReindex;
     fLoaded = false;
 
@@ -1746,11 +1751,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         do {
             try {
 
-                delete prewards;
+                if( fResetRewards ){
+                    delete prewards;
 
-                prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fResetRewards);
-
-                prewards = new CSmartRewards(prewardsdb);
+                    prewardsdb = new CSmartRewardsDB(nRewardsCache, false, true);
+                    prewards = new CSmartRewards(prewardsdb);
+                }
 
                 if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database is incomplete."));
 

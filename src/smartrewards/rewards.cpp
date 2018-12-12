@@ -425,7 +425,10 @@ bool CSmartRewards::SyncPrepared()
 
     bool ret =  pdb->SyncBlocks(blockEntries,currentRound, rewardEntries, transactionEntries);
 
-    // Destructor of the elements is called in the pdb->SyncBlocks.
+    for( std::pair<CSmartAddress, CSmartRewardEntry*> it : rewardEntries ){
+        delete it.second;
+    }
+
     rewardEntries.clear();
     blockEntries.clear();
     transactionEntries.clear();
