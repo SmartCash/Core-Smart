@@ -315,6 +315,11 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
         if( current.number ) snapshots.push_back(CSmartRewardSnapshot(entry, current));
 
         entry.balanceOnStart = entry.balance;
+        // Reset SmartNode flag with every cycle in case a node was shut down during the cycle.
+        entry.fIsSmartNode = false;
+        // Reset the voted flag with every cycle to force a new vote for eligibility
+        entry.fVoteProved = false;
+        // Evaluate the balance eligibilty
         entry.fBalanceEligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
 
         if( entry.IsEligible() ){
