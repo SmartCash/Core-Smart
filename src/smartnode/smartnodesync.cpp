@@ -216,7 +216,10 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
 
     // Calculate "progress" for LOG reporting / GUI notification
     double nSyncProgress = double(nRequestedSmartnodeAttempt + (nRequestedSmartnodeAssets - 1) * 8) / (8*4);
-    LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nRequestedSmartnodeAttempt %d nSyncProgress %f\n", nTick, nRequestedSmartnodeAssets, nRequestedSmartnodeAttempt, nSyncProgress);
+    if( nRequestedSmartnodeAssets > SMARTNODE_SYNC_INITIAL ){
+        LogPrintf("CSmartnodeSync::ProcessTick -- nTick %d nRequestedSmartnodeAssets %d nRequestedSmartnodeAttempt %d nSyncProgress %f\n", nTick, nRequestedSmartnodeAssets, nRequestedSmartnodeAttempt, nSyncProgress);
+    }
+
     uiInterface.NotifyAdditionalDataSyncProgressChanged(nSyncProgress);
 
     if( nRequestedSmartnodeAssets == SMARTNODE_SYNC_LIST ){
