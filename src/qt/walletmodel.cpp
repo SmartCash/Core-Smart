@@ -17,6 +17,7 @@
 #include "sync.h"
 #include "../smartnode/instantx.h"
 #include "../smartnode/spork.h"
+#include "../smartnode/smartnodesync.h"
 #include "smartvoting/votevalidation.h"
 #include "ui_interface.h"
 #include "wallet/wallet.h"
@@ -575,6 +576,7 @@ int WalletModel::voteKeyCount(const bool fActiveOnly)
 QString WalletModel::votingPowerString(const bool fActiveOnly)
 {
     if( !wallet ) return "Wallet not available";
+    if( !smartnodeSync.IsBlockchainSynced() ) return "Not synced";
     LOCK(wallet->cs_wallet);
     QString votingPowerString;
     int nTotalPower = 0;
@@ -607,6 +609,8 @@ QString WalletModel::votingPowerString(const bool fActiveOnly)
 QString WalletModel::votingPowerString(const CVoteKey &voteKey)
 {
     if( !wallet ) return "Wallet not available";
+    if( !smartnodeSync.IsBlockchainSynced() ) return "Not synced";
+
     LOCK(wallet->cs_wallet);
     QString votingPowerString;
     int64_t nTotalPower = 0;
