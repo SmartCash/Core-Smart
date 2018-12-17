@@ -10,10 +10,12 @@
 #include "spentindex.h"
 #include "validation.h"
 #include "wallet/wallet.h"
+#include "txdb.h"
 
 static CCriticalSection cs;
 
 static std::map<CVoteKey, CVotingPower> mapActiveVoteKeys;
+static std::map<uint256, std::pair<int,int>> mapVoteKeyRegistrations;
 
 bool GetBalanceDelta(const CSmartAddress &address, int nStartBlock, int nEndBlock, CAmount &delta);
 
@@ -29,14 +31,151 @@ void ThreadSmartVoting()
     // Make this thread recognisable as the SmartVoting thread
     RenameThread("smartvoting");
 
+    // Check if we have some unparsed votekey registrations every block
+    int nLastChecked = 0;
 
     while (true)
     {
         MilliSleep(1000);
 
-        if(smartnodeSync.IsBlockchainSynced() && !ShutdownRequested()) {
+        if( ShutdownRequested() ) return;
 
-            int nHeight = chainActive.Height();
+        int nHeight = chainActive.Height();
+
+        if( nHeight == nLastChecked ) continue;
+
+        nLastChecked = nHeight;
+
+        std::vector<std::pair<CVoteKeyRegistrationKey, CVoteKeyRegistrationValue>> vecRegistrations;
+
+        if( !pblocktree->ReadVoteKeyRegistrations(vecRegistrations) ){
+            LogPrint("votekeys", "ThreadSmartVoting: Failed to read VoteKey registrations\n");
+            continue;
+        }
+
+        for(auto reg : vecRegistrations){
+
+            CVoteKeyRegistrationKey *pKey = &reg.first;
+
+            if( !((nHeight - pKey->nHeight) % nRegistrationCheckInterval) ){
+
+                uint256 blockHash;
+                CTransaction rTx;
+
+                CVoteKey voteKey;
+                CSmartAddress voteAddress;
+
+                if(!::GetTransaction(pKey->nTxHash, rTx, Params().GetConsensus(), blockHash)){
+                    LogPrint("votekeys", "ThreadSmartVoting: GetTransaction failed - %s\n", pKey->nTxHash.ToString());
+                    continue;
+                }
+
+                if( nHeight - pKey->nHeight < nValidationConfirmations ){
+                    LogPrint("votekeys","ThreadSmartVoting: Not enough confirmations - %d\n", pKey->nTxHash.ToString());
+                    continue;
+                }
+
+                VoteKeyParseResult result = ParseVoteKeyRegistration(rTx, voteKey, voteAddress);
+
+                if( result != VoteKeyParseResult::Valid){
+
+                    if( result == VoteKeyParseResult::TxResolveFailed ){
+                        // If the tx for option 1 could not be found yet we want to try it again later
+                        // since in some cases the tx index was not updated during tests when
+                        // when the registration became parsed.
+                        LogPrint("votekeys","ThreadSmartVoting: TxResolveFailed failed - %s\n", pKey->nTxHash.ToString());
+                    }else{
+
+                        // All other fails will end up in a invalidation of the registration tx
+                        if (!pblocktree->InvalidateVoteKeyRegistration(pKey->nHeight, pKey->nTxHash)){
+                            LogPrint("votekeys","ThreadSmartVoting: InvalidateVoteKeyRegistration failed - %s\n", pKey->nTxHash.ToString());
+                        }
+                    }
+
+                    LogPrint("votekeys","ThreadSmartVoting: ParseVoteKeyRegistration failed - %s\n", rTx.ToString());
+                    continue;
+                }
+
+                int nVoteKeyRegisteredHeight;
+                int nVoteAddressRegisteredHeight;
+                CVoteKey voteKeyRegisteredForAddress;
+
+                bool fVoteKeyRegistered = IsRegisteredForVoting(voteKey, nVoteKeyRegisteredHeight);
+                bool fVoteAddressRegistered = IsRegisteredForVoting(voteAddress, voteKeyRegisteredForAddress, nVoteAddressRegisteredHeight);
+
+                CVoteKey removeKey;
+                bool fInvalid = false;
+
+                if( fVoteKeyRegistered && !fVoteAddressRegistered ){
+
+                    LogPrint("votekeys","ThreadSmartVoting: VoteKey IsRegisteredForVoting - %s\n", voteKey.ToString());
+
+                    if( nVoteKeyRegisteredHeight > pKey->nHeight ){
+                        LogPrint("votekeys","ThreadSmartVoting: VoteKey IsRegisteredForVoting - Found an older registration\n");
+                        removeKey = voteKey;
+                    }else{
+                        fInvalid = true;
+                    }
+
+                }else if( !fVoteKeyRegistered && fVoteAddressRegistered ){
+
+                    if( nVoteAddressRegisteredHeight > pKey->nHeight ){
+                        removeKey = voteKeyRegisteredForAddress;
+                    }else{
+                        fInvalid = true;
+                    }
+
+                }else if( fVoteKeyRegistered && fVoteAddressRegistered ){
+
+                    // If the registered for the address differes from the one we try to register
+                    // And the one we try to register is an older one
+                    if( !( voteKeyRegisteredForAddress == voteKey ) &&
+                         nVoteKeyRegisteredHeight > pKey->nHeight ){
+
+                        removeKey = voteKeyRegisteredForAddress;
+                    }else{
+                        fInvalid = true;
+                    }
+
+                }
+
+                if( removeKey.IsValid() ){
+                    // First remove the wrong entry
+                    if (!pblocktree->EraseVoteKeys({removeKey})){
+                        LogPrint("votekeys","ThreadSmartVoting: EraseVoteKeys failed - %s\n", voteKey.ToString());
+                    }
+
+                    // Remove it from the active keys to force a revalidation after we wrote the new one below
+                    LOCK(cs);
+                    auto rm = mapActiveVoteKeys.find(removeKey);
+                    if( rm != mapActiveVoteKeys.end() ) mapActiveVoteKeys.erase(rm);
+
+                    continue;
+                }
+
+                if( fInvalid ){
+
+                    if (!pblocktree->InvalidateVoteKeyRegistration(pKey->nHeight, pKey->nTxHash, voteKey)){
+                        LogPrint("votekeys","ThreadSmartVoting: InvalidateVoteKeyRegistration failed - %s\n", pKey->nTxHash.ToString());
+                    }
+
+                    continue;
+                }
+
+                CVoteKeyValue voteKeyValue(voteAddress, rTx.GetHash(), pKey->nHeight);
+
+                if (!pblocktree->WriteVoteKey(voteKey,voteKeyValue)){
+                    LogPrint("votekeys","ThreadSmartVoting: WriteVoteKey failed - %s, %s\n", voteKey.ToString(), voteKeyValue.ToString());
+                    continue;
+                }
+
+                LogPrint("votekeys","ThreadSmartVoting: New VoteKey registered tx=%s - %s - %s\n",rTx.GetHash().ToString(), voteKey.ToString(), voteAddress.ToString() );
+            }
+
+        }
+
+
+        if(smartnodeSync.IsBlockchainSynced() ) {
 
             std::set<CVoteKey> setActiveKeys;
 
@@ -55,10 +194,13 @@ void ThreadSmartVoting()
 
             }
 
-            // Update votekeys available in the wallet
             if( pwalletMain ){
 
+                // Add votekeys available in the wallet to the validation
+                // and update the meta data of the votekeys if necessary
+
                 std::set<CKeyID> setWalletKeyIds;
+
                 {
                     LOCK(pwalletMain->cs_wallet);
                     pwalletMain->GetVotingKeys(setWalletKeyIds);
@@ -67,11 +209,78 @@ void ThreadSmartVoting()
                 for( auto keyId : setWalletKeyIds ){
 
                     CVoteKey vk(keyId);
+                    CVoteKeyValue value;
 
-                    if( !setActiveKeys.count(vk) )
-                        setActiveKeys.insert(vk);
+                    // This one needs to become checked first
+                    if( !pwalletMain->mapVotingKeyMetadata[keyId].fChecked ){
 
-                    AddActiveVoteKey(vk);
+                        if( !GetVoteKeyValue(vk, value) ){
+
+                            bool fInvalidate = true;
+                            uint256 &txHash = pwalletMain->mapVotingKeyMetadata[keyId].registrationTxHash;
+
+                            if( !txHash.IsNull() ){
+
+                                fInvalidate = false;
+
+                                uint256 blockHash;
+                                CTransaction rTx;
+
+                                if(::GetTransaction(txHash, rTx, Params().GetConsensus(), blockHash)){
+
+                                    if(blockHash != uint256()) {
+
+                                        int nConfirmations = 0;
+
+                                        BlockMap::iterator mi = mapBlockIndex.find(blockHash);
+                                        if (mi != mapBlockIndex.end() && (*mi).second) {
+                                            CBlockIndex* pindex = (*mi).second;
+                                            if (chainActive.Contains(pindex)) {
+                                                nConfirmations += chainActive.Height() - pindex->nHeight + 1;
+                                            }
+                                        }
+
+                                        if( nConfirmations > (nValidationConfirmations * 2 )){
+                                            fInvalidate = true;
+                                        }
+
+                                    }else{
+                                        LogPrint("votekeys", "ThreadSmartVoting: Registration not mined yet - %s\n", txHash.ToString());
+                                    }
+                                }else{
+                                    LogPrint("votekeys", "ThreadSmartVoting: GetTransaction failed for wallet check - %s\n", txHash.ToString());
+                                }
+                            }
+
+                            if( fInvalidate ){
+                                pwalletMain->mapVotingKeyMetadata[keyId].fChecked = false;
+                                pwalletMain->mapVotingKeyMetadata[keyId].fValid = false;
+                                pwalletMain->mapVotingKeyMetadata[keyId].fEnabled = false;
+                                pwalletMain->mapVotingKeyMetadata[keyId].registrationTxHash.SetNull();
+                                LOCK(pwalletMain->cs_wallet);
+                                pwalletMain->UpdateVotingKeyMetadata(keyId);
+                            }
+
+                            continue;
+                        }
+
+                        pwalletMain->mapVotingKeyMetadata[keyId].fChecked = true;
+                        pwalletMain->mapVotingKeyMetadata[keyId].fValid = true;
+                        pwalletMain->mapVotingKeyMetadata[keyId].fEnabled = true;
+                        pwalletMain->mapVotingKeyMetadata[keyId].registrationTxHash = value.nTxHash;
+                        LOCK(pwalletMain->cs_wallet);
+                        pwalletMain->UpdateVotingKeyMetadata(keyId);
+                    }
+
+                    if( pwalletMain->mapVotingKeyMetadata[keyId].fValid ){
+
+                        if( !setActiveKeys.count(vk) )
+                            setActiveKeys.insert(vk);
+
+                        AddActiveVoteKey(vk);
+
+                    }
+
                 }
 
             }
@@ -121,6 +330,7 @@ void ThreadSmartVoting()
             }
 
         }
+
     }
 }
 

@@ -16,6 +16,9 @@
 
 // Update all vote's voting power every nValidationConfirmations blocks
 static const int nValidationConfirmations = 6;
+// Check unparsed registrations every x seconds and remove them after n tries
+static const int nRegistrationCheckInterval = 2;
+static const int nRegistrationCheckMaxTries = 40;
 
 struct CVotingPower{
     int nBlockHeight;
