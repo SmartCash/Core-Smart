@@ -95,8 +95,9 @@ bool CSmartVotingManager::ProcessVoteAndRelay(const CProposalVote &vote, string 
 void CSmartVotingManager::ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
     // lite mode is not supported
-    if(fLiteMode) return;
-    if(!smartnodeSync.IsBlockchainSynced()) return;
+    if( fLiteMode ) return;
+    if( !smartnodeSync.IsBlockchainSynced() ) return;
+    if( MainNet() && chainActive.Height() < SMARTVOTING_START_HEIGHT ) return;
 
     // ANOTHER CLIENT IS ASKING US TO HELP THEM SYNC PROPOSAL DATA
     if (strCommand == NetMsgType::VOTINGSYNC)
