@@ -628,7 +628,7 @@ UniValue decoderawtransaction(const UniValue& params, bool fHelp)
             "         \"reqSigs\" : n,            (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
             "         \"addresses\" : [           (json array of string)\n"
-            "           \S2tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) smartcash address\n"
+            "           \"S2tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) smartcash address\n"
             "           ,...\n"
             "         ]\n"
             "       }\n"
