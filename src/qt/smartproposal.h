@@ -21,6 +21,7 @@ public:
     explicit SmartProposalWidget(const CProposal *cProposal, WalletModel *walletModel, QWidget *parent = 0);
     ~SmartProposalWidget();
 
+    void ResetVoteSelection();
     vote_signal_enum_t GetVoteSignal();
     vote_outcome_enum_t GetVoteOutcome();
     bool votedValid();

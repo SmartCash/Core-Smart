@@ -358,6 +358,11 @@ void SmartVotingPage::castVotes(){
 
     CastVotesDialog dialog(platformStyle, walletModel, mapVoteProposals);
     dialog.exec();
+
+    for( auto entry : mapProposalWidgets ){
+        entry.second->ResetVoteSelection();
+    }
+
     updateProposalUI();
 }
 

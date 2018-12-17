@@ -135,6 +135,14 @@ SmartProposalWidget::~SmartProposalWidget()
     delete ui;
 }
 
+void SmartProposalWidget::ResetVoteSelection()
+{
+    ui->disabledButton->setChecked(true);
+    ui->abstainButton->setChecked(true);
+
+    voteButtonClicked();
+}
+
 vote_outcome_enum_t SmartProposalWidget::GetVoteOutcome()
 {
     if( outcomeSelection.checkedId() == 0) return VOTE_OUTCOME_YES;
