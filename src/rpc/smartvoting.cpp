@@ -714,6 +714,8 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         if( !pwalletMain )
             throw JSONRPCError(RPC_WALLET_ERROR, "Wallet not available.");
 
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+
         EnsureWalletIsUnlocked();
         EnsureVotingIsUnlocked();
 
@@ -755,6 +757,13 @@ UniValue votekeys(const UniValue& params, bool fHelp)
 
         if( GetVoteKeyForAddress(voteAddress, voteKey) ){
             throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Address is already registered for key: %s", voteKey.ToString()));
+        }
+
+        // If there is already a registration hash set for this address
+        // Happens if the registration is sent but not confirmed and registered
+        if( !pwalletMain->mapVotingKeyRegistrations[voteAddressKeyID].IsNull() ){
+            throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Address has already a registration transaction assigned: %s",
+                                                             pwalletMain->mapVotingKeyRegistrations[voteAddressKeyID].ToString()));
         }
 
         // If the given utxo is from the address to register use register option 1
@@ -838,8 +847,6 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         // Create the transaction
         // **
 
-        LOCK2(cs_main, pwalletMain->cs_wallet);
-
         CCoinControl coinControl;
         COutPoint output(txHash, txIndex);
 
@@ -884,8 +891,18 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         if (!(CheckTransaction(registerTx, state, registerTx.GetHash(), false) || !state.IsValid()))
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("The registration transaction is invalid: %s", state.GetRejectReason()));
 
+        VoteKeyParseResult parseResult = CheckVoteKeyRegistration(registerTx);
+        if ( parseResult != VoteKeyParseResult::Valid )
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Registration transaction is invalid: %d", parseResult));
+
         if( !pwalletMain->AddVotingKeyPubKey(voteKeySecret.GetKey(), voteKeySecret.GetKey().GetPubKey()) )
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Failed to import VoteKey secret %s", voteKeySecret.ToString()));
+
+        pwalletMain->mapVotingKeyRegistrations[voteAddressKeyID] = registerTx.GetHash();
+        pwalletMain->mapVotingKeyMetadata[voteKeySecret.GetKey().GetPubKey().GetID()].registrationTxHash = registerTx.GetHash();
+
+        pwalletMain->UpdateKeyMetadata(vaKey.GetPubKey());
+        pwalletMain->UpdateVotingKeyMetadata(voteKeySecret.GetKey().GetPubKey().GetID());
 
         if (!pwalletMain->CommitTransaction(registerTx, reservekey, g_connman.get()))
             throw JSONRPCError(RPC_WALLET_ERROR, "The transaction was rejected!");
@@ -1156,8 +1173,8 @@ UniValue votekeys(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                strprintf("Invalid <vote-key-secret>: %s", params[1].get_str()));
 
-        CKeyID keyId = voteKeySecret.GetKey().GetPubKey().GetID();
-        CVoteKey voteKey(keyId);
+        CPubKey pubKey = voteKeySecret.GetKey().GetPubKey();
+        CVoteKey voteKey(pubKey.GetID());
 
         LOCK(pwalletMain->cs_wallet);
 
@@ -1165,19 +1182,19 @@ UniValue votekeys(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                strprintf("Invalid voteKey public: %s", voteKey.ToString()));
 
-        if( pwalletMain->HaveVotingKey(keyId) )
+        if( pwalletMain->HaveVotingKey(pubKey.GetID()) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, "VoteKey secret exists already in the voting storage");
 
-        if( !pwalletMain->AddVotingKeyPubKey(voteKeySecret.GetKey(), voteKeySecret.GetKey().GetPubKey()) )
+        if( !pwalletMain->AddVotingKeyPubKey(voteKeySecret.GetKey(), pubKey) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to import votekey-secret");
 
-        if( !pwalletMain->HaveVotingKey(keyId) )
+        if( !pwalletMain->HaveVotingKey(pubKey.GetID()) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("VoteKey %s is not available in the voting storage", voteKey.ToString()));
 
-        CVotingKeyMetadata meta = pwalletMain->mapVotingKeyMetadata[keyId];
+        CVotingKeyMetadata meta = pwalletMain->mapVotingKeyMetadata[pubKey.GetID()];
         meta.fImported = true;
 
-        if( !pwalletMain->UpdateVotingKeyMetadata(keyId, meta) )
+        if( !pwalletMain->UpdateVotingKeyMetadata(pubKey.GetID()) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to update the VoteKey metadata");
 
          UniValue result(UniValue::VOBJ);
@@ -1217,12 +1234,9 @@ UniValue votekeys(const UniValue& params, bool fHelp)
                 strVoteAddress = "Not registered";
             }
 
-            CVotingKeyMetadata meta;
-            pwalletMain->GetVotingKeyMetadata(keyId, meta);
-
             obj.pushKV("voteKey", voteKey.ToString());
             obj.pushKV("voteAddress", strVoteAddress);
-            obj.pushKV("enabled", meta.fEnabled);
+            obj.pushKV("enabled", pwalletMain->mapVotingKeyMetadata[keyId].fEnabled);
 
             result.push_back(obj);
         }
@@ -1250,10 +1264,9 @@ UniValue votekeys(const UniValue& params, bool fHelp)
         if( !pwalletMain->HaveVotingKey(keyId) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("VoteKey %s is not available in the voting storage", voteKey.ToString()));
 
-        CVotingKeyMetadata meta = pwalletMain->mapVotingKeyMetadata[keyId];
-        meta.fEnabled = fEnabled;
+        pwalletMain->mapVotingKeyMetadata[keyId].fEnabled = fEnabled;
 
-        if( !pwalletMain->UpdateVotingKeyMetadata(keyId, meta) )
+        if( !pwalletMain->UpdateVotingKeyMetadata(keyId) )
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to update the VoteKey");
 
         UniValue obj(UniValue::VOBJ);
@@ -1268,7 +1281,7 @@ UniValue votekeys(const UniValue& params, bool fHelp)
 
         obj.pushKV("voteKey", voteKey.ToString());
         obj.pushKV("voteAddress", strVoteAddress);
-        obj.pushKV("enabled", meta.fEnabled);
+        obj.pushKV("enabled", pwalletMain->mapVotingKeyMetadata[keyId].fEnabled);
 
         return obj;
     }
