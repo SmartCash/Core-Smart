@@ -639,8 +639,10 @@ QString WalletModel::voteAddressString(const CVoteKey& voteKey)
         voteAddressString = "Invalid Key";
     }else if( GetVoteKeyValue(voteKey, voteKeyValue) ){
         voteAddressString = QString::fromStdString(voteKeyValue.voteAddress.ToString());
-    }else if( !pwalletMain->mapVotingKeyMetadata[keyId].fImported ){
+    }else if( !pwalletMain->mapVotingKeyMetadata[keyId].registrationTxHash.IsNull() ){
         voteAddressString = "Confirmation required";
+    }else if( !pwalletMain->mapVotingKeyMetadata[keyId].fValid ){
+        voteAddressString = "Registration failed";
     }
 
     return voteAddressString;

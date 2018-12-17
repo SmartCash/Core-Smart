@@ -396,11 +396,10 @@ bool SpecialTransactionDialog::SendRegistration(const QString &address, const CO
               strError);
 
 
-    if( out.n < 0 || static_cast<int64_t>(spendTx.vout.size()) - 1 < out.n )
+    if( static_cast<uint32_t>(spendTx.vout.size()) - 1 < out.n )
         return Error("GenerateRegistration",
               strprintf("TX-Index %d out of range for TX %s",out.n, out.hash.ToString()),
               strError);
-
 
     const CTxOut &utxo = spendTx.vout[out.n];
 
@@ -428,8 +427,19 @@ bool SpecialTransactionDialog::SendRegistration(const QString &address, const CO
               strprintf("Address %s already registered for key: %s", voteAddress.ToString(), voteKey.ToString()),
               strError);
 
-    // Rorce option 1 - verify the vote address with the input of the register tx
-    if( utxo.scriptPubKey != voteAddress.GetScript() )
+    std::vector<CTxDestination> addresses;
+    txnouttype type;
+    int nRequired;
+
+    if (!ExtractDestinations(utxo.scriptPubKey, type, addresses, nRequired) || addresses.size() != 1) {
+        return Error("GenerateRegistration",
+              strprintf("Failed to extract address for output with TX %s, index %s",
+                        out.hash.ToString(), out.n),
+              strError);
+    }
+
+    // Force option 1 - verify the vote address with the input of the register tx
+    if(  !(CSmartAddress(addresses[0]) == voteAddress) )
         return Error("GenerateRegistration",
               strprintf("Failed to force register option one for address %s with TX %s, index %s",
                         voteAddress.ToString(), out.hash.ToString(), out.n),
@@ -539,6 +549,12 @@ bool SpecialTransactionDialog::SendRegistration(const QString &address, const CO
         return Error("GenerateRegistration",
               strprintf("Failed to import VoteKey secret %s", voteKeySecret.ToString()),
               strError);
+
+    pwalletMain->mapVotingKeyRegistrations[voteAddressKeyID] = registerTx.GetHash();
+    pwalletMain->mapVotingKeyMetadata[voteKeySecret.GetKey().GetPubKey().GetID()].registrationTxHash = registerTx.GetHash();
+
+    pwalletMain->UpdateVotingKeyRegistration(voteAddressKeyID);
+    pwalletMain->UpdateVotingKeyMetadata(voteKeySecret.GetKey().GetPubKey().GetID());
 
     if( !pwalletMain->CommitTransaction(registerTx, reservekey, g_connman.get()) )
         return Error("GenerateRegistration",
@@ -668,7 +684,18 @@ void SpecialTransactionDialog::updateView()
 
         if( type == REGISTRATION_TRANSACTIONS ){
             CSmartAddress voteAddress(sWalletAddress.toStdString());
+            CKeyID voteAddressKeyId;
+
+            // Step over if the address is already registered
             if( IsRegisteredForVoting(voteAddress) ) continue;
+
+            // Or if there is already a registration hash set for this address
+            // Happens if the registration is sent but not confirmed and registered
+            if( voteAddress.GetKeyID(voteAddressKeyId) &&
+                 !pwalletMain->mapVotingKeyRegistrations[voteAddressKeyId].IsNull() ){
+                continue;
+            }
+
         }
 
         CCoinControlWidgetItem *itemWalletAddress = new CCoinControlWidgetItem();
@@ -748,6 +775,9 @@ void SpecialTransactionDialog::updateView()
     // sort view
     sortView(sortColumn, sortOrder);
     ui->treeWidget->setEnabled(true);
+
+    UpdateElements();
+
     connect(ui->treeWidget, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(viewItemChanged(QTreeWidgetItem*, int)));
 
 }

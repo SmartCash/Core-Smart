@@ -438,10 +438,15 @@ void SmartVotingPage::updateVoteKeyUI()
 
     std::set<CKeyID> setVotingKeyIds;
     std::set<CKeyID> setKeyIdsToAdd;
+    std::map<CKeyID, CVotingKeyMetadata> mapMeta;
     {
         LOCK(pwalletMain->cs_wallet);
         pwalletMain->GetVotingKeys(setVotingKeyIds);
+        mapMeta = pwalletMain->mapVotingKeyMetadata;
     }
+
+    Qt::ItemFlags checkBoxEnabledFlags = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
+    Qt::ItemFlags checkBoxDisabledFlags = Qt::ItemIsSelectable;
 
     QTableWidget *table = ui->voteKeysTable;
     int nRow = table->rowCount();
@@ -455,8 +460,8 @@ void SmartVotingPage::updateVoteKeyUI()
         }
 
     }else{
-        // Update voting power only
 
+        // Update voting power only
         for( auto it :  mapVisibleKeys ){
 
             CVoteKey voteKey(it.first);
@@ -464,10 +469,21 @@ void SmartVotingPage::updateVoteKeyUI()
             it.second.power->setText(walletModel->votingPowerString(voteKey));
             it.second.address->setText(walletModel->voteAddressString(voteKey));
 
-            if( pwalletMain->mapVotingKeyMetadata[it.first].fEnabled )
-                it.second.checkbox->setCheckState(Qt::Checked);
-            else
+            if( !mapMeta[it.first].fChecked || !mapMeta[it.first].fValid ){
+
+                it.second.checkbox->setFlags(checkBoxDisabledFlags);
                 it.second.checkbox->setCheckState(Qt::Unchecked);
+
+            }else if( mapMeta[it.first].fValid ){
+
+                it.second.checkbox->setFlags(checkBoxEnabledFlags);
+
+                if( mapMeta[it.first].fEnabled )
+                    it.second.checkbox->setCheckState(Qt::Checked);
+                else
+                    it.second.checkbox->setCheckState(Qt::Unchecked);
+            }
+
         }
 
         return;
@@ -485,12 +501,21 @@ void SmartVotingPage::updateVoteKeyUI()
         VoteKeyWidgetItem* votingPowerItem = createItem(walletModel->votingPowerString(voteKey));
         VoteKeyWidgetItem* voteAddressItem = createItem(walletModel->voteAddressString(voteKey));
 
-        checkBoxItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+        checkBoxItem->setFlags(checkBoxEnabledFlags);
 
-        if( pwalletMain->mapVotingKeyMetadata[keyId].fEnabled ){
-            checkBoxItem->setCheckState(Qt::Checked);
-        }else{
+        if( !mapMeta[keyId].fChecked || !mapMeta[keyId].fValid ){
+
+            checkBoxItem->setFlags(checkBoxDisabledFlags);
             checkBoxItem->setCheckState(Qt::Unchecked);
+
+        }else if( mapMeta[keyId].fValid ){
+
+            checkBoxItem->setFlags(checkBoxEnabledFlags);
+
+            if( mapMeta[keyId].fEnabled )
+                checkBoxItem->setCheckState(Qt::Checked);
+            else
+                checkBoxItem->setCheckState(Qt::Unchecked);
         }
 
         table->setItem(nRow, VoteKeyWidgetItem::COLUMN_CHECKBOX, checkBoxItem);
@@ -602,10 +627,9 @@ void SmartVotingPage::importVoteKey()
             return;
         }
 
-        CVotingKeyMetadata meta = pwalletMain->mapVotingKeyMetadata[keyId];
-        meta.fImported = true;
+        pwalletMain->mapVotingKeyMetadata[keyId].fImported = true;
 
-        if( !pwalletMain->UpdateVotingKeyMetadata(keyId, meta) ){
+        if( !pwalletMain->UpdateVotingKeyMetadata(keyId) ){
             QMessageBox::critical(this, tr("Error"),
                                         tr("Failed to update the VoteKey's metadata\n\n") +
                                         keyStr,
