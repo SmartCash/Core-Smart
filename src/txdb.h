@@ -151,7 +151,13 @@ public:
                                         int &firstTime, int &lastTime,
                                         int start, int end);
     /** SmartVoting start **/
-    bool WriteVoteKeys(const std::vector<std::pair<CVoteKey, CVoteKeyValue>> &vecVoteKeys);
+    bool WriteVoteKeyRegistrations(std::vector<std::pair<int,uint256>> vecRegistrations);
+    bool EraseVoteKeyRegistration(const int nHeight, const uint256 &txHash);
+    bool InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHas);
+    bool InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHash, const CVoteKey &voteKey);
+    bool GetVoteKeyRegistration(const uint256 &txHash, CVoteKeyRegistrationKey &registrationKey, CVoteKeyRegistrationValue &registrationValue);
+    bool ReadVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegistrationKey, CVoteKeyRegistrationValue>> &vecRegistrations, bool fExcludeProcessedOnes = true);
+    bool WriteVoteKey(const CVoteKey &voteKey, const CVoteKeyValue &voteKeyValue);
     bool EraseVoteKeys(const std::vector<CVoteKey> &vecVoteKeys);
     bool ReadVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey);
     bool ReadVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys);

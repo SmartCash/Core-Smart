@@ -416,7 +416,7 @@ struct CDepositIndexKey {
     uint256 txhash;
 
     size_t GetSerializeSize(int nType, int nVersion) const {
-        return 61;
+        return 57;
     }
     template<typename Stream>
     void Serialize(Stream& s, int nType, int nVersion) const {
@@ -558,6 +558,88 @@ struct CDepositIndexIteratorTimeKey {
     }
 };
 
+
+struct CVoteKeyRegistrationKey {
+    int nHeight;
+    uint256 nTxHash;
+
+    size_t GetSerializeSize(int nType, int nVersion) const {
+        return 24;
+    }
+    template<typename Stream>
+    void Serialize(Stream& s, int nType, int nVersion) const {
+        // Timestamps are stored big-endian for key sorting in LevelDB
+        ser_writedata32be(s, nHeight);
+        nTxHash.Serialize(s, nType, nVersion);
+    }
+    template<typename Stream>
+    void Unserialize(Stream& s, int nType, int nVersion) {
+        nHeight = ser_readdata32be(s);
+        nTxHash.Unserialize(s, nType, nVersion);
+    }
+
+    CVoteKeyRegistrationKey(const int nBlockHeight, const uint256 &nTxHash):
+        nHeight(nBlockHeight),
+        nTxHash(nTxHash)
+    { }
+
+    CVoteKeyRegistrationKey() {
+        SetNull();
+    }
+
+    void SetNull() {
+        nHeight = -1;
+        nTxHash.SetNull();
+    }
+
+    bool IsNull() const {
+        return nTxHash.IsNull() || nHeight == -1;
+    }
+
+    std::string ToString() const{
+        return strprintf("CVoteKeyRegistrationKey(txhash=%s, height=%d", nTxHash.ToString(), nHeight);
+    }
+};
+
+
+struct CVoteKeyRegistrationValue {
+    CVoteKey voteKey;
+    bool fProcessed;
+    bool fValid;
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(voteKey);
+        READWRITE(fProcessed);
+        READWRITE(fValid);
+    }
+
+    CVoteKeyRegistrationValue(const CVoteKey &voteKey, const bool fProcessed, const bool fValid) :
+                             voteKey(voteKey),
+                             fProcessed(fProcessed),
+                             fValid(fValid) {
+
+    }
+
+    CVoteKeyRegistrationValue() {
+        SetNull();
+    }
+
+    void SetNull() {
+        voteKey.SetString("invalid");
+        fProcessed = false;
+        fValid = false;
+    }
+
+    bool IsValid() { return voteKey.IsValid(); }
+
+    std::string ToString() const{
+        return strprintf("CVoteKeyRegistrationValue(votekey=%s, processed=%d valid=%b", voteKey.ToString(), fProcessed, fValid);
+    }
+};
+
 struct CVoteKeyValue {
 
     CSmartAddress voteAddress;
@@ -595,6 +677,10 @@ struct CVoteKeyValue {
 
     bool IsValid(){
         return voteAddress.IsValid();
+    }
+
+    std::string ToString() const{
+        return strprintf("CVoteKeyValue(address=%s, txhash=%s, height=%d", voteAddress.ToString(), nTxHash.ToString(), nBlockHeight);
     }
 };
 
