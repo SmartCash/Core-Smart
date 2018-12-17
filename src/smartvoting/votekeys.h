@@ -16,4 +16,16 @@ static const int VOTEKEY_REGISTRATION_O1_DATA_SIZE = 0x5B;
 static const int VOTEKEY_REGISTRATION_O2_SCRIPT_SIZE = 0xB7;
 static const int VOTEKEY_REGISTRATION_O2_DATA_SIZE = 0xB4;
 
+enum VoteKeyParseResult{
+    Valid,
+    TxResolveFailed,
+    AddressResolveFailed,
+    InvalidRegisterOption,
+    InvalidVoteKey,
+    InvalidVoteKeySignature,
+    InvalidVoteAddress,
+    InvalidVoteAddressSignature,
+    IsNoRegistrationTx
+};
+
 #endif // VOTEKEYS_H

@@ -438,27 +438,25 @@ bool GetBlockHash(uint256& hashRet, int nBlockHeight = -1);
 /**
  * Basic check if transaction is a valid vote key registration transaction.
  */
-bool CheckVoteKeyRegistration(const CTransaction &tx);
+VoteKeyParseResult CheckVoteKeyRegistration(const CTransaction &tx, bool fValidate = true);
 
 /**
  * Parse a vote key registration transaction.
  */
-bool ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress, bool fValidate = true);
+VoteKeyParseResult ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress, bool fValidate = true);
 
-/**
- * Check if transaction is a valid vote key registration transaction.
- */
-bool IsValidVoteKeyRegistration(const CTransaction &tx);
 
 /**
  * Check if the given address has already an registered voting key.
  */
 bool IsRegisteredForVoting(const CSmartAddress &address);
+bool IsRegisteredForVoting(const CSmartAddress &address, CVoteKey &voteKey, int &nHeight);
 
 /**
  * Check if the given voteKey is already registered.
  */
 bool IsRegisteredForVoting(const CVoteKey &voteKey);
+bool IsRegisteredForVoting(const CVoteKey &voteKey, int &nHeight);
 
 /**
  * Closure representing one script verification
