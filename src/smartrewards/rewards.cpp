@@ -190,11 +190,12 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                     // with votekey registration transactions
                     if( nCurrentRound >= nFirst1_3_Round && tx.IsVoteKeyRegistration()  )
                         voteKeyRegistrationCheck = new CSmartAddress(rEntry->id);
-                    else
+                    else{
                         rEntry->fBalanceEligible = false;
+                        result.disqualifiedEntries++;
+                        result.disqualifiedSmart += rEntry->balanceOnStart;
+                    }
 
-                    result.disqualifiedEntries++;
-                    result.disqualifiedSmart += rEntry->balanceOnStart;
                 }
 
                 if(rEntry->balance < 0 ){
@@ -230,7 +231,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                 if( voteKeyRegistrationCheck ){
 
                     if( tx.IsVoteKeyRegistration() &&
-                        out.IsVoteKeyRegistrationData() &&
+                        !out.IsVoteKeyRegistrationData() &&
                         !(*voteKeyRegistrationCheck == rEntry->id) ){
 
                         CSmartRewardEntry *vkEntry = nullptr;
@@ -245,6 +246,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                         // back to the registered transaction! We don't want to allow
                         // a exploit to send around funds withouht breaking smartrewards.
                         vkEntry->fBalanceEligible = false;
+                        result.disqualifiedEntries++;
+                        result.disqualifiedSmart += vkEntry->balanceOnStart;
                     }
 
                     delete voteKeyRegistrationCheck;
