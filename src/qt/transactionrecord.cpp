@@ -107,7 +107,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
                             -(nDebit - nChange), nCredit - nChange));
             parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
         }
-        else if (fAllFromMe)
+        else if(fAllFromMe)
         {
             //
             // Debit
@@ -140,6 +140,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
                     // Sent to IP, or other non-address transaction like OP_EVAL
                     sub.type = TransactionRecord::SendToOther;
                     sub.address = mapValue["to"];
+                }
+
+                if( wtx.IsVoteKeyRegistration() ){
+                    sub.type = TransactionRecord::VoteKeyRegistration;
                 }
 
                 CAmount nValue = txout.nValue;

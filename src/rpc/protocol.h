@@ -77,6 +77,11 @@ enum RPCErrorCode
     RPC_WALLET_WRONG_ENC_STATE      = -15, //!< Command given in wrong wallet encryption state (encrypting an encrypted wallet etc.)
     RPC_WALLET_ENCRYPTION_FAILED    = -16, //!< Failed to encrypt the wallet
     RPC_WALLET_ALREADY_UNLOCKED     = -17, //!< Wallet is already unlocked
+    RPC_VOTEKEYS_UNLOCK_NEEDED        = -40, //!< Enter the voting passphrase with votingpassphrase first
+    RPC_VOTEKEYS_PASSPHRASE_INCORRECT = -41, //!< The voting passphrase entered was incorrect
+    RPC_VOTEKEYS_WRONG_ENC_STATE      = -42, //!< Command given in wrong voting encryption state (encrypting an encrypted voting etc.)
+    RPC_VOTEKEYS_ENCRYPTION_FAILED    = -43, //!< Failed to encrypt the voting storage
+    RPC_VOTEKEYS_ALREADY_UNLOCKED     = -44 //!< Voting is already unlocked
 };
 
 std::string JSONRPCRequest(const std::string& strMethod, const UniValue& params, const UniValue& id);

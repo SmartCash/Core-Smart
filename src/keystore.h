@@ -21,6 +21,7 @@ class CKeyStore
 {
 protected:
     mutable CCriticalSection cs_KeyStore;
+    mutable CCriticalSection cs_VotingKeyStore;
 
 public:
     virtual ~CKeyStore() {}
@@ -34,6 +35,16 @@ public:
     virtual bool GetKey(const CKeyID &address, CKey& keyOut) const =0;
     virtual void GetKeys(std::set<CKeyID> &setAddress) const =0;
     virtual bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const =0;
+
+    //! Add a voting key to the store.
+    virtual bool AddVotingKeyPubKey(const CKey &key, const CPubKey &pubkey) =0;
+    virtual bool AddVotingKey(const CKey &key);
+
+    //! Check whether a key corresponding to a given address is present in the store.
+    virtual bool HaveVotingKey(const CKeyID &address) const =0;
+    virtual bool GetVotingKey(const CKeyID &address, CKey& keyOut) const =0;
+    virtual void GetVotingKeys(std::set<CKeyID> &setAddress) const =0;
+    virtual bool GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const =0;
 
     //! Support for BIP 0013 : see https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki
     virtual bool AddCScript(const CScript& redeemScript) =0;
@@ -57,6 +68,7 @@ class CBasicKeyStore : public CKeyStore
 {
 protected:
     KeyMap mapKeys;
+    KeyMap mapVotingKeys;
     WatchKeyMap mapWatchKeys;
     ScriptMap mapScripts;
     WatchOnlySet setWatchOnly;
@@ -94,6 +106,44 @@ public:
             LOCK(cs_KeyStore);
             KeyMap::const_iterator mi = mapKeys.find(address);
             if (mi != mapKeys.end())
+            {
+                keyOut = mi->second;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool AddVotingKeyPubKey(const CKey& key, const CPubKey &pubkey);
+    bool GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
+    bool HaveVotingKey(const CKeyID &address) const
+    {
+        bool result;
+        {
+            LOCK(cs_VotingKeyStore);
+            result = (mapVotingKeys.count(address) > 0);
+        }
+        return result;
+    }
+    void GetVotingKeys(std::set<CKeyID> &setAddress) const
+    {
+        setAddress.clear();
+        {
+            LOCK(cs_VotingKeyStore);
+            KeyMap::const_iterator mi = mapVotingKeys.begin();
+            while (mi != mapVotingKeys.end())
+            {
+                setAddress.insert((*mi).first);
+                mi++;
+            }
+        }
+    }
+    bool GetVotingKey(const CKeyID &address, CKey &keyOut) const
+    {
+        {
+            LOCK(cs_VotingKeyStore);
+            KeyMap::const_iterator mi = mapVotingKeys.find(address);
+            if (mi != mapVotingKeys.end())
             {
                 keyOut = mi->second;
                 return true;

@@ -8,8 +8,8 @@
 #include "primitives/transaction.h"
 #include "platformstyle.h"
 #include "sync.h"
-#include "smartvotingmanager.h"
 #include "smartproposal.h"
+#include "smartvoting/proposal.h"
 #include "util.h"
 
 #include <QDialog>
@@ -27,6 +27,7 @@ class ClientModel;
 class OptionsModel;
 class PlatformStyle;
 class QModelIndex;
+class SmartProposalTabWidget;
 
 QT_BEGIN_NAMESPACE
 class QItemSelection;
@@ -35,6 +36,33 @@ class QModelIndex;
 class QSortFilterProxyModel;
 class QTableView;
 QT_END_NAMESPACE
+
+
+class VoteKeyWidgetItem : public QTableWidgetItem
+{
+public:
+    VoteKeyWidgetItem() : QTableWidgetItem() {}
+    VoteKeyWidgetItem(const QString &text, int type = Type) : QTableWidgetItem(text, type) {}
+    bool operator<(const QTableWidgetItem &other) const;
+
+    enum Columns{
+        COLUMN_CHECKBOX,
+        COLUMN_KEY,
+        COLUMN_ADDRESS,
+        COLUMN_POWER
+    };
+};
+
+struct VoteKeyItems
+{
+    VoteKeyWidgetItem* checkbox;
+    VoteKeyWidgetItem* address;
+    VoteKeyWidgetItem* power;
+
+    VoteKeyItems(VoteKeyWidgetItem* checkbox, VoteKeyWidgetItem* address, VoteKeyWidgetItem* power) :
+        checkbox(checkbox), address(address), power(power){}
+};
+
 
 /** SmartrewardsList Manager page widget */
 class SmartVotingPage : public QWidget
@@ -56,21 +84,40 @@ private:
     WalletModel *walletModel;
 
     QTimer lockTimer;
-    SmartVotingManager *votingManager;
-    std::vector<SmartProposalWidget*> vecProposalWidgets;
-    std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
-    
+    QTimer voteKeyUpdateTimer;
+    std::map<uint256, SmartProposalWidget*> mapProposalWidgets;
+    std::map<uint256, std::pair<vote_signal_enum_t, vote_outcome_enum_t>> mapVoteProposals;
+
+    std::map<CKeyID, VoteKeyItems> mapVisibleKeys;
+
+    void connectProposalTab(SmartProposalTabWidget *tabWidget);
+    void disconnectProposalTab(SmartProposalTabWidget *tabWidget);
+
+    bool IsVotingEnabled();
+    bool LoadProposalTabs();
+    bool RemoveProposal(const CInternalProposal &proposal);
 public Q_SLOTS:
     void updateUI();
+    void showManagementUI();
+    void showVotingUI();
     void updateProposalUI();
-    void proposalsUpdated(const std::string &strErr);
+    void createProposal();
+    void encryptVoting();
+    void showVoteKeysUI();
+    void updateVotingElements();
+    void updateVoteKeyUI();
+    void registerVoteKey();
+    void voteKeyCellChanged(int, int);
+    void selectAllVoteKeys();
+    void importVoteKey();
     void voteChanged();
-    void selectAddresses();
     void castVotes();
-    void updateRefreshLock();
-    void refreshProposals(bool fForce = false);
     void scrollChanged(int value);
     void balanceChanged(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                         const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
+private Q_SLOTS:
+
+    void tabTitleChanged(SmartProposalTabWidget* tab, std::string &newTitle);
+    void removalRequested(SmartProposalTabWidget* tab);
 };
 #endif // BITCOIN_QT_SMARTVOTING_H

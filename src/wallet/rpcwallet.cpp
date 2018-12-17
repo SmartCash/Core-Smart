@@ -250,40 +250,6 @@ UniValue getrawchangeaddress(const UniValue& params, bool fHelp)
     return CBitcoinAddress(keyID).ToString();
 }
 
-UniValue getdummybalance(const UniValue& params, bool fHelp)
-{
-    if (!EnsureWalletIsAvailable(fHelp))
-        return NullUniValue;
-
-    if (fHelp || params.size() > 0)
-        throw runtime_error(
-            "getdummybalance\n"
-            "Returns the current dummybalance.\n");
-
-    CWalletDB walletdb(pwalletMain->strWalletFile);
-    CAmount dummyBalance;
-    walletdb.ReadDummyBalance(dummyBalance);
-
-    return ValueFromAmount(dummyBalance);
-}
-
-UniValue setdummybalance(const UniValue& params, bool fHelp)
-{
-    if (!EnsureWalletIsAvailable(fHelp))
-        return NullUniValue;
-
-    if (fHelp || params.size() != 1)
-        throw runtime_error(
-            "setdummybalance \"dummybalance\" [0 is the default and results in no dummy balance!]\n");
-
-    LOCK2(cs_main, pwalletMain->cs_wallet);
-
-    CWalletDB walletdb(pwalletMain->strWalletFile);
-    CAmount dummyBalance = AmountFromValue(params[0]);
-    walletdb.WriteDummyBalance(dummyBalance);
-    return NullUniValue;
-}
-
 UniValue setaccount(const UniValue& params, bool fHelp)
 {
     if (!EnsureWalletIsAvailable(fHelp))
@@ -2818,8 +2784,6 @@ static const CRPCCommand commands[] =
     { "wallet",             "getaddressesbyaccount",    &getaddressesbyaccount,    true  },
     { "wallet",             "getbalance",               &getbalance,               false },
     { "wallet",             "getnewaddress",            &getnewaddress,            true  },
-//    { "wallet",             "getdummybalance",          &getdummybalance,          true  },
-//    { "wallet",             "setdummybalance",          &setdummybalance,          true  },
     { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      true  },
     { "wallet",             "getreceivedbyaccount",     &getreceivedbyaccount,     false },
     { "wallet",             "getreceivedbyaddress",     &getreceivedbyaddress,     false },

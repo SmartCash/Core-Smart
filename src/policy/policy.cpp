@@ -56,81 +56,65 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType)
 bool IsStandardTx(const CTransaction& tx, std::string& reason)
 {
     if (tx.nVersion > CTransaction::MAX_STANDARD_VERSION || tx.nVersion < 1) {
-        reason = "version";
-        return false;
-    }
+          reason = "version";
+          return false;
+      }
 
-    if (tx.IsZerocoinSpend() || tx.IsZerocoinMint(tx)) {
-        reason = "zerocoin";
-        return false;
-    }
+      // Extremely large transactions with lots of inputs can cost the network
+      // almost as much to process as they cost the sender in fees, because
+      // computing signature hashes is O(ninputs*txsize). Limiting transactions
+      // to MAX_STANDARD_TX_WEIGHT mitigates CPU exhaustion attacks.
+      unsigned int sz = GetTransactionWeight(tx);
+      if (sz > MAX_STANDARD_TX_WEIGHT) {
+          reason = "tx-size";
+          return false;
+      }
 
-    // Extremely large transactions with lots of inputs can cost the network
-    // almost as much to process as they cost the sender in fees, because
-    // computing signature hashes is O(ninputs*txsize). Limiting transactions
-    // to MAX_STANDARD_TX_SIZE mitigates CPU exhaustion attacks.
-    unsigned int sz = GetTransactionWeight(tx);
-    if (sz >= MAX_STANDARD_TX_WEIGHT) {
-        reason = "tx-size";
-        return false;
-    }
+      for (const CTxIn& txin : tx.vin)
+      {
+          // Biggest 'standard' txin is a 15-of-15 P2SH multisig with compressed
+          // keys (remember the 520 byte limit on redeemScript size). That works
+          // out to a (15*(33+1))+3=513 byte redeemScript, 513+1+15*(73+1)+3=1627
+          // bytes of scriptSig, which we round off to 1650 bytes for some minor
+          // future-proofing. That's also enough to spend a 20-of-20
+          // CHECKMULTISIG scriptPubKey, though such a scriptPubKey is not
+          // considered standard.
+          if (txin.scriptSig.size() > 1650) {
+              reason = "scriptsig-size";
+              return false;
+          }
+          if (!txin.scriptSig.IsPushOnly()) {
+              reason = "scriptsig-not-pushonly";
+              return false;
+          }
+      }
 
-    BOOST_FOREACH(const CTxIn& txin, tx.vin)
-    {
-        // Biggest 'standard' txin is a 15-of-15 P2SH multisig with compressed
-        // keys (remember the 520 byte limit on redeemScript size). That works
-        // out to a (15*(33+1))+3=513 byte redeemScript, 513+1+15*(73+1)+3=1627
-        // bytes of scriptSig, which we round off to 1650 bytes for some minor
-        // future-proofing. That's also enough to spend a 20-of-20
-        // CHECKMULTISIG scriptPubKey, though such a scriptPubKey is not
-        // considered standard.
-        if (txin.scriptSig.size() > 500 && !txin.scriptSig.IsZerocoinSpend()) {
-            reason = "scriptsig-size";
-            return false;
-        }
-        if (txin.scriptSig.IsZerocoinSpend() && txin.scriptSig.size() > 50000) {
-            reason = "scriptsig-size";
-            return false;
-        }
+      unsigned int nDataOut = 0;
+      txnouttype whichType;
+      for (const CTxOut& txout : tx.vout) {
+          if (!::IsStandard(txout.scriptPubKey, whichType)) {
+              reason = "scriptpubkey";
+              return false;
+          }
 
-        if (!txin.scriptSig.IsZerocoinSpend()) {
-            if (!txin.scriptSig.IsPushOnly()) {
-                reason = "scriptsig-not-pushonly";
-                return false;
-            }
-            if (!txin.scriptSig.HasCanonicalPushes()) {
-                reason = "non-canonical-push";
-                return false;
-            }
-        }
-    }
+          if (whichType == TX_NULL_DATA)
+              nDataOut++;
+          else if ((whichType == TX_MULTISIG) && (!fIsBareMultisigStd)) {
+              reason = "bare-multisig";
+              return false;
+          } else if (txout.IsDust(::minRelayTxFee)) {
+              reason = "dust";
+              return false;
+          }
+      }
 
-    unsigned int nDataOut = 0;
-    txnouttype whichType;
-    BOOST_FOREACH(const CTxOut& txout, tx.vout) {
-        if (!::IsStandard(txout.scriptPubKey, whichType)) {
-            reason = "scriptpubkey";
-            return false;
-        }
+      // only one OP_RETURN txout is permitted
+      if (nDataOut > 1) {
+          reason = "multi-op-return";
+          return false;
+      }
 
-        if (whichType == TX_NULL_DATA)
-            nDataOut++;
-        else if ((whichType == TX_MULTISIG) && (!fIsBareMultisigStd)) {
-            reason = "bare-multisig";
-            return false;
-        } else if (txout.IsDust(::minRelayTxFee)) {
-            reason = "dust";
-            return false;
-        }
-    }
-
-    // only one OP_RETURN txout is permitted
-    if (nDataOut > 1) {
-        reason = "multi-op-return";
-        return false;
-    }
-
-    return true;
+      return true;
 }
 
 bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)

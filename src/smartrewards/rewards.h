@@ -23,8 +23,10 @@ const int64_t nRewardsSyncDistance = nRewardsConfirmations + 10;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int64_t nRewardsUISyncUpdateRate = 500;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
-const int64_t nRewardsBlocksPerRound = 47500;
+const int64_t nRewardsBlocksPerRound_1_2 = 47500;
+const int64_t nRewardsBlocksPerRound_1_3 = 142500;
 const int64_t nRewardsFirstAutomatedRound = 13;
+const int64_t nRewardsFirst_1_3_Round = 19;
 
 // Timestamps of the first round's start and end on mainnet
 const int64_t nFirstRoundStartTime = 1500966000;
@@ -35,12 +37,14 @@ const int64_t nFirstRoundEndBlock = 60001;
 // Timestamps of the first round's start and end on testnet
 const int64_t nRewardsConfirmations_Testnet = 50;
 const int64_t nRewardsSyncDistance_Testnet = nRewardsConfirmations_Testnet + 10;
-const int64_t nRewardsBlocksPerRound_Testnet = 1000;
+const int64_t nRewardsBlocksPerRound_1_2_Testnet = 1000;
+const int64_t nRewardsBlocksPerRound_1_3_Testnet = 5000;
 const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
 const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_PAYMENTS_HEIGHT;
-const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + nRewardsBlocksPerRound_Testnet;
+const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + nRewardsBlocksPerRound_1_2_Testnet;
+const int64_t nRewardsFirst_1_3_Round_Testnet = 315;
 
 
 void ThreadSmartRewards(bool fRecreate = false);
@@ -75,6 +79,8 @@ class CSmartRewards
 
     mutable CCriticalSection csRounds;
 
+    void UpdatePayoutParameter(CSmartRewardRound &round);
+
     bool GetCachedRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&entry);
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool GetRewardEntries(CSmartRewardEntryList &entries);
@@ -102,7 +108,9 @@ public:
     double GetProgress();
     int GetLastHeight();
 
-    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
+    int GetBlocksPerRound(const int nRound);
+
+    bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult &result);
     bool UpdateRound(const CSmartRewardRound &round);
 
     void ProcessBlock(CBlockIndex* pLastIndex,const CChainParams& chainparams);
@@ -115,6 +123,7 @@ public:
 
     bool GetRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
     bool GetRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
+    bool GetRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
 
     bool RestoreSnapshot(const int16_t round);
 };

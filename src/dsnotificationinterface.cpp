@@ -5,14 +5,10 @@
 #include "chainparams.h"
 #include "dsnotificationinterface.h"
 #include "smartnode/instantx.h"
-//#include "governance.h"
 #include "smartnode/smartnodeman.h"
 #include "smartnode/smartnodepayments.h"
 #include "smartnode/smartnodesync.h"
-//#include "privatesend.h"
-//#ifdef ENABLE_WALLET
-//#include "privatesend-client.h"
-//#endif // ENABLE_WALLET
+#include "smartvoting/manager.h"
 
 void CDSNotificationInterface::InitializeCurrentBlockTip()
 {
@@ -44,13 +40,9 @@ void CDSNotificationInterface::UpdatedBlockTip(const CBlockIndex *pindexNew, con
         return;
 
     mnodeman.UpdatedBlockTip(pindexNew);
-    //CPrivateSend::UpdatedBlockTip(pindexNew);
-// #ifdef ENABLE_WALLET
-//     privateSendClient.UpdatedBlockTip(pindexNew);
-// #endif // ENABLE_WALLET
     instantsend.UpdatedBlockTip(pindexNew);
     mnpayments.UpdatedBlockTip(pindexNew, connman);
-    //governance.UpdatedBlockTip(pindexNew, connman);
+    smartVoting.UpdatedBlockTip(pindexNew, connman);
 }
 
 void CDSNotificationInterface::SyncTransaction(const CTransaction &tx, const CBlock *pblock)

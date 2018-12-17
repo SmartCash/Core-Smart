@@ -56,6 +56,7 @@ extern bool fSmartNode;
 extern bool fLiteMode; 
 extern int nWalletBackups; 
 
+extern const std::string args[136];
 extern std::map<std::string, std::string> mapArgs;
 extern std::map<std::string, std::vector<std::string> > mapMultiArgs;
 extern bool fDebug;
@@ -138,6 +139,7 @@ static inline bool error(const char* s)
 }
 
 void PrintExceptionContinue(const std::exception *pex, const char* pszThread);
+bool CheckDaemonParameters();
 void ParseParameters(int argc, const char*const argv[]);
 void FileCommit(FILE *fileout);
 bool TruncateFile(FILE *file, unsigned int length);

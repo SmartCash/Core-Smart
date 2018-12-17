@@ -76,7 +76,6 @@ class CMainParams : public CChainParams {
 public:
     CMainParams() {
         strNetworkID = "main";
-        consensus.nSubsidyHalvingInterval = 210000;
         consensus.nInstantSendKeepLock = 24;
         consensus.nMajorityEnforceBlockUpgrade = 750;
         consensus.nMajorityRejectBlockOutdated = 950;
@@ -112,13 +111,15 @@ public:
         
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT; // not true, but it's ok as long as it's less then nSmartnodePaymentsIncreaseBlock
-        //consensus.nSmartnodePaymentsIncreaseBlock = 680000; // actual historical value
-        //consensus.nSmartnodePaymentsIncreasePeriod = 576*30; // 17280 - actual historical value
-        //consensus.nSuperblockStartBlock = 614820;
-        //consensus.nBudgetPaymentsStartBlock = 328008; // actual historical value
-        //consensus.nBudgetPaymentsCycleBlocks = 16616; // ~(60*24*30)/2.6, actual number of blocks per month is 200700 / 12 = 16725
-        //consensus.nBudgetPaymentsWindowBlocks = 100;
         consensus.nSmartnodeMinimumConfirmations = 15;
+
+        // Smartvoting params
+
+        consensus.nProposalValidityVoteBlocks = 4712; // ~3days
+        consensus.nProposalFundingVoteBlocks = 21993; // ~2weeks
+        consensus.nVotingMinYesPercent = 50;
+        consensus.nVotingFilterElements = 200000;
+
         nMaxTipAge = 3 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
         nDelayGetHeadersTime = 24 * 60 * 60;
 
@@ -166,10 +167,12 @@ public:
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,191);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,125);
+        base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,82);
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;
-        
+
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
         fMiningRequiresPeers = true;
@@ -201,7 +204,6 @@ class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
         strNetworkID = "test";
-        consensus.nSubsidyHalvingInterval = 210000;
         consensus.nInstantSendKeepLock = 6;
         consensus.nMajorityEnforceBlockUpgrade = 51;
         consensus.nMajorityRejectBlockOutdated = 75;
@@ -231,8 +233,17 @@ public:
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000111");
+
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT + 1000;
+
+        // Smartvoting params
+
+        consensus.nProposalValidityVoteBlocks = 130; // ~2hour
+        consensus.nProposalFundingVoteBlocks = 390; // ~6hours
+        consensus.nVotingMinYesPercent = 50;
+        consensus.nVotingFilterElements = 200000;
+
         nMaxTipAge = 3 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
         nDelayGetHeadersTime = 24 * 60 * 60;
 
@@ -270,6 +281,8 @@ public:
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,193);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,112);
+        base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,160);
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;
@@ -304,7 +317,6 @@ class CRegTestParams : public CChainParams {
 public:
     CRegTestParams() {
         strNetworkID = "regtest";
-        consensus.nSubsidyHalvingInterval = 150;
         consensus.nMajorityEnforceBlockUpgrade = 750;
         consensus.nMajorityRejectBlockOutdated = 950;
         consensus.nMajorityWindow = 1000;

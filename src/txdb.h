@@ -21,6 +21,7 @@
 class CBlockIndex;
 class CCoinsViewDBCursor;
 class uint256;
+struct CSmartAddress;
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int DB_PEAK_USAGE_FACTOR = 2;
@@ -149,6 +150,20 @@ public:
                                         int &count,
                                         int &firstTime, int &lastTime,
                                         int start, int end);
+    /** SmartVoting start **/
+    bool WriteVoteKeyRegistrations(std::vector<std::pair<int,uint256>> vecRegistrations);
+    bool EraseVoteKeyRegistration(const int nHeight, const uint256 &txHash);
+    bool InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHas);
+    bool InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHash, const CVoteKey &voteKey);
+    bool GetVoteKeyRegistration(const uint256 &txHash, CVoteKeyRegistrationKey &registrationKey, CVoteKeyRegistrationValue &registrationValue);
+    bool ReadVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegistrationKey, CVoteKeyRegistrationValue>> &vecRegistrations, bool fExcludeProcessedOnes = true);
+    bool WriteVoteKey(const CVoteKey &voteKey, const CVoteKeyValue &voteKeyValue);
+    bool EraseVoteKeys(const std::vector<CVoteKey> &vecVoteKeys);
+    bool ReadVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey);
+    bool ReadVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys);
+    bool ReadVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue);
+    /** SmartVoting end **/
+
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
     bool LoadBlockIndexGuts(boost::function<CBlockIndex*(const uint256&)> insertBlockIndex);

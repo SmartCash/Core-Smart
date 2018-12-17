@@ -68,8 +68,6 @@ public Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
-    /** Switch to zerocoin page */
-    void gotoZerocoinPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");
@@ -78,10 +76,14 @@ public Q_SLOTS:
 
     /** Encrypt the wallet */
     void encryptWallet(bool status);
+    /** Encrypt the voting storage */
+    void encryptVoting(bool status);
     /** Backup the wallet */
     void backupWallet();
     /** Change encrypted wallet passphrase */
     void changePassphrase();
+    /** Change encrypted voting passphrase */
+    void changeVotingPassphrase();
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
 

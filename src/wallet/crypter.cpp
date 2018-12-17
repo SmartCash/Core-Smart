@@ -199,7 +199,22 @@ bool CCryptoKeyStore::Unlock(const CKeyingMaterial& vMasterKeyIn)
         }
         if (keyFail || (!keyPass && cryptedHDChain.IsNull()))
             return false;
+
         vMasterKey = vMasterKeyIn;
+
+        if(!cryptedHDChain.IsNull()) {
+            bool chainPass = false;
+            // try to decrypt seed and make sure it matches
+            CHDChain hdChainTmp;
+            if (DecryptHDChain(hdChainTmp)) {
+                // make sure seed matches this chain
+                chainPass = cryptedHDChain.GetID() == hdChainTmp.GetSeedHash();
+            }
+            if (!chainPass) {
+                vMasterKey.clear();
+                return false;
+            }
+        }
         fDecryptionThoroughlyChecked = true;
     }
     NotifyStatusChanged(this);
@@ -438,4 +453,166 @@ bool CCryptoKeyStore::GetHDChain(CHDChain& hdChainRet) const
 
     hdChainRet = hdChain;
     return !hdChain.IsNull();
+}
+
+
+
+bool CCryptoKeyStore::SetVotingCrypted()
+{
+    LOCK(cs_VotingKeyStore);
+    if (fUseVotingCrypto)
+        return true;
+    if (!mapVotingKeys.empty())
+        return false;
+    fUseVotingCrypto = true;
+    return true;
+}
+
+
+bool CCryptoKeyStore::LockVoting()
+{
+    if (!SetVotingCrypted())
+        return false;
+
+    {
+        LOCK(cs_VotingKeyStore);
+        vVotingMasterKey.clear();
+    }
+
+//    NotifyVotingStatusChanged(this);
+    return true;
+}
+
+bool CCryptoKeyStore::UnlockVoting(const CKeyingMaterial& vMasterKeyIn)
+{
+    {
+        LOCK(cs_VotingKeyStore);
+        if (!SetVotingCrypted())
+            return false;
+
+        bool keyPass = false;
+        bool keyFail = false;
+        CryptedKeyMap::const_iterator mi = mapCryptedVotingKeys.begin();
+        for (; mi != mapCryptedVotingKeys.end(); ++mi)
+        {
+            const CPubKey &vchPubKey = (*mi).second.first;
+            const std::vector<unsigned char> &vchCryptedSecret = (*mi).second.second;
+            CKey key;
+            if (!DecryptKey(vMasterKeyIn, vchCryptedSecret, vchPubKey, key))
+            {
+                keyFail = true;
+                break;
+            }
+            keyPass = true;
+            if (fVotingDecryptionThoroughlyChecked)
+                break;
+        }
+        if (keyPass && keyFail)
+        {
+            LogPrintf("The wallet is probably corrupted: Some keys decrypt but not all.\n");
+            assert(false);
+        }
+        if (keyFail || !keyPass)
+            return false;
+        vVotingMasterKey = vMasterKeyIn;
+        fVotingDecryptionThoroughlyChecked = true;
+    }
+//    NotifyVotingStatusChanged(this);
+    return true;
+}
+
+
+bool CCryptoKeyStore::AddVotingKeyPubKey(const CKey& key, const CPubKey &pubkey)
+{
+    {
+        LOCK(cs_VotingKeyStore);
+        if (!IsVotingCrypted())
+            return CBasicKeyStore::AddVotingKeyPubKey(key, pubkey);
+
+        if (IsVotingLocked())
+            return false;
+
+        std::vector<unsigned char> vchCryptedSecret;
+        CKeyingMaterial vchSecret(key.begin(), key.end());
+        if (!EncryptSecret(vVotingMasterKey, vchSecret, pubkey.GetHash(), vchCryptedSecret))
+            return false;
+
+        if (!AddCryptedVotingKey(pubkey, vchCryptedSecret))
+            return false;
+    }
+    return true;
+}
+
+
+bool CCryptoKeyStore::AddCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret)
+{
+    {
+        LOCK(cs_VotingKeyStore);
+        if (!SetVotingCrypted())
+            return false;
+
+        mapCryptedVotingKeys[vchPubKey.GetID()] = make_pair(vchPubKey, vchCryptedSecret);
+    }
+    return true;
+}
+
+bool CCryptoKeyStore::GetVotingKey(const CKeyID &address, CKey& keyOut) const
+{
+    {
+        LOCK(cs_VotingKeyStore);
+        if (!IsVotingCrypted())
+            return CBasicKeyStore::GetVotingKey(address, keyOut);
+
+        CryptedKeyMap::const_iterator mi = mapCryptedVotingKeys.find(address);
+        if (mi != mapCryptedVotingKeys.end())
+        {
+            const CPubKey &vchPubKey = (*mi).second.first;
+            const std::vector<unsigned char> &vchCryptedSecret = (*mi).second.second;
+            return DecryptKey(vVotingMasterKey, vchCryptedSecret, vchPubKey, keyOut);
+        }
+    }
+    return false;
+}
+
+bool CCryptoKeyStore::GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const
+{
+    {
+        LOCK(cs_VotingKeyStore);
+        if (!IsVotingCrypted())
+            return CBasicKeyStore::GetVotingPubKey(address, vchPubKeyOut);
+
+        CryptedKeyMap::const_iterator mi = mapCryptedVotingKeys.find(address);
+        if (mi != mapCryptedVotingKeys.end())
+        {
+            vchPubKeyOut = (*mi).second.first;
+            return true;
+        }
+        // Check for watch-only pubkeys
+        return CBasicKeyStore::GetVotingPubKey(address, vchPubKeyOut);
+    }
+    return false;
+}
+
+bool CCryptoKeyStore::EncryptVotingKeys(CKeyingMaterial& vMasterKeyIn)
+{
+    {
+        LOCK(cs_VotingKeyStore);
+        if (!mapCryptedVotingKeys.empty() || IsVotingCrypted())
+            return false;
+
+        fUseVotingCrypto = true;
+        BOOST_FOREACH(KeyMap::value_type& mKey, mapVotingKeys)
+        {
+            const CKey &key = mKey.second;
+            CPubKey vchPubKey = key.GetPubKey();
+            CKeyingMaterial vchSecret(key.begin(), key.end());
+            std::vector<unsigned char> vchCryptedSecret;
+            if (!EncryptSecret(vMasterKeyIn, vchSecret, vchPubKey.GetHash(), vchCryptedSecret))
+                return false;
+            if (!AddCryptedVotingKey(vchPubKey, vchCryptedSecret))
+                return false;
+        }
+        mapKeys.clear();
+    }
+    return true;
 }

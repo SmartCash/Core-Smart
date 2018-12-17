@@ -7,6 +7,7 @@
 
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "smartvoting/votekeys.h"
 
 using namespace std;
 
@@ -285,6 +286,22 @@ bool CScript::IsZerocoinMint() const
 bool CScript::IsZerocoinSpend() const {
     return (this->size() > 0 &&
             (*this)[0] == OP_ZEROCOINSPEND);
+}
+
+bool CScript::IsVoteKeyData() const {
+    return  (this->size() == VOTEKEY_REGISTRATION_O1_SCRIPT_SIZE &&
+            (*this)[0] == OP_RETURN &&
+            (*this)[1] == OP_PUSHDATA1 &&
+            (*this)[2] == VOTEKEY_REGISTRATION_O1_DATA_SIZE &&
+            (*this)[3] == OP_RETURN_VOTE_KEY_REG_FLAG &&
+            (*this)[4] == 0x01) ||
+
+            (this->size() == VOTEKEY_REGISTRATION_O2_SCRIPT_SIZE &&
+            (*this)[0] == OP_RETURN &&
+            (*this)[1] == OP_PUSHDATA1 &&
+            (*this)[2] == VOTEKEY_REGISTRATION_O2_DATA_SIZE &&
+            (*this)[3] == OP_RETURN_VOTE_KEY_REG_FLAG &&
+            (*this)[4] == 0x02);
 }
 
 bool CScript::HasCanonicalPushes() const

@@ -12,7 +12,7 @@
 #include "base58.h"
 #include "smarthive/hive.h"
 
-static constexpr uint8_t REWARDS_DB_VERSION = 0x01;
+static constexpr uint8_t REWARDS_DB_VERSION = 0x05;
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
@@ -31,6 +31,7 @@ typedef std::vector<CSmartRewardBlock> CSmartRewardBlockList;
 typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
 typedef std::vector<CSmartRewardSnapshot> CSmartRewardSnapshotList;
+typedef std::vector<CSmartRewardSnapshot*> CSmartRewardSnapshotPtrList;
 typedef std::vector<CSmartRewardTransaction> CSmartRewardTransactionList;
 
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
@@ -115,6 +116,9 @@ public:
     int64_t disqualifiedEntries;
     CAmount disqualifiedSmart;
 
+    int64_t nBlockPayees;
+    int64_t nBlockInterval;
+
     CAmount rewards;
     double percent;
 
@@ -128,6 +132,8 @@ public:
         eligibleSmart = 0;
         disqualifiedEntries = 0;
         disqualifiedSmart = 0;
+        nBlockPayees = 0;
+        nBlockInterval = 0;
         rewards = 0;
         percent = 0;
     }
@@ -145,8 +151,15 @@ public:
         READWRITE(eligibleSmart);
         READWRITE(disqualifiedEntries);
         READWRITE(disqualifiedSmart);
+        READWRITE(nBlockPayees);
+        READWRITE(nBlockInterval);
         READWRITE(rewards);
         READWRITE(percent);
+    }
+
+    friend bool operator<(const CSmartRewardRound& a, const CSmartRewardRound& b)
+    {
+        return a.number < b.number;
     }
 
     std::string ToString() const;
@@ -164,21 +177,27 @@ public:
         READWRITE(id);
         READWRITE(balanceOnStart);
         READWRITE(balance);
-        READWRITE(eligible);
+        READWRITE(fBalanceEligible);
+        READWRITE(fIsSmartNode);
+        READWRITE(fVoteProved);
     }
 
     CSmartAddress id;
     CAmount balance;
     CAmount balanceOnStart;
     CAmount reward;
-    bool eligible;
+    bool fBalanceEligible;
+    bool fIsSmartNode;
+    bool fVoteProved;
 
     CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceOnStart(0),
-                          reward(0), eligible(false) {}
+                          reward(0), fBalanceEligible(false),
+                          fIsSmartNode(false), fVoteProved(false) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceOnStart(0),
-                          reward(0), eligible(false) {}
+                          reward(0), fBalanceEligible(false),
+                          fIsSmartNode(false), fVoteProved(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -193,6 +212,7 @@ public:
     std::string GetAddress() const;
     void setNull();
     std::string ToString() const;
+    bool IsEligible();
 };
 
 class CSmartRewardSnapshot
@@ -215,10 +235,10 @@ public:
 
     CSmartRewardSnapshot(){}
 
-    CSmartRewardSnapshot(const CSmartRewardEntry &entry, const CSmartRewardRound &round) {
+    CSmartRewardSnapshot(CSmartRewardEntry &entry, const CSmartRewardRound &round) {
         id = entry.id;
         balance = entry.balance;
-        reward = entry.eligible ? CAmount(entry.balanceOnStart * round.percent) : 0;
+        reward = entry.IsEligible() ? CAmount(entry.balanceOnStart * round.percent) : 0;
     }
 
     friend bool operator==(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
@@ -240,6 +260,8 @@ public:
 
     std::string GetAddress() const;
     std::string ToString() const;
+
+    arith_uint256 CalculateScore(const uint256& blockHash);
 };
 
 
@@ -279,6 +301,7 @@ public:
 
     bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
 
     bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);

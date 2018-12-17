@@ -30,7 +30,7 @@ int64_t GetKeyForBlock(const CBlockIndex * pIndex){
 
                 // Check if it is an OP_RETURN and if the startvalue is OP_DATA_MINING_FLAG
                 if( sigScript.size() > nMiningSignatureMinScriptLength &&
-                    sigScript[0] == OP_RETURN && sigScript[2] == OP_DATA_MINING_FLAG ){
+                    sigScript[0] == OP_RETURN && sigScript[2] == OP_RETURN_MINING_FLAG ){
                     return sigScript[3];
                 }
 

@@ -10,6 +10,7 @@
 #include "script/script.h"
 #include "serialize.h"
 #include "uint256.h"
+#include "smartvoting/votekeys.h"
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
@@ -211,6 +212,11 @@ public:
     {
     //  return (nValue < GetDustThreshold(minRelayTxFee));
         return false;
+    }
+
+    bool IsVoteKeyRegistrationData() const
+    {
+        return scriptPubKey.IsVoteKeyData() && nValue == VOTEKEY_REGISTER_FEE;
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
@@ -449,6 +455,8 @@ public:
 
     bool IsZerocoinMint(const CTransaction& tx) const;
 
+    bool IsVoteKeyRegistration() const;
+
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return a.hash == b.hash;
@@ -499,6 +507,10 @@ struct CMutableTransaction
         return !(a == b); 
     } 
 };
+
+typedef std::shared_ptr<const CTransaction> CTransactionRef;
+static inline CTransactionRef MakeTransactionRef() { return std::make_shared<const CTransaction>(); }
+template <typename Tx> static inline CTransactionRef MakeTransactionRef(Tx&& txIn) { return std::make_shared<const CTransaction>(std::forward<Tx>(txIn)); }
 
 /** Compute the weight of a transaction, as defined by BIP 141 */
 int64_t GetTransactionWeight(const CTransaction &tx);

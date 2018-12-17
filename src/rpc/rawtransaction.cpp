@@ -466,6 +466,127 @@ UniValue createrawtransaction(const UniValue& params, bool fHelp)
     return EncodeHexTx(rawTx);
 }
 
+UniValue splitinputs(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 4 || params.size() > 5)
+        throw runtime_error(
+            "splitinputs [{\"txid\":\"id\",\"vout\":n},...] address amount outputs (locktime)\n"
+            "\nCreate a transaction spending the given inputs and creating new outputs.\n"
+            "Outputs can be defined with a fixed amount and a number of outputs.\n"
+            "The change will end in a output to the given address\n"
+            "Returns hex-encoded raw transaction.\n"
+            "Note that the transaction's inputs are not signed, and\n"
+            "it is not stored in the wallet or transmitted to the network.\n"
+
+            "\nArguments:\n"
+            "1. \"transactions\"        (string, required) A json array of json objects\n"
+            "     [\n"
+            "       {\n"
+            "         \"txid\":\"id\",  (string, required) The transaction id\n"
+            "         \"vout\":n        (numeric, required) The output number\n"
+            "         \"sequence\":n    (numeric, optional) The sequence number\n"
+            "       }\n"
+            "       ,...\n"
+            "     ]\n"
+            "2. address                (string, required) SmartCash address to receive the generated outputs\n"
+            "3. amount                 (numeric, required) Amount each output will get\n"
+            "4. outputs                (numeric, required) Number of outputs to generate\n"
+            "3. locktime               (numeric, optional, default=0) Raw locktime. Non-0 value also locktime-activates inputs\n"
+            "\nResult:\n"
+            "\"transaction\"            (string) hex string of the transaction\n"
+
+            "\nExamples\n"
+            + HelpExampleCli("splitinputs", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" S2tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc 10 100")
+            + HelpExampleRpc("splitinputs", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" S2tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc 10 100")
+        );
+
+    UniValue inputs = params[0].get_array();
+    CBitcoinAddress sendTo(params[1].get_str());
+    CAmount nSplitAmount = AmountFromValue(params[2]);
+    CAmount nFee = 0.1 * COIN;
+    int64_t nOutputs = params[3].get_int64();
+    CAmount nAvailableAmount = 0;
+
+    CMutableTransaction rawTx;
+
+    if (!sendTo.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid SmartCash address: ")+sendTo.ToString());
+
+    CScript scriptPubKey = GetScriptForDestination(sendTo.Get());
+
+    if (params.size() > 4 && !params[4].isNull()) {
+        int64_t nLockTime = params[4].get_int64();
+        if (nLockTime < 0 || nLockTime > std::numeric_limits<uint32_t>::max())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, locktime out of range");
+        rawTx.nLockTime = nLockTime;
+    }
+
+    for (unsigned int idx = 0; idx < inputs.size(); idx++) {
+        const UniValue& input = inputs[idx];
+        const UniValue& o = input.get_obj();
+
+        uint256 txid = ParseHashO(o, "txid");
+
+        const UniValue& vout_v = find_value(o, "vout");
+        if (!vout_v.isNum())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing vout key");
+        int nOutput = vout_v.get_int();
+        if (nOutput < 0)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
+
+        uint32_t nSequence = (rawTx.nLockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max());
+
+        // set the sequence number if passed in the parameters object
+        const UniValue& sequenceObj = find_value(o, "sequence");
+        if (sequenceObj.isNum()) {
+            int64_t seqNr64 = sequenceObj.get_int64();
+            if (seqNr64 < 0 || seqNr64 > std::numeric_limits<uint32_t>::max())
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, sequence number is out of range");
+            else
+                nSequence = (uint32_t)seqNr64;
+        }
+
+        CTransaction inputTx;
+        uint256 blockHash;
+
+        if( !GetTransaction(txid, inputTx, Params().GetConsensus(),blockHash) ){
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Specified input tx not found: %s",txid.ToString()));
+        }
+
+        if( static_cast<size_t>(nOutput) > inputTx.vout.size() ){
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("txindex %d out of range for tx: %s", nOutput, txid.ToString()));
+        }
+
+        CTxOut out = inputTx.vout[nOutput];
+
+        nAvailableAmount += out.nValue;
+
+        CTxIn in(COutPoint(txid, nOutput), CScript(), nSequence);
+
+        rawTx.vin.push_back(in);
+    }
+
+    if( ((nOutputs * nSplitAmount) + nFee) > nAvailableAmount ){
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Not enough input funds for the given parameter set.");
+    }
+
+    CAmount nAmountChange = nAvailableAmount - (nOutputs * nSplitAmount) - nFee;
+
+
+    for( int i=0;i<nOutputs;i++){
+            CTxOut out(nSplitAmount, scriptPubKey);
+            rawTx.vout.push_back(out);
+    }
+
+    if( nAmountChange > 0){
+        CTxOut out(nAmountChange, scriptPubKey);
+        rawTx.vout.push_back(out);
+    }
+
+    return EncodeHexTx(rawTx);
+}
+
+
 UniValue decoderawtransaction(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
@@ -507,7 +628,7 @@ UniValue decoderawtransaction(const UniValue& params, bool fHelp)
             "         \"reqSigs\" : n,            (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
             "         \"addresses\" : [           (json array of string)\n"
-            "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) smartcash address\n"
+            "           \"S2tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) smartcash address\n"
             "           ,...\n"
             "         ]\n"
             "       }\n"

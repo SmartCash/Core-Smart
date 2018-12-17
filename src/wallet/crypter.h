@@ -123,24 +123,30 @@ class CCryptoKeyStore : public CBasicKeyStore
 {
 private:
     CryptedKeyMap mapCryptedKeys;
+    CryptedKeyMap mapCryptedVotingKeys;
     CHDChain cryptedHDChain;
     CKeyingMaterial vMasterKey;
+    CKeyingMaterial vVotingMasterKey;
 
     //! if fUseCrypto is true, mapKeys must be empty
     //! if fUseCrypto is false, vMasterKey must be empty
     bool fUseCrypto;
 
+    bool fUseVotingCrypto;
+
     //! keeps track of whether Unlock has run a thorough check before
     bool fDecryptionThoroughlyChecked;
 
-    //! if fOnlyMixingAllowed is true, only mixing should be allowed in unlocked wallet 
-    bool fOnlyMixingAllowed;
+    //! keeps track of whether Unlock has run a thorough check before
+    bool fVotingDecryptionThoroughlyChecked;
 
 protected:
     bool SetCrypted();
+    bool SetVotingCrypted();
 
     //! will encrypt previously unencrypted keys
     bool EncryptKeys(CKeyingMaterial& vMasterKeyIn);
+    bool EncryptVotingKeys(CKeyingMaterial& vMasterKeyIn);
 
     bool EncryptHDChain(const CKeyingMaterial& vMasterKeyIn);
     bool DecryptHDChain(CHDChain& hdChainRet) const;
@@ -148,9 +154,11 @@ protected:
     bool SetCryptedHDChain(const CHDChain& chain);
 
     bool Unlock(const CKeyingMaterial& vMasterKeyIn);
+    bool UnlockVoting(const CKeyingMaterial& vMasterKeyIn);
 
 public:
-    CCryptoKeyStore() : fUseCrypto(false), fDecryptionThoroughlyChecked(false)
+    CCryptoKeyStore() : fUseCrypto(false), fUseVotingCrypto(false),
+                    fDecryptionThoroughlyChecked(false), fVotingDecryptionThoroughlyChecked(false)
     {
     }
 
@@ -168,11 +176,29 @@ public:
             LOCK(cs_KeyStore);
             result = vMasterKey.empty();
         }
-//        if(!fForMixing && fOnlyMixingAllowed) return true;
         return result;
     }
 
     bool Lock();
+
+    bool IsVotingCrypted() const
+    {
+        return fUseVotingCrypto;
+    }
+
+    bool IsVotingLocked() const
+    {
+        if (!IsVotingCrypted())
+            return false;
+        bool result;
+        {
+            LOCK(cs_VotingKeyStore);
+            result = vVotingMasterKey.empty();
+        }
+        return result;
+    }
+
+    bool LockVoting();
 
     virtual bool AddCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey);
@@ -198,6 +224,36 @@ public:
         setAddress.clear();
         CryptedKeyMap::const_iterator mi = mapCryptedKeys.begin();
         while (mi != mapCryptedKeys.end())
+        {
+            setAddress.insert((*mi).first);
+            mi++;
+        }
+    }
+
+    virtual bool AddCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
+    bool AddVotingKeyPubKey(const CKey& key, const CPubKey &pubkey);
+    bool HaveVotingKey(const CKeyID &address) const
+    {
+        {
+            LOCK(cs_VotingKeyStore);
+            if (!IsVotingCrypted())
+                return CBasicKeyStore::HaveVotingKey(address);
+            return mapCryptedVotingKeys.count(address) > 0;
+        }
+        return false;
+    }
+    bool GetVotingKey(const CKeyID &address, CKey& keyOut) const;
+    bool GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
+    void GetVotingKeys(std::set<CKeyID> &setAddress) const
+    {
+        if (!IsVotingCrypted())
+        {
+            CBasicKeyStore::GetVotingKeys(setAddress);
+            return;
+        }
+        setAddress.clear();
+        CryptedKeyMap::const_iterator mi = mapCryptedVotingKeys.begin();
+        while (mi != mapCryptedVotingKeys.end())
         {
             setAddress.insert((*mi).first);
             mi++;

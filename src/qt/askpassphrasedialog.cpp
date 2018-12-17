@@ -68,6 +68,32 @@ AskPassphraseDialog::AskPassphraseDialog(Mode mode, QWidget *parent) :
             setWindowTitle(tr("Change passphrase"));
             ui->warningLabel->setText(tr("Enter the old passphrase and new passphrase to the wallet."));
             break;
+        case EncryptVoting: // Ask passphrase x2
+            ui->warningLabel->setText(tr("Enter the new passphrase to encrypt the voting storage.<br/>Please use a passphrase of <b>ten or more random characters</b>, or <b>eight or more words</b>."));
+            ui->passLabel1->hide();
+            ui->passEdit1->hide();
+            setWindowTitle(tr("Encrypt voting"));
+            break;
+        case UnlockVoting: // Ask passphrase
+            ui->warningLabel->setText(tr("This operation needs your voting passphrase to unlock voting."));
+            ui->passLabel2->hide();
+            ui->passEdit2->hide();
+            ui->passLabel3->hide();
+            ui->passEdit3->hide();
+            setWindowTitle(tr("Unlock voting"));
+            break;
+        case DecryptVoting:   // Ask passphrase
+            ui->warningLabel->setText(tr("This operation needs your voting passphrase to decrypt the voting storage."));
+            ui->passLabel2->hide();
+            ui->passEdit2->hide();
+            ui->passLabel3->hide();
+            ui->passEdit3->hide();
+            setWindowTitle(tr("Decrypt voting"));
+            break;
+        case ChangeVotingPass: // Ask old passphrase + new passphrase x2
+            setWindowTitle(tr("Change voting passphrase"));
+            ui->warningLabel->setText(tr("Enter the old passphrase and new passphrase for voting."));
+            break;
     }
     textChanged();
     connect(ui->passEdit1, SIGNAL(textChanged(QString)), this, SLOT(textChanged()));
@@ -194,6 +220,94 @@ void AskPassphraseDialog::accept()
                                  tr("The supplied passphrases do not match."));
         }
         break;
+    case EncryptVoting: {
+        if(newpass1.empty() || newpass2.empty())
+        {
+            // Cannot encrypt with empty passphrase
+            break;
+        }
+        QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm vote encryption"),
+                 tr("Warning: If you encrypt your voting storage and lose your passphrase, you will <b>LOSE ALL OF YOUR VOTEKEYS</b>!") + "<br><br>" + tr("Are you sure you wish to encrypt your voting storage?"),
+                 QMessageBox::Yes|QMessageBox::Cancel,
+                 QMessageBox::Cancel);
+        if(retval == QMessageBox::Yes)
+        {
+            if(newpass1 == newpass2)
+            {
+                if(model->setVotingEncrypted(true, newpass1))
+                {
+                    QMessageBox::warning(this, tr("Voting encrypted"),
+                                         "<qt>" +
+                                         tr("%1 will close now to finish the encryption process. "
+                                         "Remember that encrypting your voting storage cannot fully protect "
+                                         "your votingkeys from being stolen by malware infecting your computer.").arg(tr(PACKAGE_NAME)) +
+                                         "<br><br><b>" +
+                                         tr("IMPORTANT: Any previous backups you have made of your wallet file "
+                                         "should be replaced with the newly generated, wallet file with encrypted voting storage.") +
+                                         "</b></qt>");
+                    QApplication::quit();
+                }
+                else
+                {
+                    QMessageBox::critical(this, tr("Voting encryption failed"),
+                                         tr("Voting encryption failed due to an internal error. Your voting storage was not encrypted."));
+                }
+                QDialog::accept(); // Success
+            }
+            else
+            {
+                QMessageBox::critical(this, tr("Voting encryption failed"),
+                                     tr("The supplied passphrases do not match."));
+            }
+        }
+        else
+        {
+            QDialog::reject(); // Cancelled
+        }
+        } break;
+    case UnlockVoting:
+        if(!model->setVotingLocked(false, oldpass))
+        {
+            QMessageBox::critical(this, tr("Voting unlock failed"),
+                                  tr("The passphrase entered for the voting decryption was incorrect."));
+        }
+        else
+        {
+            QDialog::accept(); // Success
+        }
+        break;
+    case DecryptVoting:
+        if(!model->setVotingEncrypted(false, oldpass))
+        {
+            QMessageBox::critical(this, tr("Voting decryption failed"),
+                                  tr("The passphrase entered for the voting decryption was incorrect."));
+        }
+        else
+        {
+            QDialog::accept(); // Success
+        }
+        break;
+    case ChangeVotingPass:
+        if(newpass1 == newpass2)
+        {
+            if(model->changeVotingPassphrase(oldpass, newpass1))
+            {
+                QMessageBox::information(this, tr("Voting encrypted"),
+                                     tr("Voting passphrase was successfully changed."));
+                QDialog::accept(); // Success
+            }
+            else
+            {
+                QMessageBox::critical(this, tr("Voting encryption failed"),
+                                     tr("The passphrase entered for the voting storage decryption was incorrect."));
+            }
+        }
+        else
+        {
+            QMessageBox::critical(this, tr("Voting encryption failed"),
+                                 tr("The supplied passphrases do not match."));
+        }
+        break;
     }
 }
 
@@ -204,13 +318,17 @@ void AskPassphraseDialog::textChanged()
     switch(mode)
     {
     case Encrypt: // New passphrase x2
+    case EncryptVoting:
         acceptable = !ui->passEdit2->text().isEmpty() && !ui->passEdit3->text().isEmpty();
         break;
     case Unlock: // Old passphrase x1
     case Decrypt:
+    case UnlockVoting:
+    case DecryptVoting:
         acceptable = !ui->passEdit1->text().isEmpty();
         break;
     case ChangePass: // Old passphrase x1, new passphrase x2
+    case ChangeVotingPass:
         acceptable = !ui->passEdit1->text().isEmpty() && !ui->passEdit2->text().isEmpty() && !ui->passEdit3->text().isEmpty();
         break;
     }

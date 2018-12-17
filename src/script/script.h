@@ -191,6 +191,11 @@ enum opcodetype
     OP_ZEROCOINSPEND = 0xc2,
 };
 
+enum opreturnflags{
+    OP_RETURN_MINING_FLAG = 0x01,
+    OP_RETURN_VOTE_KEY_REG_FLAG = 0x02
+};
+
 const char* GetOpName(opcodetype opcode);
 
 class scriptnum_error : public std::runtime_error
@@ -634,6 +639,7 @@ public:
     
     bool IsZerocoinMint() const;
     bool IsZerocoinSpend() const;
+    bool IsVoteKeyData() const;
     // Called by IsStandardTx.
     bool HasCanonicalPushes() const;
 

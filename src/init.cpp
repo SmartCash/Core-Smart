@@ -25,6 +25,8 @@
 #include "netbase.h"
 #include "net.h"
 #include "smartnode/netfulfilledman.h"
+#include "smartvoting/manager.h"
+#include "smartvoting/votevalidation.h"
 #include "smartmining/miningpayments.h"
 #include "net_processing.h"
 #include "policy/policy.h"
@@ -264,22 +266,26 @@ void PrepareShutdown()
 
     fCache = GetBoolArg("-cachenodelist", DEFAULT_CACHE_NODES);
     if( fCache ){
-        CFlatDB<CSmartnodeMan> flatdb1("sncache.dat", "magicSmartnodeCache");
-        flatdb1.Dump(mnodeman);
+        CFlatDB<CSmartnodeMan> flatdb("sncache.dat", "magicSmartnodeCache");
+        flatdb.Dump(mnodeman);
     }
 
     fCache = GetBoolArg("-cachewinners", DEFAULT_CACHE_WINNERS);
     if( fCache ){
-        CFlatDB<CSmartnodePayments> flatdb2("snpayments.dat", "magicSmartnodePaymentsCache");
-        flatdb2.Dump(mnpayments);
+        CFlatDB<CSmartnodePayments> flatdb("snpayments.dat", "magicSmartnodePaymentsCache");
+        flatdb.Dump(mnpayments);
     }
 
-    //CFlatDB<CGovernanceManager> flatdb3("governance.dat", "magicGovernanceCache");
-    //flatdb3.Dump(governance);
     fCache = GetBoolArg("-cachefulfilled", DEFAULT_CACHE_NETFULLFILLED);
     if( fCache ){
-        CFlatDB<CNetFulfilledRequestManager> flatdb4("netfulfilled.dat", "magicFulfilledCache");
-        flatdb4.Dump(netfulfilledman);
+        CFlatDB<CNetFulfilledRequestManager> flatdb("netfulfilled.dat", "magicFulfilledCache");
+        flatdb.Dump(netfulfilledman);
+    }
+
+    fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_VOTING);
+    if( fCache ){
+        CFlatDB<CSmartVotingManager> flatdb("smartvoting.dat", "magicSmartVotingCache");
+        flatdb.Dump(smartVoting);
     }
 
     UnregisterNodeSignals(GetNodeSignals());
@@ -416,7 +422,7 @@ std::string HelpMessage(HelpMessageMode mode)
     // When adding new options to the categories, please keep and ensure alphabetical ordering.
     // Do not translate _(...) -help-debug options, Many technical terms, and only a very small audience, so is unnecessary stress to translators.
     string strUsage = HelpMessageGroup(_("Options:"));
-    strUsage += HelpMessageOpt("-?", _("Print this help message and exit"));
+    strUsage += HelpMessageOpt("-? or -help", _("Show options and exit"));
     strUsage += HelpMessageOpt("-version", _("Print version and exit"));
     strUsage += HelpMessageOpt("-alertnotify=<cmd>", _("Execute command when a relevant alert is received or we see a really long fork (%s in cmd is replaced by message)"));
     strUsage += HelpMessageOpt("-blocknotify=<cmd>", _("Execute command when the best block changes (%s in cmd is replaced by block hash)"));
@@ -457,7 +463,7 @@ std::string HelpMessage(HelpMessageMode mode)
     //strUsage += HelpMessageOpt("-txindex", strprintf(_("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)"), DEFAULT_TXINDEX));
     strUsage += HelpMessageOpt("-depositindex", strprintf(_("Maintain a address deposit index, used by the SAPI and the getdeposits rpc call (not yet implemented) (default: %u)"), DEFAULT_DEPOSITINDEX));
 
-    strUsage += HelpMessageGroup(_("Connection options:"));
+    strUsage += HelpMessageGroup(_("Options:"));
     strUsage += HelpMessageOpt("-addnode=<ip>", _("Add a node to connect to and attempt to keep the connection open"));
     strUsage += HelpMessageOpt("-banscore=<n>", strprintf(_("Threshold for disconnecting misbehaving peers (default: %u)"), DEFAULT_BANSCORE_THRESHOLD));
     strUsage += HelpMessageOpt("-bantime=<n>", strprintf(_("Number of seconds to keep misbehaving peers from reconnecting (default: %u)"), DEFAULT_MISBEHAVING_BANTIME));
@@ -573,6 +579,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageGroup(_("Block creation options:"));
     strUsage += HelpMessageOpt("-blockmaxweight=<n>", strprintf(_("Set maximum BIP141 block weight (default: %d)"), DEFAULT_BLOCK_MAX_WEIGHT));
     strUsage += HelpMessageOpt("-blockmaxsize=<n>", strprintf(_("Set maximum block size in bytes (default: %d)"), DEFAULT_BLOCK_MAX_SIZE));
+    strUsage += HelpMessageOpt("-txmaxcount=<n>", strprintf(_("Set maximum number of transactions per block (default: %d)"), DEFAULT_TX_MAX_COUNT));
     strUsage += HelpMessageOpt("-blockprioritysize=<n>", strprintf(_("Set maximum size of high-priority/low-fee transactions in bytes (default: %d)"), DEFAULT_BLOCK_PRIORITY_SIZE));
     if (showDebug)
         strUsage += HelpMessageOpt("-blockversion=<n>", "Override block version to test forking scenarios");
@@ -1030,7 +1037,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             "sncache.dat",
             "snpayments.dat",
             "banlist.dat",
-            "fee_estimates.dat"
+            "fee_estimates.dat",
+            "smartvoting.dat"
         };
 
         boost::filesystem::path cachePath = GetDataDir();
@@ -1258,9 +1266,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 
     // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log
-
-    // Initialize fast PRNG
-    seed_insecure_rand(false);
 
     // Initialize elliptic curve code
     ECC_Start();
@@ -1599,6 +1604,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     int64_t nRewardsCache = (GetArg("-rewardsdbcache", nRewardsDefaultDbCache) << 20);
     LogPrintf("* Using %.1fMiB for smart rewards database\n", nRewardsCache * (1.0 / 1024 / 1024));
 
+    delete prewards;
+
+    CSmartRewardsDB *prewardsdb = new CSmartRewardsDB(nRewardsCache, false, false);
+
+    prewards = new CSmartRewards(prewardsdb);
+
     bool fLoaded = false;
     while (!fLoaded && !fRequestShutdown) {
         bool fReset = fReindex;
@@ -1729,7 +1740,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     uiInterface.InitMessage(_("Verifying SmartRewards..."));
 
     CBlockIndex *pLastIndex = chainActive.Tip();
-    CSmartRewardsDB * prewardsdb = nullptr;
     bool fResetRewards = fReindex;
     fLoaded = false;
 
@@ -1741,11 +1751,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         do {
             try {
 
-                delete prewards;
+                if( fResetRewards ){
+                    delete prewards;
 
-                prewardsdb = new CSmartRewardsDB(nRewardsCache, false, fResetRewards);
-
-                prewards = new CSmartRewards(prewardsdb);
+                    prewardsdb = new CSmartRewardsDB(nRewardsCache, false, true);
+                    prewards = new CSmartRewards(prewardsdb);
+                }
 
                 if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database is incomplete."));
 
@@ -1871,8 +1882,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         if (fFirstRun)
         {
             // Create new keyUser and set as default key
-            RandAddSeedPerfmon();
-
             if (GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET) && !pwalletMain->IsHDEnabled()) {
                 if (GetArg("-mnemonicpassphrase", "").size() > 256)
                     return InitError(_("Mnemonic passphrase is too long, must be at most 256 characters"));
@@ -2103,8 +2112,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         if( fCache ){
             strDBName = "sncache.dat";
             uiInterface.InitMessage(_("Loading smartnode cache..."));
-            CFlatDB<CSmartnodeMan> flatdb1(strDBName, "magicSmartnodeCache");
-            if(!flatdb1.Load(mnodeman)) {
+            CFlatDB<CSmartnodeMan> flatdb(strDBName, "magicSmartnodeCache");
+            if(!flatdb.Load(mnodeman)) {
                 InitError(_("Failed to load smartnode cache from") + "\n" + (pathDB / strDBName).string());
                 try {
                     boost::filesystem::remove((pathDB / strDBName).string());
@@ -2118,8 +2127,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         if( fCache ){
             strDBName = "snpayments.dat";
             uiInterface.InitMessage(_("Loading smartnode payment cache..."));
-            CFlatDB<CSmartnodePayments> flatdb2(strDBName, "magicSmartnodePaymentsCache");
-            if(!flatdb2.Load(mnpayments)) {
+            CFlatDB<CSmartnodePayments> flatdb(strDBName, "magicSmartnodePaymentsCache");
+            if(!flatdb.Load(mnpayments)) {
                 InitWarning(_("Failed to load smartnode payments cache from") + "\n" + (pathDB / strDBName).string());
                 try {
                     boost::filesystem::remove((pathDB / strDBName).string());
@@ -2133,8 +2142,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         if( fCache ){
             strDBName = "netfulfilled.dat";
             uiInterface.InitMessage(_("Loading fulfilled requests cache..."));
-            CFlatDB<CNetFulfilledRequestManager> flatdb4(strDBName, "magicFulfilledCache");
-            if(!flatdb4.Load(netfulfilledman)) {
+            CFlatDB<CNetFulfilledRequestManager> flatdb(strDBName, "magicFulfilledCache");
+            if(!flatdb.Load(netfulfilledman)) {
                 InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());
                 try {
                     boost::filesystem::remove((pathDB / strDBName).string());
@@ -2143,9 +2152,24 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 }
             }
         }
+
+        fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_VOTING);
+        if( fCache ){
+            strDBName = "smartvoting.dat";
+            uiInterface.InitMessage(_("Loading smartvoting cache..."));
+            CFlatDB<CSmartVotingManager> flatdb(strDBName, "magicSmartVotingCache");
+            if(!flatdb.Load(smartVoting)) {
+                InitError(_("Failed to load smartvoting cache from") + "\n" + (pathDB / strDBName).string());
+                try {
+                    boost::filesystem::remove((pathDB / strDBName).string());
+                } catch (const boost::filesystem::filesystem_error& e) {
+                    LogPrintf("Unable to remove smartvoting.dat: %s\n", e.what());
+                }
+            }else{
+                smartVoting.InitOnLoad();
+            }
+        }
     }
-
-
 
     // ********************************************************* Step 11c: update block tip in SmartCash modules
 
@@ -2154,9 +2178,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // GetMainSignals().UpdatedBlockTip(chainActive.Tip());
     pdsNotificationInterface->InitializeCurrentBlockTip();
 
-    // ********************************************************* Step 11d: start smartcash-privatesend thread
+    // ********************************************************* Step 11d: start smartcash threads
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
+    threadGroup.create_thread(&ThreadSmartVoting);
 
     // ********************************************************* Step 12: start node
 
@@ -2165,8 +2190,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     if (!strErrors.str().empty())
         return InitError(strErrors.str());
-
-    RandAddSeedPerfmon();
 
     //// debug print
     LogPrintf("mapBlockIndex.size() = %u\n",   mapBlockIndex.size());

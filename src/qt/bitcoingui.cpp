@@ -102,8 +102,10 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *platformStyle, const NetworkStyle *n
     optionsAction(0),
     toggleHideAction(0),
     encryptWalletAction(0),
+    encryptVotingAction(0),
     backupWalletAction(0),
     changePassphraseAction(0),
+    changeVotingPassphraseAction(0),
     aboutQtAction(0),
     smartnodeAction(0),
     smartrewardsAction(0),
@@ -313,17 +315,6 @@ void BitcoinGUI::createActions()
     historyAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
     tabGroup->addAction(historyAction);
 
-    // zerocoinAction = new QAction(platformStyle->SingleColorIcon(":/icons/zerocoin"), tr("&Renew"), this);
-    // zerocoinAction->setStatusTip(tr("Show the list of public coin that have been renewed"));
-    // zerocoinAction->setToolTip(zerocoinAction->statusTip());
-    // zerocoinAction->setCheckable(true);
-    // zerocoinAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
-    // tabGroup->addAction(zerocoinAction);
-
-    // zerocoinMenuAction = new QAction(platformStyle->TextColorIcon(":/icons/zerocoin"), zerocoinAction->text(), this);
-    // zerocoinMenuAction->setStatusTip(zerocoinAction->statusTip());
-    // zerocoinMenuAction->setToolTip(zerocoinMenuAction->statusTip());
-
     smartnodeAction = new QAction(platformStyle->SingleColorIcon(":/icons/smartnodes"), tr("&SmartNodes"), this);
     smartnodeAction->setStatusTip(tr("Browse SmartNodes"));
     smartnodeAction->setToolTip(smartnodeAction->statusTip());
@@ -366,8 +357,6 @@ void BitcoinGUI::createActions()
     connect(receiveCoinsMenuAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
-    //connect(zerocoinAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
-    //connect(zerocoinAction, SIGNAL(triggered()), this, SLOT(gotoZerocoinPage()));
 #endif // ENABLE_WALLET
 
     quitAction = new QAction(platformStyle->TextColorIcon(":/icons/quit"), tr("E&xit"), this);
@@ -391,10 +380,15 @@ void BitcoinGUI::createActions()
     encryptWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/lock_closed"), tr("&Encrypt Wallet..."), this);
     encryptWalletAction->setStatusTip(tr("Encrypt the private keys that belong to your wallet"));
     encryptWalletAction->setCheckable(true);
+    encryptVotingAction = new QAction(platformStyle->TextColorIcon(":/icons/lock_closed"), tr("&Encrypt Voting storage..."), this);
+    encryptVotingAction->setStatusTip(tr("Encrypt the private keys that belong to your voting keys"));
+    encryptVotingAction->setCheckable(true);
     backupWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
     backupWalletAction->setStatusTip(tr("Backup wallet to another location"));
     changePassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Passphrase..."), this);
     changePassphraseAction->setStatusTip(tr("Change the passphrase used for wallet encryption"));
+    changeVotingPassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Voting Passphrase..."), this);
+    changeVotingPassphraseAction->setStatusTip(tr("Change the passphrase used for voting storage encryption"));
     signMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/edit"), tr("Sign &message..."), this);
     signMessageAction->setStatusTip(tr("Sign messages with your SmartCash addresses to prove you own them"));
     verifyMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/verify"), tr("&Verify message..."), this);
@@ -435,8 +429,10 @@ void BitcoinGUI::createActions()
     if(walletFrame)
     {
         connect(encryptWalletAction, SIGNAL(triggered(bool)), walletFrame, SLOT(encryptWallet(bool)));
+        connect(encryptVotingAction, SIGNAL(triggered(bool)), walletFrame, SLOT(encryptVoting(bool)));
         connect(backupWalletAction, SIGNAL(triggered()), walletFrame, SLOT(backupWallet()));
         connect(changePassphraseAction, SIGNAL(triggered()), walletFrame, SLOT(changePassphrase()));
+        connect(changeVotingPassphraseAction, SIGNAL(triggered()), walletFrame, SLOT(changeVotingPassphrase()));
         connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
         connect(verifyMessageAction, SIGNAL(triggered()), this, SLOT(gotoVerifyMessageTab()));
         connect(usedSendingAddressesAction, SIGNAL(triggered()), walletFrame, SLOT(usedSendingAddresses()));
@@ -480,6 +476,9 @@ void BitcoinGUI::createMenuBar()
         settings->addAction(encryptWalletAction);
         settings->addAction(changePassphraseAction);
         settings->addSeparator();
+        settings->addAction(encryptVotingAction);
+        settings->addAction(changeVotingPassphraseAction);
+        settings->addSeparator();
     }
     settings->addAction(optionsAction);
 
@@ -505,7 +504,6 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
         toolbar->addAction(historyAction);
-        //toolbar->addAction(zerocoinAction);
         toolbar->addAction(smartnodeAction);
         toolbar->addAction(smartrewardsAction);
         toolbar->addAction(smartvotingAction);
@@ -610,13 +608,14 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     receiveCoinsAction->setEnabled(enabled);
     receiveCoinsMenuAction->setEnabled(enabled);
     historyAction->setEnabled(enabled);
-    //zerocoinAction->setEnabled(enabled);
     smartnodeAction->setEnabled(enabled);
     smartrewardsAction->setEnabled(enabled);
     smartvotingAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
+    encryptVotingAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
+    changeVotingPassphraseAction->setEnabled(enabled);
     signMessageAction->setEnabled(enabled);
     verifyMessageAction->setEnabled(enabled);
     usedSendingAddressesAction->setEnabled(enabled);
@@ -787,11 +786,6 @@ void BitcoinGUI::gotoSignMessageTab(QString addr)
 {
     if (walletFrame) walletFrame->gotoSignMessageTab(addr);
 }
-
-// void BitcoinGUI::gotoZerocoinPage()
-// {
-//     if (walletFrame) walletFrame->gotoZerocoinPage();
-// }
 
 void BitcoinGUI::gotoVerifyMessageTab(QString addr)
 {
@@ -1207,6 +1201,28 @@ void BitcoinGUI::setEncryptionStatus(int status)
         break;
     }
 }
+
+void BitcoinGUI::setVotingEncryptionStatus(int status)
+{
+    switch(status)
+    {
+    case WalletModel::Unencrypted:
+        encryptVotingAction->setChecked(false);
+        changeVotingPassphraseAction->setEnabled(false);
+        encryptVotingAction->setEnabled(true);
+        break;
+    case WalletModel::Unlocked:
+        encryptVotingAction->setChecked(true);
+        changeVotingPassphraseAction->setEnabled(true);
+        encryptVotingAction->setEnabled(false); // TODO: decrypt currently not supported
+        break;
+    case WalletModel::Locked:
+        encryptVotingAction->setChecked(true);
+        changeVotingPassphraseAction->setEnabled(true);
+        encryptVotingAction->setEnabled(false); // TODO: decrypt currently not supported
+        break;
+    }
+}
 #endif // ENABLE_WALLET
 
 void BitcoinGUI::showNormalIfMinimized(bool fToggleHidden)
@@ -1402,4 +1418,14 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
     {
         optionsModel->setDisplayUnit(action->data());
     }
+}
+
+void showErrorDialog(QWidget *parent, std::string &strError)
+{
+    showErrorDialog(parent, QString::fromStdString(strError));
+}
+
+void showErrorDialog(QWidget *parent, QString strError)
+{
+    QMessageBox::warning(parent, "Error", strError);
 }

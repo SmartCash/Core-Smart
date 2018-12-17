@@ -19,7 +19,6 @@
 #include "transactionview.h"
 #include "walletmodel.h"
 #include "ui_interface.h"
-#include "zerocoinpage.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -73,7 +72,6 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
-    zerocoinPage = new ZerocoinPage(platformStyle, ZerocoinPage::ForEditing, this);
     smartnodeListPage = new SmartnodeList(platformStyle);
     smartrewardsListPage = new SmartrewardsList(platformStyle);
     smartvotingPage = new SmartVotingPage(platformStyle);
@@ -82,7 +80,6 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     addWidget(transactionsPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
-    addWidget(zerocoinPage);
     addWidget(smartnodeListPage);
     addWidget(smartrewardsListPage);
     addWidget(smartvotingPage);
@@ -124,6 +121,9 @@ void WalletView::setBitcoinGUI(BitcoinGUI *gui)
         // Pass through encryption status changed signals
         connect(this, SIGNAL(encryptionStatusChanged(int)), gui, SLOT(setEncryptionStatus(int)));
 
+        // Pass through encryption status changed signals
+        connect(this, SIGNAL(votingEncryptionStatusChanged(int)), gui, SLOT(setVotingEncryptionStatus(int)));
+
         // Pass through transaction notifications
         connect(this, SIGNAL(incomingTransaction(QString,int,CAmount,QString,QString,QString)), gui, SLOT(incomingTransaction(QString,int,CAmount,QString,QString,QString)));
 
@@ -151,7 +151,6 @@ void WalletView::setWalletModel(WalletModel *walletModel)
     overviewPage->setWalletModel(walletModel);
     receiveCoinsPage->setModel(walletModel);
     sendCoinsPage->setModel(walletModel);
-    zerocoinPage->setModel(walletModel->getAddressTableModel());
     usedReceivingAddressesPage->setModel(walletModel->getAddressTableModel());
     usedSendingAddressesPage->setModel(walletModel->getAddressTableModel());
     smartnodeListPage->setWalletModel(walletModel);
@@ -167,6 +166,10 @@ void WalletView::setWalletModel(WalletModel *walletModel)
         connect(walletModel, SIGNAL(encryptionStatusChanged(int)), this, SIGNAL(encryptionStatusChanged(int)));
         updateEncryptionStatus();
 
+        // Handle changes in encryption status
+        connect(walletModel, SIGNAL(votingEncryptionStatusChanged(int)), this, SIGNAL(votingEncryptionStatusChanged(int)));
+        updateVotingEncryptionStatus();
+
         // update HD status
         Q_EMIT hdEnabledStatusChanged(walletModel->hdEnabled());
 
@@ -176,6 +179,9 @@ void WalletView::setWalletModel(WalletModel *walletModel)
 
         // Ask for passphrase if needed
         connect(walletModel, SIGNAL(requireUnlock()), this, SLOT(unlockWallet()));
+
+        // Ask for passphrase if needed
+        connect(walletModel, SIGNAL(requireVotingUnlock()), this, SLOT(unlockVoting()));
 
         // Show progress dialog
         connect(walletModel, SIGNAL(showProgress(QString,int)), this, SLOT(showProgress(QString,int)));
@@ -240,11 +246,6 @@ void WalletView::gotoSendCoinsPage(QString addr)
         sendCoinsPage->setAddress(addr);
 }
 
-void WalletView::gotoZerocoinPage()
-{
-    setCurrentWidget(zerocoinPage);
-}
-
 void WalletView::gotoSignMessageTab(QString addr)
 {
     // calls show() in showTab_SM()
@@ -284,6 +285,11 @@ void WalletView::updateEncryptionStatus()
     Q_EMIT encryptionStatusChanged(walletModel->getEncryptionStatus());
 }
 
+void WalletView::updateVotingEncryptionStatus()
+{
+    Q_EMIT votingEncryptionStatusChanged(walletModel->getVotingEncryptionStatus());
+}
+
 void WalletView::encryptWallet(bool status)
 {
     if(!walletModel)
@@ -293,6 +299,17 @@ void WalletView::encryptWallet(bool status)
     dlg.exec();
 
     updateEncryptionStatus();
+}
+
+void WalletView::encryptVoting(bool status)
+{
+    if(!walletModel)
+        return;
+    AskPassphraseDialog dlg(status ? AskPassphraseDialog::EncryptVoting : AskPassphraseDialog::DecryptVoting, this);
+    dlg.setModel(walletModel);
+    dlg.exec();
+
+    updateVotingEncryptionStatus();
 }
 
 void WalletView::backupWallet()
@@ -321,6 +338,13 @@ void WalletView::changePassphrase()
     dlg.exec();
 }
 
+void WalletView::changeVotingPassphrase()
+{
+    AskPassphraseDialog dlg(AskPassphraseDialog::ChangeVotingPass, this);
+    dlg.setModel(walletModel);
+    dlg.exec();
+}
+
 void WalletView::unlockWallet()
 {
     if(!walletModel)
@@ -329,6 +353,19 @@ void WalletView::unlockWallet()
     if (walletModel->getEncryptionStatus() == WalletModel::Locked)
     {
         AskPassphraseDialog dlg(AskPassphraseDialog::Unlock, this);
+        dlg.setModel(walletModel);
+        dlg.exec();
+    }
+}
+
+void WalletView::unlockVoting()
+{
+    if(!walletModel)
+        return;
+    // Unlock wallet when requested by wallet model
+    if (walletModel->getVotingEncryptionStatus() == WalletModel::Locked)
+    {
+        AskPassphraseDialog dlg(AskPassphraseDialog::UnlockVoting, this);
         dlg.setModel(walletModel);
         dlg.exec();
     }
