@@ -672,6 +672,7 @@ public:
     std::set<int64_t> setExternalKeyPool;
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
     std::map<CKeyID, CVotingKeyMetadata> mapVotingKeyMetadata;
+    std::map<CKeyID, uint256> mapVotingKeyRegistrations;
 
     typedef std::map<unsigned int, CMasterKey> MasterKeyMap;
     MasterKeyMap mapMasterKeys;
@@ -804,7 +805,8 @@ public:
     //! Adds a key to the store, without saving it to disk (used by LoadWallet)
     bool LoadKey(const CKey& key, const CPubKey &pubkey) { return CCryptoKeyStore::AddKeyPubKey(key, pubkey); }
     //! Load metadata (used by LoadWallet)
-    bool LoadKeyMetadata(const CPubKey &pubkey, const CKeyMetadata &metadata);
+    bool LoadKeyMetadata(const CPubKey &vchPubKey, const CKeyMetadata &metadata);
+    bool UpdateKeyMetadata(const CPubKey &vchPubKey);
 
     bool LoadMinVersion(int nVersion) { AssertLockHeld(cs_wallet); nWalletVersion = nVersion; nWalletMaxVersion = std::max(nWalletMaxVersion, nVersion); return true; }
 
@@ -815,28 +817,28 @@ public:
     bool AddCScript(const CScript& redeemScript);
     bool LoadCScript(const CScript& redeemScript);
 
-    //! HaveKey implementation that also checks the mapHdPubKeys
+    //! HaveKey implementation that also checks the mapVotePubKeys
     bool HaveVotingKey(const CKeyID &address) const;
     //! GetPubKey implementation that also checks the mapHdPubKeys
     bool GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
     //! GetKey implementation that can derive a HD private key on the fly
     bool GetVotingKey(const CKeyID &address, CKey& keyOut) const;
     //! Adds a key to the store, and saves it to disk.
-    bool AddVotingKeyPubKey(const CKey& key, const CPubKey &pubkey);
+    bool AddVotingKeyPubKey(const CKey& key, const CPubKey &vchPubKey);
     //! Adds a key to the store, without saving it to disk (used by LoadWallet)
-    bool LoadVotingKey(const CKey& key, const CPubKey &pubkey) { return CCryptoKeyStore::AddVotingKeyPubKey(key, pubkey); }
+    bool LoadVotingKey(const CKey& key, const CPubKey &vchPubKey) { return CCryptoKeyStore::AddVotingKeyPubKey(key, vchPubKey); }
     //! Load metadata (used by LoadWallet)
     bool LoadVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadata &metadata);
-    //! Load metadata (used by LoadWallet)
-    bool GetVotingKeyMetadata(const CKeyID &keyId, CVotingKeyMetadata &metadata);
     //! Update votekeys metadata
-    bool UpdateVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadata &meta);
     bool UpdateVotingKeyMetadata(const CKeyID &keyId);
+    //! Load registrations (used by LoadWallet)
+    bool LoadVotingKeyRegistration(const CKeyID &keyId, const uint256 &txhash);
+    //! Update votekeys registrations
+    bool UpdateVotingKeyRegistration(const CKeyID &keyId);
     //! Adds an encrypted key to the store, and saves it to disk.
     bool AddCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
     //! Adds an encrypted key to the store, without saving it to disk (used by LoadWallet)
     bool LoadCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
-
 
     //! Adds a destination data tuple to the store, and saves it to disk
     bool AddDestData(const CTxDestination &dest, const std::string &key, const std::string &value);

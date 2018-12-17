@@ -323,7 +323,13 @@ bool CWallet::LoadKeyMetadata(const CPubKey &pubkey, const CKeyMetadata &meta) {
         nTimeFirstKey = meta.nCreateTime;
 
     mapKeyMetadata[pubkey.GetID()] = meta;
+
     return true;
+}
+
+bool CWallet::UpdateKeyMetadata(const CPubKey &vchPubKey) {
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    return CWalletDB(strWalletFile).UpdateKeyMeta(vchPubKey, mapKeyMetadata[vchPubKey.GetID()]);
 }
 
 bool CWallet::LoadCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret) {
@@ -380,7 +386,11 @@ bool CWallet::LoadWatchOnly(const CScript &dest) {
     return CCryptoKeyStore::AddWatchOnly(dest);
 }
 
-
+bool CWallet::HaveVotingKey(const CKeyID &address) const
+{
+    LOCK(cs_wallet);
+    return CCryptoKeyStore::HaveVotingKey(address);
+}
 
 bool CWallet::GetVotingPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const
 {
@@ -392,12 +402,6 @@ bool CWallet::GetVotingKey(const CKeyID &address, CKey& keyOut) const
 {
     LOCK(cs_wallet);
     return CCryptoKeyStore::GetVotingKey(address, keyOut);
-}
-
-bool CWallet::HaveVotingKey(const CKeyID &address) const
-{
-    LOCK(cs_wallet);
-    return CCryptoKeyStore::HaveVotingKey(address);
 }
 
 bool CWallet::AddVotingKeyPubKey(const CKey &secret, const CPubKey &pubkey) {
@@ -441,31 +445,25 @@ bool CWallet::LoadVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadat
     return true;
 }
 
-bool CWallet::UpdateVotingKeyMetadata(const CKeyID &keyId, const CVotingKeyMetadata &meta) {
-    AssertLockHeld(cs_wallet); // mapKeyMetadata
-    mapVotingKeyMetadata[keyId] = meta;
-    return CWalletDB(strWalletFile).UpdateVotingKeyMeta(keyId, meta);
-}
-
 bool CWallet::UpdateVotingKeyMetadata(const CKeyID &keyId) {
     AssertLockHeld(cs_wallet); // mapKeyMetadata
     return CWalletDB(strWalletFile).UpdateVotingKeyMeta(keyId, mapVotingKeyMetadata[keyId]);
 }
 
-bool CWallet::GetVotingKeyMetadata(const CKeyID &keyId, CVotingKeyMetadata &meta) {
+bool CWallet::LoadVotingKeyRegistration(const CKeyID &keyId, const uint256 &txhash) {
     AssertLockHeld(cs_wallet); // mapKeyMetadata
-
-    if(!mapVotingKeyMetadata.count(keyId) ) return false;
-
-    meta = mapVotingKeyMetadata[keyId];
-
+    mapVotingKeyRegistrations[keyId] = txhash;
     return true;
+}
+
+bool CWallet::UpdateVotingKeyRegistration(const CKeyID &keyId) {
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    return CWalletDB(strWalletFile).UpdateVotingKeyRegistration(keyId, mapVotingKeyRegistrations[keyId]);
 }
 
 bool CWallet::LoadCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret) {
     return CCryptoKeyStore::AddCryptedVotingKey(vchPubKey, vchCryptedSecret);
 }
-
 
 bool CWallet::Unlock(const SecureString &strWalletPassphrase) {
     CCrypter crypter;

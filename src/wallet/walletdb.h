@@ -66,7 +66,7 @@ public:
         nCreateTime = nCreateTime_;
     }
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
@@ -94,12 +94,14 @@ class CVotingKeyMetadata
 {
 public:
     static const int VERSION_BASIC=1;
-    static const int VERSION_WITH_HDDATA=10;
-    static const int CURRENT_VERSION=VERSION_WITH_HDDATA;
+    static const int CURRENT_VERSION=VERSION_BASIC;
     int nVersion;
     int64_t nCreateTime; // 0 means unknown
     bool fEnabled;
     bool fImported;
+    uint256 registrationTxHash;
+    bool fChecked;
+    bool fValid;
 
     CVotingKeyMetadata()
     {
@@ -120,14 +122,20 @@ public:
         READWRITE(nCreateTime);
         READWRITE(fEnabled);
         READWRITE(fImported);
+        READWRITE(registrationTxHash);
+        READWRITE(fChecked);
+        READWRITE(fValid);
     }
 
     void SetNull()
     {
-        nVersion = CKeyMetadata::CURRENT_VERSION;
+        nVersion = CVotingKeyMetadata::CURRENT_VERSION;
         nCreateTime = 0;
         fEnabled = false;
         fImported = false;
+        registrationTxHash.SetNull();
+        fChecked = false;
+        fValid = false;
     }
 };
 
@@ -149,6 +157,7 @@ public:
     bool EraseTx(uint256 hash);
 
     bool WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta);
+    bool UpdateKeyMeta(const CPubKey& vchPubKey, const CKeyMetadata& keyMeta);
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
 
@@ -156,6 +165,7 @@ public:
     bool WriteCryptedVotingKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CVotingKeyMetadata &keyMeta);
     bool WriteVotingMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
     bool UpdateVotingKeyMeta(const CKeyID& keyId, const CVotingKeyMetadata& keyMeta);
+    bool UpdateVotingKeyRegistration(const CKeyID& keyId, const uint256& txHash);
 
     bool WriteCScript(const uint160& hash, const CScript& redeemScript);
 

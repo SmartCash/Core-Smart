@@ -86,6 +86,13 @@ bool CWalletDB::WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, c
     return Write(std::make_pair(std::string("key"), vchPubKey), std::make_pair(vchPrivKey, Hash(vchKey.begin(), vchKey.end())), false);
 }
 
+bool CWalletDB::UpdateKeyMeta(const CPubKey& vchPubKey, const CKeyMetadata& keyMeta)
+{
+    nWalletDBUpdated++;
+    return Write(std::make_pair(std::string("keymeta"), vchPubKey),
+               keyMeta, true);
+}
+
 bool CWalletDB::WriteCryptedKey(const CPubKey& vchPubKey,
                                 const std::vector<unsigned char>& vchCryptedSecret,
                                 const CKeyMetadata &keyMeta)
@@ -121,6 +128,13 @@ bool CWalletDB::UpdateVotingKeyMeta(const CKeyID& keyId, const CVotingKeyMetadat
                keyMeta, true);
 }
 
+bool CWalletDB::UpdateVotingKeyRegistration(const CKeyID& keyId, const uint256& txHash)
+{
+    nWalletDBUpdated++;
+    return Write(std::make_pair(std::string("vkeyreg"), keyId),
+               txHash, true);
+}
+
 bool CWalletDB::WriteVotingKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CVotingKeyMetadata& keyMeta)
 {
     nWalletDBUpdated++;
@@ -145,7 +159,7 @@ bool CWalletDB::WriteCryptedVotingKey(const CPubKey& vchPubKey,
     const bool fEraseUnencryptedKey = true;
     nWalletDBUpdated++;
 
-    if (!Write(std::make_pair(std::string("vkeymeta"), vchPubKey.GetID()),
+    if (!Write(std::make_pair(std::string("vkeymeta"), vchPubKey),
             keyMeta))
         return false;
 
@@ -403,6 +417,7 @@ public:
     unsigned int nVKeys;
     unsigned int nVCKeys;
     unsigned int nVKeyMeta;
+    unsigned int nVKeyRegistration;
     bool fIsEncrypted;
     bool fIsVotingEncrypted;
     bool fAnyUnordered;
@@ -611,6 +626,10 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             ssValue >> keyMeta;
             wss.nKeyMeta++;
 
+            if( keyMeta.nVersion == CKeyMetadata::VERSION_WITH_HDDATA ){
+                keyMeta.nVersion = CKeyMetadata::CURRENT_VERSION;
+            }
+
             pwallet->LoadKeyMetadata(vchPubKey, keyMeta);
 
             // find earliest key creation time, as wallet birthday
@@ -704,6 +723,16 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             wss.nVKeyMeta++;
 
             pwallet->LoadVotingKeyMetadata(keyId, keyMeta);
+        }
+        else if (strType == "vkeyreg")
+        {
+            CKeyID keyId;
+            ssKey >> keyId;
+            uint256 txHash;
+            ssValue >> txHash;
+            wss.nVKeyRegistration++;
+
+            pwallet->LoadVotingKeyRegistration(keyId, txHash);
         }
         else if (strType == "defaultkey")
         {
