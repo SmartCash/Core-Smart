@@ -1842,31 +1842,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
-        if( tx.IsVoteKeyRegistration() ){
-
-            CVoteKey voteKey;
-            CSmartAddress voteAddress;
-            CVoteKeyValue voteKeyValue;
-
-            VoteKeyParseResult result = ParseVoteKeyRegistration(tx, view, voteKey, voteAddress);
-
-            if( result == VoteKeyParseResult::Valid ){
-
-                if( GetVoteKeyValue(voteKey, voteKeyValue) &&
-                    voteKeyValue.nBlockHeight == pindex->nHeight &&
-                    voteKeyValue.voteAddress == voteAddress ){
-
-                    mapVoteKeys.insert(std::make_pair(voteKey, voteKeyValue.voteAddress));
-                    LogPrint("votekeys", "Erase registered VoteKey %s for address %s, tx=%s\n", voteKey.ToString(), voteAddress.ToString(), tx.GetHash().ToString());
-                }
-
-            }else{
-                LogPrint("votekeys", "Invalid VoteKey registration %s, result=%d\n", tx.GetHash().ToString(), result);
-            }
-
-            vecInvalidVoteKeyRegistrations.push_back(CVoteKeyRegistrationKey(pindex->nHeight, tx.GetHash()));
-        }
-
         if (fAddressIndex || fDepositIndex) {
 
             uint160 hashBytes;
@@ -1995,6 +1970,31 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
                 }
 
+            }
+
+            if( tx.IsVoteKeyRegistration() ){
+
+                CVoteKey voteKey;
+                CSmartAddress voteAddress;
+                CVoteKeyValue voteKeyValue;
+
+                VoteKeyParseResult result = ParseVoteKeyRegistration(tx, view, voteKey, voteAddress);
+
+                if( result == VoteKeyParseResult::Valid ){
+
+                    if( GetVoteKeyValue(voteKey, voteKeyValue) &&
+                        voteKeyValue.nBlockHeight == pindex->nHeight &&
+                        voteKeyValue.voteAddress == voteAddress ){
+
+                        mapVoteKeys.insert(std::make_pair(voteKey, voteKeyValue.voteAddress));
+                        LogPrint("votekeys", "Erase registered VoteKey %s for address %s, tx=%s\n", voteKey.ToString(), voteAddress.ToString(), tx.GetHash().ToString());
+                    }
+
+                }else{
+                    LogPrint("votekeys", "Invalid VoteKey registration %s, result=%d\n", tx.GetHash().ToString(), result);
+                }
+
+                vecInvalidVoteKeyRegistrations.push_back(CVoteKeyRegistrationKey(pindex->nHeight, tx.GetHash()));
             }
 
             if( fDepositIndex ){
