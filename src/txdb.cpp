@@ -362,7 +362,7 @@ bool CBlockTreeDB::ReadAddressIndex(uint160 addressHash, int type,
 }
 
 
-bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, bool excludeZeroBalances) {
+bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, int nEndHeight, bool excludeZeroBalances) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -385,7 +385,7 @@ bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, bo
 
             if( key.second.hashBytes != currentKey.hashBytes ) {
 
-                if( !excludeZeroBalances || (excludeZeroBalances && currentBalance ))
+                if( currentBalance > 0 && (!excludeZeroBalances || (excludeZeroBalances && currentBalance )))
                     // Save the address info
                     addressList.push_back(CAddressListEntry(currentKey.type,
                                                             currentKey.hashBytes,
@@ -400,9 +400,12 @@ bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, bo
 
             CAmount nValue;
             if (pcursor->GetValue(nValue)) {
-                currentBalance += nValue;
-                if( nValue > 0)
-                    currentReceived += nValue;
+
+                if( nEndHeight == -1 || key.second.blockHeight < nEndHeight ){
+                    currentBalance += nValue;
+                    if( nValue > 0)
+                        currentReceived += nValue;
+                }
 
                 pcursor->Next();
             } else {

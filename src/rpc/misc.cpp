@@ -1038,21 +1038,23 @@ UniValue getspentinfo(const UniValue& params, bool fHelp)
 
 UniValue getaddresses(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() > 1)
+    if (fHelp || params.size() > 2)
         throw runtime_error(
             "getaddresses \"excludeZeroBalances\" \n"
             "\nPrint a list of all addresses in the SmartCash blockchain.\n"
             "\nArguments:\n"
             "1. \"excludeZeroBalances\"  (bool, optional, default: true) If true, addresses with zero balance aren't included in the list. If false, they are.\n"
+            "1. \"blockHeight\"          (number, optional, default: current block height) The block height to generate the address list. 0 - blockHeight\n"
             "\nExamples:\n"
-            + HelpExampleCli("getaddressbalance", "true")
-            + HelpExampleRpc("getaddressbalance", "true")
+            + HelpExampleCli("getaddresses", "true 100000")
+            + HelpExampleRpc("getaddresses", "true")
         );
 
     bool fExcludeZeroBalances = params.size() ? params[0].get_bool() : true;
+    int64_t nEndBlockHeight = params.size() > 1 ? params[1].get_int64() : -1;
     std::vector<CAddressListEntry> addressList;
 
-    if (!GetAddresses(addressList, fExcludeZeroBalances)) {
+    if (!GetAddresses(addressList, nEndBlockHeight, fExcludeZeroBalances)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Failed to load the address list.");
     }
 
