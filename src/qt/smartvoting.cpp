@@ -35,6 +35,10 @@
 #include <QDateTime>
 #include <QInputDialog>
 
+static Qt::ItemFlags checkBoxEnabledFlags = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
+static Qt::ItemFlags checkBoxDisabledFlags = Qt::ItemIsSelectable;
+
+
 struct QSmartVortingField
 {
     QString label;
@@ -449,13 +453,11 @@ void SmartVotingPage::updateVoteKeyUI()
         mapMeta = pwalletMain->mapVotingKeyMetadata;
     }
 
-    Qt::ItemFlags checkBoxEnabledFlags = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
-    Qt::ItemFlags checkBoxDisabledFlags = Qt::ItemIsSelectable;
-
     QTableWidget *table = ui->voteKeysTable;
     int nRow = table->rowCount();
 
     table->setSortingEnabled(false);
+    disconnect(ui->voteKeysTable, SIGNAL(cellChanged(int,int)), this, SLOT(voteKeyCellChanged(int,int)));
 
     for( auto keyId : setVotingKeyIds ){
 
@@ -509,6 +511,8 @@ void SmartVotingPage::updateVoteKeyUI()
 
     }
 
+    connect(ui->voteKeysTable, SIGNAL(cellChanged(int,int)), this, SLOT(voteKeyCellChanged(int,int)));
+
     table->setSortingEnabled(true);
 }
 
@@ -519,23 +523,25 @@ void SmartVotingPage::voteKeyCellChanged(int row, int column)
     QTableWidgetItem *voteKeyItem = ui->voteKeysTable->item(row,VoteKeyWidgetItem::COLUMN_KEY);
     QTableWidgetItem *checkBoxItem = ui->voteKeysTable->item(row,VoteKeyWidgetItem::COLUMN_CHECKBOX);
 
-    if( voteKeyItem && checkBoxItem ){
+    if( voteKeyItem && checkBoxItem && checkBoxItem->flags() == checkBoxEnabledFlags ){
 
-        QString voteKey = voteKeyItem->text();
+        QString voteKeyString = voteKeyItem->text();
 
         bool fChecked = checkBoxItem->checkState() == Qt::Checked;
 
-        CVoteKey vk(voteKey.toStdString());
+        CVoteKey voteKey(voteKeyString.toStdString());
         CKeyID keyId;
 
-        if( vk.GetKeyID(keyId) ){
+        if( voteKey.GetKeyID(keyId) && pwalletMain->mapVotingKeyMetadata[keyId].fEnabled != fChecked ){
+            LogPrintf("Change key %s to %b\n", voteKey.ToString(), fChecked);
             LOCK(pwalletMain->cs_wallet);
             pwalletMain->mapVotingKeyMetadata[keyId].fEnabled = fChecked;
             pwalletMain->UpdateVotingKeyMetadata(keyId);
-        }
-    }
 
-    updateVotingElements();
+            updateVotingElements();
+        }
+
+    }
 }
 
 
