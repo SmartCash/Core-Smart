@@ -667,11 +667,14 @@ void WalletModel::updateVoteKeys(bool fEnabled)
 
     auto it = wallet->mapVotingKeyMetadata.begin();
     while( it != wallet->mapVotingKeyMetadata.end() ){
-        it->second.fEnabled = fEnabled;
-        wallet->UpdateVotingKeyMetadata(it->first);
+
+        CVoteKey voteKey(it->first);
+        if( IsRegisteredForVoting(voteKey) ){
+            it->second.fEnabled = fEnabled;
+            wallet->UpdateVotingKeyMetadata(it->first);
+        }
         ++it;
     }
-
 }
 
 
