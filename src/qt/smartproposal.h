@@ -37,8 +37,7 @@ private:
     QString url;
     double amountSmart;
     double amountUSD;
-    QString votingValidDeadline;
-    QString votingFundingDeadline;
+    int votingStartHeight;
     QString createdDate;
     int voteYesValid;
     int voteNoValid;
@@ -70,6 +69,7 @@ private:
 private Q_SLOTS:
     void viewProposal();
     void viewPortal();
+    void UpdateDeadlines();
     void UpdateResult();
     void voteButtonClicked();
     void copyProposalHash();

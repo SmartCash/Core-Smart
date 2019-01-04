@@ -6,7 +6,9 @@
 #include "bitcoinunits.h"
 #include "math.h"
 #include "walletmodel.h"
+#include "smartnode/smartnodesync.h"
 #include "smartvoting/votevalidation.h"
+#include "validation.h"
 
 #include <QDesktopServices>
 #include <QUrl>
@@ -26,8 +28,6 @@ SmartProposalWidget::SmartProposalWidget(const CProposal * pProposal, WalletMode
     url = QString::fromStdString(pProposal->GetUrl());
     amountSmart = 0;
     amountUSD = pProposal->GetRequestedAmount();
-    votingValidDeadline = "";
-    votingFundingDeadline = "";
     createdDate = "";
     voteYesValid = validResult.nYesPower;
     voteNoValid = validResult.nNoPower;
@@ -53,26 +53,9 @@ SmartProposalWidget::SmartProposalWidget(const CProposal * pProposal, WalletMode
     resultSelection.addButton(ui->fundingResultButton, 0);
     resultSelection.addButton(ui->validResultButton, 1);
 
-//    QDateTime deadlineValid = QDateTime::fromString(proposal->GetVotingValidDeadline(), Qt::ISODate);
-//    QDateTime deadlineFunding = QDateTime::fromString(proposal->GetVotingFundingDeadline(), Qt::ISODate);
+    votingStartHeight = pProposal->GetVotingStartHeight();
 
-//    deadlineValid.setTimeSpec(Qt::UTC);
-//    deadlineFunding.setTimeSpec(Qt::UTC);
-
-//    QDateTime created = QDateTime::fromString(proposal->GetCreatedDate(), Qt::ISODate);
-//    created.setTimeSpec(Qt::UTC);
-
-//    QDateTime current = QDateTime::currentDateTimeUtc();
-
-//    time_t deadlineSec = deadline.toTime_t();
-//    time_t createdSec = created.toTime_t();
-//    time_t currentSec = current.toTime_t();
-//    time_t totalSec = deadlineSec - createdSec;
-//    time_t remainingSec = deadlineSec - currentSec;
-//    int votingProgress = 100 - (double(remainingSec) / double(totalSec) * 100);
-
-//    ui->deadlineLabel->setText(deadline.toString(Qt::SystemLocaleLongDate));
-//    ui->deadlineProgress->setValue(votingProgress);
+    UpdateDeadlines();
 
     ui->titleLabel->setText(title);
 
@@ -168,6 +151,40 @@ bool SmartProposalWidget::votedValid()
 bool SmartProposalWidget::votedFunding()
 {
     return ui->votedFundingLabel->text() != "Nothing";
+}
+
+void SmartProposalWidget::UpdateDeadlines()
+{
+
+    QString validString, fundingString;
+    int validProgress, fundingProgress;
+
+    if( !smartnodeSync.IsBlockchainSynced() || votingStartHeight == -1 ){
+        validString = fundingString = "Not synced";
+        validProgress = fundingProgress = 0;
+    }else{
+
+        int nHeight = chainActive.Height();
+        int nBlocksDone = nHeight - votingStartHeight;
+
+        int nMaxValidBlocks = Params().GetConsensus().nProposalValidityVoteBlocks;
+        int nMaxFundingBlocks = Params().GetConsensus().nProposalFundingVoteBlocks;
+
+        int nValidBlocksLeft = std::max<int>(nMaxValidBlocks - nBlocksDone, 0);
+        int nFundingBlocksLeft = std::max<int>(nMaxFundingBlocks - nBlocksDone, 0);
+
+        validString = QString("%1 blocks left").arg(nValidBlocksLeft);
+        fundingString = QString("%1 blocks left").arg(nFundingBlocksLeft);
+
+        validProgress = std::min<int>((static_cast<double>(nBlocksDone) / nMaxValidBlocks) * 100, 100);
+        fundingProgress = std::min<int>((static_cast<double>(nBlocksDone) / nMaxFundingBlocks) * 100, 100);
+    }
+
+    ui->deadlineValidLabel->setText(validString);
+    ui->deadlineValidProgress->setValue(validProgress);
+
+    ui->deadlineFundingLabel->setText(fundingString);
+    ui->deadlineFundingProgress->setValue(fundingProgress);
 }
 
 void SmartProposalWidget::UpdateResult()
@@ -304,6 +321,8 @@ void SmartProposalWidget::UpdateFromProposal(const CProposal *proposal)
     CVoteResult validResult = proposal->GetVotingResult(VOTE_SIGNAL_VALID);
     CVoteResult fundingResult = proposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
 
+    votingStartHeight = proposal->GetVotingStartHeight();
+
     if(voteYesValid != validResult.nYesPower){
         voteYesValid = validResult.nYesPower;
         fThingsChanged = true;
@@ -360,6 +379,8 @@ void SmartProposalWidget::UpdateFromProposal(const CProposal *proposal)
         UpdateVotes(proposal);
         UpdateResult();
     }
+
+    UpdateDeadlines();
 }
 
 int SmartProposalWidget::GetVoteResultAmount(vote_signal_enum_t signal, vote_outcome_enum_t outcome)
