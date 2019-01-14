@@ -1,5 +1,8 @@
+Use 1.2.x branch for current release.   Master and development brances are untested and not compatible with current network.
+------------------------------------------------------------------------------------
+
 SmartCash Core
-=====================================
+==============
 
 https://SmartCash.CC
 
