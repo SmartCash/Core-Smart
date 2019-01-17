@@ -316,7 +316,6 @@ void SmartVotingPage::updateProposalUI()
             delete child;
             widget = mapProposalWidgets.erase(widget);
         }else{
-            if( widget->second->votedValid() ) votedValid++;
             if( widget->second->votedFunding() ) votedFunding++;
             ++widget;
         }
@@ -326,7 +325,6 @@ void SmartVotingPage::updateProposalUI()
     voteChanged();
 
     ui->openProposalsLabel->setText(QString("%1").arg(vecProposals.size()));
-    ui->votedForValidityLabel->setText(QString("%1").arg(votedValid));
     ui->votedForFundingLabel->setText(QString("%1").arg(votedFunding));
 }
 
@@ -543,7 +541,6 @@ void SmartVotingPage::voteKeyCellChanged(int row, int column)
 
     }
 }
-
 
 void SmartVotingPage::registerVoteKey()
 {

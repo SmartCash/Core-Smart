@@ -24,7 +24,6 @@ public:
     void ResetVoteSelection();
     vote_signal_enum_t GetVoteSignal();
     vote_outcome_enum_t GetVoteOutcome();
-    bool votedValid();
     bool votedFunding();
 
     void UpdateFromProposal(const CProposal *proposal);
@@ -39,12 +38,6 @@ private:
     double amountUSD;
     int votingStartHeight;
     QString createdDate;
-    int voteYesValid;
-    int voteNoValid;
-    int voteAbstainValid;
-    double percentYesValid;
-    double percentNoValid;
-    double percentAbstainValid;
     int voteYesFunding;
     int voteNoFunding;
     int voteAbstainFunding;
@@ -52,7 +45,6 @@ private:
     double percentNoFunding;
     double percentAbstainFunding;
 
-    std::map <CVoteKey, vote_outcome_enum_t> mapVotesValid;
     std::map <CVoteKey, vote_outcome_enum_t> mapVotesFunding;
 
     QButtonGroup signalSelection;
