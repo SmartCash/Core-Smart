@@ -1359,6 +1359,17 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     bool fSAPI = GetBoolArg("-sapi", false);
 
     if( fSAPI ){
+
+        if (mapArgs.count("-sapiwhitelist")) {
+            BOOST_FOREACH(const std::string& net, mapMultiArgs["-sapiwhitelist"]) {
+                CSubNet subnet;
+                LookupSubNet(net.c_str(), subnet);
+                if (!subnet.IsValid())
+                    return InitError(strprintf(_("Invalid netmask specified in -sapiwhitelist: '%s'"), net));
+                SAPI::AddWhitelistedRange(subnet);
+            }
+        }
+
         if (!AppInitSAPI(threadGroup))
             return InitError(_("Unable to start SAPI server. See debug log for details."));
     }

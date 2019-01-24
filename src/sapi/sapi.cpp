@@ -94,6 +94,8 @@ static std::vector<evhttp_bound_socket *> boundSocketsSAPI;
 // Endpoint groups available for the SAPI
 static std::vector<SAPI::EndpointGroup*> endpointGroups;
 
+std::vector<CSubNet> vecWhitelistedRange;
+
 static bool SAPIExecuteEndpoint(HTTPRequest *req, const std::map<std::string, std::string> &mapPathParams, const SAPI::Endpoint *endpoint);
 
 static void SplitPath(const std::string& str, std::vector<std::string>& parts,
@@ -132,29 +134,37 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     if (!SAPI::CheckWarmup(hreq.get()))
         return;
 
+    CService peer = hreq->GetPeer();
+
     // Early address-based allow check
-    if (!ClientAllowed(hreq->GetPeer())) {
+    if (!ClientAllowed(peer)) {
         SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, "Access forbidden");
         return;
     }
 
-    SAPI::Limits::Client * client = SAPI::Limits::GetClient(hreq->GetPeer());
+    bool fWhitelisted = SAPI::IsWhitelistedRange(peer);
 
-    client->Request();
+    if( !fWhitelisted ){
 
-    // Check the rate limiting for this peer
-    if( client->IsRequestLimited() ){
-        SAPI::Result error(SAPI::RequestRateLimitReached,
-                           strprintf("Cool down! Requests locked for %d seconds", client->GetRequestLockSeconds()));
-        SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
-        return;
-    }
+        SAPI::Limits::Client * client = SAPI::Limits::GetClient(peer);
 
-    if( client->IsRessourceLimited() ){
-        SAPI::Result error(SAPI::RessourceRateLimitReached,
-                           strprintf("Cool down! Ressources locked for %d seconds", client->GetRessourceLockSeconds()));
-        SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
-        return;
+        client->Request();
+
+        // Check the rate limiting for this peer
+        if( client->IsRequestLimited() ){
+            SAPI::Result error(SAPI::RequestRateLimitReached,
+                               strprintf("Cool down! Requests locked for %d seconds", client->GetRequestLockSeconds()));
+            SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
+            return;
+        }
+
+        if( client->IsRessourceLimited() ){
+            SAPI::Result error(SAPI::RessourceRateLimitReached,
+                               strprintf("Cool down! Ressources locked for %d seconds", client->GetRessourceLockSeconds()));
+            SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
+            return;
+        }
+
     }
 
     // Early reject unknown HTTP methods
@@ -321,6 +331,7 @@ static bool SAPIBindAddresses(struct evhttp* http)
             LogPrintf("Binding SAPI on address %s port %i failed.\n", i->first, i->second);
         }
     }
+
     return !boundSocketsSAPI.empty();
 }
 
@@ -342,6 +353,19 @@ static void libevent_log_cb(int severity, const char *msg)
         LogPrintf("libevent: %s\n", msg);
     else
         LogPrint("libevent", "libevent: %s\n", msg);
+}
+
+
+void SAPI::AddWhitelistedRange(const CSubNet &subnet) {
+    vecWhitelistedRange.push_back(subnet);
+}
+
+bool SAPI::IsWhitelistedRange(const CNetAddr &addr) {
+    BOOST_FOREACH(const CSubNet& subnet, vecWhitelistedRange) {
+        if (subnet.Match(addr))
+            return true;
+    }
+    return false;
 }
 
 bool InitSAPIServer()

@@ -14,6 +14,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/function.hpp>
 
+class CSubNet;
+
 extern UniValue UniValueFromAmount(int64_t nAmount);
 
 namespace SAPI{
@@ -262,6 +264,9 @@ typedef struct{
     std::string prefix;
     std::vector<Endpoint> endpoints;
 }EndpointGroup;
+
+void AddWhitelistedRange(const CSubNet &subnet);
+bool IsWhitelistedRange(const CNetAddr &address);
 
 void AddDefaultHeaders(HTTPRequest* req);
 
