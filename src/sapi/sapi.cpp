@@ -24,9 +24,10 @@
 
 #include <univalue.h>
 
-#include "sapi/sapi_blockchain.h"
 #include "sapi/sapi_address.h"
+#include "sapi/sapi_blockchain.h"
 #include "sapi/sapi_transaction.h"
+#include "sapi/sapi_smartrewards.h"
 
 
 #include "compat.h"
@@ -572,7 +573,8 @@ bool StartSAPI()
     endpointGroups = {
         &blockchainEndpoints,
         &addressEndpoints,
-        &transactionEndpoints
+        &transactionEndpoints,
+        &smartrewardsEndpoints,
     };
 
     return true;

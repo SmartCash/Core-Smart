@@ -51,13 +51,13 @@ enum Codes{
     BalanceTooLow,
     RequestRateLimitReached,
     RessourceRateLimitReached,
+    AddressNotFound,
     /* block errors */
     BlockHeightOutOfRange = 3000,
     BlockNotFound,
     BlockNotSpecified,
     /* address errors */
-    AddressNotFound = 4000,
-    NoDepositAvailble,
+    NoDepositAvailble = 4000,
     NoUtxosAvailble,
     /* transaction errors */
     TxDecodeFailed = 5000,
@@ -67,7 +67,11 @@ enum Codes{
     TxMissingInputs,
     TxAlreadyInBlockchain,
     TxCantRelay,
-    TxNotFound
+    TxNotFound,
+    /* smartreward errors */
+    RewardsDatabaseBusy = 6000,
+    NoActiveRewardRound,
+    NoFinishedRewardRound
 };
 
 namespace Keys{
