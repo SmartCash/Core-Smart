@@ -15,6 +15,9 @@
 #include <boost/function.hpp>
 
 class CSubNet;
+class CSAPIRequestCounter;
+
+extern CSAPIRequestCounter requestCounter;
 
 extern UniValue UniValueFromAmount(int64_t nAmount);
 
@@ -288,6 +291,8 @@ bool CheckWarmup(HTTPRequest* req);
 
 SAPI::Limits::Client *GetClientLimiter(const CService &peer);
 
+int64_t GetStartTime();
+
 }
 
 extern bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &address);
@@ -339,6 +344,69 @@ private:
     const std::map<std::string, std::string> mapPathParams;
     const SAPI::Endpoint *endpoint;
     SAPIRequestHandler func;
+};
+
+struct CSAPIRequestCount{
+    uint64_t clients;
+    uint64_t valid;
+    uint64_t invalid;
+    uint64_t blocked;
+    CSAPIRequestCount(){ Reset(); }
+
+    uint64_t GetTotalRequests(){
+        return valid + invalid + blocked;
+    }
+
+    void Reset(){
+        clients = 0;
+        valid = 0;
+        invalid = 0;
+        blocked = 0;
+    }
+};
+
+class CSAPIRequestCounter
+{
+    const int nSecondsPerHour = 60*60;
+    const int nCountLastHours = 24;
+
+    int nLastHour;
+
+    uint64_t nTotalValidRequests;
+    uint64_t nTotalBlockedRequests;
+    uint64_t nTotalInvalidRequests;
+
+    uint64_t nMaxRequestsPerHour;
+    uint64_t nMaxClientsPerHour;
+
+    std::set<CNetAddr> setCurrentClients;
+    std::vector<CSAPIRequestCount> vecRequests;
+
+    CCriticalSection cs_requests;
+
+public:
+
+    enum RequestType{
+        Valid,
+        Invalid,
+        Blocked
+    };
+
+    CSAPIRequestCounter();
+
+    void request(CNetAddr& address, RequestType type);
+
+    int GetCurrentHour();
+
+    uint64_t GetTotalValidRequests(){ return nTotalValidRequests; }
+    uint64_t GetTotalInvalidRequests(){ return nTotalInvalidRequests; }
+    uint64_t GetTotalBlockedRequests(){ return nTotalBlockedRequests; }
+
+    uint64_t GetMaxRequestsPerHour(){ return nMaxRequestsPerHour; }
+    uint64_t GetMaxClientsPerHour(){ return nMaxClientsPerHour; }
+
+    UniValue ToUniValue();
+
 };
 
 #endif // SMARTCASH_SAPI_H

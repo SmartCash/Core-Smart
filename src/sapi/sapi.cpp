@@ -26,6 +26,7 @@
 
 #include "sapi/sapi_address.h"
 #include "sapi/sapi_blockchain.h"
+#include "sapi/sapi_common.h"
 #include "sapi/sapi_transaction.h"
 #include "sapi/sapi_smartrewards.h"
 
@@ -78,6 +79,8 @@ extern std::string strClientVersion;
 std::string SAPI::versionSubPath;
 std::string SAPI::versionString;
 
+static int64_t nStartTime;
+
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
 
@@ -96,6 +99,10 @@ static std::vector<evhttp_bound_socket *> boundSocketsSAPI;
 static std::vector<SAPI::EndpointGroup*> endpointGroups;
 
 std::vector<CSubNet> vecWhitelistedRange;
+
+CSAPIRequestCounter requestCounter;
+
+using namespace std;
 
 static bool SAPIExecuteEndpoint(HTTPRequest *req, const std::map<std::string, std::string> &mapPathParams, const SAPI::Endpoint *endpoint);
 
@@ -139,6 +146,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Early address-based allow check
     if (!ClientAllowed(peer)) {
+        requestCounter.request(peer, CSAPIRequestCounter::Blocked);
         SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, "Access forbidden");
         return;
     }
@@ -153,6 +161,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
         // Check the rate limiting for this peer
         if( client->IsRequestLimited() ){
+            requestCounter.request(peer, CSAPIRequestCounter::Blocked);
             SAPI::Result error(SAPI::RequestRateLimitReached,
                                strprintf("Cool down! Requests locked for %d seconds", client->GetRequestLockSeconds()));
             SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
@@ -160,6 +169,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
         }
 
         if( client->IsRessourceLimited() ){
+            requestCounter.request(peer, CSAPIRequestCounter::Blocked);
             SAPI::Result error(SAPI::RessourceRateLimitReached,
                                strprintf("Cool down! Ressources locked for %d seconds", client->GetRessourceLockSeconds()));
             SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
@@ -170,6 +180,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Early reject unknown HTTP methods
     if (method == HTTPRequest::UNKNOWN) {
+        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::BAD_METHOD, "Invalid method");
         return;
     }
@@ -179,6 +190,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // For now we only have v1, so just check if its provided..
     if( strURI.substr(0,SAPI::versionSubPath.size()) != SAPI::versionSubPath ){
+        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid api version. Use: <host>/v1/<endpoint>");
         return;
     }
@@ -187,6 +199,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Check if there is anything else provided after the version
     if( !strURI.size() || strURI.front() != '/' ){
+        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Endpoint missing. Use: <host>/v1/<endpoint>");
         return;
     }
@@ -258,6 +271,8 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     if( mapPathMatch.size() && hreq->GetRequestMethod() == HTTPRequest::OPTIONS){
 
+        requestCounter.request(peer, CSAPIRequestCounter::Valid);
+
         std::string strMethods = RequestMethodString(HTTPRequest::OPTIONS);
 
         for( auto match : mapPathMatch ){
@@ -280,6 +295,9 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Dispatch to worker thread
     if (fullMatch != mapPathMatch.end()) {
+
+        requestCounter.request(peer, CSAPIRequestCounter::Valid);
+
         std::unique_ptr<SAPIWorkItem> item(new SAPIWorkItem(std::move(hreq), fullMatch->second, fullMatch->first, SAPIExecuteEndpoint));
         assert(workQueue);
         if (workQueue->Enqueue(item.get()))
@@ -289,6 +307,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
             item->req->WriteReply(HTTPStatus::INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
         }
     } else {
+        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid endpoint: " + strURI + " with method: " + RequestMethodString(hreq->GetRequestMethod()));
     }
 
@@ -371,6 +390,8 @@ bool SAPI::IsWhitelistedRange(const CNetAddr &addr) {
 
 bool InitSAPIServer()
 {
+    nStartTime = GetTime();
+
     struct evhttp* sapi = 0;
     struct event_base* base = 0;
 
@@ -571,6 +592,7 @@ bool StartSAPI()
     SAPI::versionString = strprintf("%d.%d", SAPI_VERSION_MAJOR, SAPI_VERSION_MINOR);
 
     endpointGroups = {
+        &clientEndpoints,
         &blockchainEndpoints,
         &addressEndpoints,
         &transactionEndpoints,
@@ -734,4 +756,105 @@ void SAPI::WriteReply(HTTPRequest *req, const UniValue &obj)
 void SAPI::WriteReply(HTTPRequest *req, const std::string &str)
 {
     SAPI::WriteReply(req, HTTPStatus::OK, str);
+}
+
+int64_t SAPI::GetStartTime() {
+    return nStartTime;
+}
+
+CSAPIRequestCounter::CSAPIRequestCounter()
+{
+    nTotalValidRequests = 0;
+    nTotalInvalidRequests = 0;
+    nTotalBlockedRequests = 0;
+
+    nMaxRequestsPerHour = 0;
+    nMaxClientsPerHour = 0;
+
+    nLastHour = GetCurrentHour();
+
+    // Create the default hour entries
+    vecRequests.resize(nCountLastHours);
+}
+
+void CSAPIRequestCounter::request(CNetAddr &address, RequestType type)
+{
+    LOCK(cs_requests);
+
+    int nCurrentHour = GetCurrentHour();
+
+    if( nLastHour != nCurrentHour ){
+        setCurrentClients.clear();
+        vecRequests[nCurrentHour].Reset();
+        nLastHour = nCurrentHour;
+    }
+
+    setCurrentClients.insert(address);
+
+    uint64_t nClients = setCurrentClients.size();
+    vecRequests[nCurrentHour].clients = nClients;
+
+    if( nClients > nMaxClientsPerHour ) nMaxClientsPerHour = nClients;
+
+    switch(type){
+    case Valid:
+        ++nTotalValidRequests;
+        vecRequests[nCurrentHour].valid++;
+        break;
+    case Invalid:
+        ++nTotalInvalidRequests;
+        vecRequests[nCurrentHour].invalid++;
+        break;
+    case Blocked:
+        ++nTotalBlockedRequests;
+        vecRequests[nCurrentHour].blocked++;
+        break;
+    default:
+        break;
+    }
+
+    if( vecRequests[nCurrentHour].GetTotalRequests() > nMaxRequestsPerHour )
+        nMaxRequestsPerHour = vecRequests[nCurrentHour].GetTotalRequests();
+
+}
+
+int CSAPIRequestCounter::GetCurrentHour(){
+    return (GetTime()/nSecondsPerHour) % nCountLastHours;
+}
+
+UniValue CSAPIRequestCounter::ToUniValue()
+{
+    LOCK(cs_requests);
+
+    UniValue obj(UniValue::VOBJ);
+    UniValue last24h(UniValue::VARR);
+
+    obj.pushKV("totalValid", GetTotalValidRequests());
+    obj.pushKV("totalInvalid", GetTotalInvalidRequests() );
+    obj.pushKV("totalBlocked", GetTotalBlockedRequests() );
+    obj.pushKV("maxRequestsPerHour", GetMaxRequestsPerHour() );
+    obj.pushKV("maxClientsPerHour", GetMaxClientsPerHour() );
+
+    int nIndex = nLastHour;
+
+    while( nIndex != nLastHour + 1 ){
+
+        CSAPIRequestCount& count = vecRequests[nIndex];
+
+        UniValue hour(UniValue::VOBJ);
+
+        hour.pushKV("clients", count.clients);
+        hour.pushKV("valid", count.valid);
+        hour.pushKV("invalid", count.invalid);
+        hour.pushKV("blocked", count.blocked);
+
+        last24h.push_back(hour);
+
+        --nIndex;
+        if( nIndex < 0 ) nIndex = nCountLastHours - 1;
+    }
+
+    obj.pushKV("last24Hours", last24h );
+
+    return obj;
 }
