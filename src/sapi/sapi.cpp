@@ -28,6 +28,7 @@
 #include "sapi/sapi_blockchain.h"
 #include "sapi/sapi_common.h"
 #include "sapi/sapi_transaction.h"
+#include "sapi/sapi_smartnodes.h"
 #include "sapi/sapi_smartrewards.h"
 
 
@@ -596,6 +597,7 @@ bool StartSAPI()
         &blockchainEndpoints,
         &addressEndpoints,
         &transactionEndpoints,
+        &smartnodesEndpoints,
         &smartrewardsEndpoints,
     };
 

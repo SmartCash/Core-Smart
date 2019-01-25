@@ -139,6 +139,7 @@ BITCOIN_CORE_H = \
   sapi/sapi_blockchain.h \
   sapi/sapi_common.h \
   sapi/sapi_transaction.h \
+  sapi/sapi_smartnodes.h \
   sapi/sapi_smartrewards.h \
   sapi/sapi_validation.h \
   scheduler.h \
@@ -245,6 +246,7 @@ libbitcoin_server_a_SOURCES = \
   sapi/sapi_address.cpp \
   sapi/sapi_blockchain.cpp \
   sapi/sapi_common.cpp \
+  sapi/sapi_smartnodes.cpp \
   sapi/sapi_smartrewards.cpp \
   sapi/sapi_limiter.cpp \
   sapi/sapi_transaction.cpp \
