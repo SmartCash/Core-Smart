@@ -912,6 +912,16 @@ void InitParameterInteraction()
     }
 #endif // ENABLE_WALLET
 
+    bool fSAPI = GetBoolArg("-sapi", false);
+
+    // Make sure the required indexes are enabled when SAPI is used
+    if( fSAPI ){
+
+        SoftSetBoolArg("-addressindex", true);
+        SoftSetBoolArg("-spentindex", true);
+        SoftSetBoolArg("-depositindex", true);
+    }
+
     // Make sure additional indexes are recalculated correctly in VerifyDB
     // (we must reconnect blocks whenever we disconnect them for these indexes to work)
     bool fAdditionalIndexes =
