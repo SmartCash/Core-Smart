@@ -44,10 +44,10 @@ void SAPI::Limits::CheckAndRemove()
         if( it->second->CheckAndRemove() ){
             LogPrintf("SAPI::Limits::CheckAndRemove() - Remove %s\n", it->first);
             delete it->second;
-            mapClients.erase(it->first);
+            it = mapClients.erase(it);
+        }else{
+            ++it;
         }
-
-        ++it;
     }
 }
 
