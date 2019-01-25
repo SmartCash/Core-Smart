@@ -316,11 +316,11 @@ static void ThreadSAPI(struct event_base* base, struct evhttp* http)
 /** Bind SAPI server to specified addresses */
 static bool SAPIBindAddresses(struct evhttp* http)
 {
-    int defaultPort = GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT);
+    uint16_t defaultPort = GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT);
     std::vector<std::pair<std::string, uint16_t> > endpoints;
 
-    endpoints.push_back(std::make_pair("::", defaultPort));
     endpoints.push_back(std::make_pair("0.0.0.0", defaultPort));
+    endpoints.push_back(std::make_pair("::", defaultPort));
 
     // Bind addresses
     for (std::vector<std::pair<std::string, uint16_t> >::iterator i = endpoints.begin(); i != endpoints.end(); ++i) {
