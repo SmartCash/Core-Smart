@@ -773,7 +773,7 @@ CSAPIRequestCounter::CSAPIRequestCounter()
     nMaxRequestsPerHour = 0;
     nMaxClientsPerHour = 0;
 
-    nLastHour = GetCurrentHour();
+    nLastHour = -1;
 
     // Create the default hour entries
     vecRequests.resize(nCountLastHours);
@@ -786,30 +786,31 @@ void CSAPIRequestCounter::request(CNetAddr &address, RequestType type)
     int nCurrentHour = GetCurrentHour();
 
     if( nLastHour != nCurrentHour ){
+        nLastHour = nCurrentHour;
         setCurrentClients.clear();
         vecRequests[nCurrentHour].Reset();
-        nLastHour = nCurrentHour;
+        vecRequests[nCurrentHour].nStartTimestamp = GetCurrentStartTimestamp();
     }
 
     setCurrentClients.insert(address);
 
     uint64_t nClients = setCurrentClients.size();
-    vecRequests[nCurrentHour].clients = nClients;
+    vecRequests[nCurrentHour].nClients = nClients;
 
     if( nClients > nMaxClientsPerHour ) nMaxClientsPerHour = nClients;
 
     switch(type){
     case Valid:
         ++nTotalValidRequests;
-        vecRequests[nCurrentHour].valid++;
+        vecRequests[nCurrentHour].nValid++;
         break;
     case Invalid:
         ++nTotalInvalidRequests;
-        vecRequests[nCurrentHour].invalid++;
+        vecRequests[nCurrentHour].nInvalid++;
         break;
     case Blocked:
         ++nTotalBlockedRequests;
-        vecRequests[nCurrentHour].blocked++;
+        vecRequests[nCurrentHour].nBlocked++;
         break;
     default:
         break;
@@ -822,6 +823,11 @@ void CSAPIRequestCounter::request(CNetAddr &address, RequestType type)
 
 int CSAPIRequestCounter::GetCurrentHour(){
     return (GetTime()/nSecondsPerHour) % nCountLastHours;
+}
+
+int CSAPIRequestCounter::GetCurrentStartTimestamp(){
+    int64_t nCurrentTime = GetTime();
+    return nCurrentTime - (nCurrentTime % nSecondsPerHour);
 }
 
 UniValue CSAPIRequestCounter::ToUniValue()
@@ -843,14 +849,17 @@ UniValue CSAPIRequestCounter::ToUniValue()
 
         CSAPIRequestCount& count = vecRequests[nIndex];
 
-        UniValue hour(UniValue::VOBJ);
+        if( count.nStartTimestamp ){
+            UniValue hour(UniValue::VOBJ);
 
-        hour.pushKV("clients", count.clients);
-        hour.pushKV("valid", count.valid);
-        hour.pushKV("invalid", count.invalid);
-        hour.pushKV("blocked", count.blocked);
+            hour.pushKV("timestamp", count.nStartTimestamp);
+            hour.pushKV("clients", count.nClients);
+            hour.pushKV("valid", count.nValid);
+            hour.pushKV("invalid", count.nInvalid);
+            hour.pushKV("blocked", count.nBlocked);
 
-        last24h.push_back(hour);
+            last24h.push_back(hour);
+        }
 
         --nIndex;
         if( nIndex < 0 ) nIndex = nCountLastHours - 1;

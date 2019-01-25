@@ -347,21 +347,23 @@ private:
 };
 
 struct CSAPIRequestCount{
-    uint64_t clients;
-    uint64_t valid;
-    uint64_t invalid;
-    uint64_t blocked;
+    int64_t nStartTimestamp;
+    uint64_t nClients;
+    uint64_t nValid;
+    uint64_t nInvalid;
+    uint64_t nBlocked;
     CSAPIRequestCount(){ Reset(); }
 
     uint64_t GetTotalRequests(){
-        return valid + invalid + blocked;
+        return nValid + nInvalid + nBlocked;
     }
 
     void Reset(){
-        clients = 0;
-        valid = 0;
-        invalid = 0;
-        blocked = 0;
+        nStartTimestamp = 0;
+        nClients = 0;
+        nValid = 0;
+        nInvalid = 0;
+        nBlocked = 0;
     }
 };
 
@@ -397,6 +399,7 @@ public:
     void request(CNetAddr& address, RequestType type);
 
     int GetCurrentHour();
+    int GetCurrentStartTimestamp();
 
     uint64_t GetTotalValidRequests(){ return nTotalValidRequests; }
     uint64_t GetTotalInvalidRequests(){ return nTotalInvalidRequests; }
