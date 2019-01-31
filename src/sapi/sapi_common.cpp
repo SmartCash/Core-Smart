@@ -44,7 +44,7 @@ static bool client_status(HTTPRequest* req, const std::map<std::string, std::str
     connections.pushKV("out", (int)g_connman->GetNodeCount(CConnman::CONNECTIONS_OUT));
 
     response.pushKV("connections",   connections);
-    response.pushKV("requests", requestCounter.ToUniValue());
+    response.pushKV("requests", sapiStatistics.ToUniValue());
     response.pushKV("testnet",       Params().TestnetToBeDeprecatedFieldRPC());
 
     SAPI::WriteReply(req, response);

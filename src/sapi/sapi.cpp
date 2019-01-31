@@ -101,7 +101,7 @@ static std::vector<SAPI::EndpointGroup*> endpointGroups;
 
 std::vector<CSubNet> vecWhitelistedRange;
 
-CSAPIRequestCounter requestCounter;
+CSAPIStatistics sapiStatistics;
 
 using namespace std;
 
@@ -147,7 +147,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Early address-based allow check
     if (!ClientAllowed(peer)) {
-        requestCounter.request(peer, CSAPIRequestCounter::Blocked);
+        sapiStatistics.request(peer, CSAPIStatistics::Blocked);
         SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, "Access forbidden");
         return;
     }
@@ -162,7 +162,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
         // Check the rate limiting for this peer
         if( client->IsRequestLimited() ){
-            requestCounter.request(peer, CSAPIRequestCounter::Blocked);
+            sapiStatistics.request(peer, CSAPIStatistics::Blocked);
             SAPI::Result error(SAPI::RequestRateLimitReached,
                                strprintf("Cool down! Requests locked for %d seconds", client->GetRequestLockSeconds()));
             SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
@@ -170,7 +170,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
         }
 
         if( client->IsRessourceLimited() ){
-            requestCounter.request(peer, CSAPIRequestCounter::Blocked);
+            sapiStatistics.request(peer, CSAPIStatistics::Blocked);
             SAPI::Result error(SAPI::RessourceRateLimitReached,
                                strprintf("Cool down! Ressources locked for %d seconds", client->GetRessourceLockSeconds()));
             SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
@@ -181,7 +181,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Early reject unknown HTTP methods
     if (method == HTTPRequest::UNKNOWN) {
-        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
+        sapiStatistics.request(peer, CSAPIStatistics::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::BAD_METHOD, "Invalid method");
         return;
     }
@@ -191,7 +191,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // For now we only have v1, so just check if its provided..
     if( strURI.substr(0,SAPI::versionSubPath.size()) != SAPI::versionSubPath ){
-        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
+        sapiStatistics.request(peer, CSAPIStatistics::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid api version. Use: <host>/v1/<endpoint>");
         return;
     }
@@ -200,7 +200,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     // Check if there is anything else provided after the version
     if( !strURI.size() || strURI.front() != '/' ){
-        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
+        sapiStatistics.request(peer, CSAPIStatistics::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Endpoint missing. Use: <host>/v1/<endpoint>");
         return;
     }
@@ -272,7 +272,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
 
     if( mapPathMatch.size() && hreq->GetRequestMethod() == HTTPRequest::OPTIONS){
 
-        requestCounter.request(peer, CSAPIRequestCounter::Valid);
+        sapiStatistics.request(peer, CSAPIStatistics::Valid);
 
         std::string strMethods = RequestMethodString(HTTPRequest::OPTIONS);
 
@@ -297,7 +297,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     // Dispatch to worker thread
     if (fullMatch != mapPathMatch.end()) {
 
-        requestCounter.request(peer, CSAPIRequestCounter::Valid);
+        sapiStatistics.request(peer, CSAPIStatistics::Valid);
 
         std::unique_ptr<SAPIWorkItem> item(new SAPIWorkItem(std::move(hreq), fullMatch->second, fullMatch->first, SAPIExecuteEndpoint));
         assert(workQueue);
@@ -308,7 +308,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
             item->req->WriteReply(HTTPStatus::INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
         }
     } else {
-        requestCounter.request(peer, CSAPIRequestCounter::Invalid);
+        sapiStatistics.request(peer, CSAPIStatistics::Invalid);
         SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid endpoint: " + strURI + " with method: " + RequestMethodString(hreq->GetRequestMethod()));
     }
 
@@ -764,7 +764,7 @@ int64_t SAPI::GetStartTime() {
     return nStartTime;
 }
 
-CSAPIRequestCounter::CSAPIRequestCounter()
+CSAPIStatistics::CSAPIStatistics()
 {
     nTotalValidRequests = 0;
     nTotalInvalidRequests = 0;
@@ -773,23 +773,51 @@ CSAPIRequestCounter::CSAPIRequestCounter()
     nMaxRequestsPerHour = 0;
     nMaxClientsPerHour = 0;
 
-    nLastHour = -1;
-
-    // Create the default hour entries
-    vecRequests.resize(nCountLastHours);
+    init();
 }
 
-void CSAPIRequestCounter::request(CNetAddr &address, RequestType type)
+void CSAPIStatistics::init()
+{
+    setCurrentClients.clear();
+
+    vecRequests.clear();
+    vecRequests.resize(nCountLastHours);
+
+    nLastHour = GetCurrentHour();
+    vecRequests[nLastHour].Reset();
+    vecRequests[nLastHour].nStartTimestamp = GetCurrentStartTimestamp();
+
+    int64_t nNextTimestamp;
+    int64_t nNextHour = 0, nPrevHour = nLastHour;
+    for( int i=1;i<nCountLastHours;i++){
+        nNextHour = nPrevHour - 1;
+        if( nNextHour < 0 ) nNextHour = nCountLastHours -1;
+        nNextTimestamp = vecRequests[nPrevHour].nStartTimestamp - nSecondsPerHour;
+        vecRequests[nNextHour].Reset();
+        vecRequests[nNextHour].nStartTimestamp = nNextTimestamp;
+        nPrevHour = nNextHour;
+    }
+}
+
+void CSAPIStatistics::request(CNetAddr &address, RequestType type)
 {
     LOCK(cs_requests);
 
     int nCurrentHour = GetCurrentHour();
 
-    if( nLastHour != nCurrentHour ){
-        nLastHour = nCurrentHour;
-        setCurrentClients.clear();
-        vecRequests[nCurrentHour].Reset();
-        vecRequests[nCurrentHour].nStartTimestamp = GetCurrentStartTimestamp();
+    if( (GetTime() - vecRequests[nLastHour].nStartTimestamp) > (nCountLastHours * nSecondsPerHour) ){
+        init();
+    }else{
+
+        while( nLastHour != nCurrentHour ){
+            int64_t nNextTimestamp = vecRequests[nLastHour].nStartTimestamp + nSecondsPerHour;
+            nLastHour++;
+            if( nLastHour >= nCountLastHours) nLastHour = 0;
+
+            vecRequests[nLastHour].Reset();
+            vecRequests[nLastHour].nStartTimestamp = nNextTimestamp;
+            setCurrentClients.clear();
+        }
     }
 
     setCurrentClients.insert(address);
@@ -821,16 +849,21 @@ void CSAPIRequestCounter::request(CNetAddr &address, RequestType type)
 
 }
 
-int CSAPIRequestCounter::GetCurrentHour(){
+void CSAPIStatistics::reset()
+{
+    vecRestarts.push_back(GetTime());
+}
+
+int CSAPIStatistics::GetCurrentHour(){
     return (GetTime()/nSecondsPerHour) % nCountLastHours;
 }
 
-int CSAPIRequestCounter::GetCurrentStartTimestamp(){
+int CSAPIStatistics::GetCurrentStartTimestamp(){
     int64_t nCurrentTime = GetTime();
     return nCurrentTime - (nCurrentTime % nSecondsPerHour);
 }
 
-UniValue CSAPIRequestCounter::ToUniValue()
+UniValue CSAPIStatistics::ToUniValue()
 {
     LOCK(cs_requests);
 
@@ -845,27 +878,31 @@ UniValue CSAPIRequestCounter::ToUniValue()
 
     int nIndex = nLastHour;
 
-    while( nIndex != nLastHour + 1 ){
+    for( int i=0;i<nCountLastHours;i++){
 
         CSAPIRequestCount& count = vecRequests[nIndex];
 
-        if( count.nStartTimestamp ){
-            UniValue hour(UniValue::VOBJ);
+        UniValue hour(UniValue::VOBJ);
 
-            hour.pushKV("timestamp", count.nStartTimestamp);
-            hour.pushKV("clients", count.nClients);
-            hour.pushKV("valid", count.nValid);
-            hour.pushKV("invalid", count.nInvalid);
-            hour.pushKV("blocked", count.nBlocked);
+        hour.pushKV("timestamp", count.nStartTimestamp);
+        hour.pushKV("clients", count.nClients);
+        hour.pushKV("valid", count.nValid);
+        hour.pushKV("invalid", count.nInvalid);
+        hour.pushKV("blocked", count.nBlocked);
 
-            last24h.push_back(hour);
-        }
+        last24h.push_back(hour);
 
         --nIndex;
         if( nIndex < 0 ) nIndex = nCountLastHours - 1;
     }
 
     obj.pushKV("last24Hours", last24h );
+    obj.pushKV("restarts", static_cast<int64_t>(vecRestarts.size()));
 
     return obj;
+}
+
+string CSAPIStatistics::ToString() const
+{
+    return strprintf("CSAPIStatistics( restarts=%d, totalValidRequests=%d )", vecRestarts.size(), nTotalValidRequests);
 }

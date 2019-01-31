@@ -15,9 +15,9 @@
 #include <boost/function.hpp>
 
 class CSubNet;
-class CSAPIRequestCounter;
+class CSAPIStatistics;
 
-extern CSAPIRequestCounter requestCounter;
+extern CSAPIStatistics sapiStatistics;
 
 extern UniValue UniValueFromAmount(int64_t nAmount);
 
@@ -356,6 +356,18 @@ struct CSAPIRequestCount{
     uint64_t nBlocked;
     CSAPIRequestCount(){ Reset(); }
 
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nStartTimestamp);
+        READWRITE(nClients);
+        READWRITE(nValid);
+        READWRITE(nInvalid);
+        READWRITE(nBlocked);
+    }
+
     uint64_t GetTotalRequests(){
         return nValid + nInvalid + nBlocked;
     }
@@ -369,7 +381,7 @@ struct CSAPIRequestCount{
     }
 };
 
-class CSAPIRequestCounter
+class CSAPIStatistics
 {
     const int nSecondsPerHour = 60*60;
     const int nCountLastHours = 24;
@@ -386,6 +398,8 @@ class CSAPIRequestCounter
     std::set<CNetAddr> setCurrentClients;
     std::vector<CSAPIRequestCount> vecRequests;
 
+    std::vector<int64_t> vecRestarts;
+
     CCriticalSection cs_requests;
 
 public:
@@ -396,9 +410,26 @@ public:
         Blocked
     };
 
-    CSAPIRequestCounter();
+    CSAPIStatistics();
 
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nLastHour);
+        READWRITE(nTotalValidRequests);
+        READWRITE(nTotalBlockedRequests);
+        READWRITE(nTotalInvalidRequests);
+        READWRITE(nMaxRequestsPerHour);
+        READWRITE(nMaxClientsPerHour);
+        READWRITE(setCurrentClients);
+        READWRITE(vecRequests);
+        READWRITE(vecRestarts);
+    }
+
+    void init();
     void request(CNetAddr& address, RequestType type);
+    void reset();
 
     int GetCurrentHour();
     int GetCurrentStartTimestamp();
@@ -411,7 +442,11 @@ public:
     uint64_t GetMaxClientsPerHour(){ return nMaxClientsPerHour; }
 
     UniValue ToUniValue();
+    std::string ToString() const;
 
+    // Dummies..for the flatDB.
+    void CheckAndRemove(){}
+    void Clear(){}
 };
 
 #endif // SMARTCASH_SAPI_H
