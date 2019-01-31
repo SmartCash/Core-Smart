@@ -59,6 +59,7 @@ enum Codes{
     BlockHeightOutOfRange = 3000,
     BlockNotFound,
     BlockNotSpecified,
+    BlockHashInvalid,
     /* address errors */
     NoDepositAvailble = 4000,
     NoUtxosAvailble,
@@ -92,7 +93,8 @@ namespace Keys{
     const std::string descending = "descending";
     const std::string random = "random";
     const std::string maxInputs = "maxInputs";
-
+    const std::string height = "height";
+    const std::string hash = "hash";
 }
 
 namespace Validation{
