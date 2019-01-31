@@ -541,7 +541,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
     // If we iterated over all utxos and we did not find a solution.
     if( (++nPageCurrent % nPages) == nPageStart && bestSolution.IsNull() && !fTimedOut )
-        return SAPI::Error(req, SAPI::BalanceTooLow, "Requested amount exceeds balance");
+        return SAPI::Error(req, SAPI::BalanceInsufficient, "Requested amount exceeds balance");
 
     // We found no solution, but there still might be one..
     if( bestSolution.IsNull() )

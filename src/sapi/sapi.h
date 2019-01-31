@@ -51,9 +51,9 @@ enum Codes{
     /* common errors */
     TimedOut = 2000,
     PageOutOfRange,
-    BalanceTooLow,
-    RequestRateLimitReached,
-    RessourceRateLimitReached,
+    BalanceInsufficient,
+    RequestRateLimitExceeded,
+    RessourceRateLimitExceeded,
     AddressNotFound,
     /* block errors */
     BlockHeightOutOfRange = 3000,
