@@ -288,6 +288,12 @@ void PrepareShutdown()
         flatdb.Dump(smartVoting);
     }
 
+    fCache = GetBoolArg("-sapi", false);
+    if( fCache ){
+        CFlatDB<CSAPIStatistics> flatdb(".sapi_stats", "magicSAPIStatistics");
+        flatdb.Dump(sapiStatistics);
+    }
+
     UnregisterNodeSignals(GetNodeSignals());
 
     if (fFeeEstimatesInitialized)
@@ -1369,6 +1375,14 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     bool fSAPI = GetBoolArg("-sapi", false);
 
     if( fSAPI ){
+
+        CFlatDB<CSAPIStatistics> flatdb(".sapi_stats", "magicSAPIStatistics");
+        if(!flatdb.Load(sapiStatistics)) {
+            LogPrintf("SAPI statistics reading error. Create a new one.");
+            flatdb.Dump(sapiStatistics);
+        }
+
+        sapiStatistics.reset();
 
         if (mapArgs.count("-sapiwhitelist")) {
             BOOST_FOREACH(const std::string& net, mapMultiArgs["-sapiwhitelist"]) {
