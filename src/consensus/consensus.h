@@ -32,7 +32,7 @@ static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 900000;
 
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
 static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 2;
-static const int HF_V1_2_8_NODES_BLOCK_INTERVAL   = 20;
+static const int HF_V1_2_8_NODES_PER_BLOCK      = 1;
 
 /** SmartCash max reward block */
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
@@ -50,6 +50,7 @@ static const int TESTNET_V1_2_NODES_PER_BLOCK_2        = 3;
 static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_2   = 3;
 static const int TESTNET_V1_2_NODES_PER_BLOCK_3        = 10;
 static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_3   = 2;
+static const int TESTNET_V1_2_8_NODES_PER_BLOCK        = 1;
 
 inline unsigned int MaxBlockSigOps()
 {
