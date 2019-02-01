@@ -20,6 +20,7 @@ static const int SMARTNODE_EXPIRATION_SECONDS          = 120 * 60;
 static const int SMARTNODE_WATCHDOG_MAX_SECONDS        = 120 * 60;
 static const int SMARTNODE_NEW_START_REQUIRED_SECONDS  = 240 * 60;
 static const int SMARTNODE_COIN_REQUIRED  = 10000;
+static const int SMARTNODE_COIN_REQUIRED_V2  = 100000;
 
 static const int SMARTNODE_POSE_BAN_MAX_SCORE          = 5;
 
@@ -216,8 +217,8 @@ public:
 
     bool UpdateFromNewBroadcast(CSmartnodeBroadcast& mnb, CConnman& connman);
 
-    static CollateralStatus CheckCollateral(const COutPoint& outpoint);
-    static CollateralStatus CheckCollateral(const COutPoint& outpoint, int& nHeightRet);
+    static CollateralStatus CheckCollateral(const COutPoint& outpoint, int nHeight);
+    static CollateralStatus CheckCollateral(const COutPoint& outpoint, int& nHeightRet, int nHeight);
     void Check(bool fForce = false);
 
     bool IsBroadcastedWithin(int nSeconds) { return GetAdjustedTime() - sigTime < nSeconds; }

@@ -25,8 +25,8 @@ static const int MNPAYMENTS_FUTURE_VOTES                = 20;
 //  vote for smartnode and be elected as a payment winner
 // V1 - Last protocol version before update
 // V2 - Newest protocol version
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1 = 90025;
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2 = 90026;
+static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1 = 90026;
+static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2 = 90027;
 
 extern CCriticalSection cs_vecPayees;
 extern CCriticalSection cs_mapSmartnodeBlocks;

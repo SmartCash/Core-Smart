@@ -9,8 +9,8 @@
 #include "smartnodeman.h"
 #include "smarthive/hive.h"
 #include "../messagesigner.h"
-#include "netfulfilledman.h" 
-#include "script/standard.h" 
+#include "netfulfilledman.h"
+#include "script/standard.h"
 #include "spork.h"
 #include "../util.h"
 #include "consensus/consensus.h"
@@ -64,12 +64,16 @@ int SmartNodePayments::PayoutInterval(int nHeight)
 
         if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT && nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
             return 1;
+        }else if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
+            return HF_V1_2_8_NODES_BLOCK_INTERVAL;
         }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
             return HF_V1_2_NODES_BLOCK_INTERVAL;
         }
 
     }else{
-
+        if(nHeight >= TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
+          return HF_V1_2_8_NODES_BLOCK_INTERVAL;
+        }
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
             return TESTNET_V1_2_NODES_BLOCK_INTERVAL_1;
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
