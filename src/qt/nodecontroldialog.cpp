@@ -355,7 +355,7 @@ void SmartnodeControlDialog::updateView()
 
             uint256 coinTxHash = out.tx->GetHash();
 
-            if( out.tx->vout[out.i].nValue == 10000 * COIN ){
+            if( out.tx->vout[out.i].nValue == 100000 * COIN ){
 
                 if(( coinTxHash.ToString() == this->txHash && this->txIndex == std::to_string(out.i) ) ){
                     nSelectRow = nRow;
