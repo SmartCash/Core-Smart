@@ -253,7 +253,7 @@ bool CSmartnode::IsInputAssociatedWithPubkey()
     uint256 hash;
     if(GetTransaction(vin.prevout.hash, tx, Params().GetConsensus(), hash, true)) {
         BOOST_FOREACH(CTxOut out, tx.vout)
-            if(out.nValue == SMARTNODE_COIN_REQUIRED*COIN && out.scriptPubKey == payee) return true;
+            if(out.nValue == SMARTNODE_COIN_REQUIRED_V2*COIN && out.scriptPubKey == payee) return true;
     }
 
     return false;
