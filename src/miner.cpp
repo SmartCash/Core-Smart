@@ -88,6 +88,7 @@ BlockAssembler::BlockAssembler(const CChainParams& _chainparams)
     // If both are given, restrict both.
     nBlockMaxWeight = DEFAULT_BLOCK_MAX_WEIGHT;
     nBlockMaxSize = DEFAULT_BLOCK_MAX_SIZE;
+    nTxMaxCount = DEFAULT_TX_MAX_COUNT;
     bool fWeightSet = false;
     if (mapArgs.count("-blockmaxweight")) {
         nBlockMaxWeight = GetArg("-blockmaxweight", DEFAULT_BLOCK_MAX_WEIGHT);
@@ -100,7 +101,9 @@ BlockAssembler::BlockAssembler(const CChainParams& _chainparams)
             nBlockMaxWeight = nBlockMaxSize * WITNESS_SCALE_FACTOR;
         }
     }
-
+    if(mapArgs.count("-txmaxcount")){
+        nTxMaxCount = GetArg("-txmaxcount", DEFAULT_TX_MAX_COUNT);
+    }
     // Limit weight to between 4K and MAX_BLOCK_WEIGHT-4K for sanity:
     nBlockMaxWeight = std::max((unsigned int)4000, std::min((unsigned int)(MAX_BLOCK_WEIGHT-4000), nBlockMaxWeight));
     // Limit size to between 1K and MAX_BLOCK_SERIALIZED_SIZE-1K for sanity:
@@ -318,51 +321,11 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, co
                 continue;
             }
 
-            if (tx.IsZerocoinSpend()) {
-                LogPrintf("try to include zerocoinspend tx=%s\n", tx.GetHash().ToString());
-                LogPrintf("COUNT_SPEND_ZC_TX =%s\n", COUNT_SPEND_ZC_TX);
-                LogPrintf("MAX_SPEND_ZC_TX_PER_BLOCK =%s\n", MAX_SPEND_ZC_TX_PER_BLOCK);
-                if (COUNT_SPEND_ZC_TX >= MAX_SPEND_ZC_TX_PER_BLOCK) {
-                    continue;
-                }
-
-                //mempool.countZCSpend--;
-                // Size limits
-                unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
-
-                LogPrintf("\n\n######################################\n");
-                LogPrintf("nBlockMaxSize = %d\n", nBlockMaxSize);
-                LogPrintf("nBlockSize = %d\n", nBlockSize);
-                LogPrintf("nTxSize = %d\n", nTxSize);
-                LogPrintf("nBlockSize + nTxSize  = %d\n", nBlockSize + nTxSize);
-                LogPrintf("nBlockSigOpsCost  = %d\n", nBlockSigOpsCost);
-                LogPrintf("GetLegacySigOpCount  = %d\n", GetLegacySigOpCount(tx));
-                LogPrintf("######################################\n\n\n");
-
-                if (nBlockSize + nTxSize >= nBlockMaxSize) {
-                    LogPrintf("failed by sized\n");
-                    continue;
-                }
-
-                // Legacy limits on sigOps:
-                unsigned int nTxSigOps = GetLegacySigOpCount(tx);
-                if (nBlockSigOpsCost + nTxSigOps >= MAX_BLOCK_SIGOPS_COST) {
-                    LogPrintf("failed by sized\n");
-                    continue;
-                }
-
-                int64_t nTxFees = 0;
-
-                pblock->vtx.push_back(tx);
-                pblocktemplate->vTxFees.push_back(nTxFees);
-                pblocktemplate->vTxSigOpsCost.push_back(nTxSigOps);
-                nBlockSize += nTxSize;
-                ++nBlockTx;
-                nBlockSigOpsCost += nTxSigOps;
-                nFees += nTxFees;
-                COUNT_SPEND_ZC_TX++;
+            if(nBlockTx >= nTxMaxCount && nTxMaxCount > 0){
+                LogPrintf("skip tx=%s, over the max tx count set\n", tx.GetHash().ToString());
                 continue;
             }
+
             unsigned int nTxSigOps = iter->GetSigOpCount();
             LogPrintf("nTxSigOps=%s\n", nTxSigOps);
             LogPrintf("nBlockSigOps=%s\n", nBlockSigOps);
