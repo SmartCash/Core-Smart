@@ -128,7 +128,7 @@ CSmartnode::CollateralStatus CSmartnode::CheckCollateral(const COutPoint& outpoi
           return COLLATERAL_INVALID_AMOUNT;
       }
     }else{
-      if(nHeight >= (TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT - 10000){
+      if(nHeight >= (TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT - 10000)){
         if(coin.out.nValue != SMARTNODE_COIN_REQUIRED_V2 * COIN){
           return COLLATERAL_INVALID_AMOUNT;
         }
