@@ -253,21 +253,7 @@ bool CSmartnode::IsInputAssociatedWithPubkey()
     uint256 hash;
     if(GetTransaction(vin.prevout.hash, tx, Params().GetConsensus(), hash, true)) {
         BOOST_FOREACH(CTxOut out, tx.vout)
-        if(Params().NetworkIDString() == CBaseChainParams::MAIN){
-            if(nHeight >= (HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)){
-                if(out.nValue == SMARTNODE_COIN_REQUIRED_V2 * COIN && out.scriptPubKey == payee) return true;
-            }
-            if(nHeight < (HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)){
-                if(out.nValue == SMARTNODE_COIN_REQUIRED*COIN && out.scriptPubKey == payee) return true;
-            }
-        }else{
-            if(nHeight >= (TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)){
-                if(out.nValue == SMARTNODE_COIN_REQUIRED_V2 * COIN && out.scriptPubKey == payee) return true;
-            }
-            if(nHeight < (HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)){
-                if(out.nValue == SMARTNODE_COIN_REQUIRED*COIN && out.scriptPubKey == payee) return true;
-            }
-        }
+            if((out.nValue == SMARTNODE_COIN_REQUIRED*COIN && out.scriptPubKey == payee) || (out.nValue == SMARTNODE_COIN_REQUIRED_V2*COIN && out.scriptPubKey == payee)) return true;
     }
     return false;
 
