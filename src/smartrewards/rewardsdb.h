@@ -149,6 +149,11 @@ public:
         READWRITE(percent);
     }
 
+    friend bool operator<(const CSmartRewardRound& a, const CSmartRewardRound& b)
+    {
+        return a.number < b.number;
+    }
+
     std::string ToString() const;
 };
 

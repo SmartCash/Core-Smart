@@ -33,16 +33,6 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
         return CSmartRewardSnapshotList();
     }
 
-    // TODO: If the block DB verification on startup uses check level4 we can't check
-    // for smartreward blocks at the moment since we cant load the rewardsdb before the
-    // block db. To just give an NoRewardBlock here is not optimal but should work for
-    // now. Only if the daemon gets restarted during the smartreward blocks it might require
-    // an reindex to get things running again.
-    if( prewards == nullptr ){
-        result = SmartRewardPayments::NoRewardBlock;
-        return CSmartRewardSnapshotList();
-    }
-
     CSmartRewardRound round;
     CSmartRewardSnapshotList roundPayments;
 

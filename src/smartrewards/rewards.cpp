@@ -368,6 +368,8 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
 
     pdb->ReadRounds(finishedRounds);
 
+    std::sort(finishedRounds.begin(), finishedRounds.end());
+
     if( finishedRounds.size() ){
         lastRound = finishedRounds.back();
     }
