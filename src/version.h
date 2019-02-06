@@ -18,7 +18,7 @@ static const int INIT_PROTO_VERSION = 90013;
 static const int GETHEADERS_VERSION = 90028;
 
 //! disconnect from peers older than this proto version
-static const int MIN_PEER_PROTO_VERSION = 90027;
+static const int MIN_PEER_PROTO_VERSION = 90028;
 
 //! first version with multi node payments
 static const int MIN_MULTIPAYMENT_PROTO_VERSION = 90026;
