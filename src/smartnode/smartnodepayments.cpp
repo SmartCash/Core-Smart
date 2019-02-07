@@ -42,7 +42,7 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
             return 1;
         }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT && nHeight < HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
             return HF_V1_2_NODES_PER_BLOCK;
-        }else if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
+        }else if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT+10000){
             return HF_V1_2_8_NODES_PER_BLOCK;
         }
 
@@ -54,7 +54,7 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
             return TESTNET_V1_2_NODES_PER_BLOCK_2;
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3 && nHeight < TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)
             return TESTNET_V1_2_NODES_PER_BLOCK_3;
-        if(nHeight >= TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)
+        if(nHeight >= TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT+5000)
             return TESTNET_V1_2_8_NODES_PER_BLOCK;
 
     }
