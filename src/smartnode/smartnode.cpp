@@ -676,10 +676,10 @@ void CSmartnodeBroadcast::Relay(CConnman& connman)
 CSmartnodePing::CSmartnodePing(const COutPoint& outpoint)
 {
     LOCK(cs_main);
-    if (!chainActive.Tip() || chainActive.Height() < 67) return;
+    if (!chainActive.Tip() || chainActive.Height() < 33) return;
 
     this->outpoint = outpoint;
-    blockHash = chainActive[chainActive.Height() - 67]->GetBlockHash();
+    blockHash = chainActive[chainActive.Height() - 33]->GetBlockHash();
     sigTime = GetAdjustedTime();
 }
 
@@ -794,7 +794,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
 
     {
         BlockMap::iterator mi = mapBlockIndex.find(blockHash);
-        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 135) {
+        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 66) {
             LogPrintf("CSmartnodePing::CheckAndUpdate -- Smartnode ping is invalid, block hash is too old: smartnode=%s  blockHash=%s\n", outpoint.ToStringShort(), blockHash.ToString());
             // nDos = 1;
             return false;
