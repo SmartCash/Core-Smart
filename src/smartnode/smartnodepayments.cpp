@@ -269,6 +269,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 
         }else if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return;
+            if( !SmartNodePayments::PayoutsPerBlock(nHeight) ) return;
         }
 
     }else{
@@ -280,6 +281,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
             return;
         }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return;
+            if( !SmartNodePayments::PayoutsPerBlock(nHeight) ) return;
         }
 
     }
@@ -573,6 +575,11 @@ bool CSmartnodeBlockPayees::GetBestPayees(CScriptVector& payeesRet)
 
     size_t expectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
+    if( !expectedPayees ) {
+        LogPrint("mnpayments", "CSmartnodeBlockPayees::GetBestPayee -- ERROR: no payees required here\n");
+        return false;
+    }
+
     if(vecPayees.size() < expectedPayees) {
         LogPrint("mnpayments", "CSmartnodeBlockPayees::GetBestPayee -- ERROR: couldn't find enough payees\n");
         return false;
@@ -615,6 +622,8 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     int foundMinVotes = 0;
     int expectedPayees =  SmartNodePayments::PayoutsPerBlock(nBlockHeight);
     std::string strPayeesPossible = "";
+
+    if( !expectedPayees ) return true;
 
     CAmount expectedPerNode = expectedNodeReward / expectedPayees;
 
@@ -666,9 +675,10 @@ std::string CSmartnodeBlockPayees::GetRequiredPaymentsString()
     LOCK(cs_vecPayees);
 
     std::string strRequiredPayments = "Unknown";
-    int interval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    int nInterval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    int nPayouts = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
-    if( !interval || nBlockHeight % interval ) return "NoRewardBlock";
+    if( !nInterval || nBlockHeight % nInterval || !nPayouts ) return "NoRewardBlock";
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees)
     {
@@ -694,8 +704,9 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
     UniValue votes(UniValue::VOBJ);
 
     int nInterval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
-    if( !nInterval || nBlockHeight % nInterval ){
+    if( !nInterval || nBlockHeight % nInterval || !nExpectedPayees ){
         obj.pushKV("state", "No reward block");
         obj.pushKV("validPayees", 0);
         obj.pushKV("voteSum", 0);
@@ -705,7 +716,6 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
 
     int nVoteSum = 0;
     int nValidPayees = 0;
-    int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
     std::sort(vecPayees.begin(), vecPayees.end(), CompareBlockPayees());
 
@@ -745,9 +755,10 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
 
 std::string CSmartnodePayments::GetRequiredPaymentsString(int nHeight)
 {
-    int interval = SmartNodePayments::PayoutInterval(nHeight);
+    int nInterval = SmartNodePayments::PayoutInterval(nHeight);
+    int nPayouts = SmartNodePayments::PayoutsPerBlock(nHeight);
 
-    if( !interval || nHeight % interval ) return "NoRewardBlock";
+    if( !nInterval || nHeight % nInterval || !nPayouts ) return "NoRewardBlock";
 
     LOCK(cs_mapSmartnodeBlocks);
 
@@ -760,9 +771,10 @@ std::string CSmartnodePayments::GetRequiredPaymentsString(int nHeight)
 
 UniValue CSmartnodePayments::GetPaymentBlockObject(int nHeight)
 {
-    int interval = SmartNodePayments::PayoutInterval(nHeight);
+    int nInterval = SmartNodePayments::PayoutInterval(nHeight);
+    int nPayouts = SmartNodePayments::PayoutsPerBlock(nHeight);
 
-    if( !interval || nHeight % interval ) return "NoRewardBlock";
+    if( !nInterval || nHeight % nInterval || !nPayouts ) return "NoRewardBlock";
 
     LOCK(cs_mapSmartnodeBlocks);
 
