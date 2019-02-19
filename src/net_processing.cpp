@@ -2069,7 +2069,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             mnpayments.ProcessMessage(pfrom, strCommand, vRecv, connman);
             instantsend.ProcessMessage(pfrom, strCommand, vRecv, connman);
             sporkManager.ProcessSpork(pfrom, strCommand, vRecv, connman);
-            smartnodeSync.ProcessMessage(pfrom, strCommand, vRecv);
+            smartnodeSync.ProcessMessage(pfrom, strCommand, vRecv, connman);
         }
         else
         {

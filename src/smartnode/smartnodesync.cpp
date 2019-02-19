@@ -150,9 +150,16 @@ std::string CSmartnodeSync::GetSyncStatus()
     }
 }
 
-void CSmartnodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CSmartnodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
     if (strCommand == NetMsgType::SYNCSTATUSCOUNT) { //Sync status count
+
+        if(pfrom->nVersion < mnpayments.GetMinSmartnodePaymentsProto()){
+            LogPrint("mnpayments", "SYNCSTATUSCOUNT - peer=%d using not supported version for smartnode sync %i\n", pfrom->id, pfrom->nVersion);
+            connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
+                               strprintf("Version must be %d or greater", mnpayments.GetMinSmartnodePaymentsProto()));
+            return;
+        }
 
         //do not care about stats if sync process finished or failed
         if(IsSynced() || IsFailed()) return;

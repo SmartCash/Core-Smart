@@ -352,10 +352,10 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         // but this is a heavy one so it's better to finish sync first.
         if (!smartnodeSync.IsSynced()) return;
 
-        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
+        if(pfrom->nVersion < GetMinSmartnodePaymentsProto()){
             LogPrint("mnpayments", "SMARTNODEPAYMENTSYNC - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
             connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-                               strprintf("Version must be %d or greater", MIN_MULTIPAYMENT_PROTO_VERSION));
+                               strprintf("Version must be %d or greater", GetMinSmartnodePaymentsProto()));
             return;
         }
 
@@ -376,10 +376,10 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
 
     } else if (strCommand == NetMsgType::SMARTNODEPAYMENTVOTE) { // Smartnode Payments Vote for the Winner
 
-        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
+        if(pfrom->nVersion < GetMinSmartnodePaymentsProto()){
             LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
             connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-                               strprintf("Version must be %d or greater", MIN_MULTIPAYMENT_PROTO_VERSION));
+                               strprintf("Version must be %d or greater", GetMinSmartnodePaymentsProto()));
             return;
         }
 
@@ -854,14 +854,8 @@ bool CSmartnodePaymentVote::IsValid(CNode* pnode, int nValidationHeight, std::st
         return false;
     }
 
-    int nMinRequiredProtocol;
-    if(nBlockHeight >= nValidationHeight) {
-        // new votes must comply SPORK_10_SMARTNODE_PAY_UPDATED_NODES rules
-        nMinRequiredProtocol = mnpayments.GetMinSmartnodePaymentsProto();
-    } else {
-        // allow non-updated smartnodes for old blocks
-        nMinRequiredProtocol = MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1;
-    }
+    // new votes must comply SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT rules
+    int nMinRequiredProtocol = mnpayments.GetMinSmartnodePaymentsProto();
 
     if(mnInfo.nProtocolVersion < nMinRequiredProtocol) {
         strError = strprintf("Smartnode protocol is too old: nProtocolVersion=%d, nMinRequiredProtocol=%d", mnInfo.nProtocolVersion, nMinRequiredProtocol);
