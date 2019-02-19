@@ -330,7 +330,7 @@ int CSmartnodePayments::GetMinSmartnodePaymentsProto() {
 
     int nProtocolOld = PROTOCOL_BASE_VERSION + (nProtocolSpork & 0xFF);
     int nProtocolNew = PROTOCOL_BASE_VERSION + ((nProtocolSpork >> 8) & 0xFF);
-    int nProtocolActiveTime =  nProtocolSpork >> 16;
+    int64_t nProtocolActiveTime =  nProtocolSpork >> 16;
 
     // If we crossed the threshold return the new protocol
     if( GetAdjustedTime() > nProtocolActiveTime ){

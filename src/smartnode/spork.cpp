@@ -28,7 +28,7 @@ std::map<int, int64_t> mapSporkDefaults = {
     {SPORK_18_PAY_OUTREACH2,                    0}, // ON until block number  This fork cannot be reversed
     {SPORK_19_PAY_WEB,                          0}, // ON until block number  This fork cannot be reversed
     {SPORK_20_PAY_QUALITY,                      0}, // ON until block number  This fork cannot be reversed
-    {SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT,   0xF2A5238000001C1B}, // byte0 = old protocol, byte1 = new protocol, bytes 2-7 enable time
+    {SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT,   0x7FFFFFFFFFFF1B1A}, // byte0 = old protocol, byte1 = new protocol, bytes 2-7 enable time
 };
 
 void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
