@@ -492,11 +492,11 @@ UniValue smartnode(const UniValue& params, bool fHelp)
     {
 #ifdef ENABLE_WALLET
 
-        if (params.size() == 4){
+        if (params.size() >= 3){
 
             int64_t nProtocolOld = atoi(params[1].get_str());
             int64_t nProtocolNew = atoi(params[2].get_str());
-            int64_t nEnableTime = atoi(params[3].get_str());
+            int64_t nEnableTime = params.size() == 4 ? atoi(params[3].get_str()) : 0x7FFFFFFFFFFF;
 
             if(  nProtocolOld < PROTOCOL_BASE_VERSION || nProtocolOld > PROTOCOL_MAX_VERSION ){
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Protocol old out of range!");
@@ -506,9 +506,9 @@ UniValue smartnode(const UniValue& params, bool fHelp)
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Protocol new out of range!");
             }
 
-            // Only allow to set the time from now to 7 days in the future or to 0 to instantly enable the new protocol
-            if( nEnableTime != 0 && ( nEnableTime < GetAdjustedTime() || nEnableTime > GetAdjustedTime() + (7 * 24 * 60 * 60) ) ){
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Enable time points to the past or >7 days in the futures!");
+            // Only allow to set the time from now to 90 days in the future or to 0 to instantly enable the new protocol
+            if( nEnableTime != 0 && nEnableTime != 0x7FFFFFFFFFFF && ( nEnableTime < GetAdjustedTime() || nEnableTime > GetAdjustedTime() + (90 * 24 * 60 * 60) ) ){
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Enable time points to the past or >90 days in the futures!");
             }
 
             nProtocolOld -= PROTOCOL_BASE_VERSION;
