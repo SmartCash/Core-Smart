@@ -42,7 +42,7 @@ void CSmartnodeSync::Disconnect(int nHowMany, int nMinProtocol)
     int nDisconnected = 0;
     g_connman->ForEachNode(CConnman::FullyConnectedOnly, [&nDisconnected, nHowMany, nMinProtocol](CNode* pnode) {
 
-        if( nDisconnected < nHowMany && pnode->nVersion < nMinProtocol ){
+        if( nDisconnected < nHowMany && pnode->nVersion < nMinProtocol && !pnode->fInbound ){
             pnode->fDisconnect = true;
             ++nDisconnected;
         }
