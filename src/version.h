@@ -26,6 +26,9 @@ static const int MIN_PEER_PROTO_VERSION = 90026;
 //! first version with multi node payments
 static const int MIN_MULTIPAYMENT_PROTO_VERSION = 90026;
 
+//! first version with higher node collaterals
+static const int MIN_HIGH_COLLATERAL_PROTO_VERSION = 90027;
+
 //! nTime field added to CAddress, starting with this version;
 //! if possible, avoid requesting addresses nodes older than this
 static const int CADDR_TIME_VERSION = 90013;
