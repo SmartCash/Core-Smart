@@ -53,6 +53,7 @@ private:
     void Fail(CConnman& connman);
     void ClearFulfilledRequests(CConnman& connman);
 
+    void Disconnect(int nHowMany, int nMinProtocol = INIT_PROTO_VERSION);
 public:
     CSmartnodeSync() { Reset(); }
 
