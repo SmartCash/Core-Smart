@@ -122,7 +122,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 #endif // ENABLE_WALLET
          strCommand != "list" && strCommand != "list-conf" && strCommand != "count" &&
          strCommand != "debug" && strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
-         strCommand != "connect" && strCommand != "status"))
+         strCommand != "connect" && strCommand != "status" && strCommand != "protocol"))
             throw std::runtime_error(
                 "smartnode \"command\"...\n"
                 "Set of commands to execute smartnode related actions\n"
@@ -436,6 +436,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
         return obj;
     }
+
 #endif // ENABLE_WALLET
 
     if (strCommand == "status")
@@ -485,6 +486,69 @@ UniValue smartnode(const UniValue& params, bool fHelp)
         }
 
         return obj;
+    }
+
+    if(strCommand == "protocol")
+    {
+#ifdef ENABLE_WALLET
+
+        if (params.size() == 4){
+
+            int64_t nProtocolOld = atoi(params[1].get_str());
+            int64_t nProtocolNew = atoi(params[2].get_str());
+            int64_t nEnableTime = atoi(params[3].get_str());
+
+            if(  nProtocolOld < PROTOCOL_BASE_VERSION || nProtocolOld > PROTOCOL_MAX_VERSION ){
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Protocol old out of range!");
+            }
+
+            if(  nProtocolNew < PROTOCOL_BASE_VERSION || nProtocolNew > PROTOCOL_MAX_VERSION ){
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Protocol new out of range!");
+            }
+
+            // Only allow to set the time from now to 7 days in the future or to 0 to instantly enable the new protocol
+            if( nEnableTime != 0 && ( nEnableTime < GetAdjustedTime() || nEnableTime > GetAdjustedTime() + (7 * 24 * 60 * 60) ) ){
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Enable time points to the past or >7 days in the futures!");
+            }
+
+            nProtocolOld -= PROTOCOL_BASE_VERSION;
+            nProtocolNew -= PROTOCOL_BASE_VERSION;
+
+            int64_t nProtocolSpork = nEnableTime << 16 | nProtocolNew << 8 | nProtocolOld;
+
+            LogPrintf("Set protocol old to %d\n", nProtocolOld);
+            LogPrintf("Set protocol new to %d\n", nProtocolNew);
+            LogPrintf("Set protocol activation time to %d\n", nEnableTime);
+            LogPrintf("Result value %08X\n", nProtocolSpork);
+
+            //broadcast new spork
+            if(sporkManager.UpdateSpork(SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT, nProtocolSpork, *g_connman)){
+                return "success";
+            } else {
+                return "failure";
+            }
+
+        }else{
+            UniValue protocolResult(UniValue::VOBJ);
+
+            int64_t nProtocolSpork = sporkManager.GetSporkValue(SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT);
+
+            int nProtocolOld = PROTOCOL_BASE_VERSION + (nProtocolSpork & 0xFF);
+            int nProtocolNew = PROTOCOL_BASE_VERSION + ((nProtocolSpork >> 8) & 0xFF);
+            int64_t nProtocolActiveTime = ( nProtocolSpork & 0xFFFFFFFFFFFFFF)  >> 16;
+
+            protocolResult.pushKV("oldProtocol", nProtocolOld);
+            protocolResult.pushKV("newProtocol", nProtocolNew);
+            protocolResult.pushKV("enableTime", nProtocolActiveTime);
+            protocolResult.pushKV("activeProtocol", mnpayments.GetMinSmartnodePaymentsProto());
+
+            return protocolResult;
+        }
+
+#else // ENABLE_WALLET
+        throw runtime_error("No wallet support!");
+#endif // ENABLE_WALLET
+
     }
 
     return NullUniValue;
