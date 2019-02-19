@@ -9,6 +9,9 @@
  * network protocol versioning
  */
 
+static const int PROTOCOL_BASE_VERSION = 90000;
+static const int PROTOCOL_MAX_VERSION = 90000 + 0xFF;
+
 static const int PROTOCOL_VERSION = 90027;
 
 //! initial proto version, to be increased after version/verack negotiation

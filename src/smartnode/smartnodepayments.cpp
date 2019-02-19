@@ -325,9 +325,20 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 }
 
 int CSmartnodePayments::GetMinSmartnodePaymentsProto() {
-    return sporkManager.IsSporkActive(SPORK_10_SMARTNODE_PAY_UPDATED_NODES)
-            ? MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2
-            : MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1;
+
+    int64_t nProtocolSpork = sporkManager.GetSporkValue(SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT);
+
+    int nProtocolOld = PROTOCOL_BASE_VERSION + (nProtocolSpork & 0xFF);
+    int nProtocolNew = PROTOCOL_BASE_VERSION + ((nProtocolSpork >> 8) & 0xFF);
+    int nProtocolActiveTime =  nProtocolSpork >> 16;
+
+    // If we crossed the threshold return the new protocol
+    if( GetAdjustedTime() > nProtocolActiveTime ){
+        return nProtocolNew;
+    }
+
+    // If not the old one..
+    return nProtocolOld;
 }
 
 void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)

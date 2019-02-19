@@ -22,16 +22,17 @@ static const int SPORK_2_INSTANTSEND_ENABLED                            = 10001;
 static const int SPORK_3_INSTANTSEND_BLOCK_FILTERING                    = 10002;
 static const int SPORK_5_INSTANTSEND_MAX_VALUE                          = 10004;
 static const int SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT                  = 10007;
-static const int SPORK_10_SMARTNODE_PAY_UPDATED_NODES                   = 10009;
+static const int SPORK_10_SMARTNODE_PAY_UPDATED_NODES                   = 10009; // DEPRECATED
 static const int SPORK_15_SMARTREWARDS_BLOCKS_ENABLED                   = 10014;
 static const int SPORK_16_MINING_SIGNATURE_ENFORCEMENT                  = 10015;
 static const int SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED              = 10016;
 static const int SPORK_18_PAY_OUTREACH2                                 = 10017;
 static const int SPORK_19_PAY_WEB                                       = 10018;
 static const int SPORK_20_PAY_QUALITY                                   = 10019;
+static const int SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT                = 10020;
 
 static const int SPORK_START                                            = SPORK_2_INSTANTSEND_ENABLED;
-static const int SPORK_END                                              = SPORK_20_PAY_QUALITY;
+static const int SPORK_END                                              = SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT;
 
 extern std::map<uint256, CSporkMessage> mapSporks;
 extern std::map<int, int64_t> mapSporkDefaults;
