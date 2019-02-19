@@ -6,6 +6,7 @@
 #include "smartnode.h"
 #include "smartnodesync.h"
 #include "smartnodeman.h"
+#include "smartnodepayments.h"
 #include "protocol.h"
 #include "netbase.h"
 
@@ -51,7 +52,7 @@ std::string CActiveSmartnode::GetStateString() const
         case ACTIVE_SMARTNODE_INPUT_TOO_NEW:   return "INPUT_TOO_NEW";
         case ACTIVE_SMARTNODE_NOT_CAPABLE:     return "NOT_CAPABLE";
         case ACTIVE_SMARTNODE_STARTED:         return "STARTED";
-        default:                                return "UNKNOWN";
+        default:                               return "UNKNOWN";
     }
 }
 
@@ -63,7 +64,7 @@ std::string CActiveSmartnode::GetStatus() const
         case ACTIVE_SMARTNODE_INPUT_TOO_NEW:   return strprintf("Smartnode input must have at least %d confirmations", Params().GetConsensus().nSmartnodeMinimumConfirmations);
         case ACTIVE_SMARTNODE_NOT_CAPABLE:     return "Not capable smartnode: " + strNotCapableReason;
         case ACTIVE_SMARTNODE_STARTED:         return "Smartnode successfully started";
-        default:                                return "Unknown";
+        default:                               return "Unknown";
     }
 }
 
@@ -202,6 +203,8 @@ void CActiveSmartnode::ManageStateRemote()
     LogPrint("smartnode", "CActiveSmartnode::ManageStateRemote -- Start status = %s, type = %s, pinger enabled = %d, pubKeySmartnode.GetID() = %s\n", 
              GetStatus(), GetTypeString(), fPingerEnabled, pubKeySmartnode.GetID().ToString());
 
+    fPingerEnabled = false;
+
     mnodeman.CheckSmartnode(pubKeySmartnode, true);
     smartnode_info_t infoMn;
     if(mnodeman.GetSmartnodeInfo(pubKeySmartnode, infoMn)) {
@@ -214,6 +217,12 @@ void CActiveSmartnode::ManageStateRemote()
         if(service != infoMn.addr) {
             nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
             strNotCapableReason = "Broadcasted IP doesn't match our external address. Make sure you issued a new broadcast if IP of this smartnode changed recently.";
+            LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
+            return;
+        }
+        if(infoMn.nProtocolVersion < mnpayments.GetMinSmartnodePaymentsProto() ) {
+            nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
+            strNotCapableReason = "Update required - Your SmartNode isn't running on the minimum network protocol version.";
             LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
             return;
         }
