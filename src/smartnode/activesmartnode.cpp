@@ -203,30 +203,32 @@ void CActiveSmartnode::ManageStateRemote()
     LogPrint("smartnode", "CActiveSmartnode::ManageStateRemote -- Start status = %s, type = %s, pinger enabled = %d, pubKeySmartnode.GetID() = %s\n", 
              GetStatus(), GetTypeString(), fPingerEnabled, pubKeySmartnode.GetID().ToString());
 
-    fPingerEnabled = false;
-
     mnodeman.CheckSmartnode(pubKeySmartnode, true);
     smartnode_info_t infoMn;
     if(mnodeman.GetSmartnodeInfo(pubKeySmartnode, infoMn)) {
         if(infoMn.nProtocolVersion != PROTOCOL_VERSION) {
+            fPingerEnabled = false;
             nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
             strNotCapableReason = "Remote node version does not match current network or local wallet. Update both and issue a start.";
             LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
             return;
         }
         if(service != infoMn.addr) {
+            fPingerEnabled = false;
             nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
             strNotCapableReason = "Broadcasted IP doesn't match our external address. Make sure you issued a new broadcast if IP of this smartnode changed recently.";
             LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
             return;
         }
         if(infoMn.nProtocolVersion < mnpayments.GetMinSmartnodePaymentsProto() ) {
+            fPingerEnabled = false;
             nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
             strNotCapableReason = "Update required - Your SmartNode isn't running on the minimum network protocol version.";
             LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
             return;
         }
         if(!CSmartnode::IsValidStateForAutoStart(infoMn.nActiveState)) {
+            fPingerEnabled = false;
             nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
             strNotCapableReason = strprintf("Smartnode in %s state", CSmartnode::StateToString(infoMn.nActiveState));
             LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
@@ -241,6 +243,7 @@ void CActiveSmartnode::ManageStateRemote()
         }
     }
     else {
+        fPingerEnabled = false;
         nState = ACTIVE_SMARTNODE_NOT_CAPABLE;
         strNotCapableReason = "Smartnode not in smartnode list";
         LogPrintf("CActiveSmartnode::ManageStateRemote -- %s: %s\n", GetStateString(), strNotCapableReason);
