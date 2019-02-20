@@ -1,4 +1,4 @@
-// Copyright (c) 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2019 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,16 +29,6 @@ CSmartRewardSnapshotList SmartRewardPayments::GetPaymentsForBlock(const int nHei
     // If we are not yet at the 1.2 payout block time.
     if( ( MainNet() && nHeight < HF_V1_2_SMARTREWARD_HEIGHT + nRewardsBlocksPerRound ) ||
         ( TestNet() && nHeight < nFirstRoundEndBlock_Testnet ) ){
-        result = SmartRewardPayments::NoRewardBlock;
-        return CSmartRewardSnapshotList();
-    }
-
-    // TODO: If the block DB verification on startup uses check level4 we can't check
-    // for smartreward blocks at the moment since we cant load the rewardsdb before the
-    // block db. To just give an NoRewardBlock here is not optimal but should work for
-    // now. Only if the daemon gets restarted during the smartreward blocks it might require
-    // an reindex to get things running again.
-    if( prewards == nullptr ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotList();
     }

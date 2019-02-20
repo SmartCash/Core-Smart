@@ -954,8 +954,8 @@ void BitcoinGUI::setAdditionalDataSyncProgress(double nSyncProgress)
     if(!clientModel)
         return;
 
-    // No additional data sync should be happening while blockchain is not synced, nothing to update
-    if(!smartnodeSync.IsSmartNodeSyncStarted())
+    // No additional data sync should be happening while blockchain is not synced or the sync is still running, nothing to update
+    if(!smartnodeSync.IsSmartNodeSyncStarted() && !smartnodeSync.IsFailed())
         return;
 
     // Prevent orphan statusbar messages (e.g. hover Quit in main menu, wait until chain-sync starts -> garbelled text)

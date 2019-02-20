@@ -21,13 +21,6 @@ static const int MNPAYMENTS_SIGNATURES_TOTAL            = 10;
 static const int MNPAYMENTS_NO_RANK                     = INT_MAX;
 static const int MNPAYMENTS_FUTURE_VOTES                = 20;
 
-//! minimum peer version that can receive and send smartnode payment messages,
-//  vote for smartnode and be elected as a payment winner
-// V1 - Last protocol version before update
-// V2 - Newest protocol version
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1 = 90025;
-static const int MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2 = 90026;
-
 extern CCriticalSection cs_vecPayees;
 extern CCriticalSection cs_mapSmartnodeBlocks;
 extern CCriticalSection cs_mapSmartnodePayeeVotes;

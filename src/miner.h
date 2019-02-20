@@ -149,7 +149,7 @@ private:
 
     // Configuration parameters for the block size
     bool fIncludeWitness;
-    unsigned int nBlockMaxWeight, nBlockMaxSize;
+    unsigned int nBlockMaxWeight, nBlockMaxSize, nTxMaxCount;
     bool fNeedSizeAccounting;
 
     // Information on the current status of the block

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2019 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -147,6 +147,11 @@ public:
         READWRITE(disqualifiedSmart);
         READWRITE(rewards);
         READWRITE(percent);
+    }
+
+    friend bool operator<(const CSmartRewardRound& a, const CSmartRewardRound& b)
+    {
+        return a.number < b.number;
     }
 
     std::string ToString() const;

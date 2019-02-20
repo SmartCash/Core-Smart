@@ -1251,7 +1251,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         std::vector<CInv> vToFetch;
 
-
         for (unsigned int nInv = 0; nInv < vInv.size(); nInv++)
         {
             const CInv &inv = vInv[nInv];
@@ -1311,24 +1310,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
                     bool fAskFor = true;
 
-                    if( pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION &&
-                         (inv.type == MSG_SMARTNODE_PAYMENT_VOTE || inv.type == MSG_SMARTNODE_PAYMENT_BLOCK)){
-
-                        if( !pfrom->nTimeOfLastPaymentMessage ) pfrom->nTimeOfLastPaymentMessage = GetTime();
-
-                        if( (GetTime() - pfrom->nTimeOfLastPaymentMessage) > 10 ) pfrom->nPaymentMessagesInSync = 0;
-
-                        pfrom->nTimeOfLastPaymentMessage = GetTime();
-
-                        LogPrint("mnpayments", "Old peer (%d) offered payment message %s - peer=%d\n", pfrom->nVersion, inv.hash.ToString(), pfrom->id);
+                    if( pfrom->nVersion < MIN_HIGH_COLLATERAL_PROTO_VERSION &&
+                        (inv.type >= MSG_SMARTNODE_PAYMENT_VOTE && inv.type <= MSG_SMARTNODE_VERIFY)){
                         fAskFor = false;
-
-                        if( !smartnodeSync.IsSynced() &&
-                            g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) > 4 &&
-                            ++pfrom->nPaymentMessagesInSync > 100){
-                            LogPrint("mnpayments", "Old disconnected due to fequent payment messages - peer=%d\n", pfrom->id);
-                            pfrom->fDisconnect = true;
-                        }
                     }
 
                     if(fAskFor) pfrom->AskFor(inv);
@@ -2085,7 +2069,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             mnpayments.ProcessMessage(pfrom, strCommand, vRecv, connman);
             instantsend.ProcessMessage(pfrom, strCommand, vRecv, connman);
             sporkManager.ProcessSpork(pfrom, strCommand, vRecv, connman);
-            smartnodeSync.ProcessMessage(pfrom, strCommand, vRecv);
+            smartnodeSync.ProcessMessage(pfrom, strCommand, vRecv, connman);
         }
         else
         {

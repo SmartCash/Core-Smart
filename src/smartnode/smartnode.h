@@ -13,13 +13,13 @@ class CSmartnode;
 class CSmartnodeBroadcast;
 class CConnman;
 
-static const int SMARTNODE_CHECK_SECONDS               =   10;
-static const int SMARTNODE_MIN_MNB_SECONDS             =   5 * 60; //BROADCAST_TIME
-static const int SMARTNODE_MIN_MNP_SECONDS             =  20 * 60; //PRE_ENABLE_TIME
-static const int SMARTNODE_EXPIRATION_SECONDS          = 120 * 60;
-static const int SMARTNODE_WATCHDOG_MAX_SECONDS        = 120 * 60;
-static const int SMARTNODE_NEW_START_REQUIRED_SECONDS  = 240 * 60;
-static const int SMARTNODE_COIN_REQUIRED  = 10000;
+static const int SMARTNODE_CHECK_SECONDS               = 10;
+static const int SMARTNODE_MIN_MNB_SECONDS             = 5 * 60; //BROADCAST_TIME
+static const int SMARTNODE_MIN_MNP_SECONDS             = 20 * 60; //PRE_ENABLE_TIME
+static const int SMARTNODE_EXPIRATION_SECONDS          = 65 * 60;
+static const int SMARTNODE_WATCHDOG_MAX_SECONDS        = 60 * 60;
+static const int SMARTNODE_NEW_START_REQUIRED_SECONDS  = 120 * 60;
+static const int SMARTNODE_COIN_REQUIRED  = 100000;
 
 static const int SMARTNODE_POSE_BAN_MAX_SCORE          = 5;
 
@@ -216,8 +216,8 @@ public:
 
     bool UpdateFromNewBroadcast(CSmartnodeBroadcast& mnb, CConnman& connman);
 
-    static CollateralStatus CheckCollateral(const COutPoint& outpoint);
-    static CollateralStatus CheckCollateral(const COutPoint& outpoint, int& nHeightRet);
+    static CollateralStatus CheckCollateral(const COutPoint& outpoint, int nHeight);
+    static CollateralStatus CheckCollateral(const COutPoint& outpoint, int& nHeightRet, int nHeight);
     void Check(bool fForce = false);
 
     bool IsBroadcastedWithin(int nSeconds) { return GetAdjustedTime() - sigTime < nSeconds; }
@@ -256,7 +256,7 @@ public:
         return nActiveState == SMARTNODE_ENABLED;
     }
 
-    /// Is the input associated with collateral public key? (and there is 10000 SMART - checking if valid smartnode)
+    /// Is the input associated with collateral public key? (and there is 100000 SMART - checking if valid smartnode)
     bool IsInputAssociatedWithPubkey();
 
     bool IsValidNetAddr();

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2019 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -367,6 +367,8 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
     }
 
     pdb->ReadRounds(finishedRounds);
+
+    std::sort(finishedRounds.begin(), finishedRounds.end());
 
     if( finishedRounds.size() ){
         lastRound = finishedRounds.back();

@@ -19,6 +19,7 @@
 #include "wallet/walletdb.h"
 #endif
 
+#include "smarthive/hive.h"
 #include "smartnode/smartnodesync.h"
 #include "smartnode/spork.h"
 
@@ -488,12 +489,12 @@ UniValue verifymessage(const UniValue& params, bool fHelp)
     if (fInvalid)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Malformed base64 encoding");
 
-    CDataStream ss(SER_GETHASH, 0);
+    CHashWriter ss(SER_GETHASH, 0);
     ss << strMessageMagic;
     ss << strMessage;
 
     CPubKey pubkey;
-    if (!pubkey.RecoverCompact(Hash(ss.begin(), ss.end()), vchSig))
+    if (!pubkey.RecoverCompact(ss.GetHash(), vchSig))
         return false;
 
     return (pubkey.GetID() == keyID);
@@ -1034,6 +1035,32 @@ UniValue getspentinfo(const UniValue& params, bool fHelp)
     obj.push_back(Pair("txid", value.txid.GetHex()));
     obj.push_back(Pair("index", (int)value.inputIndex));
     obj.push_back(Pair("height", value.blockHeight));
+
+    return obj;
+}
+
+UniValue getrandomkeypair(const UniValue& params, bool fHelp)
+{
+
+    if (fHelp || params.size() != 1 || !params[0].isBool())
+        throw runtime_error(
+            "getrandomkeypair\n"
+            "Returns a random SmartCash Private-Key/Address Pair.\n"
+            "\nArguments:\n"
+            "  \"compressed\" (bool) Wether the key will be compressed or not. (true - compressed, false - uncompressed)\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getrandomkeypair", "false")
+            + HelpExampleRpc("getrandomkeypair", "true")
+        );
+
+    CKey secret;
+    secret.MakeNewKey(params[0].get_bool());
+
+    CBitcoinSecret pk(secret);
+
+    UniValue obj(UniValue::VOBJ);
+    obj.push_back(Pair("privateKey", pk.ToString()));
+    obj.push_back(Pair("address", CSmartAddress(pk.GetKey().GetPubKey().GetID()).ToString()));
 
     return obj;
 }
