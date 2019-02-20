@@ -232,7 +232,7 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
     }
 
     int nHeight = chainActive.Height();
-    int nMinHeight = MainNet() ? HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT : TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT;
+    int nMinHeight = (MainNet() ? HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT : TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT) - 5000;
     int nMinProtocol = mnpayments.GetMinSmartnodePaymentsProto();
     int nMinProtocolFound = 0;
 
@@ -376,7 +376,16 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
         LogPrint("mnsync", "CSmartnodeSync::ProcessTick -- NO new node found!\n");
 
         if( (GetAdjustedTime() - nTimeAssetSyncStarted) > SMARTNODE_SEARCH_PEERS_TIMEOUT_SECONDS ){
-            Fail(connman);
+
+            if( nHeight < nMinHeight ){
+                // Force a successful sync here because we likely just have not
+                // enough new clients on the network at this point
+                nRequestedSmartnodeAssets = SMARTNODE_SYNC_MNW;
+                SwitchToNextAsset(connman);
+            }else{
+                Fail(connman);
+            }
+
         }else if(vNodesCopy.size() > 4){
             int nDisconnect = vNodesCopy.size() / 2;
             LogPrint("mnsync", "CSmartnodeSync::ProcessTick -- Disconnect %i nodes!\n", nDisconnect);
