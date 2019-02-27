@@ -59,8 +59,9 @@ static bool blockchain_height(HTTPRequest* req, const std::map<std::string, std:
 {
     LOCK(cs_main);
 
-    string strHeight = std::to_string(chainActive.Height());
-    SAPI::WriteReply(req, strHeight);
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("height", chainActive.Height());
+    SAPI::WriteReply(req, result);
 
     return true;
 }
