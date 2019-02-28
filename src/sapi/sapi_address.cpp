@@ -507,7 +507,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
             // Ignore inputs currently used for tx in the mempool
             // Ignore inputs that are not valid for instantpay if instantpay is requested
             if (!mempool.getSpentIndex(spentKey, spentInfo) &&
-               ( !fInstantPay || ( fInstantPay && (nHeight - it->first.nBlockHeight + 1) >= INSTANTSEND_CONFIRMATIONS_REQUIRED ) ) ){
+               ( ( !fInstantPay || ( fInstantPay && (nHeight - it->first.nBlockHeight + 1) >= INSTANTSEND_CONFIRMATIONS_REQUIRED ) ) )){
 
                 currentSolution.AddUtxo(*it);
             }
