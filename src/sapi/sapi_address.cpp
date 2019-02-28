@@ -512,9 +512,13 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
                 currentSolution.AddUtxo(*it);
             }
 
-            if( currentSolution.amount > expectedAmount + currentSolution.fee ){
+            if( currentSolution.amount >= expectedAmount + currentSolution.fee ){
 
-                currentSolution.change = currentSolution.amount - expectedAmount - currentSolution.fee;
+                if( currentSolution.amount == expectedAmount + currentSolution.fee ){
+                     currentSolution.change = 0;
+                }else{
+                    currentSolution.change = currentSolution.amount - expectedAmount - currentSolution.fee;
+                }
 
                 if( bestSolution.IsNull() ||
                     ( !fRandom && currentSolution.vecUtxos.size() < bestSolution.vecUtxos.size() ) ){ // Looking for fewest inputs
