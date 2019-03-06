@@ -654,8 +654,6 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             ssValue >> pkey;
             ssValue >> hash;
 
-            bool fSkipCheck = false;
-
             // hash pubkey/privkey to accelerate wallet load
             std::vector<unsigned char> vchKey;
             vchKey.reserve(vchPubKey.size() + pkey.size());

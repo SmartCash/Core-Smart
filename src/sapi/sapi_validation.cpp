@@ -233,32 +233,90 @@ SAPI::Result SAPI::Validation::AmountRange::Validate(const string &parameter, co
 std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
 {
     switch(value){
+    /* Parameter errors */
     case ParameterMissing:
-        return "ParameterMissing";
+        return "Parameter missing";
     case InvalidType:
-        return "InvalidType";
+        return "Invalid parameter type";
     case NumberParserFailed:
-        return "Could not parse parameter to number.";
+        return "Could not parse parameter to number";
     case UnsignedExpected:
-        return "UnsignedExpected";
+        return "Unsigned Integer expected";
     case IntOverflow:
-        return "IntOverflow";
+        return "Integer overflow";
     case IntOutOfRange:
-        return "Value out of the valid range: %d - %d";
+        return "Integer value out of the valid range: %d - %d";
     case UIntOverflow:
-        return "UIntOverflow";
+        return "Unsigned Integer overflow";
     case UIntOutOfRange:
-        return "UIntOutOfRange";
-    case InvalidSmartCashAddress:
-        return "InvalidSmartCashAddress";
+        return "Unsigned Integer value out of the valid range: %d - %d";
+    case DoubleOverflow:
+        return "Double overflow";
     case DoubleOutOfRange:
-        return "Value out of the valid range: %8.8f - %8.8f";
+        return "Double value out of the valid range: %8.8f - %8.8f";
+    case InvalidSmartCashAddress:
+        return "Invalid SmartCash";
+    case EmptyString:
+        return "String is empty";
+    case InvalidHexString:
+        return "Invalid hex string";
     case InvalidAmount:
-        return "InvalidAmount";
+        return "Invalid amount value";
     case AmountOverflow:
-        return "Amount out of max money range.";
+        return "Amount out of max money range";
     case AmountOutOfRange:
-        return "Value out of the valid range: %s - %s";
+        return "Amount value out of the valid range: %s - %s";
+        /* common errors */
+    case TimedOut:
+        return "Operation timed out";
+    case PageOutOfRange:
+        return "Page out of valid range";
+    case BalanceInsufficient:
+        return "Balance insufficient";
+    case RequestRateLimitExceeded:
+        return "Request rate limit reached exceeded";
+    case RessourceRateLimitExceeded:
+        return "Ressource rate limit exceeded";
+    case AddressNotFound:
+        return "Address not found";
+        /* block errors */
+    case BlockHeightOutOfRange:
+        return "Block height out of range";
+    case BlockNotFound:
+        return "Block not found";
+    case BlockNotSpecified:
+        return "Block information not specified";
+    case BlockHashInvalid:
+        return "Block hash invalid";
+        /* address errors */
+    case NoDepositAvailble:
+        return "No deposits available";
+    case NoUtxosAvailble:
+        return "No unspent outpouts available";
+        /* transaction errors */ 
+    case TxDecodeFailed:
+        return "Transaction decode failed";
+    case TxNotSpecified:
+        return "Transaction not specified";
+    case TxNoValidInstantPay:
+        return "No valid instantpay transaction";
+    case TxRejected:
+        return "Transaction rejected";
+    case TxMissingInputs:
+        return "Missing inputs";
+    case TxAlreadyInBlockchain:
+        return "Transaction is already in a block";
+    case TxCantRelay:
+        return "Failed to relay transaction";
+    case TxNotFound:
+        return "Transaction not found";
+        /* smartreward errors */
+    case RewardsDatabaseBusy:
+        return "SmartRewards database busy";
+    case NoActiveRewardRound:
+        return "No active SmartRewards round";
+    case NoFinishedRewardRound:
+        return "No finished SmartRewards round";
     default:
         return "UNDEFINED";
     }

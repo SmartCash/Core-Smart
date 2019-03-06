@@ -105,13 +105,13 @@ arith_uint256 CSmartnode::CalculateScore(const uint256& blockHash)
     return UintToArith256(ss.GetHash());
 }
 
-CSmartnode::CollateralStatus CSmartnode::CheckCollateral(const COutPoint& outpoint)
+CSmartnode::CollateralStatus CSmartnode::CheckCollateral(const COutPoint& outpoint, int nHeight)
 {
-    int nHeight;
-    return CheckCollateral(outpoint, nHeight);
+    int nHeightRet;
+    return CheckCollateral(outpoint, nHeightRet, nHeight);
 }
 
-CSmartnode::CollateralStatus CSmartnode::CheckCollateral(const COutPoint& outpoint, int& nHeightRet)
+CSmartnode::CollateralStatus CSmartnode::CheckCollateral(const COutPoint& outpoint, int& nHeightRet, int nHeight)
 {
     AssertLockHeld(cs_main);
 
@@ -145,14 +145,13 @@ void CSmartnode::Check(bool fForce)
 
     int nHeight = 0;
     if(!fUnitTest) {
-        CollateralStatus err = CheckCollateral(vin.prevout);
+        nHeight = chainActive.Height();
+        CollateralStatus err = CheckCollateral(vin.prevout, nHeight);
         if (err == COLLATERAL_UTXO_NOT_FOUND) {
             nActiveState = SMARTNODE_OUTPOINT_SPENT;
             LogPrint("smartnode", "CSmartnode::Check -- Failed to find Smartnode UTXO, smartnode=%s\n", vin.prevout.ToStringShort());
             return;
         }
-
-        nHeight = chainActive.Height();
     }
 
     if(IsPoSeBanned()) {
@@ -243,8 +242,8 @@ bool CSmartnode::IsInputAssociatedWithPubkey()
         BOOST_FOREACH(CTxOut out, tx.vout)
             if(out.nValue == SMARTNODE_COIN_REQUIRED*COIN && out.scriptPubKey == payee) return true;
     }
-
     return false;
+
 }
 
 bool CSmartnode::IsValidNetAddr()
@@ -297,8 +296,6 @@ std::string CSmartnode::GetStatus() const
 void CSmartnode::UpdateLastPaid(const CBlockIndex *pindex, int nMaxBlocksToScanBack)
 {
     if(!pindex) return;
-
-    if( pindex->nHeight < HF_V1_2_MULTINODE_VOTING_HEIGHT) return;
 
     const CBlockIndex *BlockReading = pindex;
 
@@ -550,14 +547,14 @@ bool CSmartnodeBroadcast::CheckOutpoint(int& nDos)
         }
 
         int nHeight;
-        CollateralStatus err = CheckCollateral(vin.prevout, nHeight);
+        CollateralStatus err = CheckCollateral(vin.prevout, nHeight, chainActive.Height());
         if (err == COLLATERAL_UTXO_NOT_FOUND) {
             LogPrint("smartnode", "CSmartnodeBroadcast::CheckOutpoint -- Failed to find Smartnode UTXO, smartnode=%s\n", vin.prevout.ToStringShort());
             return false;
         }
 
         if (err == COLLATERAL_INVALID_AMOUNT) {
-            LogPrint("smartnode", "CSmartnodeBroadcast::CheckOutpoint -- Smartnode UTXO should have 10000 SMART, smartnode=%s\n", vin.prevout.ToStringShort());
+            LogPrint("smartnode", "CSmartnodeBroadcast::CheckOutpoint -- Smartnode UTXO should have 100000 SMART, smartnode=%s\n", vin.prevout.ToStringShort());
             return false;
         }
 
@@ -664,10 +661,10 @@ void CSmartnodeBroadcast::Relay(CConnman& connman)
 CSmartnodePing::CSmartnodePing(const COutPoint& outpoint)
 {
     LOCK(cs_main);
-    if (!chainActive.Tip() || chainActive.Height() < 67) return;
+    if (!chainActive.Tip() || chainActive.Height() < 33) return;
 
     this->outpoint = outpoint;
-    blockHash = chainActive[chainActive.Height() - 67]->GetBlockHash();
+    blockHash = chainActive[chainActive.Height() - 33]->GetBlockHash();
     sigTime = GetAdjustedTime();
 }
 
@@ -782,7 +779,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
 
     {
         BlockMap::iterator mi = mapBlockIndex.find(blockHash);
-        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 135) {
+        if ((*mi).second && (*mi).second->nHeight < chainActive.Height() - 66) {
             LogPrintf("CSmartnodePing::CheckAndUpdate -- Smartnode ping is invalid, block hash is too old: smartnode=%s  blockHash=%s\n", outpoint.ToStringShort(), blockHash.ToString());
             // nDos = 1;
             return false;

@@ -131,7 +131,7 @@ public:
     {
         nVersion = CVotingKeyMetadata::CURRENT_VERSION;
         nCreateTime = 0;
-        fEnabled = false;
+        fEnabled = true;
         fImported = false;
         registrationTxHash.SetNull();
         fChecked = false;

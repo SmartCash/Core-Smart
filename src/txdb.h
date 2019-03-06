@@ -137,7 +137,7 @@ public:
     bool ReadAddressIndex(uint160 addressHash, int type,
                           std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex,
                           int start = 0, int end = 0);
-    bool ReadAddresses(std::vector<CAddressListEntry> &addressList, bool excludeZeroBalances);
+    bool ReadAddresses(std::vector<CAddressListEntry> &addressList, int nEndHeight, bool excludeZeroBalances);
     bool WriteTimestampIndex(const CTimestampIndexKey &timestampIndex);
     bool ReadTimestampIndex(const unsigned int &high, const unsigned int &low, std::vector<uint256> &vect);
     bool ReadTimestampIndex(const unsigned int &timestamp, uint256 &blockHash);
@@ -151,14 +151,11 @@ public:
                                         int &firstTime, int &lastTime,
                                         int start, int end);
     /** SmartVoting start **/
-    bool WriteVoteKeyRegistrations(std::vector<std::pair<int,uint256>> vecRegistrations);
-    bool EraseVoteKeyRegistration(const int nHeight, const uint256 &txHash);
-    bool InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHas);
-    bool InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHash, const CVoteKey &voteKey);
-    bool GetVoteKeyRegistration(const uint256 &txHash, CVoteKeyRegistrationKey &registrationKey, CVoteKeyRegistrationValue &registrationValue);
-    bool ReadVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegistrationKey, CVoteKeyRegistrationValue>> &vecRegistrations, bool fExcludeProcessedOnes = true);
-    bool WriteVoteKey(const CVoteKey &voteKey, const CVoteKeyValue &voteKeyValue);
-    bool EraseVoteKeys(const std::vector<CVoteKey> &vecVoteKeys);
+    bool WriteInvalidVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegistrationKey, VoteKeyParseResult>> vecInvalidRegistrations);
+    bool EraseInvalidVoteKeyRegistrations(std::vector<CVoteKeyRegistrationKey> vecInvalidRegistrations);
+    bool ReadInvalidVoteKeyRegistration(const uint256 &txHash, CVoteKeyRegistrationKey &registrationKey, VoteKeyParseResult &result);
+    bool WriteVoteKeys(const std::map<CVoteKey, CVoteKeyValue> &mapVoteKeys);
+    bool EraseVoteKeys(const std::map<CVoteKey, CSmartAddress> &mapVoteKeys);
     bool ReadVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey);
     bool ReadVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys);
     bool ReadVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue);

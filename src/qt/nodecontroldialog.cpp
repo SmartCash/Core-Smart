@@ -1,4 +1,4 @@
-// Copyright (c) 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2019 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -355,7 +355,7 @@ void SmartnodeControlDialog::updateView()
 
             uint256 coinTxHash = out.tx->GetHash();
 
-            if( out.tx->vout[out.i].nValue == 10000 * COIN ){
+            if( out.tx->vout[out.i].nValue == 100000 * COIN ){
 
                 if(( coinTxHash.ToString() == this->txHash && this->txIndex == std::to_string(out.i) ) ){
                     nSelectRow = nRow;

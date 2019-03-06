@@ -288,6 +288,12 @@ void PrepareShutdown()
         flatdb.Dump(smartVoting);
     }
 
+    fCache = GetBoolArg("-sapi", false);
+    if( fCache ){
+        CFlatDB<CSAPIStatistics> flatdb(".sapi_stats", "magicSAPIStatistics");
+        flatdb.Dump(sapiStatistics);
+    }
+
     UnregisterNodeSignals(GetNodeSignals());
 
     if (fFeeEstimatesInitialized)
@@ -912,6 +918,16 @@ void InitParameterInteraction()
     }
 #endif // ENABLE_WALLET
 
+    bool fSAPI = GetBoolArg("-sapi", false);
+
+    // Make sure the required indexes are enabled when SAPI is used
+    if( fSAPI ){
+
+        SoftSetBoolArg("-addressindex", true);
+        SoftSetBoolArg("-spentindex", true);
+        SoftSetBoolArg("-depositindex", true);
+    }
+
     // Make sure additional indexes are recalculated correctly in VerifyDB
     // (we must reconnect blocks whenever we disconnect them for these indexes to work)
     bool fAdditionalIndexes =
@@ -1359,6 +1375,25 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     bool fSAPI = GetBoolArg("-sapi", false);
 
     if( fSAPI ){
+
+        CFlatDB<CSAPIStatistics> flatdb(".sapi_stats", "magicSAPIStatistics");
+        if(!flatdb.Load(sapiStatistics)) {
+            LogPrintf("SAPI statistics reading error. Create a new one.");
+            flatdb.Dump(sapiStatistics);
+        }
+
+        sapiStatistics.reset();
+
+        if (mapArgs.count("-sapiwhitelist")) {
+            BOOST_FOREACH(const std::string& net, mapMultiArgs["-sapiwhitelist"]) {
+                CSubNet subnet;
+                LookupSubNet(net.c_str(), subnet);
+                if (!subnet.IsValid())
+                    return InitError(strprintf(_("Invalid netmask specified in -sapiwhitelist: '%s'"), net));
+                SAPI::AddWhitelistedRange(subnet);
+            }
+        }
+
         if (!AppInitSAPI(threadGroup))
             return InitError(_("Unable to start SAPI server. See debug log for details."));
     }

@@ -318,6 +318,7 @@ extern UniValue getspentinfo(const UniValue& params, bool fHelp);
 extern UniValue getaddresses(const UniValue& params, bool fHelp);
 extern UniValue getmoneysupply(const UniValue& params, bool fHelp);
 extern UniValue sentinelping(const UniValue& params, bool fHelp);
+extern UniValue getrandomkeypair(const UniValue& params, bool fHelp);
 
 extern void EnsureWalletIsUnlocked();
 extern void EnsureVotingIsUnlocked();

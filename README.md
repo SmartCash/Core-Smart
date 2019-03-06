@@ -7,7 +7,7 @@ SmartCash Core
 https://SmartCash.CC
 
  Copyright (c) 2009 - 2016 Bitcoin Developers
- Copyright (c) 2017 - 2018 SmartCash Developers
+ Copyright (c) 2017 - 2019 SmartCash Developers
 
 What is SmartCash?
 ----------------

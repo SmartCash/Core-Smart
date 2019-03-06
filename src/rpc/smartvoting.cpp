@@ -775,10 +775,10 @@ UniValue votekeys(const UniValue& params, bool fHelp)
             cRegisterOption = 0x02;
 
         // **
-        // Get the private key of the address for option 2
+        // Get the private key of the vote address
         // **
 
-        if( cRegisterOption == 0x02 && !pwalletMain->GetKey(voteAddressKeyID, vaKey) )
+        if( !pwalletMain->GetKey(voteAddressKeyID, vaKey) )
                 throw JSONRPCError(RPC_WALLET_ERROR, "Private key for <address> not available");
 
         // **
@@ -860,10 +860,9 @@ UniValue votekeys(const UniValue& params, bool fHelp)
             txnouttype type;
             int nRequired;
 
-            if (!ExtractDestinations(utxo.scriptPubKey, type, addresses, nRequired) || addresses.size() != 1) {
-                LogPrintf("ParseVoteKeyRegistration -- Couldn't extract address\n");
-                return false;
-            }
+            if (!ExtractDestinations(utxo.scriptPubKey, type, addresses, nRequired) || addresses.size() != 1)
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't extract input address");
+
 
             change = addresses[0];
         }

@@ -700,17 +700,22 @@ bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, C
     uint256 nHashProposal = vote.GetProposalHash();
 
     if(cmapVoteToProposal.HasKey(nHashVote)) {
-        LogPrint("proposal", "CProposal::ProcessVote -- skipping known valid vote %s for proposal %s\n", nHashVote.ToString(), nHashProposal.ToString());
+        std::ostringstream ostr;
+        ostr << "Old invalid vote "
+                << ", skipping known valid vote = " << nHashVote.ToString()
+                << ", proposal hash = " << nHashProposal.ToString();
+        LogPrint("proposal","CSmartVotingManager::ProcessVote -- %s\n", ostr.str());
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_TEMPORARY_ERROR);
         LEAVE_CRITICAL_SECTION(cs);
         return false;
     }
 
     if(cmapInvalidVotes.HasKey(nHashVote)) {
         std::ostringstream ostr;
-        ostr << "CSmartVotingManager::ProcessVote -- Old invalid vote "
+        ostr << "Old invalid vote "
                 << ", votekey = " << vote.GetVoteKey().ToString()
                 << ", proposal hash = " << nHashProposal.ToString();
-        LogPrintf("%s\n", ostr.str());
+        LogPrint("proposal", "CSmartVotingManager::ProcessVote -- %s\n", ostr.str());
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR, 20);
         LEAVE_CRITICAL_SECTION(cs);
         return false;
@@ -719,13 +724,13 @@ bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, C
     proposal_m_it it = mapProposals.find(nHashProposal);
     if(it == mapProposals.end()) {
         std::ostringstream ostr;
-        ostr << "CSmartVotingManager::ProcessVote -- Unknown proposal " << nHashProposal.ToString()
+        ostr << "Unknown proposal " << nHashProposal.ToString()
              << ", votekey = " << vote.GetVoteKey().ToString();
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_WARNING);
         if(cmmapOrphanVotes.Insert(nHashProposal, vote_time_pair_t(vote, GetAdjustedTime() + SMARTVOTING_ORPHAN_EXPIRATION_TIME))) {
             LEAVE_CRITICAL_SECTION(cs);
             RequestProposal(pfrom, nHashProposal, connman);
-            LogPrintf("%s\n", ostr.str());
+            LogPrint("proposal", "CSmartVotingManager::ProcessVote -- %s\n", ostr.str());
             return false;
         }
 
@@ -738,10 +743,10 @@ bool CSmartVotingManager::ProcessVote(CNode* pfrom, const CProposalVote& vote, C
 
     if(!proposal.IsSetCachedValid() || proposal.IsSetExpired()) {
         std::ostringstream ostr;
-        ostr << "CSmartVotingManager::ProcessVote -- Ignoring vote for expired or invalid proposal " << nHashProposal.ToString()
+        ostr << "Ignoring vote for expired or invalid proposal " << nHashProposal.ToString()
              << ", votekey = " << vote.GetVoteKey().ToString();
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_WARNING);
-        LogPrint("proposal", "CProposal::ProcessVote -- ignoring vote for expired or invalid proposal, hash = %s\n", nHashProposal.ToString());
+        LogPrint("proposal", "CSmartVotingManager::ProcessVote -- %s\n", ostr.str());
         LEAVE_CRITICAL_SECTION(cs);
         return false;
     }

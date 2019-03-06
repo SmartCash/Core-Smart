@@ -9,7 +9,10 @@
  * network protocol versioning
  */
 
-static const int PROTOCOL_VERSION = 90027;
+static const int PROTOCOL_BASE_VERSION = 90000;
+static const int PROTOCOL_MAX_VERSION = 90000 + 0xFF;
+
+static const int PROTOCOL_VERSION = 90029;
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 90013;
@@ -18,13 +21,16 @@ static const int INIT_PROTO_VERSION = 90013;
 static const int GETHEADERS_VERSION = 90020;
 
 //! disconnect from peers older than this proto version
-static const int MIN_PEER_PROTO_VERSION = 90026;
+static const int MIN_PEER_PROTO_VERSION = 90028;
 
 //! first version with multi node payments
 static const int MIN_MULTIPAYMENT_PROTO_VERSION = 90026;
 
+//! first version with higher node collaterals
+static const int MIN_HIGH_COLLATERAL_PROTO_VERSION = 90028;
+
 //! first version with smartvoting support
-static const int MIN_VOTING_PEER_PROTO_VERSION = 90027;
+static const int MIN_VOTING_PEER_PROTO_VERSION = 90029;
 
 //! nTime field added to CAddress, starting with this version;
 //! if possible, avoid requesting addresses nodes older than this

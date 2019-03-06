@@ -25,7 +25,9 @@ enum VoteKeyParseResult{
     InvalidVoteKeySignature,
     InvalidVoteAddress,
     InvalidVoteAddressSignature,
-    IsNoRegistrationTx
+    IsNoRegistrationTx,
+    VoteKeyAlreadyRegistered,
+    VoteAddressAlreadyRegistered
 };
 
 #endif // VOTEKEYS_H

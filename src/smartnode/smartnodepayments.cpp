@@ -9,8 +9,8 @@
 #include "smartnodeman.h"
 #include "smarthive/hive.h"
 #include "../messagesigner.h"
-#include "netfulfilledman.h" 
-#include "script/standard.h" 
+#include "netfulfilledman.h"
+#include "script/standard.h"
 #include "spork.h"
 #include "../util.h"
 #include "consensus/consensus.h"
@@ -40,8 +40,10 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 
         if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT && nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
             return 1;
-        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
+        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT && nHeight < HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
             return HF_V1_2_NODES_PER_BLOCK;
+        }else if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
+            return HF_V1_2_8_NODES_PER_BLOCK;
         }
 
     }else{
@@ -50,8 +52,10 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
             return TESTNET_V1_2_NODES_PER_BLOCK_1;
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
             return TESTNET_V1_2_NODES_PER_BLOCK_2;
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
+        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3 && nHeight < TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)
             return TESTNET_V1_2_NODES_PER_BLOCK_3;
+        if(nHeight >= TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)
+            return TESTNET_V1_2_8_NODES_PER_BLOCK;
 
     }
 
@@ -69,7 +73,6 @@ int SmartNodePayments::PayoutInterval(int nHeight)
         }
 
     }else{
-
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
             return TESTNET_V1_2_NODES_BLOCK_INTERVAL_1;
         if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
@@ -269,6 +272,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 
         }else if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return;
+            if( !SmartNodePayments::PayoutsPerBlock(nHeight) ) return;
         }
 
     }else{
@@ -280,6 +284,7 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
             return;
         }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return;
+            if( !SmartNodePayments::PayoutsPerBlock(nHeight) ) return;
         }
 
     }
@@ -320,9 +325,20 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 }
 
 int CSmartnodePayments::GetMinSmartnodePaymentsProto() {
-    return sporkManager.IsSporkActive(SPORK_10_SMARTNODE_PAY_UPDATED_NODES)
-            ? MIN_SMARTNODE_PAYMENT_PROTO_VERSION_2
-            : MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1;
+
+    int64_t nProtocolSpork = sporkManager.GetSporkValue(SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT);
+
+    int nProtocolOld = PROTOCOL_BASE_VERSION + (nProtocolSpork & 0xFF);
+    int nProtocolNew = PROTOCOL_BASE_VERSION + ((nProtocolSpork >> 8) & 0xFF);
+    int64_t nProtocolActiveTime =  nProtocolSpork >> 16;
+
+    // If we crossed the threshold return the new protocol
+    if( GetAdjustedTime() > nProtocolActiveTime ){
+        return nProtocolNew;
+    }
+
+    // If not the old one..
+    return nProtocolOld;
 }
 
 void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
@@ -336,10 +352,10 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
         // but this is a heavy one so it's better to finish sync first.
         if (!smartnodeSync.IsSynced()) return;
 
-        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
+        if(pfrom->nVersion < GetMinSmartnodePaymentsProto()){
             LogPrint("mnpayments", "SMARTNODEPAYMENTSYNC - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
             connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-                               strprintf("Version must be %d or greater", MIN_MULTIPAYMENT_PROTO_VERSION));
+                               strprintf("Version must be %d or greater", GetMinSmartnodePaymentsProto()));
             return;
         }
 
@@ -360,10 +376,10 @@ void CSmartnodePayments::ProcessMessage(CNode* pfrom, std::string& strCommand, C
 
     } else if (strCommand == NetMsgType::SMARTNODEPAYMENTVOTE) { // Smartnode Payments Vote for the Winner
 
-        if(pfrom->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
+        if(pfrom->nVersion < GetMinSmartnodePaymentsProto()){
             LogPrint("mnpayments", "SMARTNODEPAYMENTVOTE - peer=%d using not supported version for payment votes %i\n", pfrom->id, pfrom->nVersion);
             connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-                               strprintf("Version must be %d or greater", MIN_MULTIPAYMENT_PROTO_VERSION));
+                               strprintf("Version must be %d or greater", GetMinSmartnodePaymentsProto()));
             return;
         }
 
@@ -573,6 +589,11 @@ bool CSmartnodeBlockPayees::GetBestPayees(CScriptVector& payeesRet)
 
     size_t expectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
+    if( !expectedPayees ) {
+        LogPrint("mnpayments", "CSmartnodeBlockPayees::GetBestPayee -- ERROR: no payees required here\n");
+        return false;
+    }
+
     if(vecPayees.size() < expectedPayees) {
         LogPrint("mnpayments", "CSmartnodeBlockPayees::GetBestPayee -- ERROR: couldn't find enough payees\n");
         return false;
@@ -615,6 +636,8 @@ bool CSmartnodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmoun
     int foundMinVotes = 0;
     int expectedPayees =  SmartNodePayments::PayoutsPerBlock(nBlockHeight);
     std::string strPayeesPossible = "";
+
+    if( !expectedPayees ) return true;
 
     CAmount expectedPerNode = expectedNodeReward / expectedPayees;
 
@@ -666,9 +689,10 @@ std::string CSmartnodeBlockPayees::GetRequiredPaymentsString()
     LOCK(cs_vecPayees);
 
     std::string strRequiredPayments = "Unknown";
-    int interval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    int nInterval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    int nPayouts = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
-    if( !interval || nBlockHeight % interval ) return "NoRewardBlock";
+    if( !nInterval || nBlockHeight % nInterval || !nPayouts ) return "NoRewardBlock";
 
     BOOST_FOREACH(CSmartnodePayee& payee, vecPayees)
     {
@@ -694,8 +718,9 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
     UniValue votes(UniValue::VOBJ);
 
     int nInterval = SmartNodePayments::PayoutInterval(nBlockHeight);
+    int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
-    if( !nInterval || nBlockHeight % nInterval ){
+    if( !nInterval || nBlockHeight % nInterval || !nExpectedPayees ){
         obj.pushKV("state", "No reward block");
         obj.pushKV("validPayees", 0);
         obj.pushKV("voteSum", 0);
@@ -705,7 +730,6 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
 
     int nVoteSum = 0;
     int nValidPayees = 0;
-    int nExpectedPayees = SmartNodePayments::PayoutsPerBlock(nBlockHeight);
 
     std::sort(vecPayees.begin(), vecPayees.end(), CompareBlockPayees());
 
@@ -745,9 +769,10 @@ UniValue CSmartnodeBlockPayees::GetPaymentBlockObject()
 
 std::string CSmartnodePayments::GetRequiredPaymentsString(int nHeight)
 {
-    int interval = SmartNodePayments::PayoutInterval(nHeight);
+    int nInterval = SmartNodePayments::PayoutInterval(nHeight);
+    int nPayouts = SmartNodePayments::PayoutsPerBlock(nHeight);
 
-    if( !interval || nHeight % interval ) return "NoRewardBlock";
+    if( !nInterval || nHeight % nInterval || !nPayouts ) return "NoRewardBlock";
 
     LOCK(cs_mapSmartnodeBlocks);
 
@@ -760,9 +785,10 @@ std::string CSmartnodePayments::GetRequiredPaymentsString(int nHeight)
 
 UniValue CSmartnodePayments::GetPaymentBlockObject(int nHeight)
 {
-    int interval = SmartNodePayments::PayoutInterval(nHeight);
+    int nInterval = SmartNodePayments::PayoutInterval(nHeight);
+    int nPayouts = SmartNodePayments::PayoutsPerBlock(nHeight);
 
-    if( !interval || nHeight % interval ) return "NoRewardBlock";
+    if( !nInterval || nHeight % nInterval || !nPayouts ) return "NoRewardBlock";
 
     LOCK(cs_mapSmartnodeBlocks);
 
@@ -828,14 +854,8 @@ bool CSmartnodePaymentVote::IsValid(CNode* pnode, int nValidationHeight, std::st
         return false;
     }
 
-    int nMinRequiredProtocol;
-    if(nBlockHeight >= nValidationHeight) {
-        // new votes must comply SPORK_10_SMARTNODE_PAY_UPDATED_NODES rules
-        nMinRequiredProtocol = mnpayments.GetMinSmartnodePaymentsProto();
-    } else {
-        // allow non-updated smartnodes for old blocks
-        nMinRequiredProtocol = MIN_SMARTNODE_PAYMENT_PROTO_VERSION_1;
-    }
+    // new votes must comply SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT rules
+    int nMinRequiredProtocol = mnpayments.GetMinSmartnodePaymentsProto();
 
     if(mnInfo.nProtocolVersion < nMinRequiredProtocol) {
         strError = strprintf("Smartnode protocol is too old: nProtocolVersion=%d, nMinRequiredProtocol=%d", mnInfo.nProtocolVersion, nMinRequiredProtocol);

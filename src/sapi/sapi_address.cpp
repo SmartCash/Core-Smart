@@ -507,14 +507,18 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
             // Ignore inputs currently used for tx in the mempool
             // Ignore inputs that are not valid for instantpay if instantpay is requested
             if (!mempool.getSpentIndex(spentKey, spentInfo) &&
-               ( !fInstantPay || ( fInstantPay && (nHeight - it->first.nBlockHeight + 1) >= INSTANTSEND_CONFIRMATIONS_REQUIRED ) ) ){
+               ( ( !fInstantPay || ( fInstantPay && (nHeight - it->first.nBlockHeight + 1) >= INSTANTSEND_CONFIRMATIONS_REQUIRED ) ) )){
 
                 currentSolution.AddUtxo(*it);
             }
 
-            if( currentSolution.amount > expectedAmount + currentSolution.fee ){
+            if( currentSolution.amount >= expectedAmount + currentSolution.fee ){
 
-                currentSolution.change = currentSolution.amount - expectedAmount - currentSolution.fee;
+                if( currentSolution.amount == expectedAmount + currentSolution.fee ){
+                     currentSolution.change = 0;
+                }else{
+                    currentSolution.change = currentSolution.amount - expectedAmount - currentSolution.fee;
+                }
 
                 if( bestSolution.IsNull() ||
                     ( !fRandom && currentSolution.vecUtxos.size() < bestSolution.vecUtxos.size() ) ){ // Looking for fewest inputs
@@ -541,7 +545,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
     // If we iterated over all utxos and we did not find a solution.
     if( (++nPageCurrent % nPages) == nPageStart && bestSolution.IsNull() && !fTimedOut )
-        return SAPI::Error(req, SAPI::BalanceTooLow, "Requested amount exceeds balance");
+        return SAPI::Error(req, SAPI::BalanceInsufficient, "Requested amount exceeds balance");
 
     // We found no solution, but there still might be one..
     if( bestSolution.IsNull() )

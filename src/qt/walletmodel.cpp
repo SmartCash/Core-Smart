@@ -635,18 +635,26 @@ QString WalletModel::votingPowerString(const CVoteKey &voteKey)
 
 QString WalletModel::voteAddressString(const CVoteKey& voteKey)
 {
+    if( !wallet ) return "Wallet not available";
+    LOCK(wallet->cs_wallet);
+
     QString voteAddressString = "Not registered";
 
     CKeyID keyId;
+
+    if( !voteKey.GetKeyID(keyId) ) return "Key error";
+    if( !wallet->HaveVotingKey(keyId) ) return "Unavailable";
+
     CVoteKeyValue voteKeyValue;
+    uint256 &registrationHash = wallet->mapVotingKeyMetadata[keyId].registrationTxHash;
     if( !voteKey.GetKeyID(keyId) ){
         voteAddressString = "Invalid Key";
     }else if( GetVoteKeyValue(voteKey, voteKeyValue) ){
         voteAddressString = QString::fromStdString(voteKeyValue.voteAddress.ToString());
-    }else if( !pwalletMain->mapVotingKeyMetadata[keyId].registrationTxHash.IsNull() ){
-        voteAddressString = "Confirmation required";
-    }else if( !pwalletMain->mapVotingKeyMetadata[keyId].fValid ){
+    }else if( !registrationHash.IsNull() && GetInvalidVoteKeyRegistration(registrationHash) ){
         voteAddressString = "Registration failed";
+    }else if( !registrationHash.IsNull() ){
+        voteAddressString = "Confirmation required";
     }
 
     return voteAddressString;
@@ -659,11 +667,14 @@ void WalletModel::updateVoteKeys(bool fEnabled)
 
     auto it = wallet->mapVotingKeyMetadata.begin();
     while( it != wallet->mapVotingKeyMetadata.end() ){
-        it->second.fEnabled = fEnabled;
-        wallet->UpdateVotingKeyMetadata(it->first);
+
+        CVoteKey voteKey(it->first);
+        if( IsRegisteredForVoting(voteKey) ){
+            it->second.fEnabled = fEnabled;
+            wallet->UpdateVotingKeyMetadata(it->first);
+        }
         ++it;
     }
-
 }
 
 

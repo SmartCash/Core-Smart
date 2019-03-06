@@ -444,6 +444,7 @@ VoteKeyParseResult CheckVoteKeyRegistration(const CTransaction &tx, bool fValida
  * Parse a vote key registration transaction.
  */
 VoteKeyParseResult ParseVoteKeyRegistration(const CTransaction &tx, CVoteKey &voteKey, CSmartAddress &voteAddress, bool fValidate = true);
+VoteKeyParseResult ParseVoteKeyRegistration(const CTransaction &tx, CCoinsViewCache& view, CVoteKey &voteKey, CSmartAddress &voteAddress, bool fValidate = true);
 
 
 /**
@@ -501,7 +502,7 @@ bool GetSpentIndex(CSpentIndexKey &key, CSpentIndexValue &value);
 bool GetAddressIndex(uint160 addressHash, int type,
                      std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex,
                      int start = 0, int end = 0);
-bool GetAddresses(std::vector<CAddressListEntry> &addressList, bool excludeZeroBalances = false);
+bool GetAddresses(std::vector<CAddressListEntry> &addressList,int nEndHeight = -1, bool excludeZeroBalances = false);
 bool GetAddressUnspentCount(uint160 addressHash, int type, int &count, CAddressUnspentKey &lastIndex);
 bool GetAddressUnspent(uint160 addressHash, int type,
                        std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs,
@@ -515,6 +516,7 @@ bool GetDepositIndex(uint160 addressHash, int type,
 bool GetVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys);
 bool GetVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey);
 bool GetVoteKeyValue(const CVoteKey &voteKey, CVoteKeyValue &voteKeyValue);
+bool GetInvalidVoteKeyRegistration(const uint256 &txHash);
 
 /** Functions for disk access for blocks */
 bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMessageHeader::MessageStartChars& messageStart);

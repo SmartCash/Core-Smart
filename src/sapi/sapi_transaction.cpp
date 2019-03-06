@@ -150,7 +150,7 @@ static bool transaction_send(HTTPRequest* req, const std::map<std::string, std::
     if (!fHaveMempool && !fHaveChain) {
         // push to local node and sync with wallets
         if (fInstantSend && !instantsend.ProcessTxLockRequest(tx, *g_connman)) {
-            return SAPI::Error(req, SAPI::TxNoValidInstantPay, "Not a valid InstantSend transaction, see debug.log for more info");
+            return SAPI::Error(req, SAPI::TxNoValidInstantPay, "Not a valid InstantSend transaction");
         }
         CValidationState state;
         bool fMissingInputs;
@@ -165,7 +165,7 @@ static bool transaction_send(HTTPRequest* req, const std::map<std::string, std::
             }
         }
     } else if (fHaveChain) {
-        return SAPI::Error(req, SAPI::TxAlreadyInBlockchain, "transaction already in block chain");
+        return SAPI::Error(req, SAPI::TxAlreadyInBlockchain, "Transaction already in block chain");
     }
 
     if(!g_connman)
@@ -173,7 +173,9 @@ static bool transaction_send(HTTPRequest* req, const std::map<std::string, std::
 
     g_connman->RelayTransaction(tx);
 
-    SAPI::WriteReply(req, hashTx.GetHex());
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("txid", hashTx.GetHex());
+    SAPI::WriteReply(req, result);
 
     return true;
 }

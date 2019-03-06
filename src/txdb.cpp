@@ -362,7 +362,7 @@ bool CBlockTreeDB::ReadAddressIndex(uint160 addressHash, int type,
 }
 
 
-bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, bool excludeZeroBalances) {
+bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, int nEndHeight, bool excludeZeroBalances) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -385,7 +385,7 @@ bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, bo
 
             if( key.second.hashBytes != currentKey.hashBytes ) {
 
-                if( !excludeZeroBalances || (excludeZeroBalances && currentBalance ))
+                if( currentBalance > 0 && (!excludeZeroBalances || (excludeZeroBalances && currentBalance )))
                     // Save the address info
                     addressList.push_back(CAddressListEntry(currentKey.type,
                                                             currentKey.hashBytes,
@@ -400,9 +400,12 @@ bool CBlockTreeDB::ReadAddresses(std::vector<CAddressListEntry> &addressList, bo
 
             CAmount nValue;
             if (pcursor->GetValue(nValue)) {
-                currentBalance += nValue;
-                if( nValue > 0)
-                    currentReceived += nValue;
+
+                if( nEndHeight == -1 || key.second.blockHeight < nEndHeight ){
+                    currentBalance += nValue;
+                    if( nValue > 0)
+                        currentReceived += nValue;
+                }
 
                 pcursor->Next();
             } else {
@@ -564,81 +567,32 @@ bool CBlockTreeDB::ReadDepositIndexCount(uint160 addressHash, int type,
     return true;
 }
 
-bool CBlockTreeDB::WriteVoteKeyRegistrations(std::vector<std::pair<int,uint256>> vecRegistrations)
+bool CBlockTreeDB::WriteInvalidVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegistrationKey, VoteKeyParseResult>> vecInvalidRegistrations)
 {
     CDBBatch batch(*this);
 
-    for( auto reg : vecRegistrations )
-        batch.Write(make_pair(DB_VOTE_KEY_REGISTRATION, CVoteKeyRegistrationKey(reg.first, reg.second)), CVoteKeyRegistrationValue());
+    int val;
 
-    return WriteBatch(batch);
-}
-
-bool CBlockTreeDB::EraseVoteKeyRegistration(const int nHeight, const uint256 &txHash)
-{
-    CDBBatch batch(*this);
-
-    batch.Erase(make_pair(DB_VOTE_KEY_REGISTRATION, CVoteKeyRegistrationKey(nHeight, txHash)));
-
-    return WriteBatch(batch);
-}
-
-bool CBlockTreeDB::InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHash)
-{
-    CDBBatch batch(*this);
-
-    CVoteKeyRegistrationValue value;
-    value.fProcessed = true;
-    value.fValid = false;
-
-    batch.Write(make_pair(DB_VOTE_KEY_REGISTRATION, CVoteKeyRegistrationKey(nHeight, txHash)), value);
-
-    return WriteBatch(batch);
-}
-
-bool CBlockTreeDB::InvalidateVoteKeyRegistration(const int nHeight, const uint256 &txHash, const CVoteKey &voteKey)
-{
-    CDBBatch batch(*this);
-
-    CVoteKeyRegistrationValue value;
-    value.fProcessed = true;
-    value.fValid = false;
-    value.voteKey = voteKey;
-
-    batch.Write(make_pair(DB_VOTE_KEY_REGISTRATION, CVoteKeyRegistrationKey(nHeight, txHash)), value);
-
-    return WriteBatch(batch);
-}
-
-bool CBlockTreeDB::GetVoteKeyRegistration(const uint256 &txHash, CVoteKeyRegistrationKey &registrationKey, CVoteKeyRegistrationValue &registrationValue)
-{
-    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
-
-    pcursor->Seek(DB_VOTE_KEY_REGISTRATION);
-
-    while (pcursor->Valid()) {
-
-        std::pair<char,CVoteKeyRegistrationKey> key;
-
-        if (pcursor->GetKey(key) && key.first == DB_VOTE_KEY_REGISTRATION && key.second.nTxHash == txHash) {
-
-            if (!pcursor->GetValue(registrationValue)) {
-                return error("failed to get VoteKey registration value");
-            }
-
-            registrationKey = key.second;
-
-            return true;
-
-        }else {
-            pcursor->Next();
-        }
+    for( auto reg : vecInvalidRegistrations ){
+        val = reg.second;
+        batch.Write(make_pair(DB_VOTE_KEY_REGISTRATION, reg.first), val);
     }
 
-    return false;
+    return WriteBatch(batch);
 }
 
-bool CBlockTreeDB::ReadVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegistrationKey, CVoteKeyRegistrationValue> > &vecRegistrations, bool fExcludeProcessedOnes)
+bool CBlockTreeDB::EraseInvalidVoteKeyRegistrations(std::vector<CVoteKeyRegistrationKey> vecInvalidRegistrations)
+{
+    CDBBatch batch(*this);
+
+    for( auto reg : vecInvalidRegistrations ){
+        batch.Erase(make_pair(DB_VOTE_KEY_REGISTRATION, reg));
+    }
+
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::ReadInvalidVoteKeyRegistration(const uint256 &txHash, CVoteKeyRegistrationKey &registrationKey, VoteKeyParseResult &result)
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -650,55 +604,48 @@ bool CBlockTreeDB::ReadVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegist
 
         if (pcursor->GetKey(key) && key.first == DB_VOTE_KEY_REGISTRATION) {
 
-            CVoteKeyRegistrationValue value;
+            if( key.second.nTxHash == txHash ){
 
-            if (!pcursor->GetValue(value)) {
-                return error("failed to get VoteKey registration value");
-            }
+                int nValue;
+                if ( !pcursor->GetValue(nValue) ) {
+                    return error("failed to get VoteKey registration value");
+                }
 
-            if( !fExcludeProcessedOnes ||
-                ( fExcludeProcessedOnes && !value.fProcessed ) ){
-                vecRegistrations.push_back(std::make_pair(key.second,value));
+                result = (VoteKeyParseResult)nValue;
+                registrationKey = key.second;
+
+                return true;
             }
 
             pcursor->Next();
+
         }else {
             break;
         }
     }
 
-    return true;
+    return false;
 }
 
-bool CBlockTreeDB::WriteVoteKey(const CVoteKey &voteKey, const CVoteKeyValue &voteKeyValue)
+bool CBlockTreeDB::WriteVoteKeys(const std::map<CVoteKey, CVoteKeyValue> &mapVoteKeys)
 {
     CDBBatch batch(*this);
 
-    CVoteKeyRegistrationValue value;
-
-    value.voteKey = voteKey;
-    value.fValid = true;
-    value.fProcessed = true;
-
-    batch.Write(make_pair(DB_VOTE_KEY_REGISTRATION, CVoteKeyRegistrationKey(voteKeyValue.nBlockHeight, voteKeyValue.nTxHash)), value);
-    batch.Write(make_pair(DB_VOTE_MAP_ADDRESS_TO_KEY, voteKeyValue.voteAddress), voteKey);
-    batch.Write(make_pair(DB_VOTE_MAP_KEY_TO_ADDRESS, voteKey), voteKeyValue);
+    for( auto it : mapVoteKeys ){
+        batch.Write(make_pair(DB_VOTE_MAP_ADDRESS_TO_KEY, it.second.voteAddress), it.first);
+        batch.Write(make_pair(DB_VOTE_MAP_KEY_TO_ADDRESS, it.first), it.second);
+    }
 
     return WriteBatch(batch);
 }
 
-bool CBlockTreeDB::EraseVoteKeys(const std::vector<CVoteKey> &vecVoteKeys)
+bool CBlockTreeDB::EraseVoteKeys(const std::map<CVoteKey, CSmartAddress> &mapVoteKeys)
 {
     CDBBatch batch(*this);
 
-    for( const CVoteKey &voteKey : vecVoteKeys ){
-
-        CVoteKeyValue voteKeyValue;
-
-        if( !ReadVoteKeyValue(voteKey, voteKeyValue)) return false;
-
-        batch.Erase(make_pair(DB_VOTE_MAP_ADDRESS_TO_KEY, voteKeyValue.voteAddress));
-        batch.Erase(make_pair(DB_VOTE_MAP_KEY_TO_ADDRESS, voteKey));
+    for( auto it : mapVoteKeys ){
+        batch.Erase(make_pair(DB_VOTE_MAP_ADDRESS_TO_KEY, it.second));
+        batch.Erase(make_pair(DB_VOTE_MAP_KEY_TO_ADDRESS, it.first));
     }
 
     return WriteBatch(batch);

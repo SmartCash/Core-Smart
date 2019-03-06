@@ -14,6 +14,11 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/function.hpp>
 
+class CSubNet;
+class CSAPIStatistics;
+
+extern CSAPIStatistics sapiStatistics;
+
 extern UniValue UniValueFromAmount(int64_t nAmount);
 
 namespace SAPI{
@@ -46,16 +51,17 @@ enum Codes{
     /* common errors */
     TimedOut = 2000,
     PageOutOfRange,
-    BalanceTooLow,
-    RequestRateLimitReached,
-    RessourceRateLimitReached,
+    BalanceInsufficient,
+    RequestRateLimitExceeded,
+    RessourceRateLimitExceeded,
+    AddressNotFound,
     /* block errors */
     BlockHeightOutOfRange = 3000,
     BlockNotFound,
     BlockNotSpecified,
+    BlockHashInvalid,
     /* address errors */
-    AddressNotFound = 4000,
-    NoDepositAvailble,
+    NoDepositAvailble = 4000,
     NoUtxosAvailble,
     /* transaction errors */
     TxDecodeFailed = 5000,
@@ -65,7 +71,11 @@ enum Codes{
     TxMissingInputs,
     TxAlreadyInBlockchain,
     TxCantRelay,
-    TxNotFound
+    TxNotFound,
+    /* smartreward errors */
+    RewardsDatabaseBusy = 6000,
+    NoActiveRewardRound,
+    NoFinishedRewardRound
 };
 
 namespace Keys{
@@ -83,7 +93,8 @@ namespace Keys{
     const std::string descending = "descending";
     const std::string random = "random";
     const std::string maxInputs = "maxInputs";
-
+    const std::string height = "height";
+    const std::string hash = "hash";
 }
 
 namespace Validation{
@@ -263,6 +274,9 @@ typedef struct{
     std::vector<Endpoint> endpoints;
 }EndpointGroup;
 
+void AddWhitelistedRange(const CSubNet &subnet);
+bool IsWhitelistedRange(const CNetAddr &address);
+
 void AddDefaultHeaders(HTTPRequest* req);
 
 bool Error(HTTPRequest* req, HTTPStatus::Codes status, const std::string &message);
@@ -278,6 +292,8 @@ void WriteReply(HTTPRequest *req, const std::string &str);
 bool CheckWarmup(HTTPRequest* req);
 
 SAPI::Limits::Client *GetClientLimiter(const CService &peer);
+
+int64_t GetStartTime();
 
 }
 
@@ -330,6 +346,107 @@ private:
     const std::map<std::string, std::string> mapPathParams;
     const SAPI::Endpoint *endpoint;
     SAPIRequestHandler func;
+};
+
+struct CSAPIRequestCount{
+    int64_t nStartTimestamp;
+    uint64_t nClients;
+    uint64_t nValid;
+    uint64_t nInvalid;
+    uint64_t nBlocked;
+    CSAPIRequestCount(){ Reset(); }
+
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nStartTimestamp);
+        READWRITE(nClients);
+        READWRITE(nValid);
+        READWRITE(nInvalid);
+        READWRITE(nBlocked);
+    }
+
+    uint64_t GetTotalRequests(){
+        return nValid + nInvalid + nBlocked;
+    }
+
+    void Reset(){
+        nStartTimestamp = 0;
+        nClients = 0;
+        nValid = 0;
+        nInvalid = 0;
+        nBlocked = 0;
+    }
+};
+
+class CSAPIStatistics
+{
+    const int nSecondsPerHour = 60*60;
+    const int nCountLastHours = 24;
+
+    int nLastHour;
+
+    uint64_t nTotalValidRequests;
+    uint64_t nTotalBlockedRequests;
+    uint64_t nTotalInvalidRequests;
+
+    uint64_t nMaxRequestsPerHour;
+    uint64_t nMaxClientsPerHour;
+
+    std::set<CNetAddr> setCurrentClients;
+    std::vector<CSAPIRequestCount> vecRequests;
+
+    std::vector<int64_t> vecRestarts;
+
+    CCriticalSection cs_requests;
+
+public:
+
+    enum RequestType{
+        Valid,
+        Invalid,
+        Blocked
+    };
+
+    CSAPIStatistics();
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nLastHour);
+        READWRITE(nTotalValidRequests);
+        READWRITE(nTotalBlockedRequests);
+        READWRITE(nTotalInvalidRequests);
+        READWRITE(nMaxRequestsPerHour);
+        READWRITE(nMaxClientsPerHour);
+        READWRITE(setCurrentClients);
+        READWRITE(vecRequests);
+        READWRITE(vecRestarts);
+    }
+
+    void init();
+    void request(CNetAddr& address, RequestType type);
+    void reset();
+
+    int GetCurrentHour();
+    int GetCurrentStartTimestamp();
+
+    uint64_t GetTotalValidRequests(){ return nTotalValidRequests; }
+    uint64_t GetTotalInvalidRequests(){ return nTotalInvalidRequests; }
+    uint64_t GetTotalBlockedRequests(){ return nTotalBlockedRequests; }
+
+    uint64_t GetMaxRequestsPerHour(){ return nMaxRequestsPerHour; }
+    uint64_t GetMaxClientsPerHour(){ return nMaxClientsPerHour; }
+
+    UniValue ToUniValue();
+    std::string ToString() const;
+
+    // Dummies..for the flatDB.
+    void CheckAndRemove(){}
+    void Clear(){}
 };
 
 #endif // SMARTCASH_SAPI_H

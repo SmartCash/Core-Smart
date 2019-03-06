@@ -327,8 +327,8 @@ bool CProposal::ProcessVote(CNode* pfrom,
     if (fileVotes.HasVote(vote.GetHash())) {
         // nothing to do here, not an error
         std::ostringstream ostr;
-        ostr << "CProposal::ProcessVote -- Already known valid vote";
-        LogPrint("proposal", "%s\n", ostr.str());
+        ostr << "Already known valid vote";
+        LogPrint("proposal", "CProposal::ProcessVote -- %s\n", ostr.str());
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_NONE);
         return false;
     }
@@ -338,15 +338,15 @@ bool CProposal::ProcessVote(CNode* pfrom,
     vote_signal_enum_t eSignal = vote.GetSignal();
     if(eSignal == VOTE_SIGNAL_NONE) {
         std::ostringstream ostr;
-        ostr << "CProposal::ProcessVote -- Vote signal: none";
-        LogPrint("proposal", "%s\n", ostr.str());
+        ostr << "Vote signal: none";
+        LogPrint("proposal", "CProposal::ProcessVote -- %s\n", ostr.str());
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_WARNING);
         return false;
     }
     if(eSignal > MAX_SUPPORTED_VOTE_SIGNAL) {
         std::ostringstream ostr;
-        ostr << "CProposal::ProcessVote -- Unsupported vote signal: " << CProposalVoting::ConvertSignalToString(vote.GetSignal());
-        LogPrintf("%s\n", ostr.str());
+        ostr << "Unsupported vote signal: " << CProposalVoting::ConvertSignalToString(vote.GetSignal());
+        LogPrint("proposal", "CProposal::ProcessVote -- %s\n", ostr.str());
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR, 20);
         return false;
     }
@@ -356,9 +356,10 @@ bool CProposal::ProcessVote(CNode* pfrom,
     // Reject obsolete votes
     if(vote.GetTimestamp() < voteInstanceRef.nCreationTime) {
         std::ostringstream ostr;
-        ostr << "CProposal::ProcessVote -- Obsolete vote";
-        LogPrint("proposal", "%s\n", ostr.str());
-        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_NONE);
+        ostr << "Obsolete vote" << vote.ToString();
+        ostr << ", newer vote time " << voteInstanceRef.nCreationTime;
+        LogPrint("proposal", "CProposal::ProcessVote -- %s\n", ostr.str());
+        exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_WARNING);
         return false;
     }
 
@@ -384,11 +385,11 @@ bool CProposal::ProcessVote(CNode* pfrom,
     std::string strError;
     if(!vote.IsValid(true, true, strError)) {
         std::ostringstream ostr;
-        ostr << "CProposal::ProcessVote -- Invalid vote "
+        ostr << "Invalid vote "
              << ", error = " << strError
              << ", proposal hash = " << GetHash().ToString()
              << ", vote hash = " << vote.GetHash().ToString();
-        LogPrintf("%s\n", ostr.str());
+        LogPrint("proposal", "CProposal::ProcessVote -- %s\n", ostr.str());
         exception = CSmartVotingException(ostr.str(), SMARTVOTING_EXCEPTION_PERMANENT_ERROR, 20);
         smartVoting.AddInvalidVote(vote);
         return false;

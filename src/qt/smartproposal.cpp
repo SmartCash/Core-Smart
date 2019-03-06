@@ -6,7 +6,9 @@
 #include "bitcoinunits.h"
 #include "math.h"
 #include "walletmodel.h"
+#include "smartnode/smartnodesync.h"
 #include "smartvoting/votevalidation.h"
+#include "validation.h"
 
 #include <QDesktopServices>
 #include <QUrl>
@@ -18,7 +20,6 @@ SmartProposalWidget::SmartProposalWidget(const CProposal * pProposal, WalletMode
 {
     ui->setupUi(this);
 
-    CVoteResult validResult = pProposal->GetVotingResult(VOTE_SIGNAL_VALID);
     CVoteResult fundingResult = pProposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
 
     hash = pProposal->GetHash();
@@ -26,15 +27,7 @@ SmartProposalWidget::SmartProposalWidget(const CProposal * pProposal, WalletMode
     url = QString::fromStdString(pProposal->GetUrl());
     amountSmart = 0;
     amountUSD = pProposal->GetRequestedAmount();
-    votingValidDeadline = "";
-    votingFundingDeadline = "";
     createdDate = "";
-    voteYesValid = validResult.nYesPower;
-    voteNoValid = validResult.nNoPower;
-    voteAbstainValid = validResult.nAbstainPower;
-    percentYesValid = validResult.percentYes;
-    percentNoValid = validResult.percentNo;
-    percentAbstainValid = validResult.percentAbstain;
     voteYesFunding = fundingResult.nYesPower;
     voteNoFunding = fundingResult.nNoPower;
     voteAbstainFunding = fundingResult.nAbstainPower;
@@ -43,36 +36,13 @@ SmartProposalWidget::SmartProposalWidget(const CProposal * pProposal, WalletMode
     percentAbstainFunding = fundingResult.percentAbstain;
 
     signalSelection.addButton(ui->disabledButton, 0);
-    signalSelection.addButton(ui->validButton, 1);
-    signalSelection.addButton(ui->fundingButton, 2);
+    signalSelection.addButton(ui->yesButton, 1);
+    signalSelection.addButton(ui->noButton, 2);
+    signalSelection.addButton(ui->abstainButton, 3);
 
-    outcomeSelection.addButton(ui->yesButton, 0);
-    outcomeSelection.addButton(ui->noButton, 1);
-    outcomeSelection.addButton(ui->abstainButton, 2);
+    votingStartHeight = pProposal->GetVotingStartHeight();
 
-    resultSelection.addButton(ui->fundingResultButton, 0);
-    resultSelection.addButton(ui->validResultButton, 1);
-
-//    QDateTime deadlineValid = QDateTime::fromString(proposal->GetVotingValidDeadline(), Qt::ISODate);
-//    QDateTime deadlineFunding = QDateTime::fromString(proposal->GetVotingFundingDeadline(), Qt::ISODate);
-
-//    deadlineValid.setTimeSpec(Qt::UTC);
-//    deadlineFunding.setTimeSpec(Qt::UTC);
-
-//    QDateTime created = QDateTime::fromString(proposal->GetCreatedDate(), Qt::ISODate);
-//    created.setTimeSpec(Qt::UTC);
-
-//    QDateTime current = QDateTime::currentDateTimeUtc();
-
-//    time_t deadlineSec = deadline.toTime_t();
-//    time_t createdSec = created.toTime_t();
-//    time_t currentSec = current.toTime_t();
-//    time_t totalSec = deadlineSec - createdSec;
-//    time_t remainingSec = deadlineSec - currentSec;
-//    int votingProgress = 100 - (double(remainingSec) / double(totalSec) * 100);
-
-//    ui->deadlineLabel->setText(deadline.toString(Qt::SystemLocaleLongDate));
-//    ui->deadlineProgress->setValue(votingProgress);
+    UpdateDeadlines();
 
     ui->titleLabel->setText(title);
 
@@ -85,20 +55,12 @@ SmartProposalWidget::SmartProposalWidget(const CProposal * pProposal, WalletMode
     ui->amountSmartLabel->setText(QString("%1 USD").arg(usdString));
     ui->amountUSDLabel->setText(QString("%1 SMART").arg(smartString));
 
-    ui->yesButton->setDisabled(true);
-    ui->noButton->setDisabled(true);
-    ui->abstainButton->setDisabled(true);
-
     connect(ui->viewProposalButton, SIGNAL(clicked()),this, SLOT(viewProposal()));
     connect(ui->viewPortalButton, SIGNAL(clicked()),this, SLOT(viewPortal()));
     connect(ui->disabledButton, SIGNAL(clicked()), this, SLOT(voteButtonClicked()));
-    connect(ui->validButton, SIGNAL(clicked()), this, SLOT(voteButtonClicked()));
-    connect(ui->fundingButton, SIGNAL(clicked()), this, SLOT(voteButtonClicked()));
     connect(ui->yesButton, SIGNAL(clicked()), this, SLOT(voteButtonClicked()));
     connect(ui->noButton, SIGNAL(clicked()), this, SLOT(voteButtonClicked()));
     connect(ui->abstainButton, SIGNAL(clicked()), this, SLOT(voteButtonClicked()));
-    connect(ui->validResultButton, SIGNAL(clicked()), this, SLOT(UpdateResult()));
-    connect(ui->fundingResultButton, SIGNAL(clicked()), this, SLOT(UpdateResult()));
     connect(ui->copyHashButton, SIGNAL(clicked()), this, SLOT(copyProposalHash()));
 
     UpdateResult();
@@ -115,13 +77,6 @@ void SmartProposalWidget::viewPortal(){
 }
 
 void SmartProposalWidget::voteButtonClicked(){
-
-    bool fDisableVotes = GetVoteSignal() == VOTE_SIGNAL_NONE;
-
-    ui->yesButton->setDisabled(fDisableVotes);
-    ui->noButton->setDisabled(fDisableVotes);
-    ui->abstainButton->setDisabled(fDisableVotes);
-
     voteChanged();
 }
 
@@ -138,31 +93,24 @@ SmartProposalWidget::~SmartProposalWidget()
 void SmartProposalWidget::ResetVoteSelection()
 {
     ui->disabledButton->setChecked(true);
-    ui->abstainButton->setChecked(true);
 
     voteButtonClicked();
 }
 
 vote_outcome_enum_t SmartProposalWidget::GetVoteOutcome()
 {
-    if( outcomeSelection.checkedId() == 0) return VOTE_OUTCOME_YES;
-    if( outcomeSelection.checkedId() == 1) return VOTE_OUTCOME_NO;
-    if( outcomeSelection.checkedId() == 2) return VOTE_OUTCOME_ABSTAIN;
+    if( signalSelection.checkedId() == 1) return VOTE_OUTCOME_YES;
+    if( signalSelection.checkedId() == 2) return VOTE_OUTCOME_NO;
+    if( signalSelection.checkedId() == 3) return VOTE_OUTCOME_ABSTAIN;
 
     return VOTE_OUTCOME_NONE;
 }
 
 vote_signal_enum_t SmartProposalWidget::GetVoteSignal()
 {
-    if( signalSelection.checkedId() == 1) return VOTE_SIGNAL_VALID;
-    if( signalSelection.checkedId() == 2) return VOTE_SIGNAL_FUNDING;
+    if( signalSelection.checkedId() > 0) return VOTE_SIGNAL_FUNDING;
 
     return VOTE_SIGNAL_NONE;
-}
-
-bool SmartProposalWidget::votedValid()
-{
-    return ui->votedValidLabel->text() != "Nothing";
 }
 
 bool SmartProposalWidget::votedFunding()
@@ -170,24 +118,39 @@ bool SmartProposalWidget::votedFunding()
     return ui->votedFundingLabel->text() != "Nothing";
 }
 
-void SmartProposalWidget::UpdateResult()
+void SmartProposalWidget::UpdateDeadlines()
 {
-    vote_signal_enum_t signal;
 
-    if( resultSelection.checkedId() == 0 ){
-        //Show funding results
-        signal = VOTE_SIGNAL_FUNDING;
+    QString fundingString;
+    int fundingProgress;
+
+    if( !smartnodeSync.IsBlockchainSynced() || votingStartHeight == -1 ){
+        fundingString = "Not synced";
+        fundingProgress = 0;
     }else{
-        //Show valid results
-        signal = VOTE_SIGNAL_VALID;
+
+        int nHeight = chainActive.Height();
+        int nBlocksDone = nHeight - votingStartHeight;
+
+        int nMaxFundingBlocks = Params().GetConsensus().nProposalFundingVoteBlocks;
+        int nFundingBlocksLeft = std::max<int>(nMaxFundingBlocks - nBlocksDone, 0);
+
+        fundingString = QString("%1 blocks left").arg(nFundingBlocksLeft);
+        fundingProgress = std::min<int>((static_cast<double>(nBlocksDone) / nMaxFundingBlocks) * 100, 100);
     }
 
-    QString yes = QString::number(GetVoteResultAmount(signal, VOTE_OUTCOME_YES));
-    QString no = QString::number(GetVoteResultAmount(signal, VOTE_OUTCOME_NO));
-    QString abstain = QString::number(GetVoteResultAmount(signal, VOTE_OUTCOME_ABSTAIN));
-    double yesPercent = GetVoteResultPercent(signal, VOTE_OUTCOME_YES);
-    double noPercent = GetVoteResultPercent(signal, VOTE_OUTCOME_NO);
-    double abstainPercent = GetVoteResultPercent(signal, VOTE_OUTCOME_ABSTAIN);
+    ui->deadlineFundingLabel->setText(fundingString);
+    ui->deadlineFundingProgress->setValue(fundingProgress);
+}
+
+void SmartProposalWidget::UpdateResult()
+{
+    QString yes = QString::number(GetVoteResultAmount(VOTE_SIGNAL_FUNDING, VOTE_OUTCOME_YES));
+    QString no = QString::number(GetVoteResultAmount(VOTE_SIGNAL_FUNDING, VOTE_OUTCOME_NO));
+    QString abstain = QString::number(GetVoteResultAmount(VOTE_SIGNAL_FUNDING, VOTE_OUTCOME_ABSTAIN));
+    double yesPercent = GetVoteResultPercent(VOTE_SIGNAL_FUNDING, VOTE_OUTCOME_YES);
+    double noPercent = GetVoteResultPercent(VOTE_SIGNAL_FUNDING, VOTE_OUTCOME_NO);
+    double abstainPercent = GetVoteResultPercent(VOTE_SIGNAL_FUNDING, VOTE_OUTCOME_ABSTAIN);
 
     AddThousandsSpaces(yes);
     AddThousandsSpaces(no);
@@ -209,7 +172,6 @@ void SmartProposalWidget::UpdateVotes(const CProposal *proposal)
     std::set<CVoteKey> setVoteKeys;
     walletModel->VoteKeys(setVoteKeys);
 
-    int votedYesValid = 0, votedNoValid = 0, votedAbstainValid = 0;
     int votedYesFunding = 0, votedNoFunding = 0, votedAbstainFunding = 0;
 
     for( auto vk : setVoteKeys ){
@@ -219,23 +181,6 @@ void SmartProposalWidget::UpdateVotes(const CProposal *proposal)
         nPower = std::max<CAmount>(0,nPower);
 
         if( proposal->GetCurrentVKVotes(vk, recVotes) ){
-
-            vote_instance_m_cit itV = recVotes.mapInstances.find(VOTE_SIGNAL_VALID);
-            if( itV != recVotes.mapInstances.end() ){
-
-                switch(itV->second.eOutcome){
-                case VOTE_OUTCOME_YES:
-                    votedYesValid += nPower;
-                    break;
-                case VOTE_OUTCOME_NO:
-                    votedNoValid += nPower;
-                    break;
-                case VOTE_OUTCOME_ABSTAIN:
-                    votedAbstainValid += nPower;
-                    break;
-                default: break;
-                }
-            }
 
             vote_instance_m_cit itF = recVotes.mapInstances.find(VOTE_SIGNAL_FUNDING);
             if( itF != recVotes.mapInstances.end() ){
@@ -256,25 +201,7 @@ void SmartProposalWidget::UpdateVotes(const CProposal *proposal)
         }
     }
 
-    QString votedValidString = "", votedFundingString = "";
-
-    if( votedYesValid ){
-        QString yesString = QString::number(votedYesValid);
-        AddThousandsSpaces(yesString);
-        votedValidString += "YES - " + yesString + "\n";
-    }
-
-    if( votedNoValid ){
-        QString noString = QString::number(votedNoValid);
-        AddThousandsSpaces(noString);
-        votedValidString +=  "NO - " + noString + "\n";
-    }
-
-    if( votedAbstainValid ){
-        QString abstainString = QString::number(votedAbstainValid);
-        AddThousandsSpaces(abstainString);
-        votedValidString += "ABSTAIN - " + abstainString + "\n";
-    }
+    QString votedFundingString = "";
 
     if( votedYesFunding ){
         QString yesString = QString::number(votedYesFunding);
@@ -294,41 +221,15 @@ void SmartProposalWidget::UpdateVotes(const CProposal *proposal)
         votedFundingString += "ABSTAIN - " + abstainString + "\n";
     }
 
-    ui->votedValidLabel->setText(votedValidString != "" ? votedValidString : "Nothing");
     ui->votedFundingLabel->setText(votedFundingString != "" ? votedFundingString : "Nothing");
 }
 
 void SmartProposalWidget::UpdateFromProposal(const CProposal *proposal)
 {
     bool fThingsChanged = false;
-    CVoteResult validResult = proposal->GetVotingResult(VOTE_SIGNAL_VALID);
     CVoteResult fundingResult = proposal->GetVotingResult(VOTE_SIGNAL_FUNDING);
 
-    if(voteYesValid != validResult.nYesPower){
-        voteYesValid = validResult.nYesPower;
-        fThingsChanged = true;
-    }
-    if(voteNoValid != validResult.nNoPower){
-        voteNoValid = validResult.nNoPower;
-        fThingsChanged = true;
-    }
-    if(voteAbstainValid != validResult.nAbstainPower){
-        voteAbstainValid = validResult.nAbstainPower;
-        fThingsChanged = true;
-    }
-
-    if(percentYesValid != validResult.percentYes){
-        percentYesValid = validResult.percentYes;
-        fThingsChanged = true;
-    }
-    if(percentNoValid != validResult.percentNo){
-        percentNoValid = validResult.percentNo;
-        fThingsChanged = true;
-    }
-    if(percentAbstainValid != validResult.percentAbstain){
-        percentAbstainValid = validResult.percentAbstain;
-        fThingsChanged = true;
-    }
+    votingStartHeight = proposal->GetVotingStartHeight();
 
     if(voteYesFunding != fundingResult.nYesPower){
         voteYesFunding = fundingResult.nYesPower;
@@ -360,20 +261,13 @@ void SmartProposalWidget::UpdateFromProposal(const CProposal *proposal)
         UpdateVotes(proposal);
         UpdateResult();
     }
+
+    UpdateDeadlines();
 }
 
 int SmartProposalWidget::GetVoteResultAmount(vote_signal_enum_t signal, vote_outcome_enum_t outcome)
 {
-    if( signal == VOTE_SIGNAL_VALID ){
-
-        switch(outcome){
-            case VOTE_OUTCOME_YES: return voteYesValid;
-            case VOTE_OUTCOME_NO: return voteNoValid;
-            case VOTE_OUTCOME_ABSTAIN: return voteAbstainValid;
-            default: break;
-        }
-
-    }else{
+    if( signal == VOTE_SIGNAL_FUNDING ){
 
         switch(outcome){
             case VOTE_OUTCOME_YES: return voteYesFunding;
@@ -389,16 +283,7 @@ int SmartProposalWidget::GetVoteResultAmount(vote_signal_enum_t signal, vote_out
 
 double SmartProposalWidget::GetVoteResultPercent(vote_signal_enum_t signal, vote_outcome_enum_t outcome)
 {
-    if( signal == VOTE_SIGNAL_VALID ){
-
-        switch(outcome){
-            case VOTE_OUTCOME_YES: return percentYesValid;
-            case VOTE_OUTCOME_NO: return percentNoValid;
-            case VOTE_OUTCOME_ABSTAIN: return percentAbstainValid;
-            default: break;
-        }
-
-    }else{
+    if( signal == VOTE_SIGNAL_FUNDING ){
 
         switch(outcome){
             case VOTE_OUTCOME_YES: return percentYesFunding;

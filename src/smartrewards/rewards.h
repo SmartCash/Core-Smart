@@ -1,4 +1,4 @@
-// Copyright (c) 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2019 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,7 +26,7 @@ const int64_t nRewardsUISyncUpdateRate = 500;
 const int64_t nRewardsBlocksPerRound_1_2 = 47500;
 const int64_t nRewardsBlocksPerRound_1_3 = 142500;
 const int64_t nRewardsFirstAutomatedRound = 13;
-const int64_t nRewardsFirst_1_3_Round = 19;
+const int64_t nRewardsFirst_1_3_Round = 22;
 
 // Timestamps of the first round's start and end on mainnet
 const int64_t nFirstRoundStartTime = 1500966000;

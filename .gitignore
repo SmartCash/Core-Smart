@@ -76,7 +76,7 @@ Makefile
 smartcash-qt
 Smartcash-Qt.app
 Core-Smart.creator
-Core-Smart.creator.user
+Core-Smart.creator.*
 Core-Smart.config
 Core-Smart.files
 Core-Smart.includes
