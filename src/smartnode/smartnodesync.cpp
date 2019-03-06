@@ -14,6 +14,8 @@
 #include "spork.h"
 #include "ui_interface.h"
 #include "util.h"
+#include "consensus/consensus.h"
+#include "consensus/validation.h"
 
 class CSmartnodeSync;
 CSmartnodeSync smartnodeSync;
@@ -36,14 +38,25 @@ int GetMeanListCount()
     return mapSmartnodeListCounts.size() ? nTotal / mapSmartnodeListCounts.size() : 0;
 }
 
+void CSmartnodeSync::Disconnect(int nHowMany, int nMinProtocol)
+{
+    int nDisconnected = 0;
+    g_connman->ForEachNode(CConnman::FullyConnectedOnly, [&nDisconnected, nHowMany, nMinProtocol](CNode* pnode) {
+
+        if( nDisconnected < nHowMany && pnode->nVersion < nMinProtocol && !pnode->fInbound ){
+            pnode->fDisconnect = true;
+            ++nDisconnected;
+        }
+
+    });
+}
+
 void CSmartnodeSync::Fail(CConnman& connman)
 {
     nTimeLastFailure = GetTime();
     nRequestedSmartnodeAssets = SMARTNODE_SYNC_FAILED;
-
-    g_connman->ForEachNode(CConnman::FullyConnectedOnly, [](CNode* pnode) {
-        pnode->fDisconnect = true;
-    });
+    // If the sync failed disconnect half of the nodes and try again..
+    Disconnect(g_connman->GetNodeCount(CConnman::CONNECTIONS_OUT) / 2, mnpayments.GetMinSmartnodePaymentsProto() );
 }
 
 void CSmartnodeSync::Reset()
@@ -159,9 +172,16 @@ std::string CSmartnodeSync::GetSyncStatus()
     }
 }
 
-void CSmartnodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CSmartnodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
 {
     if (strCommand == NetMsgType::SYNCSTATUSCOUNT) { //Sync status count
+
+        if(pfrom->nVersion < mnpayments.GetMinSmartnodePaymentsProto()){
+            LogPrint("mnpayments", "SYNCSTATUSCOUNT - peer=%d using not supported version for smartnode sync %i\n", pfrom->id, pfrom->nVersion);
+            connman.PushMessageWithVersion(pfrom, INIT_PROTO_VERSION, NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
+                               strprintf("Version must be %d or greater", mnpayments.GetMinSmartnodePaymentsProto()));
+            return;
+        }
 
         //do not care about stats if sync process finished or failed
         if(IsSynced() || IsFailed()) return;
@@ -193,16 +213,6 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
     }
     nTimeLastProcess = GetTime();
 
-    // reset sync status in case of any other sync failure
-    if(IsFailed()) {
-        if(nTimeLastFailure + (1*60) < GetTime()) { // 1 minute cooldown after failed sync
-            LogPrintf("CSmartnodeSync::HasSyncFailures -- WARNING: failed to sync, trying again...\n");
-            Reset();
-            SwitchToNextAsset(connman);
-        }
-        return;
-    }
-
     // gradually request the rest of the votes after sync finished
     if(IsSynced()){
 
@@ -222,9 +232,20 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
 
     uiInterface.NotifyAdditionalDataSyncProgressChanged(nSyncProgress);
 
+    // reset sync status in case of any other sync failure
+    if(IsFailed()) {
+        if(nTimeLastFailure + (1*60) < GetTime()) { // 1 minute cooldown after failed sync
+            LogPrintf("CSmartnodeSync::HasSyncFailures -- WARNING: failed to sync, trying again...\n");
+            Reset();
+            SwitchToNextAsset(connman);
+        }
+        return;
+    }
+
     if( nRequestedSmartnodeAssets == SMARTNODE_SYNC_LIST ){
         LogPrintf("CSmartnodeSync::ProcessTick -- mean node count: %d, received nodes %d\n", GetMeanListCount(), mnodeman.size());
     }
+
 
     std::vector<CNode*> vNodesCopy = connman.CopyNodeVector(CConnman::FullyConnectedOnly);
 
@@ -341,12 +362,6 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
                 if(netfulfilledman.HasFulfilledRequest(pnode->addr, "smartnode-payment-sync")) continue;
                 netfulfilledman.AddFulfilledRequest(pnode->addr, "smartnode-payment-sync");
 
-                if(pnode->nVersion < MIN_MULTIPAYMENT_PROTO_VERSION){
-                    if( !sporkManager.IsSporkActive(SPORK_10_SMARTNODE_PAY_UPDATED_NODES) ){
-                        nRequestedSmartnodeAttempt++;
-                    }
-                    continue;
-                }
                 nRequestedSmartnodeAttempt++;
 
                 // ask node for all payment votes it has (new nodes will only return votes for future payments)
@@ -492,7 +507,7 @@ void CSmartnodeSync::UpdatedBlockTip(const CBlockIndex *pindexNew, bool fInitial
     LogPrint("mnsync", "CSmartnodeSync::UpdatedBlockTip -- pindexNew->nHeight: %d pindexBestHeader->nHeight: %d fInitialDownload=%d fReachedBestHeader=%d\n",
                 pindexNew->nHeight, pindexBestHeader->nHeight, fInitialDownload, fReachedBestHeader);
 
-    if (!IsBlockchainSynced() && fReachedBestHeader) {
+    if (!IsBlockchainSynced() && !IsFailed() && fReachedBestHeader) {
         // Reached best header while being in initial mode.
         // We must be at the tip already, let's move to the next asset.
         SwitchToNextAsset(connman);

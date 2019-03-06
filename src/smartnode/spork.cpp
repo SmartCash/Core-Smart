@@ -20,15 +20,15 @@ std::map<uint256, CSporkMessage> mapSporks;
 std::map<int, int64_t> mapSporkDefaults = {
     {SPORK_2_INSTANTSEND_ENABLED,               0},             // ON
     {SPORK_3_INSTANTSEND_BLOCK_FILTERING,       0},             // ON
-    {SPORK_5_INSTANTSEND_MAX_VALUE,             1000},          // 1000 SMART
-    {SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT,     1531206000}, // OFF until July 10 but will activate sooner
-    {SPORK_10_SMARTNODE_PAY_UPDATED_NODES,      1531206000}, // OFF until July 10 but will activate sooner
+    {SPORK_5_INSTANTSEND_MAX_VALUE,             100000},          // 1000 SMART
+    {SPORK_8_SMARTNODE_PAYMENT_ENFORCEMENT,     1551316010}, // OFF until Feb 28 but will activate sooner
     {SPORK_15_SMARTREWARDS_BLOCKS_ENABLED,      INT_MAX}, // ON
     {SPORK_16_MINING_SIGNATURE_ENFORCEMENT,     552300}, // OFF until block 552300
     {SPORK_17_MINING_SIGNATURE_PUBKEYS_ENABLED, 0xFFFFFFFFFFFFFFFF}, // All enabled
     {SPORK_18_PAY_OUTREACH2,                    0}, // ON until block number  This fork cannot be reversed
     {SPORK_19_PAY_WEB,                          0}, // ON until block number  This fork cannot be reversed
     {SPORK_20_PAY_QUALITY,                      0}, // ON until block number  This fork cannot be reversed
+    {SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT,   0x7FFFFFFFFFFF1D1C}, // byte0 = old protocol, byte1 = new protocol, bytes 2-7 enable time
 };
 
 void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
@@ -150,6 +150,7 @@ int CSporkManager::GetSporkIDByName(std::string strName)
     if (strName == "SPORK_18_PAY_OUTREACH2")                    return SPORK_18_PAY_OUTREACH2;
     if (strName == "SPORK_19_PAY_WEB")                          return SPORK_19_PAY_WEB;
     if (strName == "SPORK_20_PAY_QUALITY")                      return SPORK_20_PAY_QUALITY;
+    if (strName == "SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT")   return SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT;
 
     LogPrint("spork", "CSporkManager::GetSporkIDByName -- Unknown Spork name '%s'\n", strName);
     return -1;
@@ -169,6 +170,7 @@ std::string CSporkManager::GetSporkNameByID(int nSporkID)
         case SPORK_18_PAY_OUTREACH2:                    return "SPORK_18_PAY_OUTREACH2";
         case SPORK_19_PAY_WEB:                          return "SPORK_19_PAY_WEB";
         case SPORK_20_PAY_QUALITY:                      return "SPORK_20_PAY_QUALITY";
+        case SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT:   return "SPORK_21_SMARTNODE_PROTOCOL_REQUIREMENT";
         default:
             LogPrint("spork", "CSporkManager::GetSporkNameByID -- Unknown Spork ID %d\n", nSporkID);
             return "Unknown";

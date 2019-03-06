@@ -28,11 +28,14 @@ static const int HF_ZEROCOIN_DISABLE = 266765;
 static const int HF_V1_2_MULTINODE_VOTING_HEIGHT = 535000;
 static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545005;
 static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
-/** 1.3 fork blocks*/
-static const int HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT = 900000;
+static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
 
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
 static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 2;
+static const int HF_V1_2_8_NODES_PER_BLOCK      = 1;
+
+/** 1.3 fork blocks*/
+static const int HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT = 980000; // TBD - set  the right height before release
 
 /** SmartCash max reward block */
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
@@ -42,6 +45,7 @@ static const int TESTNET_V1_2_PAYMENTS_HEIGHT = 1000;
 static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 = 28500;
 static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 = 30300;
 static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3 = 75000;
+static const int TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 415000;
 
 static const int TESTNET_V1_2_NODES_PER_BLOCK_1        = 3;
 static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_1   = 6;
@@ -49,6 +53,7 @@ static const int TESTNET_V1_2_NODES_PER_BLOCK_2        = 3;
 static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_2   = 3;
 static const int TESTNET_V1_2_NODES_PER_BLOCK_3        = 10;
 static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_3   = 2;
+static const int TESTNET_V1_2_8_NODES_PER_BLOCK        = 1;
 
 inline unsigned int MaxBlockSigOps()
 {

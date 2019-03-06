@@ -19,6 +19,7 @@
 #include "wallet/walletdb.h"
 #endif
 
+#include "smarthive/hive.h"
 #include "smartnode/smartnodesync.h"
 #include "smartnode/spork.h"
 #include "smarthive/hive.h"
@@ -1122,3 +1123,29 @@ UniValue getmoneysupply(const UniValue& params, bool fHelp)
 }
 
 
+
+UniValue getrandomkeypair(const UniValue& params, bool fHelp)
+{
+
+    if (fHelp || params.size() != 1 || !params[0].isBool())
+        throw runtime_error(
+            "getrandomkeypair\n"
+            "Returns a random SmartCash Private-Key/Address Pair.\n"
+            "\nArguments:\n"
+            "  \"compressed\" (bool) Wether the key will be compressed or not. (true - compressed, false - uncompressed)\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getrandomkeypair", "false")
+            + HelpExampleRpc("getrandomkeypair", "true")
+        );
+
+    CKey secret;
+    secret.MakeNewKey(params[0].get_bool());
+
+    CBitcoinSecret pk(secret);
+
+    UniValue obj(UniValue::VOBJ);
+    obj.push_back(Pair("privateKey", pk.ToString()));
+    obj.push_back(Pair("address", CSmartAddress(pk.GetKey().GetPubKey().GetID()).ToString()));
+
+    return obj;
+}

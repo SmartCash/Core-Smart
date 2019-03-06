@@ -124,12 +124,16 @@ void SmartnodeList::StartAlias(std::string strAlias)
             std::string strError;
             CSmartnodeBroadcast mnb;
 
+            int nDos;
             bool fSuccess = CSmartnodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
 
-            if(fSuccess) {
-                int nDos;
+            if(fSuccess && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman)) {
+                fSuccess = false;
+                strError = "Failed to verify MNB";
+            }
+
+            if( fSuccess ){
                 strStatusHtml += "<br>Successfully started smartnode.";
-                mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman);
                 mnb.Relay(*g_connman);
                 mnodeman.NotifySmartnodeUpdates(*g_connman);
             } else {
@@ -166,12 +170,16 @@ void SmartnodeList::StartAll(std::string strCommand)
 
         if(strCommand == "start-missing" && mnodeman.Has(outpoint)) continue;
 
+        int nDos;
         bool fSuccess = CSmartnodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb);
 
-        if(fSuccess) {
-            int nDos;
+        if(fSuccess && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman)) {
+            fSuccess = false;
+            strError = "Failed to verify MNB";
+        }
+
+        if( fSuccess ){
             nCountSuccessful++;
-            mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman);
             mnb.Relay(*g_connman);
             mnodeman.NotifySmartnodeUpdates(*g_connman);
         } else {

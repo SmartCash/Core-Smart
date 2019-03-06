@@ -104,7 +104,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "signrawtransaction", 1 },
     { "signrawtransaction", 2 },
     { "sendrawtransaction", 1 },
-    { "sendrawtransaction", 2 },    
+    { "sendrawtransaction", 2 },
     { "fundrawtransaction", 1 },
     { "gettxout", 1 },
     { "gettxout", 2 },
@@ -141,7 +141,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressutxos", 0},
     { "getaddressmempool", 0},
     { "getaddresses", 0},
-    { "getaddresses", 1}
+    { "getaddresses", 1},
+    { "getrandomkeypair", 0}
 };
 
 class CRPCConvertTable
