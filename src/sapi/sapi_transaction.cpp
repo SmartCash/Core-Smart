@@ -102,7 +102,7 @@ static bool transaction_check(HTTPRequest* req, const std::map<std::string, std:
     }
     result.pushKV("vout", vout);
 
-    if (!hashBlock.IsNull()) {
+    if (!hashBlock.IsNull()){
         result.pushKV("blockhash", hashBlock.GetHex());
         BlockMap::iterator mi = mapBlockIndex.find(hashBlock);
         if (mi != mapBlockIndex.end() && (*mi).second) {
@@ -116,6 +116,23 @@ static bool transaction_check(HTTPRequest* req, const std::map<std::string, std:
                 result.pushKV("confirmations", 0);
             }
         }
+    }
+
+    if(instantsend.HasTxLockRequest(tx.GetHash())){
+
+        UniValue instantPay(UniValue::VOBJ);
+
+        int nSignatures = instantsend.GetTransactionLockSignatures(tx.GetHash());
+        int nSignaturesMax = CTxLockRequest(tx).GetMaxSignatures();
+        bool fResult = instantsend.IsLockedInstantSendTransaction(tx.GetHash());
+        bool fTimeout = instantsend.IsTxLockCandidateTimedOut(tx.GetHash());
+
+        instantPay.pushKV("valid", fResult);
+        instantPay.pushKV("timedOut", fTimeout);
+        instantPay.pushKV("locksReceived", nSignatures);
+        instantPay.pushKV("locksMax", nSignaturesMax);
+
+        result.pushKV("instantPay", instantPay);
     }
 
     SAPI::WriteReply(req, result);
