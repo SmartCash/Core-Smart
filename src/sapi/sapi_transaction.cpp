@@ -43,8 +43,6 @@ static bool transaction_check(HTTPRequest* req, const std::map<std::string, std:
     std::string hashStr = mapPathParams.at("txhash");
     uint256 hash;
 
-    LOCK(cs_main);
-
     if( !ParseHashStr(hashStr, hash) )
         return SAPI::Error(req, SAPI::TxNotSpecified, "Invalid hash specified. Use /transaction/check/<txhash>");
 
@@ -103,6 +101,7 @@ static bool transaction_check(HTTPRequest* req, const std::map<std::string, std:
     result.pushKV("vout", vout);
 
     if (!hashBlock.IsNull()){
+        LOCK(cs_main);
         result.pushKV("blockhash", hashBlock.GetHex());
         BlockMap::iterator mi = mapBlockIndex.find(hashBlock);
         if (mi != mapBlockIndex.end() && (*mi).second) {
