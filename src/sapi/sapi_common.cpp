@@ -26,11 +26,20 @@ SAPI::EndpointGroup clientEndpoints = {
         }
     }
 };
+
+static bool statistic_requests(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool statistic_instantpay(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool statistic_instantpay_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+
 SAPI::EndpointGroup statisticEndpoints = {
     "statistic",
     {
+        {
+            "requests", HTTPRequest::GET, UniValue::VNULL, statistic_requests,
+            {
+                // No body parameter
+            },
+        },
         {
             "instantpay", HTTPRequest::GET, UniValue::VNULL, statistic_instantpay,
             {
@@ -54,7 +63,6 @@ static bool client_status(HTTPRequest* req, const std::map<std::string, std::str
 {
     UniValue response(UniValue::VOBJ);
     UniValue connections(UniValue::VOBJ);
-    UniValue sapi(UniValue::VOBJ);
 
     response.pushKV("started", SAPI::GetStartTime());
     response.pushKV("uptime", GetTime() - SAPI::GetStartTime());
@@ -68,13 +76,19 @@ static bool client_status(HTTPRequest* req, const std::map<std::string, std::str
     connections.pushKV("out", (int)g_connman->GetNodeCount(CConnman::CONNECTIONS_OUT));
 
     response.pushKV("connections",   connections);
-    response.pushKV("requests", sapiStatistics.ToUniValue());
     response.pushKV("testnet",       Params().TestnetToBeDeprecatedFieldRPC());
 
     SAPI::WriteReply(req, response);
 
     return true;
 }
+
+static bool statistic_requests(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    SAPI::WriteReply(req, sapiStatistics.ToUniValue());
+    return true;
+}
+
 static bool statistic_instantpay(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     int nInstantPayLocks = 0;
