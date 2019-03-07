@@ -33,6 +33,8 @@ static const char DB_VOTE_KEY_REGISTRATION = 'r';
 static const char DB_VOTE_MAP_ADDRESS_TO_KEY = 'v';
 static const char DB_VOTE_MAP_KEY_TO_ADDRESS = 'V';
 
+static const char DB_INSTANTPAY_INDEX = 'i';
+
 static const char DB_BEST_BLOCK = 'B';
 static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
@@ -547,6 +549,97 @@ bool CBlockTreeDB::ReadDepositIndexCount(uint160 addressHash, int type,
         boost::this_thread::interruption_point();
         std::pair<char,CDepositIndexKey> key;
         if (pcursor->GetKey(key) && key.first == DB_DEPOSITINDEX && key.second.hashBytes == addressHash) {
+
+            if( !firstTime ) firstTime = key.second.timestamp;
+
+            if (end > 0 && key.second.timestamp > (unsigned int)end) {
+                if( !lastTime ) lastTime = firstTime;
+                break;
+            }
+
+            lastTime = key.second.timestamp;
+            count++;
+            pcursor->Next();
+
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool CBlockTreeDB::WriteInstantPayLocks(std::map<CInstantPayIndexKey, CInstantPayValue> &mapLocks)
+{
+    CDBBatch batch(*this);
+    for (auto& lock : mapLocks ){
+
+        if( lock.second.fProcessed && !lock.second.fWritten ){
+            lock.second.fWritten = true;
+            batch.Write(make_pair(DB_INSTANTPAY_INDEX, lock.first), lock.second);
+        }
+    }
+    return batch.SizeEstimate() ? WriteBatch(batch) : true;
+}
+
+bool CBlockTreeDB::ReadInstantPayIndex( std::vector<std::pair<CInstantPayIndexKey, CInstantPayValue> > &instantPayIndex,
+                                        int start, int offset, int limit, bool reverse) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    int nCount = 0;
+
+    if (start > 0) {
+        pcursor->Seek(make_pair(DB_INSTANTPAY_INDEX, CInstantPayIndexIteratorTimeKey(start)));
+    } else {
+        pcursor->Seek(DB_INSTANTPAY_INDEX);
+    }
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char,CInstantPayIndexKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_INSTANTPAY_INDEX) {
+            if (limit > 0 && instantPayIndex.size() == (size_t)limit) {
+                break;
+            }
+            CInstantPayValue nValue;
+            if (pcursor->GetValue(nValue)) {
+                if( ++nCount > offset )
+                    instantPayIndex.push_back(make_pair(key.second, nValue));
+
+                if( reverse ) pcursor->Prev();
+                else          pcursor->Next();
+
+            } else {
+                return error("failed to get instantpay index value");
+            }
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool CBlockTreeDB::ReadInstantPayIndexCount(int &count, int &firstTime, int &lastTime,
+                                            int start, int end) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    count = 0;
+    firstTime = 0;
+    lastTime = 0;
+
+    if (start > 0) {
+        pcursor->Seek(make_pair(DB_INSTANTPAY_INDEX, CInstantPayIndexIteratorTimeKey(start)));
+    } else {
+        pcursor->Seek(DB_INSTANTPAY_INDEX);
+    }
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char,CInstantPayIndexKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_INSTANTPAY_INDEX) {
 
             if( !firstTime ) firstTime = key.second.timestamp;
 

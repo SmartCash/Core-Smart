@@ -145,6 +145,7 @@ static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
 static const bool DEFAULT_PERMIT_BAREMULTISIG = false;
 static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
 static const bool DEFAULT_TXINDEX = true;
+static const bool DEFAULT_INSTANTPAYINDEX = false;
 static const bool DEFAULT_ADDRESSINDEX = true;
 static const bool DEFAULT_TIMESTAMPINDEX = false;
 static const bool DEFAULT_SPENTINDEX = false;
@@ -190,6 +191,7 @@ extern bool fImporting;
 extern bool fReindex;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
+extern bool fInstantPayIndex;
 extern bool fIsBareMultisigStd;
 extern bool fRequireStandard;
 extern unsigned int nBytesPerSigOp;
@@ -512,6 +514,10 @@ bool GetDepositIndexCount(uint160 addressHash, int type, int &count, int &firstT
 bool GetDepositIndex(uint160 addressHash, int type,
                      std::vector<std::pair<CDepositIndexKey, CDepositValue>> &depositIndex,
                      int start, int offset, int limit, bool reverse);
+
+bool GetInstantPayIndexCount(int &count, int &firstTime, int &lastTime, int start, int end);
+bool GetInstantPayIndex(std::vector<std::pair<CInstantPayIndexKey, CInstantPayValue>> &instantPayIndex,
+                        int start, int offset, int limit, bool reverse);
 
 bool GetVoteKeys(std::vector<std::pair<CVoteKey,CVoteKeyValue>> &vecVoteKeys);
 bool GetVoteKeyForAddress(const CSmartAddress &voteAddress, CVoteKey &voteKey);
