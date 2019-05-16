@@ -26,7 +26,7 @@ const int64_t nRewardsUISyncUpdateRate = 500;
 const int64_t nRewardsBlocksPerRound_1_2 = 47500;
 const int64_t nRewardsBlocksPerRound_1_3 = 142500;
 const int64_t nRewardsFirstAutomatedRound = 13;
-const int64_t nRewardsFirst_1_3_Round = 22;
+const int64_t nRewardsFirst_1_3_Round = 25;
 
 // Timestamps of the first round's start and end on mainnet
 const int64_t nFirstRoundStartTime = 1500966000;
