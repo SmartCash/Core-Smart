@@ -129,7 +129,7 @@ void SmartnodeList::StartAlias(std::string strAlias)
 
             if(fSuccess && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman)) {
                 fSuccess = false;
-                strError = "Failed to verify MNB";
+                strError = "Please wait 15 confirmations or check your configuration";
             }
 
             if( fSuccess ){
@@ -175,7 +175,7 @@ void SmartnodeList::StartAll(std::string strCommand)
 
         if(fSuccess && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDos, *g_connman)) {
             fSuccess = false;
-            strError = "Failed to verify MNB";
+            strError = "Please wait 15 confirmations or check your configuration";
         }
 
         if( fSuccess ){
