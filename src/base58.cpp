@@ -186,7 +186,7 @@ bool CBase58Data::SetString(const std::string& str)
     return SetString(str.c_str());
 }
 
-std::string CBase58Data::ToString() const
+std::string CBase58Data::ToString(bool newFormat) const
 {
     std::vector<unsigned char> vch = vchVersion;
     vch.insert(vch.end(), vchData.begin(), vchData.end());
@@ -225,7 +225,11 @@ public:
 
 bool CBitcoinAddress::Set(const CKeyID& id)
 {
-    SetData(Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS), &id, 20);
+    if(newFormat){
+      SetData(Params().Base58Prefix(CChainParams::NEW_PUBKEY_ADDRESS), &id, 20);
+    }else{
+      SetData(Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS), &id, 20);
+    }
     return true;
 }
 

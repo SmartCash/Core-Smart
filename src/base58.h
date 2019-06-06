@@ -85,7 +85,7 @@ protected:
 public:
     bool SetString(const char* psz, unsigned int nVersionBytes = 1);
     bool SetString(const std::string& str);
-    std::string ToString() const;
+    std::string ToString(bool newFotmat=false) const;
     int CompareTo(const CBase58Data& b58) const;
 
     bool operator==(const CBase58Data& b58) const { return CompareTo(b58) == 0; }
@@ -102,6 +102,8 @@ public:
  * The data vector contains RIPEMD160(SHA256(cscript)), where cscript is the serialized redemption script.
  */
 class CBitcoinAddress : public CBase58Data {
+protected:
+    bool newFormat = false;
 public:
     bool Set(const CKeyID &id);
     bool Set(const CScriptID &id);
@@ -110,7 +112,7 @@ public:
     bool IsValid(const CChainParams &params) const;
 
     CBitcoinAddress() {}
-    CBitcoinAddress(const CTxDestination &dest) { Set(dest); }
+    CBitcoinAddress(const CTxDestination &dest, bool newFormatIn=false) : newFormat(newFormatIn) { Set(dest); }
     CBitcoinAddress(const std::string& strAddress) { SetString(strAddress); }
     CBitcoinAddress(const char* pszAddress) { SetString(pszAddress); }
 
