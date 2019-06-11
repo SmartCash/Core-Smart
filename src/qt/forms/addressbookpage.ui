@@ -69,6 +69,23 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="newAddressLegacy">
+       <property name="toolTip">
+        <string>Create a new address (Legacy)</string>
+       </property>
+       <property name="text">
+        <string>&amp;New (Legacy)</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../bitcoin.qrc">
+         <normaloff>:/icons/add</normaloff>:/icons/add</iconset>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="copyAddress">
        <property name="toolTip">
         <string>Copy the currently selected address to the system clipboard</string>

@@ -32,11 +32,13 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode mode, 
 
     if (!platformStyle->getImagesOnButtons()) {
         ui->newAddress->setIcon(QIcon());
+        ui->newAddressLegacy->setIcon(QIcon());
         ui->copyAddress->setIcon(QIcon());
         ui->deleteAddress->setIcon(QIcon());
         ui->exportButton->setIcon(QIcon());
     } else {
         ui->newAddress->setIcon(platformStyle->SingleColorIcon(":/icons/add"));
+        ui->newAddressLegacy->setIcon(platformStyle->SingleColorIcon(":/icons/add"));
         ui->copyAddress->setIcon(platformStyle->SingleColorIcon(":/icons/editcopy"));
         ui->deleteAddress->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
         ui->exportButton->setIcon(platformStyle->SingleColorIcon(":/icons/export"));
@@ -184,6 +186,22 @@ void AddressBookPage::onEditAction()
 }
 
 void AddressBookPage::on_newAddress_clicked()
+{
+    if(!model)
+        return;
+
+    EditAddressDialog dlg(
+        tab == SendingTab ?
+        EditAddressDialog::NewSendingAddress :
+        EditAddressDialog::NewReceivingAddress, this);
+    dlg.setModel(model);
+    if(dlg.exec())
+    {
+        newAddressToSelect = dlg.getAddress();
+    }
+}
+
+void AddressBookPage::on_newAddressLegacy_clicked()
 {
     if(!model)
         return;
