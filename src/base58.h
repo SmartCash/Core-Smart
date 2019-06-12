@@ -52,18 +52,21 @@ bool DecodeBase58(const std::string& str, std::vector<unsigned char>& vchRet);
  * Encode a byte vector into a base58-encoded string, including checksum
  */
 std::string EncodeBase58Check(const std::vector<unsigned char>& vchIn);
+std::string EncodeBase58CheckNew(const std::vector<unsigned char>& vchIn);
 
 /**
  * Decode a base58-encoded string (psz) that includes a checksum into a byte
  * vector (vchRet), return true if decoding is successful
  */
 inline bool DecodeBase58Check(const char* psz, std::vector<unsigned char>& vchRet);
+inline bool DecodeBase58CheckNew(const char* psz, std::vector<unsigned char>& vchRet);
 
 /**
  * Decode a base58-encoded string (str) that includes a checksum into a byte
  * vector (vchRet), return true if decoding is successful
  */
 inline bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRet);
+inline bool DecodeBase58CheckNew(const std::string& str, std::vector<unsigned char>& vchRet);
 
 /**
  * Base class for all base58-encoded data
@@ -96,6 +99,34 @@ public:
     bool operator> (const CBase58Data& b58) const { return CompareTo(b58) >  0; }
 };
 
+class CBase58DataNew
+{
+protected:
+    //! the version byte(s)
+    std::vector<unsigned char> vchVersion;
+
+    //! the actually encoded data
+    typedef std::vector<unsigned char, zero_after_free_allocator<unsigned char> > vector_uchar;
+    vector_uchar vchData;
+
+    CBase58DataNew();
+    void SetData(const std::vector<unsigned char> &vchVersionIn, const void* pdata, size_t nSize);
+    void SetData(const std::vector<unsigned char> &vchVersionIn, const unsigned char *pbegin, const unsigned char *pend);
+    void SetNewFormat() const;
+
+public:
+    bool SetString(const char* psz, unsigned int nVersionBytes = 1);
+    bool SetString(const std::string& str);
+    std::string ToString() const;
+    int CompareTo(const CBase58DataNew& b58) const;
+
+    bool operator==(const CBase58DataNew& b58) const { return CompareTo(b58) == 0; }
+    bool operator<=(const CBase58DataNew& b58) const { return CompareTo(b58) <= 0; }
+    bool operator>=(const CBase58DataNew& b58) const { return CompareTo(b58) >= 0; }
+    bool operator< (const CBase58DataNew& b58) const { return CompareTo(b58) <  0; }
+    bool operator> (const CBase58DataNew& b58) const { return CompareTo(b58) >  0; }
+};
+
 /** base58-encoded Bitcoin addresses.
  * Public-key-hash-addresses have version 0 (or 111 testnet).
  * The data vector contains RIPEMD160(SHA256(pubkey)), where pubkey is the serialized public key.
@@ -121,7 +152,7 @@ public:
     bool IsScript() const;
 };
 
-class CBitcoinAddressNew : public CBase58Data {
+class CBitcoinAddressNew : public CBase58DataNew {
 public:
     bool Set(const CKeyID &id);
     bool Set(const CScriptID &id);

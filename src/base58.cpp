@@ -123,6 +123,15 @@ std::string EncodeBase58Check(const std::vector<unsigned char>& vchIn)
     return EncodeBase58(vch);
 }
 
+std::string EncodeBase58CheckNew(const std::vector<unsigned char>& vchIn)
+{
+    // add 4-byte hash check to the end
+    std::vector<unsigned char> vch(vchIn);
+    uint256 hash = Hash(vch.begin(), vch.end());
+    vch.insert(vch.end(), (unsigned char*)&hash, (unsigned char*)&hash + 4);
+    return EncodeBase58(vch);
+}
+
 bool DecodeBase58Check(const char* psz, std::vector<unsigned char>& vchRet)
 {
     if (!DecodeBase58(psz, vchRet) ||
@@ -140,9 +149,31 @@ bool DecodeBase58Check(const char* psz, std::vector<unsigned char>& vchRet)
     return true;
 }
 
+bool DecodeBase58CheckNew(const char* psz, std::vector<unsigned char>& vchRet)
+{
+    if (!DecodeBase58(psz, vchRet) ||
+        (vchRet.size() < 4)) {
+        vchRet.clear();
+        return false;
+    }
+    // re-calculate the checksum, insure it matches the included 4-byte checksum
+    uint256 hash = Hash(vchRet.begin(), vchRet.end() - 4);
+    if (memcmp(&hash, &vchRet.end()[-4], 4) != 0) {
+        vchRet.clear();
+        return false;
+    }
+    vchRet.resize(vchRet.size() - 4);
+    return true;
+}
+
 bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRet)
 {
     return DecodeBase58Check(str.c_str(), vchRet);
+}
+
+bool DecodeBase58CheckNew(const std::string& str, std::vector<unsigned char>& vchRet)
+{
+    return DecodeBase58CheckNew(str.c_str(), vchRet);
 }
 
 CBase58Data::CBase58Data()
@@ -194,6 +225,67 @@ std::string CBase58Data::ToString() const
 }
 
 int CBase58Data::CompareTo(const CBase58Data& b58) const
+{
+    if (vchVersion < b58.vchVersion)
+        return -1;
+    if (vchVersion > b58.vchVersion)
+        return 1;
+    if (vchData < b58.vchData)
+        return -1;
+    if (vchData > b58.vchData)
+        return 1;
+    return 0;
+}
+
+CBase58DataNew::CBase58DataNew()
+{
+    vchVersion.clear();
+    vchData.clear();
+}
+
+void CBase58DataNew::SetData(const std::vector<unsigned char>& vchVersionIn, const void* pdata, size_t nSize)
+{
+    vchVersion = vchVersionIn;
+    vchData.resize(nSize);
+    if (!vchData.empty())
+        memcpy(&vchData[0], pdata, nSize);
+}
+
+void CBase58DataNew::SetData(const std::vector<unsigned char>& vchVersionIn, const unsigned char* pbegin, const unsigned char* pend)
+{
+    SetData(vchVersionIn, (void*)pbegin, pend - pbegin);
+}
+
+bool CBase58DataNew::SetString(const char* psz, unsigned int nVersionBytes)
+{
+    std::vector<unsigned char> vchTemp;
+    bool rc58 = DecodeBase58CheckNew(psz, vchTemp);
+    if ((!rc58) || (vchTemp.size() < nVersionBytes)) {
+        vchData.clear();
+        vchVersion.clear();
+        return false;
+    }
+    vchVersion.assign(vchTemp.begin(), vchTemp.begin() + nVersionBytes);
+    vchData.resize(vchTemp.size() - nVersionBytes);
+    if (!vchData.empty())
+        memcpy(&vchData[0], &vchTemp[nVersionBytes], vchData.size());
+    memory_cleanse(&vchTemp[0], vchTemp.size());
+    return true;
+}
+
+bool CBase58DataNew::SetString(const std::string& str)
+{
+    return SetString(str.c_str());
+}
+
+std::string CBase58DataNew::ToString() const
+{
+    std::vector<unsigned char> vch = vchVersion;
+    vch.insert(vch.end(), vchData.begin(), vchData.end());
+    return EncodeBase58CheckNew(vch);
+}
+
+int CBase58DataNew::CompareTo(const CBase58DataNew& b58) const
 {
     if (vchVersion < b58.vchVersion)
         return -1;

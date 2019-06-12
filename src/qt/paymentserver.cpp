@@ -221,12 +221,13 @@ void PaymentServer::ipcParseCommandLine(int argc, char* argv[])
             if (GUIUtil::parseBitcoinURI(arg, &r) && !r.address.isEmpty())
             {
                 CBitcoinAddress address(r.address.toStdString());
+                CBitcoinAddressNew addressNew(r.address.toStdString());
 
-                if (address.IsValid(Params(CBaseChainParams::MAIN)))
+                if (address.IsValid(Params(CBaseChainParams::MAIN)) || addressNew.IsValid(Params(CBaseChainParams::MAIN)))
                 {
                     SelectParams(CBaseChainParams::MAIN);
                 }
-                else if (address.IsValid(Params(CBaseChainParams::TESTNET)))
+                else if (address.IsValid(Params(CBaseChainParams::TESTNET)) || addressNew.IsValid(Params(CBaseChainParams::TESTNET)))
                 {
                     SelectParams(CBaseChainParams::TESTNET);
                 }
@@ -442,7 +443,8 @@ void PaymentServer::handleURIOrFile(const QString& s)
             if (GUIUtil::parseBitcoinURI(s, &recipient))
             {
                 CBitcoinAddress address(recipient.address.toStdString());
-                if (!address.IsValid()) {
+                CBitcoinAddressNew addressNew(recipient.address.toStdString());
+                if (!address.IsValid() && !addressNew.IsValid()) {
                     Q_EMIT message(tr("URI handling"), tr("Invalid payment address %1").arg(recipient.address),
                         CClientUIInterface::MSG_ERROR);
                 }

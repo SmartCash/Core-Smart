@@ -39,6 +39,35 @@ struct CSmartAddress : public CBitcoinAddress
     CScript GetScript() const { return GetScriptForDestination(Get()); }
 };
 
+struct CSmartAddressNew : public CBitcoinAddressNew
+{
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(vchVersion);
+        READWRITE(vchData);
+    }
+
+    CSmartAddressNew() : CBitcoinAddressNew() {}
+    CSmartAddressNew(const std::string &address) : CBitcoinAddressNew(address) {}
+    CSmartAddressNew(const CTxDestination &destination) : CBitcoinAddressNew(destination) {}
+    CSmartAddressNew(const char* pszAddress) : CBitcoinAddressNew(pszAddress) {}
+
+    int Compare(const CSmartAddressNew& other) const
+    {
+        std::vector<unsigned char> aVec = vchVersion;
+        aVec.insert(aVec.end(), vchData.begin(), vchData.end());
+
+        std::vector<unsigned char> bVec = other.vchVersion;
+        bVec.insert(bVec.end(), other.vchData.begin(), other.vchData.end());
+
+        return memcmp(aVec.data(), bVec.data(), aVec.capacity());
+    }
+
+    CScript GetScript() const { return GetScriptForDestination(Get()); }
+};
+
 namespace SmartHive{
 
     enum Payee{

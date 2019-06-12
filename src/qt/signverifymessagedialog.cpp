@@ -198,7 +198,8 @@ void SignVerifyMessageDialog::on_addressBookButton_VM_clicked()
 void SignVerifyMessageDialog::on_verifyMessageButton_VM_clicked()
 {
     CBitcoinAddress addr(ui->addressIn_VM->text().toStdString());
-    if (!addr.IsValid())
+    CBitcoinAddressNew addrNew(ui->addressIn_VM->text().toStdString());
+    if (!addr.IsValid() && !addrNew.IsValid())
     {
         ui->statusLabel_VM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_VM->setText(tr("The entered address is invalid.") + QString(" ") + tr("Please check the address and try again."));

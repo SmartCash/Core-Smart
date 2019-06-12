@@ -246,7 +246,8 @@ UniValue validateaddress(const UniValue& params, bool fHelp)
 #endif
 
     CBitcoinAddress address(params[0].get_str());
-    bool isValid = address.IsValid();
+    CBitcoinAddressNew addressNew(params[0].get_str());
+    bool isValid = address.IsValid() || addressNew.IsValid();
 
     UniValue ret(UniValue::VOBJ);
     ret.push_back(Pair("isvalid", isValid));
