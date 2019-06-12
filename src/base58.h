@@ -81,11 +81,12 @@ protected:
     CBase58Data();
     void SetData(const std::vector<unsigned char> &vchVersionIn, const void* pdata, size_t nSize);
     void SetData(const std::vector<unsigned char> &vchVersionIn, const unsigned char *pbegin, const unsigned char *pend);
+    void SetNewFormat() const;
 
 public:
     bool SetString(const char* psz, unsigned int nVersionBytes = 1);
     bool SetString(const std::string& str);
-    std::string ToString(bool newFotmat=false) const;
+    std::string ToString() const;
     int CompareTo(const CBase58Data& b58) const;
 
     bool operator==(const CBase58Data& b58) const { return CompareTo(b58) == 0; }
@@ -102,8 +103,6 @@ public:
  * The data vector contains RIPEMD160(SHA256(cscript)), where cscript is the serialized redemption script.
  */
 class CBitcoinAddress : public CBase58Data {
-protected:
-    bool newFormat = false;
 public:
     bool Set(const CKeyID &id);
     bool Set(const CScriptID &id);
@@ -112,9 +111,28 @@ public:
     bool IsValid(const CChainParams &params) const;
 
     CBitcoinAddress() {}
-    CBitcoinAddress(const CTxDestination &dest, bool newFormatIn=false) : newFormat(newFormatIn) { Set(dest); }
+    CBitcoinAddress(const CTxDestination &dest) { Set(dest); }
     CBitcoinAddress(const std::string& strAddress) { SetString(strAddress); }
     CBitcoinAddress(const char* pszAddress) { SetString(pszAddress); }
+
+    CTxDestination Get() const;
+    bool GetKeyID(CKeyID &keyID) const;
+    bool GetIndexKey(uint160& hashBytes, int& type) const;
+    bool IsScript() const;
+};
+
+class CBitcoinAddressNew : public CBase58Data {
+public:
+    bool Set(const CKeyID &id);
+    bool Set(const CScriptID &id);
+    bool Set(const CTxDestination &dest);
+    bool IsValid() const;
+    bool IsValid(const CChainParams &params) const;
+
+    CBitcoinAddressNew() {}
+    CBitcoinAddressNew(const CTxDestination &dest) { Set(dest); }
+    CBitcoinAddressNew(const std::string& strAddress) { SetString(strAddress); }
+    CBitcoinAddressNew(const char* pszAddress) { SetString(pszAddress); }
 
     CTxDestination Get() const;
     bool GetKeyID(CKeyID &keyID) const;

@@ -65,7 +65,6 @@ private Q_SLOTS:
     void on_deleteAddress_clicked();
     /** Create a new address for receiving coins and / or add a new address book entry */
     void on_newAddress_clicked();
-    void on_newAddressLegacy_clicked();
     /** Copy address of currently selected address entry to clipboard */
     void on_copyAddress_clicked();
     /** Copy label of currently selected address entry to clipboard (no button) */
