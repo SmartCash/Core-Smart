@@ -776,13 +776,12 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
         ui->labelCoinControlChangeLabel->setStyleSheet("QLabel{color:red;}");
 
         CBitcoinAddress addr = CBitcoinAddress(text.toStdString());
-        CBitcoinAddressNew addrNew = CBitcoinAddressNew(text.toStdString());
 
         if (text.isEmpty()) // Nothing entered
         {
             ui->labelCoinControlChangeLabel->setText("");
         }
-        else if (!addr.IsValid() && !addrNew.IsValid()) // Invalid address
+        else if (!addr.IsValid()) // Invalid address
         {
             ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid SmartCash address"));
         }

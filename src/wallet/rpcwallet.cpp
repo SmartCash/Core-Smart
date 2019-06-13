@@ -143,7 +143,7 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
 
     pwalletMain->SetAddressBook(keyID, strAccount, "receive");
 
-    return CBitcoinAddressNew(keyID).ToString();
+    return CBitcoinAddress(keyID).ToString();
 }
 
 

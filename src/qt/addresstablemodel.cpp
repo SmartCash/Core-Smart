@@ -90,7 +90,6 @@ public:
             BOOST_FOREACH(const PAIRTYPE(CTxDestination, CAddressBookData)& item, wallet->mapAddressBook)
             {
                 const CBitcoinAddress& address = item.first;
-                const CBitcoinAddressNew& addressNew = item.first;
                 bool fMine = IsMine(*wallet, address.Get());
                 AddressTableEntry::Type addressType = translateTransactionType(
                         QString::fromStdString(item.second.purpose), fMine);
@@ -98,7 +97,7 @@ public:
                 cachedAddressTable.append(AddressTableEntry(addressType,
                                   QString::fromStdString(strName),
                                   QString::fromStdString(address.ToString()),
-                                  QString::fromStdString(addressNew.ToString())
+                                  QString::fromStdString(address.ToString(true))
                                 ));
             }
         }
@@ -398,7 +397,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
                 return QString();
             }
         }
-        strAddress = CBitcoinAddressNew(newKey.GetID()).ToString();
+        strAddress = CBitcoinAddress(newKey.GetID()).ToString(true);
     }
     else
     {
@@ -408,13 +407,8 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
     // Add entry
     {
         LOCK(wallet->cs_wallet);
-        if(type == Receive){
-          wallet->SetAddressBook(CBitcoinAddressNew(strAddress).Get(), strLabel,
-                                 (type == Send ? "send" : "receive"));
-        }else{
-          wallet->SetAddressBook(CBitcoinAddress(strAddress).Get(), strLabel,
-                                 (type == Send ? "send" : "receive"));
-        }
+        wallet->SetAddressBook(CBitcoinAddress(strAddress).Get(), strLabel,
+                                 (type == Send ? "send" : "receive"));        
     }
     return QString::fromStdString(strAddress);
 }

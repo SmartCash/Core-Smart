@@ -695,7 +695,7 @@ static void NotifyAddressBookChanged(WalletModel *walletmodel, CWallet *wallet,
         const std::string &purpose, ChangeType status)
 {
     QString strAddress = QString::fromStdString(CBitcoinAddress(address).ToString());
-    QString strAddressNew = QString::fromStdString(CBitcoinAddressNew(address).ToString());
+    QString strAddressNew = QString::fromStdString(CBitcoinAddress(address).ToString(true));
     QString strLabel = QString::fromStdString(label);
     QString strPurpose = QString::fromStdString(purpose);
 

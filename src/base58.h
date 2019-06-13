@@ -84,12 +84,11 @@ protected:
     CBase58Data();
     void SetData(const std::vector<unsigned char> &vchVersionIn, const void* pdata, size_t nSize);
     void SetData(const std::vector<unsigned char> &vchVersionIn, const unsigned char *pbegin, const unsigned char *pend);
-    void SetNewFormat() const;
 
 public:
     bool SetString(const char* psz, unsigned int nVersionBytes = 1);
     bool SetString(const std::string& str);
-    std::string ToString() const;
+    std::string ToString(bool newFormat=false) const;
     int CompareTo(const CBase58Data& b58) const;
 
     bool operator==(const CBase58Data& b58) const { return CompareTo(b58) == 0; }
@@ -97,34 +96,6 @@ public:
     bool operator>=(const CBase58Data& b58) const { return CompareTo(b58) >= 0; }
     bool operator< (const CBase58Data& b58) const { return CompareTo(b58) <  0; }
     bool operator> (const CBase58Data& b58) const { return CompareTo(b58) >  0; }
-};
-
-class CBase58DataNew
-{
-protected:
-    //! the version byte(s)
-    std::vector<unsigned char> vchVersion;
-
-    //! the actually encoded data
-    typedef std::vector<unsigned char, zero_after_free_allocator<unsigned char> > vector_uchar;
-    vector_uchar vchData;
-
-    CBase58DataNew();
-    void SetData(const std::vector<unsigned char> &vchVersionIn, const void* pdata, size_t nSize);
-    void SetData(const std::vector<unsigned char> &vchVersionIn, const unsigned char *pbegin, const unsigned char *pend);
-    void SetNewFormat() const;
-
-public:
-    bool SetString(const char* psz, unsigned int nVersionBytes = 1);
-    bool SetString(const std::string& str);
-    std::string ToString() const;
-    int CompareTo(const CBase58DataNew& b58) const;
-
-    bool operator==(const CBase58DataNew& b58) const { return CompareTo(b58) == 0; }
-    bool operator<=(const CBase58DataNew& b58) const { return CompareTo(b58) <= 0; }
-    bool operator>=(const CBase58DataNew& b58) const { return CompareTo(b58) >= 0; }
-    bool operator< (const CBase58DataNew& b58) const { return CompareTo(b58) <  0; }
-    bool operator> (const CBase58DataNew& b58) const { return CompareTo(b58) >  0; }
 };
 
 /** base58-encoded Bitcoin addresses.
@@ -145,25 +116,6 @@ public:
     CBitcoinAddress(const CTxDestination &dest) { Set(dest); }
     CBitcoinAddress(const std::string& strAddress) { SetString(strAddress); }
     CBitcoinAddress(const char* pszAddress) { SetString(pszAddress); }
-
-    CTxDestination Get() const;
-    bool GetKeyID(CKeyID &keyID) const;
-    bool GetIndexKey(uint160& hashBytes, int& type) const;
-    bool IsScript() const;
-};
-
-class CBitcoinAddressNew : public CBase58DataNew {
-public:
-    bool Set(const CKeyID &id);
-    bool Set(const CScriptID &id);
-    bool Set(const CTxDestination &dest);
-    bool IsValid() const;
-    bool IsValid(const CChainParams &params) const;
-
-    CBitcoinAddressNew() {}
-    CBitcoinAddressNew(const CTxDestination &dest) { Set(dest); }
-    CBitcoinAddressNew(const std::string& strAddress) { SetString(strAddress); }
-    CBitcoinAddressNew(const char* pszAddress) { SetString(pszAddress); }
 
     CTxDestination Get() const;
     bool GetKeyID(CKeyID &keyID) const;

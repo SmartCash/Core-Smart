@@ -90,8 +90,7 @@ QValidator::State BitcoinAddressCheckValidator::validate(QString &input, int &po
     Q_UNUSED(pos);
     // Validate the passed Bitcoin address
     CBitcoinAddress addr(input.toStdString());
-    CBitcoinAddressNew addrNew(input.toStdString());
-    if (addr.IsValid() || addrNew.IsValid())
+    if (addr.IsValid())
         return QValidator::Acceptable;
 
     return QValidator::Invalid;
