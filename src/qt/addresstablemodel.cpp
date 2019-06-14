@@ -17,6 +17,7 @@
 
 const QString AddressTableModel::Send = "S";
 const QString AddressTableModel::Receive = "R";
+const QString AddressTableModel::ReceiveNew = "N";
 const QString AddressTableModel::Zerocoin = "X";
 
 struct AddressTableEntry
@@ -378,7 +379,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
             }
         }
     }
-    else if(type == Receive)
+    else if(type == Receive || type == ReceiveNew)
     {
         // Generate a new address to associate with given label
         CPubKey newKey;
@@ -397,7 +398,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
                 return QString();
             }
         }
-        strAddress = CBitcoinAddress(newKey.GetID()).ToString(true);
+        strAddress = CBitcoinAddress(newKey.GetID()).ToString(type == ReceiveNew);
     }
     else
     {
@@ -408,7 +409,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
     {
         LOCK(wallet->cs_wallet);
         wallet->SetAddressBook(CBitcoinAddress(strAddress).Get(), strLabel,
-                                 (type == Send ? "send" : "receive"));        
+                                 (type == Send ? "send" : "receive"));
     }
     return QString::fromStdString(strAddress);
 }

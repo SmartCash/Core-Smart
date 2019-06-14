@@ -44,8 +44,9 @@ public:
         KEY_GENERATION_FAILURE  /**< Generating a new public key for a receiving address failed */
     };
 
-    static const QString Send;      /**< Specifies send address */
-    static const QString Receive;   /**< Specifies receive address */
+    static const QString Send;       /**< Specifies send address */
+    static const QString Receive;    /**< Specifies receive address */
+    static const QString ReceiveNew; /**< Specifies receive address in new format */
     static const QString Zerocoin;   /**< Specifies stealth address */
 
     /** @name Methods overridden from QAbstractTableModel
