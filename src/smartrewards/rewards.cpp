@@ -327,43 +327,6 @@ bool CSmartRewards::IsLocked()
     return pdb->IsLocked();
 }
 
-void CSmartRewards::CatchUp()
-{
-    const CChainParams& chainparams = Params();
-    CBlockIndex* pHighestIndex = chainActive.Tip();
-    CBlockIndex* pLastIndex = pHighestIndex;
-    if( !pLastIndex ) return;
-    // If the rewards db is higher than the chain.
-    if( pLastIndex->nHeight <= currentBlock.nHeight ) return;
-
-    // Search the index of the next missing bock in the
-    // rewards database.
-    while( pLastIndex->nHeight != currentBlock.nHeight + 1){
-        pLastIndex = pLastIndex->pprev;
-    }
-
-    int nMinConfirmations = MainNet() ? nRewardsConfirmations : nRewardsConfirmations_Testnet;
-
-    while( pLastIndex && ( currentBlock.nHeight - pLastIndex->nHeight ) < nMinConfirmations)
-    {
-        if( ShutdownRequested() ){
-            SyncPrepared();
-            return;
-        }
-
-        if( !(currentBlock.nHeight % 100) ){
-            uiInterface.InitMessage(_("Creating SmartRewards database: ") + strprintf("%d/%d",currentBlock.nHeight, pHighestIndex->nHeight));
-        }
-
-        ProcessBlock(pLastIndex, chainparams);
-
-        pLastIndex = chainActive.Next(pLastIndex);
-
-    }
-
-    prewards->UpdateHeights(GetBlockHeight(pHighestIndex), currentBlock.nHeight);
-}
-
 bool CSmartRewards::GetLastBlock(CSmartRewardBlock &block)
 {
     LOCK(cs_rewardsdb);

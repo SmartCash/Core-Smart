@@ -93,8 +93,6 @@ public:
     void Lock();
     bool IsLocked();
 
-    void CatchUp();
-
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
     const CSmartRewardRound& GetCurrentRound();
