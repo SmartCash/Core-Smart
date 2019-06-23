@@ -3889,6 +3889,9 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
     }
 
     int nHeight = pindex->nHeight;
+    if(!newHash && nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT){
+      newHash = true;
+    }
 
     // Write block to history file
     try {
@@ -5067,5 +5070,3 @@ bool IsRegisteredForVoting(const CVoteKey &voteKey)
 
     return false;
 }
-
-

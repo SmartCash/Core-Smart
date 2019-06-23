@@ -35,7 +35,7 @@ static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 2;
 static const int HF_V1_2_8_NODES_PER_BLOCK      = 1;
 
 /** 1.3 fork blocks*/
-static const int HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT = 980000; // TBD - set  the right height before release
+static const int HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT = 1200000; // TBD - set  the right height before release
 
 /** SmartCash max reward block */
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
