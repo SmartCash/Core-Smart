@@ -76,6 +76,7 @@ int nScriptCheckThreads = 0;
 bool fImporting = false;
 bool fReindex = false;
 bool fTxIndex = true;
+bool fInstantPayIndex = DEFAULT_INSTANTPAYINDEX;
 bool fAddressIndex = true;
 bool fTimestampIndex = false;
 bool fSpentIndex = false;
@@ -1223,6 +1224,29 @@ bool GetDepositIndex(uint160 addressHash, int type,
 
     if (!pblocktree->ReadDepositIndex(addressHash, type, depositIndex, start, offset, limit, reverse))
         return error("unable to get deposits for address");
+
+    return true;
+}
+
+bool GetInstantPayIndexCount(int &count, int &firstTime, int &lastTime, int start, int end)
+{
+    if (!fInstantPayIndex)
+        return error("instantpay index not enabled");
+
+    if (!pblocktree->ReadInstantPayIndexCount(count, firstTime, lastTime, start, end))
+        return error("unable to get instantpay index count");
+
+    return true;
+}
+
+bool GetInstantPayIndex(std::vector<std::pair<CInstantPayIndexKey, CInstantPayValue>> &instantPayIndex,
+                        int start, int offset, int limit, bool reverse)
+{
+    if (!fInstantPayIndex)
+        return error("instantpay index not enabled");
+
+    if (!pblocktree->ReadInstantPayIndex(instantPayIndex, start, offset, limit, reverse))
+        return error("unable to get instantpay index");
 
     return true;
 }

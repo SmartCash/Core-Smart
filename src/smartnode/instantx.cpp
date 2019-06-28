@@ -150,6 +150,7 @@ bool CInstantSend::CreateTxLockCandidate(const CTxLockRequest& txLockRequest)
             txLockCandidate.AddOutPointLock(txin.prevout);
         }
         mapTxLockCandidates.insert(std::make_pair(txHash, txLockCandidate));
+        CreateIndex(txLockCandidate);
     } else if (!itLockCandidate->second.txLockRequest) {
         // i.e. empty Transaction Lock Candidate was created earlier, let's update it with actual data
         itLockCandidate->second.txLockRequest = txLockRequest;
@@ -176,7 +177,9 @@ void CInstantSend::CreateEmptyTxLockCandidate(const uint256& txHash)
         return;
     LogPrintf("CInstantSend::CreateEmptyTxLockCandidate -- new, txid=%s\n", txHash.ToString());
     const CTxLockRequest txLockRequest = CTxLockRequest();
-    mapTxLockCandidates.insert(std::make_pair(txHash, CTxLockCandidate(txLockRequest)));
+    CTxLockCandidate txLockCandidate(txLockRequest);
+    CreateIndex(txLockCandidate);
+    mapTxLockCandidates.insert(std::make_pair(txHash, txLockCandidate));
 }
 
 void CInstantSend::Vote(const uint256& txHash, CConnman& connman)
@@ -303,6 +306,31 @@ void CInstantSend::Vote(CTxLockCandidate& txLockCandidate, CConnman& connman)
     }
 }
 
+void CInstantSend::CreateIndex(const CTxLockCandidate &txLockCandidate)
+{
+    CInstantPayIndexKey key(txLockCandidate.GetCreationTime(), txLockCandidate.GetHash());
+
+    if( !mapLockIndex.count(key) ){
+        mapLockIndex.insert(std::make_pair(key, CInstantPayValue(GetTimeMillis())));
+    }
+}
+
+void CInstantSend::FinalizeIndex(const CTxLockCandidate &txLockCandidate, bool fValid)
+{
+    if( !fInstantPayIndex ) return;
+
+    CInstantPayIndexKey key(txLockCandidate.GetCreationTime(), txLockCandidate.GetHash());
+    auto it = mapLockIndex.find(key);
+
+    if( it == mapLockIndex.end() || it->second.fProcessed ) return;
+
+    it->second.fProcessed = true;
+    it->second.fValid = fValid;
+    it->second.receivedLocks = txLockCandidate.CountVotes();
+    it->second.maxLocks = txLockCandidate.GetMaxVotes();
+    it->second.elapsedTime = GetTimeMillis() - it->second.timeCreated;
+}
+
 //received a consensus vote
 bool CInstantSend::ProcessTxLockVote(CNode* pfrom, CTxLockVote& vote, CConnman& connman)
 {
@@ -364,6 +392,7 @@ bool CInstantSend::ProcessTxLockVote(CNode* pfrom, CTxLockVote& vote, CConnman& 
     CTxLockCandidate& txLockCandidate = it->second;
 
     if (txLockCandidate.IsTimedOut()) {
+        FinalizeIndex(txLockCandidate, false);
         LogPrint("instantsend", "CInstantSend::ProcessTxLockVote -- too late, Transaction Lock timed out, txid=%s\n", txHash.ToString());
         return false;
     }
@@ -492,6 +521,7 @@ void CInstantSend::TryToFinalizeLockCandidate(const CTxLockCandidate& txLockCand
         // we have enough votes now
         LogPrint("instantsend", "CInstantSend::TryToFinalizeLockCandidate -- Transaction Lock is ready to complete, txid=%s\n", txHash.ToString());
         if(ResolveConflicts(txLockCandidate)) {
+            FinalizeIndex(txLockCandidate, true);
             LockTransactionInputs(txLockCandidate);
             UpdateLockedTransaction(txLockCandidate);
         }
@@ -657,13 +687,47 @@ void CInstantSend::CheckAndRemove()
 
     LOCK(cs_instantsend);
 
-    std::map<uint256, CTxLockCandidate>::iterator itLockCandidate = mapTxLockCandidates.begin();
+    if( fInstantPayIndex ){
+        std::map<uint256, CTxLockCandidate>::iterator itLockCandidate = mapTxLockCandidates.begin();
+        // update index entries
+        while(itLockCandidate != mapTxLockCandidates.end()) {
+            CTxLockCandidate &txLockCandidate = itLockCandidate->second;
+            CInstantPayIndexKey key(txLockCandidate.GetCreationTime(), txLockCandidate.GetHash());
 
+            if( txLockCandidate.IsTimedOut() && !txLockCandidate.IsAllOutPointsReady() ){
+                FinalizeIndex(txLockCandidate, false);
+            }else{
+
+                auto it = mapLockIndex.find(key);
+
+                // Update the received votes to get some statistics how many valid votes
+                // arrive in time
+                if( it != mapLockIndex.end() && it->second.fProcessed && it->second.fValid ){
+                    it->second.receivedLocks = txLockCandidate.CountVotes();
+                }
+            }
+
+            ++itLockCandidate;
+        }
+
+        if( !pblocktree->WriteInstantPayLocks(mapLockIndex) ){
+            LogPrintf("CInstantSend::CheckAndRemove() - Failed to write instantpay index\n");
+        }
+    }
+
+    std::map<uint256, CTxLockCandidate>::iterator itLockCandidate = mapTxLockCandidates.begin();
     // remove expired candidates
     while(itLockCandidate != mapTxLockCandidates.end()) {
         CTxLockCandidate &txLockCandidate = itLockCandidate->second;
         uint256 txHash = txLockCandidate.GetHash();
+
         if(txLockCandidate.IsExpired(nCachedBlockHeight)) {
+
+            if( fInstantPayIndex ){
+                CInstantPayIndexKey key(txLockCandidate.GetCreationTime(), txLockCandidate.GetHash());
+                mapLockIndex.erase(key);
+            }
+
             LogPrintf("CInstantSend::CheckAndRemove -- Removing expired Transaction Lock Candidate: txid=%s\n", txHash.ToString());
             std::map<COutPoint, COutPointLock>::iterator itOutpointLock = txLockCandidate.mapOutPointLocks.begin();
             while(itOutpointLock != txLockCandidate.mapOutPointLocks.end()) {

@@ -8,5 +8,6 @@
 #include "sapi/sapi.h"
 
 extern SAPI::EndpointGroup clientEndpoints;
+extern SAPI::EndpointGroup statisticEndpoints;
 
 #endif // SMARTCASH_SAPI_COMMON_H

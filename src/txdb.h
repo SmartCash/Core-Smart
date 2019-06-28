@@ -150,6 +150,13 @@ public:
                                         int &count,
                                         int &firstTime, int &lastTime,
                                         int start, int end);
+
+    bool WriteInstantPayLocks(std::map<CInstantPayIndexKey, CInstantPayValue> &mapLocks);
+    bool ReadInstantPayIndex(std::vector<std::pair<CInstantPayIndexKey, CInstantPayValue> > &instantPayIndex,
+                                            int start, int offset, int limit, bool reverse);
+    bool ReadInstantPayIndexCount(int &count, int &firstTime, int &lastTime,
+                                  int start, int end);
+
     /** SmartVoting start **/
     bool WriteInvalidVoteKeyRegistrations(std::vector<std::pair<CVoteKeyRegistrationKey, VoteKeyParseResult>> vecInvalidRegistrations);
     bool EraseInvalidVoteKeyRegistrations(std::vector<CVoteKeyRegistrationKey> vecInvalidRegistrations);

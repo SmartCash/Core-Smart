@@ -8,6 +8,7 @@
 #include "../chain.h"
 #include "../utiltime.h"
 #include "primitives/transaction.h"
+#include "txdb.h"
 
 class CTxLockVote;
 class COutPointLock;
@@ -64,9 +65,14 @@ private:
     //track smartnodes who voted with no txreq (for DOS protection)
     std::map<COutPoint, int64_t> mapSmartnodeOrphanVotes; // mn outpoint - time
 
+    std::map<CInstantPayIndexKey, CInstantPayValue> mapLockIndex;
+
     bool CreateTxLockCandidate(const CTxLockRequest& txLockRequest);
     void CreateEmptyTxLockCandidate(const uint256& txHash);
     void Vote(CTxLockCandidate& txLockCandidate, CConnman& connman);
+
+    void CreateIndex(const CTxLockCandidate& txLockCandidate);
+    void FinalizeIndex(const CTxLockCandidate& txLockCandidate, bool fValid);
 
     //process consensus vote message
     bool ProcessTxLockVote(CNode* pfrom, CTxLockVote& vote, CConnman& connman);
@@ -247,6 +253,7 @@ public:
     std::map<COutPoint, COutPointLock> mapOutPointLocks;
 
     uint256 GetHash() const { return txLockRequest.GetHash(); }
+    int64_t GetCreationTime() const { return nTimeCreated; }
 
     void AddOutPointLock(const COutPoint& outpoint);
     void MarkOutpointAsAttacked(const COutPoint& outpoint);
@@ -255,6 +262,7 @@ public:
 
     bool HasSmartnodeVoted(const COutPoint& outpointIn, const COutPoint& outpointSmartnodeIn);
     int CountVotes() const;
+    int GetMaxVotes() const { return txLockRequest.GetMaxSignatures(); }
 
     void SetConfirmedHeight(int nConfirmedHeightIn) { nConfirmedHeight = nConfirmedHeightIn; }
     bool IsExpired(int nHeight) const;

@@ -52,18 +52,21 @@ bool DecodeBase58(const std::string& str, std::vector<unsigned char>& vchRet);
  * Encode a byte vector into a base58-encoded string, including checksum
  */
 std::string EncodeBase58Check(const std::vector<unsigned char>& vchIn);
+std::string EncodeBase58CheckNew(const std::vector<unsigned char>& vchIn);
 
 /**
  * Decode a base58-encoded string (psz) that includes a checksum into a byte
  * vector (vchRet), return true if decoding is successful
  */
 inline bool DecodeBase58Check(const char* psz, std::vector<unsigned char>& vchRet);
+inline bool DecodeBase58CheckNew(const char* psz, std::vector<unsigned char>& vchRet);
 
 /**
  * Decode a base58-encoded string (str) that includes a checksum into a byte
  * vector (vchRet), return true if decoding is successful
  */
 inline bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRet);
+inline bool DecodeBase58CheckNew(const std::string& str, std::vector<unsigned char>& vchRet);
 
 /**
  * Base class for all base58-encoded data
@@ -85,7 +88,7 @@ protected:
 public:
     bool SetString(const char* psz, unsigned int nVersionBytes = 1);
     bool SetString(const std::string& str);
-    std::string ToString() const;
+    std::string ToString(bool newFormat=false) const;
     int CompareTo(const CBase58Data& b58) const;
 
     bool operator==(const CBase58Data& b58) const { return CompareTo(b58) == 0; }

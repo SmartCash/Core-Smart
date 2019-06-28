@@ -43,7 +43,7 @@ struct CCheckpointData {
 class CChainParams
 {
 public:
-    enum Base58Type {
+    enum Base58Type {        
         PUBKEY_ADDRESS,
         SCRIPT_ADDRESS,
         SECRET_KEY,
@@ -51,7 +51,7 @@ public:
         EXT_SECRET_KEY,
         VOTE_KEY_PUBLIC,
         VOTE_KEY_SECRET,
-
+        NEW_PUBKEY_ADDRESS,
         MAX_BASE58_TYPES
     };
 
@@ -84,10 +84,10 @@ public:
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
 
-    int64_t MaxTipAge() const { return nMaxTipAge; } 
+    int64_t MaxTipAge() const { return nMaxTipAge; }
     int64_t DelayGetHeadersTime() const { return nDelayGetHeadersTime; }
-    int PoolMaxTransactions() const { return nPoolMaxTransactions; } 
-    int FulfilledRequestExpireTime() const { return nFulfilledRequestExpireTime; } 
+    int PoolMaxTransactions() const { return nPoolMaxTransactions; }
+    int FulfilledRequestExpireTime() const { return nFulfilledRequestExpireTime; }
     const std::string& SporkAddress() const { return strSporkAddress; }
 
 protected:
@@ -113,11 +113,11 @@ protected:
     bool fAllowMultiplePorts;
     bool fTestnetToBeDeprecatedFieldRPC;
     CCheckpointData checkpointData;
-    /** Smartnode params*/ 
+    /** Smartnode params*/
     long nMaxTipAge;
-    int64_t nDelayGetHeadersTime; 
-    int nPoolMaxTransactions; 
-    int nFulfilledRequestExpireTime; 
+    int64_t nDelayGetHeadersTime;
+    int nPoolMaxTransactions;
+    int nFulfilledRequestExpireTime;
     std::string strSporkAddress;
 };
 

@@ -284,7 +284,8 @@ void SmartVotingPage::updateProposalUI()
         return;
     }
 
-    int votedValid = 0, votedFunding = 0;
+    //int votedValid = 0;
+    int votedFunding = 0;
 
     std::vector<const CProposal*> vecProposals = smartVoting.GetAllNewerThan(0);
 

@@ -314,6 +314,7 @@ extern UniValue verifychain(const UniValue& params, bool fHelp);
 extern UniValue getchaintips(const UniValue& params, bool fHelp);
 extern UniValue invalidateblock(const UniValue& params, bool fHelp);
 extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
+extern UniValue getchaintxstats(const UniValue& params, bool fHelp);
 extern UniValue getspentinfo(const UniValue& params, bool fHelp);
 extern UniValue getaddresses(const UniValue& params, bool fHelp);
 extern UniValue getmoneysupply(const UniValue& params, bool fHelp);

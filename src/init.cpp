@@ -926,7 +926,10 @@ void InitParameterInteraction()
         SoftSetBoolArg("-addressindex", true);
         SoftSetBoolArg("-spentindex", true);
         SoftSetBoolArg("-depositindex", true);
+        SoftSetBoolArg("-instantpayindex", true);
     }
+
+    fInstantPayIndex = GetBoolArg("-instantpayindex", DEFAULT_INSTANTPAYINDEX);
 
     // Make sure additional indexes are recalculated correctly in VerifyDB
     // (we must reconnect blocks whenever we disconnect them for these indexes to work)

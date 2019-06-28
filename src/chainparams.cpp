@@ -20,7 +20,7 @@
 #include "arith_uint256.h"
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward, std::vector<unsigned char> extraNonce)
-{    
+{
     static CBigNum bnProofOfWorkLimit(~arith_uint256(0) >> 20);
 
     CMutableTransaction txNew;
@@ -38,8 +38,8 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
-    genesis.nVersion = nVersion;    
-    
+    genesis.nVersion = nVersion;
+
     return genesis;
 }
 
@@ -104,11 +104,11 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1510704000; // November 15th, 2017.
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000111111");
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000020d8ea371e16d853f4");
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x000000000000001c172f518793c3b9e83f202284615592f87fe3506ce964dcd4"); // 782700
-        
+
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT; // not true, but it's ok as long as it's less then nSmartnodePaymentsIncreaseBlock
         consensus.nSmartnodeMinimumConfirmations = 15;
@@ -152,7 +152,7 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("0xb79187d8ce4d5ec398730dd34276248f1e7b09d98ca29b829e5e5e67ff21d462"));
 
         // Note that of those with the service bits flag, most only support a subset of possible options
-        vSeeds.push_back(CDNSSeedData("seed.smrt.cash", "seed.smrt.cash", false));        
+        vSeeds.push_back(CDNSSeedData("seed.smrt.cash", "seed.smrt.cash", false));
         vSeeds.push_back(CDNSSeedData("seed1.smrt.cash", "seed1.smrt.cash", false));
         vSeeds.push_back(CDNSSeedData("seed2.smrt.cash", "seed2.smrt.cash", false));
         vSeeds.push_back(CDNSSeedData("seed1.smartcash.org", "seed1.smartcash.org", false));
@@ -162,13 +162,15 @@ public:
         vSeeds.push_back(CDNSSeedData("seed3.smartcash.cc", "seed3.smartcash.cc", false));
         vSeeds.push_back(CDNSSeedData("seed4.smartcash.cc", "seed4.smartcash.cc", false));
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,63);
+
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,63); //S
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,18);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,191);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,125);
         base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,82);
+        base58Prefixes[NEW_PUBKEY_ADDRESS] = std::vector<unsigned char>(1,125); //s
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;
@@ -187,11 +189,14 @@ public:
             boost::assign::map_list_of
             ( 0, uint256S("0x000007acc6970b812948d14ea5a0a13db0fdd07d5047c7e69101fa8b361e05a4"))
             ( 75000,  uint256S("0x000000000002ee203026137ebc460e1886e09b9fdb0e83697e5a74976088e75c"))
-            ( 170000, uint256S("0x000000000000670ff41fbb4ad819b48bfe1c35623f13297d3fbf9bf02abcd87c")),            
-            1504618216, // * UNIX timestamp of last checkpoint block
-            146731,   // * total number of transactions between genesis and last checkpoint
+            ( 170000, uint256S("0x000000000000670ff41fbb4ad819b48bfe1c35623f13297d3fbf9bf02abcd87c"))
+            ( 500000, uint256S("0x00000000000016a1fa8e650e5a82babefeb9225ffe78614bc4b23cf160d16eeb"))
+            ( 1000000, uint256S("0x00000000000008e14776878dba228ac957a97205df4716ce1913ae4339e7aeb9"))
+            ( 1030000, uint256S("0x00000000000000d7e76cc6c30a2bece10f552123ad3c9a63beceb0d553a46f04")),
+            1557812640, // * UNIX timestamp of last checkpoint block
+            4095887,   // * total number of transactions between genesis and last checkpoint
                         //   (the tx=... number in the SetBestChain debug.log lines)
-            3000.0     // * estimated number of transactions per day after checkpoint
+            12000.0     // * estimated number of transactions per day after checkpoint
         };
     }
 };
@@ -274,15 +279,16 @@ public:
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
         vSeeds.push_back(CDNSSeedData("testnet.smartcash.cc", "testnet.smartcash.cc", true));
-        vSeeds.push_back(CDNSSeedData("testnet.smrt.cash", "testnet.smrt.cash", true));        
+        vSeeds.push_back(CDNSSeedData("testnet.smrt.cash", "testnet.smrt.cash", true));
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,65);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,65); //T
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,21);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,193);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,112);
         base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,160);
+        base58Prefixes[NEW_PUBKEY_ADDRESS] = std::vector<unsigned char>(1,127); //t
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;
@@ -426,4 +432,3 @@ void UpdateRegtestBIP9Parameters(Consensus::DeploymentPos d, int64_t nStartTime,
 {
     regTestParams.UpdateBIP9Parameters(d, nStartTime, nTimeout);
 }
- 

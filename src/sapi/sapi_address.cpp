@@ -22,9 +22,10 @@ struct CAddressBalance
     std::string address;
     CAmount balance;
     CAmount received;
+    CAmount unconfirmed;
 
-    CAddressBalance(std::string address, CAmount balance, CAmount received) :
-        address(address), balance(balance), received(received){}
+    CAddressBalance(std::string address, CAmount balance, CAmount received, CAmount unconfirmed) :
+        address(address), balance(balance), received(received), unconfirmed(unconfirmed){}
 };
 
 
@@ -97,10 +98,12 @@ SAPI::EndpointGroup addressEndpoints = {
     }
 };
 
-static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecAddr, std::vector<CAddressBalance> &vecBalances)
+static bool GetAddressesBalances(HTTPRequest* req,
+                                 std::vector<std::string> vecAddr,
+                                 std::vector<CAddressBalance> &vecBalances,
+                                 std::map<uint256, CAmount> &mapUnconfirmed)
 {
     SAPI::Codes code = SAPI::Valid;
-    std::string error = std::string();
     std::vector<SAPI::Result> errors;
 
     vecBalances.clear();
@@ -129,6 +132,7 @@ static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecA
 
         CAmount balance = 0;
         CAmount received = 0;
+        CAmount unconfirmed = 0;
 
         for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin(); it!=addressIndex.end(); it++) {
             if (it->second > 0) {
@@ -137,7 +141,30 @@ static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecA
             balance += it->second;
         }
 
-        vecBalances.push_back(CAddressBalance(addrStr, balance, received));
+        std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > mempoolDelta;
+        std::vector<std::pair<uint160,int>> vecAddresses = {std::make_pair(hashBytes,type)};
+        if (mempool.getAddressIndex(vecAddresses, mempoolDelta)) {
+
+            for (std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> >::iterator it = mempoolDelta.begin();
+                 it != mempoolDelta.end(); it++) {
+
+                if( instantsend.IsLockedInstantSendTransaction(it->first.txhash) ){
+
+                    if( it->second.amount > 0){
+                        received += it->second.amount;
+                    }
+                    balance += it->second.amount;
+
+                }else{
+
+                    mapUnconfirmed[it->first.txhash] += it->second.amount;
+                    unconfirmed += it->second.amount;
+
+                }
+            }
+        }
+
+        vecBalances.push_back(CAddressBalance(addrStr, balance, received, unconfirmed));
     }
 
     if( errors.size() ){
@@ -147,7 +174,6 @@ static bool GetAddressesBalances(HTTPRequest* req, std::vector<std::string> vecA
     if( !vecBalances.size() ){
         return SAPI::Error(req, HTTPStatus::INTERNAL_SERVER_ERROR, "Balance check failed unexpected.");
     }
-
 
     return true;
 }
@@ -201,8 +227,9 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
 
     std::string addrStr = mapPathParams.at("address");
     std::vector<CAddressBalance> vecResult;
+    std::map<uint256, CAmount> mapUnconfirmed;
 
-    if( !GetAddressesBalances(req, {addrStr},vecResult) )
+    if( !GetAddressesBalances(req, {addrStr},vecResult, mapUnconfirmed) )
         return false;
 
     CAddressBalance result = vecResult.front();
@@ -212,6 +239,22 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
     response.pushKV("received", UniValueFromAmount(result.received));
     response.pushKV("sent", UniValueFromAmount(result.received - result.balance));
     response.pushKV("balance", UniValueFromAmount(result.balance));
+
+    UniValue unconfirmed(UniValue::VOBJ);
+    UniValue unconfirmedTxes(UniValue::VARR);
+
+    for( auto tx : mapUnconfirmed ){
+        UniValue unconfirmedTx(UniValue::VOBJ);
+
+        unconfirmedTx.pushKV("txid", tx.first.ToString());
+        unconfirmedTx.pushKV("amount", UniValueFromAmount(tx.second));
+        unconfirmedTxes.push_back(unconfirmedTx);
+    }
+
+    unconfirmed.pushKV("delta", UniValueFromAmount(result.unconfirmed));
+    unconfirmed.pushKV("transactions", unconfirmedTxes);
+
+    response.pushKV("unconfirmed", unconfirmed);
 
     SAPI::WriteReply(req, response);
 
@@ -227,6 +270,7 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
 
     std::vector<CAddressBalance> vecResult;
     std::vector<std::string> vecAddresses;
+    std::map<uint256, CAmount> mapUnconfirmed;
 
     for( auto addr : bodyParameter.getValues() ){
 
@@ -236,7 +280,7 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
             vecAddresses.push_back(addrStr);
     }
 
-    if( !GetAddressesBalances(req, vecAddresses, vecResult) )
+    if( !GetAddressesBalances(req, vecAddresses, vecResult, mapUnconfirmed) )
             return false;
 
     UniValue response(UniValue::VARR);
@@ -248,6 +292,21 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
         entry.pushKV("received", UniValueFromAmount(result.received));
         entry.pushKV("sent", UniValueFromAmount(result.received - result.balance));
         entry.pushKV("balance", UniValueFromAmount(result.balance));
+
+        UniValue unconfirmed(UniValue::VOBJ);
+        UniValue unconfirmedTxes(UniValue::VARR);
+
+        for( auto tx : mapUnconfirmed ){
+            UniValue unconfirmedTx(UniValue::VOBJ);
+
+            unconfirmedTx.pushKV("txid", tx.first.ToString());
+            unconfirmedTx.pushKV("amount", UniValueFromAmount(tx.second));
+            unconfirmedTxes.push_back(unconfirmedTx);
+        }
+
+        unconfirmed.pushKV("delta", UniValueFromAmount(result.unconfirmed));
+        unconfirmed.pushKV("transactions", unconfirmedTxes);
+        entry.pushKV("unconfirmed", unconfirmed);
         response.push_back(entry);
     }
 

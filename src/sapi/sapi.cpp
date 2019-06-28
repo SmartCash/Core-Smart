@@ -594,6 +594,7 @@ bool StartSAPI()
 
     endpointGroups = {
         &clientEndpoints,
+        &statisticEndpoints,
         &blockchainEndpoints,
         &addressEndpoints,
         &transactionEndpoints,
