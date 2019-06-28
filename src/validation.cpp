@@ -2326,6 +2326,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
     std::vector<std::pair<CVoteKeyRegistrationKey, VoteKeyParseResult>> vecInvalidVoteKeyRegistrations;
     std::map<CVoteKey, CVoteKeyValue> mapVoteKeys;
+    // Result of the smartrewards block processing.
+    CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
@@ -2335,6 +2337,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         const uint256 txhash = tx.GetHash();
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
+
+        if( pindex->nHeight > 0 ) prewards->ProcessTransaction(pindex, tx, view, chainparams, smartRewardsResult);
 
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
@@ -2572,6 +2576,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         return false;
     }
 
+    prewards->CommitBlock(pindex, smartRewardsResult);
+
     // END SMARTCASH
 
     if (!control.Wait())
@@ -2775,11 +2781,13 @@ void static UpdateTip(CBlockIndex *pindexNew) {
     // New best block
     mempool.AddTransactionsUpdated(1);
 
-    if(fDebug || !(pindexNew->nHeight % 1000) ){
+    double dProgress = Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip());
+
+    if( LogAcceptCategory("tip") || dProgress > 0.95 ){
         LogPrintf("%s: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%.1fMiB(%utxo)\n", __func__,
           chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
           DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
-          Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+          dProgress, pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
     }
 
     cvBlockChange.notify_all();
@@ -2941,10 +2949,6 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5; nTimeTotal += nTime6 - nTime1;
     LogPrint("bench", "  - Connect postprocess: %.2fms [%.2fs]\n", (nTime6 - nTime5) * 0.001, nTimePostConnect * 0.000001);
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
-
-    //### SMARTCASH START
-    if(pindexNew->nHeight > 0) prewards->ProcessBlock(pindexNew, chainparams);
-    //### SMARTCASH END
 
     return true;
 }
@@ -3889,6 +3893,9 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
     }
 
     int nHeight = pindex->nHeight;
+    if(!newHash && nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT){
+      newHash = true;
+    }
 
     // Write block to history file
     try {
@@ -5067,5 +5074,3 @@ bool IsRegisteredForVoting(const CVoteKey &voteKey)
 
     return false;
 }
-
-

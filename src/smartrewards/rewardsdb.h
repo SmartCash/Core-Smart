@@ -73,7 +73,7 @@ public:
     uint256 blockHash;
     int64_t blockTime;
     CSmartRewardBlock(){nHeight = 0; blockHash = uint256(); blockTime = 0;}
-    CSmartRewardBlock(int height, uint256 &hash, int64_t time) : nHeight(height), blockHash(hash), blockTime(time) {}
+    CSmartRewardBlock(int height, const uint256* pHash, int64_t time) : nHeight(height), blockHash(*pHash), blockTime(time) {}
 
     ADD_SERIALIZE_METHODS
 

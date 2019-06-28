@@ -19,6 +19,7 @@
 #include <vector>
 
 typedef uint256 ChainCode;
+static bool newHash = false;
 
 /** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
 class CHash256 {
@@ -162,6 +163,7 @@ class CHashWriter
 {
 private:
     SHA256_CTX ctx;
+    CHash256 ctxNew;
 
 public:
     int nType;
@@ -182,9 +184,15 @@ public:
 
     // invalidates the object
     uint256 GetHash() {
+      if(newHash){
+        uint256 result;
+        ctxNew.Finalize((unsigned char*)&result);
+        return result;
+      }else{
         uint256 hash1;
         SHA256_Final((unsigned char*)&hash1, &ctx);
         return hash1;
+      }
     }
 
     arith_uint256 GetArith256Hash() {

@@ -58,7 +58,7 @@ struct CSmartRewardsUpdateResult
     int64_t disqualifiedEntries;
     int64_t disqualifiedSmart;
     CSmartRewardBlock block;
-    CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0),block() {}
+    CSmartRewardsUpdateResult(const int nHeight, const uint256* pBlockHash, const int64_t nBlockTime) : disqualifiedEntries(0), disqualifiedSmart(0), block(nHeight, pBlockHash, nBlockTime) { }
 };
 
 class CSmartRewards
@@ -93,8 +93,6 @@ public:
     void Lock();
     bool IsLocked();
 
-    void CatchUp();
-
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
     const CSmartRewardRound& GetCurrentRound();
@@ -113,7 +111,10 @@ public:
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult &result);
     bool UpdateRound(const CSmartRewardRound &round);
 
-    void ProcessBlock(CBlockIndex* pLastIndex,const CChainParams& chainparams);
+    void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
+//    void ProcessBlock(CBlockIndex* pLastIndex,const CChainParams& chainparams);
+
+    void CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
 
@@ -124,8 +125,6 @@ public:
     bool GetRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
     bool GetRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
     bool GetRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
-
-    bool RestoreSnapshot(const int16_t round);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
