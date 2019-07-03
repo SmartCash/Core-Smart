@@ -49,7 +49,6 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 	   if(pindexLast->nHeight < 1274998){
 >>>>>>> b95d8ce... No difficulty adjust in Testnet
 */          return bnProofOfWorkLimit.GetCompact();
-       }
     }
 
     if ((pindexLast->nHeight+1) % nInterval != 0) // Retarget every nInterval blocks
