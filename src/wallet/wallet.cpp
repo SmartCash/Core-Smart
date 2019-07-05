@@ -3607,16 +3607,15 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize) {
         // make sure the keypool of external and internal keys fits the user selected target (-keypool)
         int64_t amountExternal = setExternalKeyPool.size();
         int64_t amountInternal = setInternalKeyPool.size();
-        int64_t missingExternal = std::max(std::max((int64_t) nTargetSize, (int64_t) 1) - amountExternal, (int64_t) 0);
-        int64_t missingInternal = std::max(std::max((int64_t) nTargetSize, (int64_t) 1) - amountInternal, (int64_t) 0);
+        int64_t missingExternal = std::max(std::max((int64_t) nTargetSize/2, (int64_t) 1) - amountExternal, (int64_t) 0);
+        int64_t missingInternal = std::max(std::max((int64_t) nTargetSize/2, (int64_t) 1) - amountInternal, (int64_t) 0);
 
         if (!IsHDEnabled())
         {
             // don't create extra internal keys
             missingInternal = 0;
-        } else {
-            nTargetSize *= 2;
         }
+        
         bool fInternal = false;
         CWalletDB walletdb(strWalletFile);
         for (int64_t i = missingInternal + missingExternal; i--;)
