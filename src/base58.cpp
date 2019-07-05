@@ -233,8 +233,10 @@ bool CBase58Data::SetString(const std::string& str)
 std::string CBase58Data::ToString(bool newFormat) const
 {
     std::vector<unsigned char> vch = vchVersion;
-    if(newFormat && vchVersion == Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS)){\
-      vch = Params().Base58Prefix(CChainParams::NEW_PUBKEY_ADDRESS);
+    if(newFormat){
+      if(vchVersion == Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS)){
+        vch = Params().Base58Prefix(CChainParams::NEW_PUBKEY_ADDRESS);
+      }
       vch.insert(vch.end(), vchData.begin(), vchData.end());
       return EncodeBase58CheckNew(vch);
     }else{

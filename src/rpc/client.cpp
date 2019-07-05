@@ -143,7 +143,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressmempool", 0},
     { "getaddresses", 0},
     { "getaddresses", 1},
-    { "getrandomkeypair", 0}
+    { "getrandomkeypair", 0},
+    { "dumpprivkey", 1}
 };
 
 class CRPCConvertTable
