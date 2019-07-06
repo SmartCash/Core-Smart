@@ -60,6 +60,7 @@ public:
     std::string GetSmartNodeKey(){return smartnodeKey;}
     std::string GetTxHash(){return txHash;}
     std::string GetTxIndex(){return txIndex;}
+    bool validateSmartnodeIPAddress(QString ip);
 
     enum
     {
