@@ -144,7 +144,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddresses", 0},
     { "getaddresses", 1},
     { "getrandomkeypair", 0},
-    { "dumpprivkey", 1}
+    { "dumpprivkey", 1},
+    { "dumpwallet", 1}
 };
 
 class CRPCConvertTable

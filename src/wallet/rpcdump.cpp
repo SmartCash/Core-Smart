@@ -741,12 +741,13 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
 
-    if (fHelp || params.size() != 1)
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "dumpwallet \"filename\"\n"
             "\nDumps all wallet keys in a human-readable format.\n"
             "\nArguments:\n"
             "1. \"filename\"    (string, required) The filename\n"
+            "2. newFormat       (boolean, optional, default=false) Use the standard format (sha256)\n"
             "\nExamples:\n"
             + HelpExampleCli("dumpwallet", "\"test\"")
             + HelpExampleRpc("dumpwallet", "\"test\"")
@@ -760,6 +761,10 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
     file.open(params[0].get_str().c_str());
     if (!file.is_open())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open wallet dump file");
+
+    bool newFormat = false;
+    if(params.size() > 1)
+      newFormat = params[1].get_bool();
 
     std::map<CKeyID, int64_t> mapKeyBirth;
     std::set<CKeyID> setKeyPool;
@@ -804,14 +809,14 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
         CBitcoinExtKey b58extkey;
         b58extkey.SetKey(masterKey);
 
-        file << "# extended private masterkey: " << b58extkey.ToString() << "\n";
+        file << "# extended private masterkey: " << b58extkey.ToString(newFormat) << "\n";
 
         CExtPubKey masterPubkey;
         masterPubkey = masterKey.Neuter();
 
         CBitcoinExtPubKey b58extpubkey;
         b58extpubkey.SetKey(masterPubkey);
-        file << "# extended public masterkey: " << b58extpubkey.ToString() << "\n\n";
+        file << "# extended public masterkey: " << b58extpubkey.ToString(newFormat) << "\n\n";
 
         for (size_t i = 0; i < hdChainCurrent.CountAccounts(); ++i)
         {
@@ -828,10 +833,10 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
     for (std::vector<std::pair<int64_t, CKeyID> >::const_iterator it = vKeyBirth.begin(); it != vKeyBirth.end(); it++) {
         const CKeyID &keyid = it->second;
         std::string strTime = EncodeDumpTime(it->first);
-        std::string strAddr = CBitcoinAddress(keyid).ToString();
+        std::string strAddr = CBitcoinAddress(keyid).ToString(newFormat);
         CKey key;
         if (pwalletMain->GetKey(keyid, key)) {
-            file << strprintf("%s %s ", CBitcoinSecret(key).ToString(), strTime);
+            file << strprintf("%s %s ", CBitcoinSecret(key).ToString(newFormat), strTime);
             if (pwalletMain->mapAddressBook.count(keyid)) {
                 file << strprintf("label=%s", EncodeDumpString(pwalletMain->mapAddressBook[keyid].name));
             } else if (setKeyPool.count(keyid)) {
