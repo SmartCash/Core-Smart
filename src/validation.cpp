@@ -4304,6 +4304,12 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     {
         boost::this_thread::interruption_point();
         uiInterface.ShowProgress(_("Verifying blocks..."), std::max(1, std::min(99, (int)(((double)(chainActive.Height() - pindex->nHeight)) / (double)nCheckDepth * (nCheckLevel >= 4 ? 50 : 100)))));
+
+        int nHeight = pindex->nHeight;
+        if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
+          newHash = true;
+        }
+
         if (pindex->nHeight < chainActive.Height()-nCheckDepth)
             break;
         CBlock block;
