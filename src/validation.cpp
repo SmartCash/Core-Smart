@@ -1855,8 +1855,10 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    /* WIP-VOTING uncomment
     std::map<CVoteKey, CSmartAddress> mapVoteKeys;
     std::vector<CVoteKeyRegistrationKey> vecInvalidVoteKeyRegistrations;
+    */
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -1996,6 +1998,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
             }
 
+            /* WIP-VOTING uncomment
             if( tx.IsVoteKeyRegistration() ){
 
                 CVoteKey voteKey;
@@ -2020,6 +2023,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
                 vecInvalidVoteKeyRegistrations.push_back(CVoteKeyRegistrationKey(pindex->nHeight, tx.GetHash()));
             }
+            */
 
             if( fDepositIndex ){
 
@@ -2070,6 +2074,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         }
     }
 
+    /* WIP-VOTING uncomment
     if( mapVoteKeys.size() && !pblocktree->EraseVoteKeys(mapVoteKeys) ){
         AbortNode(state, "Failed to erase vote keys");
         return DISCONNECT_FAILED;
@@ -2079,6 +2084,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         AbortNode(state, "Failed to erase invalid VoteKey registrations");
         return DISCONNECT_FAILED;
     }
+    */
 
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
@@ -2324,8 +2330,10 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    /* WIP-VOTING uncomment
     std::vector<std::pair<CVoteKeyRegistrationKey, VoteKeyParseResult>> vecInvalidVoteKeyRegistrations;
     std::map<CVoteKey, CVoteKeyValue> mapVoteKeys;
+    */
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
@@ -2498,6 +2506,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             }
         }
 
+        /* WIP-VOTING uncomment
         if( tx.IsVoteKeyRegistration() ){
 
             CVoteKey voteKey, otherVoteKey;
@@ -2545,6 +2554,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 vecInvalidVoteKeyRegistrations.push_back(std::make_pair(CVoteKeyRegistrationKey(pindex->nHeight, tx.GetHash()), result));
 
         }
+        */
 
         CTxUndo undoDummy;
         if (i > 0) {
@@ -2630,11 +2640,13 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
     }
 
+    /* WIP-VOTING uncomment
     if ( vecInvalidVoteKeyRegistrations.size() && !pblocktree->WriteInvalidVoteKeyRegistrations(vecInvalidVoteKeyRegistrations) )
         return AbortNode(state, "Failed to write invalid VoteKey registrations");
 
     if( mapVoteKeys.size() && !pblocktree->WriteVoteKeys(mapVoteKeys) )
         return AbortNode(state, "Failed to write VoteKeys");
+    */
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());
