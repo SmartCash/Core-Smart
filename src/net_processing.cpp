@@ -664,7 +664,7 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 
     case MSG_VOTING_PROPOSAL:
     case MSG_VOTING_PROPOSAL_VOTE:
-        return !smartVoting.ConfirmInventoryRequest(inv);
+        return true; // WIP-VOTING replace with => return !smartVoting.ConfirmInventoryRequest(inv);
 
     case MSG_SMARTNODE_VERIFY:
         return mnodeman.mapSeenSmartnodeVerification.count(inv.hash);
@@ -912,6 +912,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                     }
                 }
 
+                /*
                 if (!pushed && inv.type == MSG_VOTING_PROPOSAL) {
                     LogPrint("net", "ProcessGetData -- MSG_VOTING_PROPOSAL: inv = %s\n", inv.ToString());
                     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
@@ -948,6 +949,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                         pushed = true;
                     }
                 }
+                */
 
                 if (!pushed && inv.type == MSG_SMARTNODE_VERIFY) {
                     if(mnodeman.mapSeenSmartnodeVerification.count(inv.hash)) {
@@ -2123,7 +2125,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             instantsend.ProcessMessage(pfrom, strCommand, vRecv, connman);
             sporkManager.ProcessSpork(pfrom, strCommand, vRecv, connman);
             smartnodeSync.ProcessMessage(pfrom, strCommand, vRecv, connman);
-            smartVoting.ProcessMessage(pfrom, strCommand, vRecv, connman);
+
+            //WIP-VOTING uncomment => smartVoting.ProcessMessage(pfrom, strCommand, vRecv, connman);
 
         }
         else
