@@ -271,7 +271,6 @@ bool CInv::IsKnownType() const
         case MSG_WITNESS_BLOCK:
         case MSG_WITNESS_TX:
         case MSG_FILTERED_WITNESS_BLOCK:
-        case MSG_VOTING_PROPOSAL:
         // WIP-VOTING remove cases below
         case MSG_VOTING_PROPOSAL_VOTE:
         case MSG_VOTING_PROPOSAL:
