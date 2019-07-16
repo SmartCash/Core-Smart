@@ -42,7 +42,9 @@ void CDSNotificationInterface::UpdatedBlockTip(const CBlockIndex *pindexNew, con
     mnodeman.UpdatedBlockTip(pindexNew);
     instantsend.UpdatedBlockTip(pindexNew);
     mnpayments.UpdatedBlockTip(pindexNew, connman);
-    smartVoting.UpdatedBlockTip(pindexNew, connman);
+
+// WIP-VOTING uncomment
+//    smartVoting.UpdatedBlockTip(pindexNew, connman);
 }
 
 void CDSNotificationInterface::SyncTransaction(const CTransaction &tx, const CBlock *pblock)
