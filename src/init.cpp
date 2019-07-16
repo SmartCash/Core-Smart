@@ -2219,7 +2219,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 11d: start smartcash threads
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
-    threadGroup.create_thread(&ThreadSmartVoting);
+
+//  WIP-VOTING uncomment
+//    threadGroup.create_thread(&ThreadSmartVoting);
 
     // ********************************************************* Step 12: start node
 
