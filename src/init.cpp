@@ -282,6 +282,7 @@ void PrepareShutdown()
         flatdb.Dump(netfulfilledman);
     }
 
+    /* WIP-VOTING uncomment
     fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_VOTING);
     if( fCache ){
         CFlatDB<CSmartVotingManager> flatdb("smartvoting.dat", "magicSmartVotingCache");
@@ -293,6 +294,7 @@ void PrepareShutdown()
         CFlatDB<CSAPIStatistics> flatdb(".sapi_stats", "magicSAPIStatistics");
         flatdb.Dump(sapiStatistics);
     }
+    */
 
     UnregisterNodeSignals(GetNodeSignals());
 
@@ -1056,8 +1058,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             "sncache.dat",
             "snpayments.dat",
             "banlist.dat",
-            "fee_estimates.dat",
-            "smartvoting.dat"
+            "fee_estimates.dat"
+            // WIP-VOTING uncomment
+            //"smartvoting.dat"
         };
 
         boost::filesystem::path cachePath = GetDataDir();
@@ -2191,6 +2194,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             }
         }
 
+        /* WIP-VOTING uncomment
         fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_VOTING);
         if( fCache ){
             strDBName = "smartvoting.dat";
@@ -2207,6 +2211,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 smartVoting.InitOnLoad();
             }
         }
+        */
     }
 
     // ********************************************************* Step 11c: update block tip in SmartCash modules
