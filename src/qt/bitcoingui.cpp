@@ -476,9 +476,11 @@ void BitcoinGUI::createMenuBar()
         settings->addAction(encryptWalletAction);
         settings->addAction(changePassphraseAction);
         settings->addSeparator();
+        /* WIP-VOTING uncomment
         settings->addAction(encryptVotingAction);
         settings->addAction(changeVotingPassphraseAction);
         settings->addSeparator();
+        */
     }
     settings->addAction(optionsAction);
 
