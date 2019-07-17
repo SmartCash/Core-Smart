@@ -124,6 +124,7 @@ QT_FORMS_UI = \
   qt/forms/signverifymessagedialog.ui \
   qt/forms/specialtransactiondialog.ui \
   qt/forms/transactiondescdialog.ui \
+  qt/forms/voteaddressesdialog.ui \
   qt/forms/zerocoinpage.ui
 
 QT_MOC_CPP = \
