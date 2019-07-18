@@ -60,7 +60,13 @@ void CalculateRewardRatio(CSmartRewardRound &round)
 
     while( start <= round.endBlockHeight) round.rewards += GetBlockValue(start++,0,time) * 0.15;
 
-    round.percent = double(round.rewards) / ( round.eligibleSmart - round.disqualifiedSmart );
+    CAmount nCalcSmart = round.eligibleSmart - round.disqualifiedSmart;
+
+    if( nCalcSmart ){
+        round.percent = double(round.rewards) / nCalcSmart;
+    }else{
+        round.percent = 0;
+    }
 }
 
 bool CSmartRewards::Verify()
