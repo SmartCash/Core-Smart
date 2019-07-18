@@ -26,7 +26,7 @@ const int64_t nRewardsUISyncUpdateRate = 500;
 const int64_t nRewardsBlocksPerRound_1_2 = 47500;
 const int64_t nRewardsBlocksPerRound_1_3 = 142500;
 const int64_t nRewardsFirstAutomatedRound = 13;
-const int64_t nRewardsFirst_1_3_Round = 25;
+const int64_t nRewardsFirst_1_3_Round = 27;
 
 // Timestamps of the first round's start and end on mainnet
 const int64_t nFirstRoundStartTime = 1500966000;
@@ -44,8 +44,7 @@ const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
 const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_PAYMENTS_HEIGHT;
 const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + nRewardsBlocksPerRound_1_2_Testnet;
-const int64_t nRewardsFirst_1_3_Round_Testnet = 315;
-
+const int64_t nRewardsFirst_1_3_Round_Testnet = 3;
 
 void ThreadSmartRewards(bool fRecreate = false);
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
