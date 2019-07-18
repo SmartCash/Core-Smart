@@ -180,6 +180,7 @@ void SmartrewardsList::updateUI()
         return;
     }
 
+    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
 
     if( !lastUpdate || currentTime - lastUpdate  > 10 ){
@@ -319,7 +320,13 @@ void SmartrewardsList::updateUI()
 
                         if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
                             change.balance = reward.balance;
-                            change.eligible = reward.IsEligible() ? reward.balanceOnStart : 0;
+
+                            if( current.number < nFirst_1_3_Round ){
+                                change.eligible = reward.balanceEligible;
+                            }else{
+                                change.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
+                            }
+
                             change.reward = current.percent * change.eligible;
                         }
 
@@ -345,7 +352,13 @@ void SmartrewardsList::updateUI()
 
                 if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward) ){
                     rewardField.balance = reward.balance;
-                    rewardField.eligible = reward.IsEligible() ? reward.balanceOnStart : 0;
+
+                    if( current.number < nFirst_1_3_Round ){
+                        rewardField.eligible = reward.balanceEligible;
+                    }else{
+                        rewardField.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
+                    }
+
                     rewardField.reward = current.percent * rewardField.eligible;
                 }
 
