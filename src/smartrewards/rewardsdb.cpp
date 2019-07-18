@@ -399,11 +399,10 @@ string CSmartRewardEntry::GetAddress() const
 void CSmartRewardEntry::setNull()
 {
     id = CSmartAddress();
-    balanceOnStart = 0;
     balance = 0;
-    fBalanceEligible = false;
+    balanceEligible = 0;
     fIsSmartNode = false;
-    fVoteProved = false;
+    fVoteProven = false;
 }
 
 string CSmartRewardEntry::ToString() const
@@ -412,16 +411,15 @@ string CSmartRewardEntry::ToString() const
     s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceStart=%d, eligible=%b, isSmartNode=%b, voteProved=%b)\n",
         GetAddress(),
         balance,
-        balanceOnStart,
-        fBalanceEligible,
+        balanceEligible,
         fIsSmartNode,
-        fVoteProved);
+        fVoteProven);
     return s.str();
 }
 
 bool CSmartRewardEntry::IsEligible()
 {
-  return fBalanceEligible && !fIsSmartNode;
+  return balanceEligible && !fIsSmartNode && fVoteProven;
 }
 
 string CSmartRewardBlock::ToString() const

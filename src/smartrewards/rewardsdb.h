@@ -175,29 +175,25 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(id);
-        READWRITE(balanceOnStart);
+        READWRITE(balanceEligible);
         READWRITE(balance);
-        READWRITE(fBalanceEligible);
         READWRITE(fIsSmartNode);
-        READWRITE(fVoteProved);
+        READWRITE(fVoteProven);
     }
 
     CSmartAddress id;
     CAmount balance;
-    CAmount balanceOnStart;
+    CAmount balanceEligible;
     CAmount reward;
-    bool fBalanceEligible;
     bool fIsSmartNode;
-    bool fVoteProved;
+    bool fVoteProven;
 
     CSmartRewardEntry() : id(CSmartAddress()),
-                          balance(0), balanceOnStart(0),
-                          reward(0), fBalanceEligible(false),
-                          fIsSmartNode(false), fVoteProved(false) {}
+                          balance(0), balanceEligible(0), reward(0),
+                          fIsSmartNode(false), fVoteProven(false) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
-                          balance(0), balanceOnStart(0),
-                          reward(0), fBalanceEligible(false),
-                          fIsSmartNode(false), fVoteProved(false) {}
+                          balance(0), balanceEligible(0), reward(0),
+                          fIsSmartNode(false), fVoteProven(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -238,7 +234,7 @@ public:
     CSmartRewardSnapshot(CSmartRewardEntry &entry, const CSmartRewardRound &round) {
         id = entry.id;
         balance = entry.balance;
-        reward = entry.IsEligible() ? CAmount(entry.balanceOnStart * round.percent) : 0;
+        reward = entry.IsEligible() ? CAmount(entry.balanceEligible * round.percent) : 0;
     }
 
     friend bool operator==(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)

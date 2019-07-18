@@ -56,8 +56,10 @@ struct CSmartRewardsUpdateResult
 {
     int64_t disqualifiedEntries;
     int64_t disqualifiedSmart;
+    int64_t qualifiedEntries;
+    int64_t qualifiedSmart;
     CSmartRewardBlock block;
-    CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0),block() {}
+    CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block() {}
 };
 
 class CSmartRewards
