@@ -14,6 +14,13 @@
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
+// Constants for vote proof transactions
+static const CAmount REWARDS_VOTEPROOF_FEE = 0 * COIN;
+static const CAmount REWARDS_VOTEPROOF_TX_FEE = 0.002 * COIN;
+
+static const int REWARDS_VOTEPROOF_SCRIPT_SIZE = 0x00;
+static const int REWARDS_VOTEPROOF_DATA_SIZE = 0x00;
+
 static const int WITNESS_SCALE_FACTOR = 4;
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -217,6 +224,11 @@ public:
     bool IsVoteKeyRegistrationData() const
     {
         return scriptPubKey.IsVoteKeyData() && nValue == VOTEKEY_REGISTER_FEE;
+    }
+
+    bool IsVoteProofData() const
+    {
+        return scriptPubKey.IsVoteProofData() && nValue == REWARDS_VOTEPROOF_FEE;
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
@@ -456,6 +468,7 @@ public:
     bool IsZerocoinMint(const CTransaction& tx) const;
 
     bool IsVoteKeyRegistration() const;
+    bool IsVoteProof() const;
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {

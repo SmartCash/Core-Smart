@@ -7,6 +7,7 @@
 
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "primitives/transaction.h"
 #include "smartvoting/votekeys.h"
 
 using namespace std;
@@ -302,6 +303,14 @@ bool CScript::IsVoteKeyData() const {
             (*this)[2] == VOTEKEY_REGISTRATION_O2_DATA_SIZE &&
             (*this)[3] == OP_RETURN_VOTE_KEY_REG_FLAG &&
             (*this)[4] == 0x02);
+}
+
+bool CScript::IsVoteProofData() const {
+    return  this->size() == REWARDS_VOTEPROOF_SCRIPT_SIZE &&
+            (*this)[0] == OP_RETURN &&
+            (*this)[1] == OP_PUSHDATA1 &&
+            (*this)[2] == REWARDS_VOTEPROOF_DATA_SIZE &&
+            (*this)[3] == OP_RETURN_VOTE_PROOF_FLAG;
 }
 
 bool CScript::HasCanonicalPushes() const

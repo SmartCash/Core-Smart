@@ -193,7 +193,8 @@ enum opcodetype
 
 enum opreturnflags{
     OP_RETURN_MINING_FLAG = 0x01,
-    OP_RETURN_VOTE_KEY_REG_FLAG = 0x02
+    OP_RETURN_VOTE_KEY_REG_FLAG = 0x02,
+    OP_RETURN_VOTE_PROOF_FLAG = 0x03,
 };
 
 const char* GetOpName(opcodetype opcode);
@@ -640,6 +641,7 @@ public:
     bool IsZerocoinMint() const;
     bool IsZerocoinSpend() const;
     bool IsVoteKeyData() const;
+    bool IsVoteProofData() const;
     // Called by IsStandardTx.
     bool HasCanonicalPushes() const;
 
