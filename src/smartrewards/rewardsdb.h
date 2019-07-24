@@ -231,11 +231,8 @@ public:
 
     CSmartRewardSnapshot(){}
 
-    CSmartRewardSnapshot(CSmartRewardEntry &entry, const CSmartRewardRound &round) {
-        id = entry.id;
-        balance = entry.balance;
-        reward = entry.IsEligible() ? CAmount(entry.balanceEligible * round.percent) : 0;
-    }
+    CSmartRewardSnapshot(CSmartAddress &id, const CAmount nBalance, CAmount nReward) :
+        id(id), balance(nBalance), reward(nReward){}
 
     friend bool operator==(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
     {
