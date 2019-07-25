@@ -46,6 +46,22 @@ class SmartrewardsList : public QWidget
 {
     Q_OBJECT
 
+    enum SmartRewardsListState{
+        STATE_INIT,
+        STATE_PROCESSING,
+        STATE_OVERVIEW,
+        STATE_VOTEPROOF
+    };
+
+    Ui::SmartrewardsList *ui;
+    WalletModel *model;
+    ClientModel *clientModel;
+    const PlatformStyle *platformStyle;
+    QMenu *contextMenu;
+    SmartRewardsListState state;
+
+    void setState(SmartrewardsList::SmartRewardsListState state);
+
 public:
     explicit SmartrewardsList(const PlatformStyle *platformStyle, QWidget *parent = 0);
     ~SmartrewardsList();
@@ -62,13 +78,6 @@ public:
         COLUMN_REWARD,
     };
 
-private:
-    Ui::SmartrewardsList *ui;
-    WalletModel *model;
-    ClientModel *clientModel;
-    QMenu *contextMenu;
-    
-
 public Q_SLOTS:
     void contextualMenu(const QPoint &);
     void copyAddress();
@@ -76,6 +85,13 @@ public Q_SLOTS:
     void copyAmount();
     void copyEligibleAmount();
     void copyReward();
+    void updateOverviewUI();
+    void updateVoteProofUI();
     void updateUI();
+
+    void on_btnManageProofs_clicked();
+    void on_btnCancelProofs_clicked();
+    void on_btnSendProofs_clicked();
+
 };
 #endif // SMARTREWARDSLIST_H
