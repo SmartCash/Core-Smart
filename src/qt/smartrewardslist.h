@@ -16,6 +16,9 @@
 #include <QWidget>
 #include <QTableWidgetItem>
 
+class CSmartRewardRound;
+class CBlockIndex;
+
 namespace Ui {
     class SmartrewardsList;
 }
@@ -85,8 +88,8 @@ public Q_SLOTS:
     void copyAmount();
     void copyEligibleAmount();
     void copyReward();
-    void updateOverviewUI();
-    void updateVoteProofUI();
+    void updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip);
+    void updateVoteProofUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip);
     void updateUI();
 
     void on_btnManageProofs_clicked();

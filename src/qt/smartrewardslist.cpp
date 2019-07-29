@@ -176,7 +176,7 @@ void SmartrewardsList::copyReward()
     GUIUtil::copyEntryData(ui->tableWidget, 4);
 }
 
-void SmartrewardsList::updateOverviewUI()
+void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip)
 {
 
     static int64_t lastUpdate = 0;
@@ -191,32 +191,25 @@ void SmartrewardsList::updateOverviewUI()
 
     ui->spinnerWidget->stop();
 
-    CSmartRewardRound current;
-    CBlockIndex* tip = nullptr;
-    {
-        LOCK(cs_rewardrounds);
-        current = prewards->GetCurrentRound();
-        tip = chainActive.Tip();
-    }
     QString percentText;
-    percentText.sprintf("%.2f%%", current.percent * 100);
+    percentText.sprintf("%.2f%%", currentRound.percent * 100);
     ui->percentLabel->setText(percentText);
 
-    ui->roundLabel->setText(QString::number(current.number));
+    ui->roundLabel->setText(QString::number(currentRound.number));
 
     QDateTime roundEnd;
-    roundEnd.setTime_t(current.endBlockTime);
+    roundEnd.setTime_t(currentRound.endBlockTime);
     QString roundEndText;
 
-    if( ( ( MainNet() && current.number >= nRewardsFirstAutomatedRound ) || TestNet() ) && tip ){
+    if( ( ( MainNet() && currentRound.number >= nRewardsFirstAutomatedRound ) || TestNet() ) && tip ){
 
-        int64_t remainingBlocks = current.endBlockHeight - tip->nHeight;
+        int64_t remainingBlocks = currentRound.endBlockHeight - tip->nHeight;
 
         roundEndText = QString("%1 blocks ( ").arg(remainingBlocks);
 
         if( remainingBlocks <= 1 ) {
             ui->roundEndsLabel->setText("");
-            roundEndText = QString("Snapshot has occurred. Payouts will begin at block %1").arg(current.endBlockHeight + nRewardPayoutStartDelay);
+            roundEndText = QString("Snapshot has occurred. Payouts will begin at block %1").arg(currentRound.endBlockHeight + nRewardPayoutStartDelay);
         }else{
 
             ui->roundEndsLabel->setText("Round ends:");
@@ -248,10 +241,10 @@ void SmartrewardsList::updateOverviewUI()
 
         roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
 
-        if( current.endBlockTime < currentTime ) {
+        if( currentRound.endBlockTime < currentTime ) {
             roundEndText += " ( Now )";
         }else{
-            uint64_t minutesLeft = ( (uint64_t)current.endBlockTime - currentTime ) / 60;
+            uint64_t minutesLeft = ( (uint64_t)currentRound.endBlockTime - currentTime ) / 60;
             uint64_t days = minutesLeft / 1440;
             uint64_t hours = (minutesLeft % 1440) / 60;
             uint64_t minutes = (minutesLeft % 1440) % 60;
@@ -318,13 +311,13 @@ void SmartrewardsList::updateOverviewUI()
                     if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
                         change.balance = reward.balance;
 
-                        if( current.number < nFirst_1_3_Round ){
+                        if( currentRound.number < nFirst_1_3_Round ){
                             change.eligible = reward.balanceEligible;
                         }else{
                             change.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
                         }
 
-                        change.reward = current.percent * change.eligible;
+                        change.reward = currentRound.percent * change.eligible;
                     }
 
                     if( change.balance ) rewardList.push_back(change);
@@ -350,13 +343,13 @@ void SmartrewardsList::updateOverviewUI()
             if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward) ){
                 rewardField.balance = reward.balance;
 
-                if( current.number < nFirst_1_3_Round ){
+                if( currentRound.number < nFirst_1_3_Round ){
                     rewardField.eligible = reward.balanceEligible;
                 }else{
                     rewardField.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
                 }
 
-                rewardField.reward = current.percent * rewardField.eligible;
+                rewardField.reward = currentRound.percent * rewardField.eligible;
             }
 
             if( rewardField.balance ) rewardList.push_back(rewardField);
@@ -403,9 +396,10 @@ void SmartrewardsList::updateOverviewUI()
     ui->tableWidget->setSortingEnabled(true);
 }
 
-void SmartrewardsList::updateVoteProofUI()
+void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip)
 {
 
+    ui->lblProofsTitleRound->setText(QString("%1").arg(currentRound.number));
 }
 
 void SmartrewardsList::updateUI()
@@ -413,6 +407,14 @@ void SmartrewardsList::updateUI()
     // If the wallet model hasn't been set yet we cant update the UI.
     if(!model) {
         return;
+    }
+
+    CSmartRewardRound currentRound;
+    CBlockIndex* tip = nullptr;
+    {
+        LOCK(cs_rewardrounds);
+        currentRound = prewards->GetCurrentRound();
+        tip = chainActive.Tip();
     }
 
     switch(state){
@@ -432,10 +434,10 @@ void SmartrewardsList::updateUI()
 
         break;
     case STATE_OVERVIEW:
-        updateOverviewUI();
+        updateOverviewUI(currentRound, tip);
         break;
     case STATE_VOTEPROOF:
-        updateVoteProofUI();
+        updateVoteProofUI(currentRound, tip);
         break;
     default:
         break;

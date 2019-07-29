@@ -309,7 +309,7 @@ QProgressBar::chunk {
                <widget class="QLabel" name="label_17">
                 <property name="font">
                  <font>
-                  <pointsize>19</pointsize>
+                  <pointsize>17</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -327,7 +327,7 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>19</pointsize>
+                  <pointsize>17</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -389,7 +389,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="label_21">
               <property name="font">
                <font>
-                <pointsize>19</pointsize>
+                <pointsize>17</pointsize>
                </font>
               </property>
               <property name="text">
@@ -401,7 +401,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="percentLabel">
               <property name="font">
                <font>
-                <pointsize>19</pointsize>
+                <pointsize>17</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -507,7 +507,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="label">
               <property name="font">
                <font>
-                <pointsize>20</pointsize>
+                <pointsize>17</pointsize>
                </font>
               </property>
               <property name="text">
@@ -519,7 +519,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="sumLabel">
               <property name="font">
                <font>
-                <pointsize>20</pointsize>
+                <pointsize>17</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -554,9 +554,30 @@ QProgressBar::chunk {
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
-          <widget class="QLabel" name="label_4">
+          <widget class="QLabel" name="lblProofsTitle">
+           <property name="font">
+            <font>
+             <pointsize>17</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="text">
-            <string>Manage SmartReward Vote-Proofs</string>
+            <string>Manage Vote-Proofs for SmartRewards round</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="lblProofsTitleRound">
+           <property name="font">
+            <font>
+             <pointsize>17</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>0</string>
            </property>
           </widget>
          </item>
@@ -576,7 +597,33 @@ QProgressBar::chunk {
         </layout>
        </item>
        <item>
-        <widget class="QTableWidget" name="addressTable"/>
+        <widget class="QTableWidget" name="addressTable">
+         <column>
+          <property name="text">
+           <string>Label</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Address</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Eligible Amount</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Voted</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Vote Proven</string>
+          </property>
+         </column>
+        </widget>
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_5">
