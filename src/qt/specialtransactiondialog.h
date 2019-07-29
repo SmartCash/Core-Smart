@@ -106,6 +106,5 @@ static const QString strVoteProofTitle = "Send VoteProofs";
 static const QString strVoteProofDescription = (
 ""
 );
-static const QString strVoteProofFeeDescription = "VoteProof fee";
 
 #endif // SMARTCASH_QT_SPECIALTRANSACTIONDIALOG_H

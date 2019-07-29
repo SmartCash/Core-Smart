@@ -65,10 +65,11 @@ SpecialTransactionDialog::SpecialTransactionDialog(const SpecialTransactionType 
         ui->descriptionLabel->setText(strRegistrationDescription);
         break;
     case VOTE_PROOF_TRANSACTIONS: // TBD
-        nRequiredFee = 0;
-        nRequiredNetworkFee = 0;
+        nRequiredFee = REWARDS_VOTEPROOF_FEE;
+        nRequiredNetworkFee = REWARDS_VOTEPROOF_TX_FEE;
         this->setWindowTitle(strVoteProofTitle);
-        ui->labelFeeDesc->setText(strVoteProofFeeDescription);
+        ui->labelFeeDesc->hide();
+        ui->labelFeeAmount->hide();
         ui->descriptionLabel->setText(strVoteProofDescription);
         break;
     default:
