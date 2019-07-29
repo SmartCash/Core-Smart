@@ -408,7 +408,7 @@ void CSmartRewardEntry::setNull()
 string CSmartRewardEntry::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceStart=%d, eligible=%b, isSmartNode=%b, voteProved=%b)\n",
+    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceEligible=%d, isSmartNode=%b, voteProven=%b)\n",
         GetAddress(),
         balance,
         balanceEligible,
