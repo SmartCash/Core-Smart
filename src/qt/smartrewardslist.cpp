@@ -180,7 +180,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 {
 
     static int64_t lastUpdate = 0;
-    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
 
     if( !lastUpdate || currentTime - lastUpdate  > 10 ){
@@ -209,7 +209,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
         if( remainingBlocks <= 1 ) {
             ui->roundEndsLabel->setText("");
-            roundEndText = QString("Snapshot has occurred. Payouts will begin at block %1").arg(currentRound.endBlockHeight + nRewardPayoutStartDelay);
+            roundEndText = QString("Snapshot has occurred. Payouts will begin at block %1").arg(currentRound.endBlockHeight + Params().GetConsensus().nRewardsPayoutStartDelay);
         }else{
 
             ui->roundEndsLabel->setText("Round ends:");

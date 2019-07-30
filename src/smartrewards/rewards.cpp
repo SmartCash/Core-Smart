@@ -80,30 +80,20 @@ void CSmartRewards::UpdatePayoutParameter(CSmartRewardRound &round)
 {
 
     int64_t nPayeeCount = round.eligibleEntries - round.disqualifiedEntries;
-    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     if( round.number < nFirst_1_3_Round ){
-
-        if( MainNet() ){
-            round.nBlockPayees = nRewardPayouts_1_2_BlockPayees;
-            round.nBlockInterval = nRewardPayouts_1_2_BlockInterval;
-        }else{
-            round.nBlockPayees = nRewardPayoutsPerBlock_2_Testnet;
-            round.nBlockInterval = nRewardPayoutBlockInterval_2_Testnet;
-        }
-
+        round.nBlockPayees  = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
+        round.nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
     }else{
 
-        int64_t nBlockStretch = MainNet() ? nRewardPayouts_1_3_BlockStretch :
-                                   nRewardPayouts_1_3_BlockStretch_Testnet;
-        int64_t nBlocksPerRound = MainNet() ? nRewardsBlocksPerRound_1_3 :
-                                   nRewardsBlocksPerRound_1_3_Testnet;
-        int64_t nBlockPayees = MainNet() ? nRewardPayouts_1_3_BlockPayees :
-                                           nRewardPayouts_1_3_BlockPayees_Testnet;
+        int64_t nBlockStretch = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch;
+        int64_t nBlocksPerRound = Params().GetConsensus().nRewardsBlocksPerRound_1_3;
+        int64_t nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
 
         round.nBlockPayees = std::max<int>(nBlockPayees, (nPayeeCount / nBlockStretch * nBlockPayees) + 1);
 
-        int64_t nStartDelayBlocks = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+        int64_t nStartDelayBlocks = Params().GetConsensus().nRewardsPayoutStartDelay;
         int64_t nBlocksTarget = nStartDelayBlocks + nBlocksPerRound;
         round.nBlockInterval = ((nBlockStretch * round.nBlockPayees) / nPayeeCount) + 1;
         int64_t nStretchedLength = nPayeeCount / round.nBlockPayees * (round.nBlockInterval);
@@ -121,7 +111,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
     CSmartRewardEntry *rEntry = nullptr;
     CBlock block;
     int nHeight = pindexNew->nHeight;
-    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = chainparams.GetConsensus().nRewardsFirst_1_3_Round;
     ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
 
     BOOST_FOREACH(const CTransaction &tx, block.vtx) {
@@ -347,7 +337,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
 
     UpdatePayoutParameter(current);
 
-    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     CAmount nReward;
 
@@ -514,20 +504,12 @@ int CSmartRewards::GetBlocksPerRound(const int nRound)
 {
     LOCK(cs_rewardrounds);
 
-    if( MainNet() ){
+    const CChainParams& chainparams = Params();
 
-        if( nRound < nRewardsFirst_1_3_Round )
-            return nRewardsBlocksPerRound_1_2;
-        else
-            return nRewardsBlocksPerRound_1_3;
-
+    if( nRound < chainparams.GetConsensus().nRewardsFirst_1_3_Round ){
+        return chainparams.GetConsensus().nRewardsBlocksPerRound_1_2;
     }else{
-
-        if( nRound < nRewardsFirst_1_3_Round_Testnet )
-            return nRewardsBlocksPerRound_1_2_Testnet;
-        else
-            return nRewardsBlocksPerRound_1_3_Testnet;
-
+        return chainparams.GetConsensus().nRewardsBlocksPerRound_1_3;
     }
 
 }
@@ -609,9 +591,7 @@ void CSmartRewards::CatchUp()
         pLastIndex = pLastIndex->pprev;
     }
 
-    int nMinConfirmations = MainNet() ? nRewardsConfirmations : nRewardsConfirmations_Testnet;
-
-    while( pLastIndex && ( currentBlock.nHeight - pLastIndex->nHeight ) < nMinConfirmations)
+    while( pLastIndex && ( currentBlock.nHeight - pLastIndex->nHeight ) < chainparams.GetConsensus().nRewardsConfirmationsRequired)
     {
         if( ShutdownRequested() ){
             SyncPrepared();
@@ -683,9 +663,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
         return;
     }
 
-    int nMinConfirmations = MainNet() ? nRewardsConfirmations : nRewardsConfirmations_Testnet;
-
-    if( ( pLastIndex->nHeight - currentBlock.nHeight ) > nMinConfirmations){
+    if( ( pLastIndex->nHeight - currentBlock.nHeight ) > chainparams.GetConsensus().nRewardsConfirmationsRequired){
 
         int nCurrentRound;
 

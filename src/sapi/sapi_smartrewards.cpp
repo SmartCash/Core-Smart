@@ -63,7 +63,7 @@ static bool CheckAddresses(HTTPRequest* req, std::vector<std::string> vecAddr, s
 
     const CSmartRewardRound& current = prewards->GetCurrentRound();
 
-    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     for( auto addrStr : vecAddr ){
 
@@ -148,7 +148,7 @@ static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, s
 
     const CSmartRewardRoundList& history = prewards->GetRewardRounds();
 
-    int64_t nPayoutDelay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+    int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
     if(!history.size()) return SAPI::Error(req, SAPI::NoFinishedRewardRound, "No finished reward round available yet.");
 

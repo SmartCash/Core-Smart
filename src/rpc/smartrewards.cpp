@@ -92,7 +92,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         const CSmartRewardRoundList& history = prewards->GetRewardRounds();
 
-        int64_t nPayoutDelay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+        int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
         if(!history.size()) throw JSONRPCError(RPC_DATABASE_ERROR, "No finished reward round available yet.");
 
@@ -243,7 +243,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         const CSmartRewardRound& current = prewards->GetCurrentRound();
 
-        int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+        int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
         std::string addressString = params[1].get_str();
         CSmartAddress id = CSmartAddress(addressString);

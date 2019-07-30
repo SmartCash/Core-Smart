@@ -61,13 +61,13 @@ CSmartRewardSnapshotPtrList SmartRewardPayments::GetPayments(const CSmartRewardR
         return CSmartRewardSnapshotPtrList();
     }
 
-    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     int64_t nBlockPayees = round.nBlockPayees;
     int64_t nPayoutInterval = round.nBlockInterval;
 
     int64_t nRewardBlocks = nPayeeCount / nBlockPayees;
-    // If we dont match nRewardPayoutsPerBlock add one more block for the remaining payments.
+    // If we dont match nRewardsPayoutsPerBlock add one more block for the remaining payments.
     if( nPayeeCount % nBlockPayees ) nRewardBlocks += 1;
 
     int64_t nLastRoundBlock = round.endBlockHeight + nPayoutDelay + ( (nRewardBlocks - 1) * nPayoutInterval );
@@ -128,7 +128,7 @@ CSmartRewardSnapshotPtrList SmartRewardPayments::GetPayments(const CSmartRewardR
         int64_t nRewardBlock = nRewardBlocks - ( (nLastRoundBlock - nHeight) / nPayoutInterval );
         int64_t nFinalBlockPayees = nBlockPayees;
 
-        // If the to be paid addresses are no multile of nRewardPayoutsPerBlock
+        // If the to be paid addresses are no multile of nRewardsPayoutsPerBlock
         // the last payout block has less payees than the others.
         if( nRewardBlock == nRewardBlocks && nPayeeCount % nBlockPayees ){
             // Use the remainders here..
@@ -167,7 +167,7 @@ CSmartRewardSnapshotPtrList SmartRewardPayments::GetPaymentsForBlock(const int n
     }
 
     // If we are not yet at the 1.2 payout block time.
-    if( ( MainNet() && nHeight < HF_V1_2_SMARTREWARD_HEIGHT + nRewardsBlocksPerRound_1_2 ) ||
+    if( ( MainNet() && nHeight < HF_V1_2_SMARTREWARD_HEIGHT + Params().GetConsensus().nRewardsBlocksPerRound_1_2 ) ||
         ( TestNet() && nHeight < nFirstRoundEndBlock_Testnet ) ){
         result = SmartRewardPayments::NoRewardBlock;
         return CSmartRewardSnapshotPtrList();
@@ -188,7 +188,7 @@ CSmartRewardSnapshotPtrList SmartRewardPayments::GetPaymentsForBlock(const int n
 
     // If the requested height is lower then the rounds end step forward to the
     // next round.
-    int64_t nPayoutDelay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+    int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
     if( nHeight >= ( round.endBlockHeight + nPayoutDelay ) ){
         return SmartRewardPayments::GetPayments( round, nPayoutDelay, nHeight, blockTime, result );
