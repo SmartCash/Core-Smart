@@ -95,6 +95,7 @@ struct Params {
     int nRewardsPayouts_1_3_BlockStretch;
     int nRewardsPayouts_1_3_BlockPayees;
 
+    std::string strRewardsGlobalVoteProofAddress;
 };
 } // namespace Consensus
 

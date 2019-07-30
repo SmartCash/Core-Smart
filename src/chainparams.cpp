@@ -144,6 +144,7 @@ public:
         consensus.nRewardsPayouts_1_3_BlockStretch = 10990; // 1 week
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
+        consensus.strRewardsGlobalVoteProofAddress = "TBD";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -289,6 +290,7 @@ public:
         consensus.nRewardsPayouts_1_3_BlockStretch = 4000; // 1 week
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
+        consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
 
         pchMessageStart[0] = 0xcf;
         pchMessageStart[1] = 0xfc;
