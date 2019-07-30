@@ -419,7 +419,7 @@ string CSmartRewardEntry::ToString() const
 
 bool CSmartRewardEntry::IsEligible()
 {
-  return balanceEligible && !fIsSmartNode && fVoteProven;
+  return fVoteProven && !fIsSmartNode && balanceEligible;
 }
 
 string CSmartRewardBlock::ToString() const
