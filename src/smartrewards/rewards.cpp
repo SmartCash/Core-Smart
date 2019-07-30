@@ -261,15 +261,62 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                              !out.IsVoteProofData() &&
                              (*voteProofCheck == rEntry->id) ){
 
-                        // Change was sent back to the sender to this is a vote proof
-                        if( !rEntry->fVoteProven ){
+                        CSmartRewardEntry *proofEntry = nullptr;
+                        unsigned char cProofOption = 0, cAddressType = 0;
+                        uint32_t nProofRound;
+                        uint160 addressHash;
+                        uint256 nProposalHash; // Placeholder only for now
+                        CSmartAddress proofAddress;
 
-                            rEntry->fVoteProven = true;
+                        BOOST_FOREACH(const CTxOut &outData, tx.vout) {
+
+                            if( outData.IsVoteProofData() ){
+
+                                std::vector<unsigned char> scriptData;
+                                scriptData.insert(scriptData.end(), outData.scriptPubKey.begin() + 4, outData.scriptPubKey.end());
+                                CDataStream ss(scriptData, SER_NETWORK, 0);
+
+                                ss >> cProofOption;
+                                ss >> nProofRound;
+                                ss >> nProposalHash;
+
+                                if( cProofOption == 0x01 &&
+                                    voteProofCheck->ToString(false) != Params().GetConsensus().strRewardsGlobalVoteProofAddress){
+                                    proofAddress = *voteProofCheck;
+                                }else if( cProofOption == 0x02 &&
+                                          voteProofCheck->ToString(false) == Params().GetConsensus().strRewardsGlobalVoteProofAddress ){
+
+                                    ss >> cAddressType;
+                                    ss >> addressHash;
+
+                                    if( cAddressType == 0x01 ){
+                                        proofAddress = CSmartAddress(CKeyID(addressHash));
+                                    }else if( cAddressType == 0x02){
+                                        proofAddress = CSmartAddress(CScriptID(addressHash));
+                                    }else{
+                                        proofAddress = CSmartAddress(); // Invalid address type
+                                    }
+
+                                    if(!GetCachedRewardEntry(proofAddress, proofEntry)){
+                                        proofEntry = new CSmartRewardEntry(proofAddress);
+                                        ReadRewardEntry(proofEntry->id, *proofEntry);
+                                        rewardEntries.insert(make_pair(proofEntry->id, proofEntry));
+                                    }
+
+                                }else{
+                                    proofAddress = CSmartAddress(); // Invalid option
+                                }
+                            }
+                        }
+
+                        if( proofAddress.IsValid() && proofEntry != nullptr && !proofEntry->fVoteProven && !SmartHive::IsHive(*voteProofCheck) ){
+
+                            proofEntry->fVoteProven = true;
 
                             // If the entry is eligible now after the vote proof update the results
-                            if( rEntry->IsEligible() ){
+                            if( proofEntry->IsEligible() ){
                                 result.qualifiedEntries++;
-                                result.qualifiedSmart += rEntry->balanceEligible;
+                                result.qualifiedSmart += proofEntry->balanceEligible;
                             }
                         }
                     }
