@@ -461,6 +461,28 @@ bool CWallet::UpdateVotingKeyRegistration(const CKeyID &keyId) {
     return CWalletDB(strWalletFile).UpdateVotingKeyRegistration(keyId, mapVotingKeyRegistrations[keyId]);
 }
 
+bool CWallet::LoadVotedMap(const CKeyID &keyId, const std::set<int64_t> &setVoted) {
+    AssertLockHeld(cs_wallet);
+    mapVoted[keyId] = setVoted;
+    return true;
+}
+
+bool CWallet::UpdateVotedMap(const CKeyID &keyId) {
+    AssertLockHeld(cs_wallet);
+    return CWalletDB(strWalletFile).UpdateVotedMap(keyId, mapVoted[keyId]);
+}
+
+bool CWallet::LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapProofs) {
+    AssertLockHeld(cs_wallet);
+    mapVoteProofs[keyId] = mapProofs;
+    return true;
+}
+
+bool CWallet::UpdateVoteProofs(const CKeyID &keyId) {
+    AssertLockHeld(cs_wallet);
+    return CWalletDB(strWalletFile).UpdateVoteProofs(keyId, mapVoteProofs[keyId]);
+}
+
 bool CWallet::LoadCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret) {
     return CCryptoKeyStore::AddCryptedVotingKey(vchPubKey, vchCryptedSecret);
 }
