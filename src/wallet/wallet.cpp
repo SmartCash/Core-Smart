@@ -461,9 +461,9 @@ bool CWallet::UpdateVotingKeyRegistration(const CKeyID &keyId) {
     return CWalletDB(strWalletFile).UpdateVotingKeyRegistration(keyId, mapVotingKeyRegistrations[keyId]);
 }
 
-bool CWallet::LoadVotedMap(const CKeyID &keyId, const std::set<int64_t> &setVoted) {
+bool CWallet::LoadVotedMap(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoted) {
     AssertLockHeld(cs_wallet);
-    mapVoted[keyId] = setVoted;
+    this->mapVoted[keyId] = mapVoted;
     return true;
 }
 
@@ -472,9 +472,9 @@ bool CWallet::UpdateVotedMap(const CKeyID &keyId) {
     return CWalletDB(strWalletFile).UpdateVotedMap(keyId, mapVoted[keyId]);
 }
 
-bool CWallet::LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapProofs) {
+bool CWallet::LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoteProofs) {
     AssertLockHeld(cs_wallet);
-    mapVoteProofs[keyId] = mapProofs;
+    this->mapVoteProofs[keyId] = mapVoteProofs;
     return true;
 }
 

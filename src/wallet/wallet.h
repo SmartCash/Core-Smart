@@ -675,7 +675,7 @@ public:
     std::map<CKeyID, uint256> mapVotingKeyRegistrations;
 
     /* SmartRewards Vote proof */
-    std::map<CKeyID, std::set<int64_t>> mapVoted;
+    std::map<CKeyID, std::map<int64_t, uint256>> mapVoted;
     std::map<CKeyID, std::map<int64_t, uint256>> mapVoteProofs;
 
     typedef std::map<unsigned int, CMasterKey> MasterKeyMap;
@@ -840,11 +840,11 @@ public:
     //! Update votekeys registrations
     bool UpdateVotingKeyRegistration(const CKeyID &keyId);
     //! Load voted rounds per address (used by LoadWallet)
-    bool LoadVotedMap(const CKeyID &keyId, const std::set<int64_t> &setVoted);
+    bool LoadVotedMap(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoted);
     //! Update voted round per address
     bool UpdateVotedMap(const CKeyID &keyId);
     //! Load vote proofs per address (used by LoadWallet)
-    bool LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapProofs);
+    bool LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoteProofs);
     //! Update vote proofs per address
     bool UpdateVoteProofs(const CKeyID &keyId);
     //! Adds an encrypted key to the store, and saves it to disk.

@@ -135,11 +135,11 @@ bool CWalletDB::UpdateVotingKeyRegistration(const CKeyID& keyId, const uint256& 
                txHash, true);
 }
 
-bool CWalletDB::UpdateVotedMap(const CKeyID& keyId, const std::set<int64_t>& setVoted)
+bool CWalletDB::UpdateVotedMap(const CKeyID& keyId, const std::map<int64_t, uint256>& mapVoted)
 {
     nWalletDBUpdated++;
     return Write(std::make_pair(std::string("vmap"), keyId),
-               setVoted, true);
+               mapVoted, true);
 }
 
 bool CWalletDB::UpdateVoteProofs(const CKeyID& keyId, const std::map<int64_t, uint256>& mapVoteProofs)
@@ -752,11 +752,11 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
         {
             CKeyID keyId;
             ssKey >> keyId;
-            std::set<int64_t> setVoted;
-            ssValue >> setVoted;
+            std::map<int64_t, uint256> mapVoted;
+            ssValue >> mapVoted;
             wss.nMapVoted++;
 
-            pwallet->LoadVotedMap(keyId, setVoted);
+            pwallet->LoadVotedMap(keyId, mapVoted);
         }
         else if (strType == "vproofs")
         {
