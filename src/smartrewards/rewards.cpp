@@ -60,7 +60,13 @@ void CalculateRewardRatio(CSmartRewardRound &round)
 
     while( start <= round.endBlockHeight) round.rewards += GetBlockValue(start++,0,time) * 0.15;
 
-    round.percent = double(round.rewards) / ( round.eligibleSmart - round.disqualifiedSmart );
+    CAmount nCalcSmart = round.eligibleSmart - round.disqualifiedSmart;
+
+    if( nCalcSmart ){
+        round.percent = double(round.rewards) / nCalcSmart;
+    }else{
+        round.percent = 0;
+    }
 }
 
 bool CSmartRewards::Verify()
@@ -74,35 +80,20 @@ void CSmartRewards::UpdatePayoutParameter(CSmartRewardRound &round)
 {
 
     int64_t nPayeeCount = round.eligibleEntries - round.disqualifiedEntries;
-    int nFirst_1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     if( round.number < nFirst_1_3_Round ){
-
-        round.nBlockPayees = nRewardPayouts_1_2_BlockPayees;
-        round.nBlockInterval = nRewardPayouts_1_2_BlockInterval;
-
-        if( TestNet() ){
-            if( round.number < 68 ){
-                round.nBlockPayees = nRewardPayoutsPerBlock_1_Testnet;
-                round.nBlockInterval = nRewardPayoutBlockInterval_1_Testnet;
-            }else{
-                round.nBlockPayees = nRewardPayoutsPerBlock_2_Testnet;
-                round.nBlockInterval = nRewardPayoutBlockInterval_2_Testnet;
-            }
-        }
-
+        round.nBlockPayees  = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
+        round.nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
     }else{
 
-        int64_t nBlockStretch = MainNet() ? nRewardPayouts_1_3_BlockStretch :
-                                   nRewardPayouts_1_3_BlockStretch_Testnet;
-        int64_t nBlocksPerRound = MainNet() ? nRewardsBlocksPerRound_1_3 :
-                                   nRewardsBlocksPerRound_1_3_Testnet;
-        int64_t nBlockPayees = MainNet() ? nRewardPayouts_1_3_BlockPayees :
-                                           nRewardPayouts_1_3_BlockPayees_Testnet;
+        int64_t nBlockStretch = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch;
+        int64_t nBlocksPerRound = Params().GetConsensus().nRewardsBlocksPerRound_1_3;
+        int64_t nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
 
         round.nBlockPayees = std::max<int>(nBlockPayees, (nPayeeCount / nBlockStretch * nBlockPayees) + 1);
 
-        int64_t nStartDelayBlocks = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+        int64_t nStartDelayBlocks = Params().GetConsensus().nRewardsPayoutStartDelay;
         int64_t nBlocksTarget = nStartDelayBlocks + nBlocksPerRound;
         round.nBlockInterval = ((nBlockStretch * round.nBlockPayees) / nPayeeCount) + 1;
         int64_t nStretchedLength = nPayeeCount / round.nBlockPayees * (round.nBlockInterval);
@@ -120,7 +111,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
     CSmartRewardEntry *rEntry = nullptr;
     CBlock block;
     int nHeight = pindexNew->nHeight;
-    int nFirst1_3_Round = MainNet() ? nRewardsFirst_1_3_Round : nRewardsFirst_1_3_Round_Testnet;
+    int nFirst_1_3_Round = chainparams.GetConsensus().nRewardsFirst_1_3_Round;
     ReadBlockFromDisk(block, pindexNew, chainparams.GetConsensus());
 
     BOOST_FOREACH(const CTransaction &tx, block.vtx) {
@@ -140,7 +131,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
             AddTransaction(saveTx);
         }
 
-        CSmartAddress *voteKeyRegistrationCheck = nullptr;
+        CSmartAddress *voteProofCheck = nullptr;
 
         // No reason to check the input here for new coins.
         if( !tx.IsCoinBase() ){
@@ -182,20 +173,34 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
                 rEntry->balance -= rOut.nValue;
 
-                if( rEntry->IsEligible() ){
+                // If its a voteproof transaction not instantly make the
+                // balance ineligible. First check if the change is sent back
+                // to the address or not to avoid exploiting fund sending
+                // with voteproof transactions
+                if( nCurrentRound >= nFirst_1_3_Round ){
 
-                    // If its a votekey registration not instantly make the
-                    // balance ineligible. First check if the change is sent back
-                    // to the address or not to avoid exploiting fund sending
-                    // with votekey registration transactions
-                    if( nCurrentRound >= nFirst1_3_Round && tx.IsVoteKeyRegistration()  )
-                        voteKeyRegistrationCheck = new CSmartAddress(rEntry->id);
-                    else{
-                        rEntry->fBalanceEligible = false;
-                        result.disqualifiedEntries++;
-                        result.disqualifiedSmart += rEntry->balanceOnStart;
+                    if( tx.IsVoteProof() ){
+                        voteProofCheck = new CSmartAddress(rEntry->id);
+                    }else{
+
+                        if( rEntry->balanceEligible ){
+
+                            if( rEntry->IsEligible() ){
+                                result.disqualifiedEntries++;
+                                result.disqualifiedSmart += rEntry->balanceEligible;
+                            }
+
+                            rEntry->balanceEligible = 0;
+                        }
+
                     }
 
+                }else if( rEntry->balanceEligible ){
+
+                    result.disqualifiedEntries++;
+                    result.disqualifiedSmart += rEntry->balanceEligible;
+
+                    rEntry->balanceEligible = 0;
                 }
 
                 if(rEntry->balance < 0 ){
@@ -228,35 +233,101 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                     rewardEntries.insert(make_pair(ids.at(0), rEntry));
                 }
 
-                if( voteKeyRegistrationCheck ){
+                if( voteProofCheck ){
 
-                    if( tx.IsVoteKeyRegistration() &&
-                        !out.IsVoteKeyRegistrationData() &&
-                        !(*voteKeyRegistrationCheck == rEntry->id) ){
+                    if( tx.IsVoteProof() &&
+                        !out.IsVoteProofData() &&
+                        !(*voteProofCheck == rEntry->id) ){
 
                         CSmartRewardEntry *vkEntry = nullptr;
 
-                        if(!GetCachedRewardEntry(*voteKeyRegistrationCheck,vkEntry)){
-                            vkEntry = new CSmartRewardEntry(*voteKeyRegistrationCheck);
+                        if(!GetCachedRewardEntry(*voteProofCheck,vkEntry)){
+                            vkEntry = new CSmartRewardEntry(*voteProofCheck);
                             ReadRewardEntry(vkEntry->id, *vkEntry);
                             rewardEntries.insert(make_pair(vkEntry->id, vkEntry));
                         }
 
-                        // Finally invalidate the balance since the change output went not
-                        // back to the registered transaction! We don't want to allow
+                        if( vkEntry->IsEligible() ){
+                            result.disqualifiedEntries++;
+                            result.disqualifiedSmart += vkEntry->balanceEligible;
+                        }
+
+                        // Finally invalidate the balance since the change was not sent
+                        // back to the sender! We don't want to allow
                         // a exploit to send around funds withouht breaking smartrewards.
-                        vkEntry->fBalanceEligible = false;
-                        result.disqualifiedEntries++;
-                        result.disqualifiedSmart += vkEntry->balanceOnStart;
+                        vkEntry->balanceEligible = 0;
+
+                    }else if( tx.IsVoteProof() &&
+                             !out.IsVoteProofData() &&
+                             (*voteProofCheck == rEntry->id) ){
+
+                        CSmartRewardEntry *proofEntry = nullptr;
+                        unsigned char cProofOption = 0, cAddressType = 0;
+                        uint32_t nProofRound;
+                        uint160 addressHash;
+                        uint256 nProposalHash; // Placeholder only for now
+                        CSmartAddress proofAddress;
+
+                        BOOST_FOREACH(const CTxOut &outData, tx.vout) {
+
+                            if( outData.IsVoteProofData() ){
+
+                                std::vector<unsigned char> scriptData;
+                                scriptData.insert(scriptData.end(), outData.scriptPubKey.begin() + 4, outData.scriptPubKey.end());
+                                CDataStream ss(scriptData, SER_NETWORK, 0);
+
+                                ss >> cProofOption;
+                                ss >> nProofRound;
+                                ss >> nProposalHash;
+
+                                if( cProofOption == 0x01 &&
+                                    voteProofCheck->ToString(false) != Params().GetConsensus().strRewardsGlobalVoteProofAddress){
+                                    proofAddress = *voteProofCheck;
+                                }else if( cProofOption == 0x02 &&
+                                          voteProofCheck->ToString(false) == Params().GetConsensus().strRewardsGlobalVoteProofAddress ){
+
+                                    ss >> cAddressType;
+                                    ss >> addressHash;
+
+                                    if( cAddressType == 0x01 ){
+                                        proofAddress = CSmartAddress(CKeyID(addressHash));
+                                    }else if( cAddressType == 0x02){
+                                        proofAddress = CSmartAddress(CScriptID(addressHash));
+                                    }else{
+                                        proofAddress = CSmartAddress(); // Invalid address type
+                                    }
+
+                                    if(!GetCachedRewardEntry(proofAddress, proofEntry)){
+                                        proofEntry = new CSmartRewardEntry(proofAddress);
+                                        ReadRewardEntry(proofEntry->id, *proofEntry);
+                                        rewardEntries.insert(make_pair(proofEntry->id, proofEntry));
+                                    }
+
+                                }else{
+                                    proofAddress = CSmartAddress(); // Invalid option
+                                }
+                            }
+                        }
+
+                        if( proofAddress.IsValid() && proofEntry != nullptr && !proofEntry->fVoteProven && !SmartHive::IsHive(*voteProofCheck) ){
+
+                            proofEntry->fVoteProven = true;
+
+                            // If the entry is eligible now after the vote proof update the results
+                            if( proofEntry->IsEligible() ){
+                                result.qualifiedEntries++;
+                                result.qualifiedSmart += proofEntry->balanceEligible;
+                            }
+                        }
                     }
 
-                    delete voteKeyRegistrationCheck;
+                    delete voteProofCheck;
                 }
 
                 rEntry->balance += out.nValue;
 
                 // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
-                if( nCurrentRound >= nFirst1_3_Round && tx.IsCoinBase() ){
+                if( nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase() ){
 
                     int nInterval = SmartNodePayments::PayoutInterval(nHeight);
                     int nPayoutsPerBlock = SmartNodePayments::PayoutsPerBlock(nHeight);
@@ -274,7 +345,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                             // If it is currently eligible adjust the round's results
                             if( rEntry->IsEligible() ){
                                 result.disqualifiedEntries++;
-                                result.disqualifiedSmart += rEntry->balanceOnStart;
+                                result.disqualifiedSmart += rEntry->balanceEligible;
                             }
 
                             rEntry->fIsSmartNode = true;
@@ -313,21 +384,35 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
 
     UpdatePayoutParameter(current);
 
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
+
+    CAmount nReward;
+
     BOOST_FOREACH(CSmartRewardEntry &entry, entries) {
 
-        if( current.number ) snapshots.push_back(CSmartRewardSnapshot(entry, current));
+        if( current.number ){
 
-        entry.balanceOnStart = entry.balance;
+            if( current.number < nFirst_1_3_Round ){
+                nReward = entry.balanceEligible ? CAmount(entry.balanceEligible * current.percent) : 0;
+            }else{
+                nReward = entry.IsEligible() ? CAmount(entry.balanceEligible * current.percent) : 0;
+            }
+
+            snapshots.push_back(CSmartRewardSnapshot(entry.id, entry.balance, nReward));
+        }
+
+        if( entry.balance >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id) ){
+            entry.balanceEligible = entry.balance;
+        }
+
         // Reset SmartNode flag with every cycle in case a node was shut down during the cycle.
         entry.fIsSmartNode = false;
         // Reset the voted flag with every cycle to force a new vote for eligibility
-        entry.fVoteProved = false;
-        // Evaluate the balance eligibilty
-        entry.fBalanceEligible = entry.balanceOnStart >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id);
+        entry.fVoteProven = false;
 
-        if( entry.IsEligible() ){
+        if( next.number < nFirst_1_3_Round && entry.balanceEligible ){
             ++next.eligibleEntries;
-            next.eligibleSmart += entry.balanceOnStart;
+            next.eligibleSmart += entry.balanceEligible;
         }
     }
 }
@@ -466,20 +551,12 @@ int CSmartRewards::GetBlocksPerRound(const int nRound)
 {
     LOCK(cs_rewardrounds);
 
-    if( MainNet() ){
+    const CChainParams& chainparams = Params();
 
-        if( nRound < nRewardsFirst_1_3_Round )
-            return nRewardsBlocksPerRound_1_2;
-        else
-            return nRewardsBlocksPerRound_1_3;
-
+    if( nRound < chainparams.GetConsensus().nRewardsFirst_1_3_Round ){
+        return chainparams.GetConsensus().nRewardsBlocksPerRound_1_2;
     }else{
-
-        if( nRound < nRewardsFirst_1_3_Round_Testnet )
-            return nRewardsBlocksPerRound_1_2_Testnet;
-        else
-            return nRewardsBlocksPerRound_1_3_Testnet;
-
+        return chainparams.GetConsensus().nRewardsBlocksPerRound_1_3;
     }
 
 }
@@ -561,9 +638,7 @@ void CSmartRewards::CatchUp()
         pLastIndex = pLastIndex->pprev;
     }
 
-    int nMinConfirmations = MainNet() ? nRewardsConfirmations : nRewardsConfirmations_Testnet;
-
-    while( pLastIndex && ( currentBlock.nHeight - pLastIndex->nHeight ) < nMinConfirmations)
+    while( pLastIndex && ( currentBlock.nHeight - pLastIndex->nHeight ) < chainparams.GetConsensus().nRewardsConfirmationsRequired)
     {
         if( ShutdownRequested() ){
             SyncPrepared();
@@ -635,9 +710,7 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
         return;
     }
 
-    int nMinConfirmations = MainNet() ? nRewardsConfirmations : nRewardsConfirmations_Testnet;
-
-    if( ( pLastIndex->nHeight - currentBlock.nHeight ) > nMinConfirmations){
+    if( ( pLastIndex->nHeight - currentBlock.nHeight ) > chainparams.GetConsensus().nRewardsConfirmationsRequired){
 
         int nCurrentRound;
 
@@ -700,13 +773,17 @@ void CSmartRewards::ProcessBlock(CBlockIndex* pLastIndex, const CChainParams& ch
                 currentRound = first;
             }
 
-        }else if( result.disqualifiedEntries || result.disqualifiedSmart ){
+        }else if( result.disqualifiedEntries || result.disqualifiedSmart ||
+                  result.qualifiedEntries || result.qualifiedSmart ){
 
             // If there were disqualification during the last block processing
             // update the current round stats.
 
             currentRound.disqualifiedEntries += result.disqualifiedEntries;
             currentRound.disqualifiedSmart += result.disqualifiedSmart;
+
+            currentRound.eligibleEntries += result.qualifiedEntries;
+            currentRound.eligibleSmart += result.qualifiedSmart;
 
             CalculateRewardRatio(currentRound);
         }

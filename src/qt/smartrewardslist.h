@@ -16,6 +16,9 @@
 #include <QWidget>
 #include <QTableWidgetItem>
 
+class CSmartRewardRound;
+class CBlockIndex;
+
 namespace Ui {
     class SmartrewardsList;
 }
@@ -24,6 +27,13 @@ class CSmartRewardWidgetItem : public QTableWidgetItem
 {
 public:
     CSmartRewardWidgetItem(const QString &text, int type = Type) : QTableWidgetItem(text, type) {}
+    bool operator<(const QTableWidgetItem &other) const;
+};
+
+class CSmartRewardVoteProofWidgetItem : public QTableWidgetItem
+{
+public:
+    CSmartRewardVoteProofWidgetItem(const QString &text, int type = Type) : QTableWidgetItem(text, type) {}
     bool operator<(const QTableWidgetItem &other) const;
 };
 
@@ -46,6 +56,22 @@ class SmartrewardsList : public QWidget
 {
     Q_OBJECT
 
+    enum SmartRewardsListState{
+        STATE_INIT,
+        STATE_PROCESSING,
+        STATE_OVERVIEW,
+        STATE_VOTEPROOF
+    };
+
+    Ui::SmartrewardsList *ui;
+    WalletModel *model;
+    ClientModel *clientModel;
+    const PlatformStyle *platformStyle;
+    QMenu *contextMenu;
+    SmartRewardsListState state;
+
+    void setState(SmartrewardsList::SmartRewardsListState state);
+
 public:
     explicit SmartrewardsList(const PlatformStyle *platformStyle, QWidget *parent = 0);
     ~SmartrewardsList();
@@ -53,7 +79,7 @@ public:
     void setModel(WalletModel *model);
     void setClientModel(ClientModel *model);
 
-    enum
+    enum OverviewColummns
     {
         COLUMN_LABEL = 0,
         COLUMN_ADDRESS,
@@ -62,12 +88,14 @@ public:
         COLUMN_REWARD,
     };
 
-private:
-    Ui::SmartrewardsList *ui;
-    WalletModel *model;
-    ClientModel *clientModel;
-    QMenu *contextMenu;
-    
+    enum VoteProofColummns
+    {
+        PROOF_COLUMN_LABEL = 0,
+        PROOF_COLUMN_ADDRESS,
+        PROOF_COLUMN_ELIGIBLE,
+        PROOF_COLUMN_VOTED,
+        PROOF_COLUMN_PROVEN
+    };
 
 public Q_SLOTS:
     void contextualMenu(const QPoint &);
@@ -76,6 +104,13 @@ public Q_SLOTS:
     void copyAmount();
     void copyEligibleAmount();
     void copyReward();
+    void updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip);
+    void updateVoteProofUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip);
     void updateUI();
+
+    void on_btnManageProofs_clicked();
+    void on_btnCancelProofs_clicked();
+    void on_btnSendProofs_clicked();
+
 };
 #endif // SMARTREWARDSLIST_H

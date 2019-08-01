@@ -32,7 +32,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="page">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -309,7 +309,7 @@ QProgressBar::chunk {
                <widget class="QLabel" name="label_17">
                 <property name="font">
                  <font>
-                  <pointsize>19</pointsize>
+                  <pointsize>17</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -327,7 +327,7 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>19</pointsize>
+                  <pointsize>17</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -389,7 +389,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="label_21">
               <property name="font">
                <font>
-                <pointsize>19</pointsize>
+                <pointsize>17</pointsize>
                </font>
               </property>
               <property name="text">
@@ -401,7 +401,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="percentLabel">
               <property name="font">
                <font>
-                <pointsize>19</pointsize>
+                <pointsize>17</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -482,6 +482,13 @@ QProgressBar::chunk {
            <number>0</number>
           </property>
           <item>
+           <widget class="QPushButton" name="btnManageProofs">
+            <property name="text">
+             <string>Manage Vote-Proofs</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="horizontalSpacer_3">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -500,7 +507,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="label">
               <property name="font">
                <font>
-                <pointsize>20</pointsize>
+                <pointsize>17</pointsize>
                </font>
               </property>
               <property name="text">
@@ -512,7 +519,7 @@ QProgressBar::chunk {
              <widget class="QLabel" name="sumLabel">
               <property name="font">
                <font>
-                <pointsize>20</pointsize>
+                <pointsize>17</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -539,6 +546,115 @@ QProgressBar::chunk {
           </item>
          </layout>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="pageProofs">
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <item>
+          <widget class="QLabel" name="lblProofsTitle">
+           <property name="font">
+            <font>
+             <pointsize>17</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Manage Vote-Proofs for SmartRewards round</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="lblProofsTitleRound">
+           <property name="font">
+            <font>
+             <pointsize>17</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_9">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="proofTable">
+         <column>
+          <property name="text">
+           <string>Label</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Address</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Eligible Amount</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Voted</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Vote Proven</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <item>
+          <widget class="QPushButton" name="btnCancelProofs">
+           <property name="text">
+            <string>Back</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnSendProofs">
+           <property name="text">
+            <string>Send 0 Vote-Proofs</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_8">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>

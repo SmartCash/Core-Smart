@@ -71,6 +71,7 @@ private:
 
     void SendTransactions(std::vector<QString> &vecErrors);
     bool SendRegistration(const QString &address, const COutPoint &out, QString &strError);
+    bool SendVoteProof(const QString &address, const COutPoint &out, int nCurrentRound, QString &strError);
 
     enum
     {
@@ -106,6 +107,5 @@ static const QString strVoteProofTitle = "Send VoteProofs";
 static const QString strVoteProofDescription = (
 ""
 );
-static const QString strVoteProofFeeDescription = "VoteProof fee";
 
 #endif // SMARTCASH_QT_SPECIALTRANSACTIONDIALOG_H

@@ -15,18 +15,14 @@ using namespace std;
 static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
 // Cache max. n prepared entries before the sync (leveldb batch write).
 const int64_t nCacheEntires = 8000;
-// Minimum number of confirmations to process a block for the reward database.
-const int64_t nRewardsConfirmations = 100;
 // Minimum distance of the last processed block compared to the current chain
 // height to assume the rewards are synced.
-const int64_t nRewardsSyncDistance = nRewardsConfirmations + 10;
+const int64_t nRewardsSyncDistance = 150;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int64_t nRewardsUISyncUpdateRate = 500;
-// Number of blocks we update the SmartRewards UI when we are in the sync process
-const int64_t nRewardsBlocksPerRound_1_2 = 47500;
-const int64_t nRewardsBlocksPerRound_1_3 = 142500;
+
+// First automated round on mainnet
 const int64_t nRewardsFirstAutomatedRound = 13;
-const int64_t nRewardsFirst_1_3_Round = 25;
 
 // Timestamps of the first round's start and end on mainnet
 const int64_t nFirstRoundStartTime = 1500966000;
@@ -35,17 +31,12 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
-const int64_t nRewardsConfirmations_Testnet = 50;
-const int64_t nRewardsSyncDistance_Testnet = nRewardsConfirmations_Testnet + 10;
-const int64_t nRewardsBlocksPerRound_1_2_Testnet = 1000;
-const int64_t nRewardsBlocksPerRound_1_3_Testnet = 5000;
+const int64_t nRewardsSyncDistance_Testnet = 60;
 const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
 const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_PAYMENTS_HEIGHT;
-const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + nRewardsBlocksPerRound_1_2_Testnet;
-const int64_t nRewardsFirst_1_3_Round_Testnet = 315;
-
+const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + 1000;
 
 void ThreadSmartRewards(bool fRecreate = false);
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
@@ -57,8 +48,10 @@ struct CSmartRewardsUpdateResult
 {
     int64_t disqualifiedEntries;
     int64_t disqualifiedSmart;
+    int64_t qualifiedEntries;
+    int64_t qualifiedSmart;
     CSmartRewardBlock block;
-    CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0),block() {}
+    CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block() {}
 };
 
 class CSmartRewards

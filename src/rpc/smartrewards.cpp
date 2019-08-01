@@ -92,7 +92,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         const CSmartRewardRoundList& history = prewards->GetRewardRounds();
 
-        int64_t nPayoutDelay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+        int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
         if(!history.size()) throw JSONRPCError(RPC_DATABASE_ERROR, "No finished reward round available yet.");
 
@@ -237,6 +237,14 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, "SmartCash address required.");
 
+        TRY_LOCK(cs_rewardrounds,roundsLocked);
+
+        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+
+        const CSmartRewardRound& current = prewards->GetCurrentRound();
+
+        int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
+
         std::string addressString = params[1].get_str();
         CSmartAddress id = CSmartAddress(addressString);
 
@@ -250,10 +258,10 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         obj.pushKV("address",id.ToString());
         obj.pushKV("balance",format(entry.balance));
-        obj.pushKV("balance_eligible", format(entry.fBalanceEligible ? entry.balanceOnStart : 0));
+        obj.pushKV("balance_eligible", format(entry.balanceEligible));
         obj.pushKV("is_smartnode", entry.fIsSmartNode);
-        obj.pushKV("voted", entry.fVoteProved);
-        obj.pushKV("eligible", entry.IsEligible());
+        obj.pushKV("voted", entry.fVoteProven);
+        obj.pushKV("eligible", current.number < nFirst_1_3_Round ? entry.balanceEligible > 0 : entry.IsEligible());
 
         return obj;
     }

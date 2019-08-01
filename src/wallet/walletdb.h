@@ -166,6 +166,8 @@ public:
     bool WriteVotingMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
     bool UpdateVotingKeyMeta(const CKeyID& keyId, const CVotingKeyMetadata& keyMeta);
     bool UpdateVotingKeyRegistration(const CKeyID& keyId, const uint256& txHash);
+    bool UpdateVotedMap(const CKeyID& keyId, const std::map<int64_t, uint256>& mapVoted);
+    bool UpdateVoteProofs(const CKeyID& keyId, const std::map<int64_t, uint256>& mapVoteProofs);
 
     bool WriteCScript(const uint160& hash, const CScript& redeemScript);
 
