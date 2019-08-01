@@ -476,6 +476,7 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
                     change.label = tr("(change)");
 
                     if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
+
                         change.eligible = reward.balanceEligible;
 
                         if( reward.id.GetKeyID(keyId) ){
@@ -487,7 +488,28 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
                             if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
 
                                 uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
-                                change.nVoteProofConfirmations = 0;
+
+                                CTransaction tx;
+                                uint256 nBlockHash;
+
+                                if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
+                                    change.nVoteProofConfirmations = -1;
+                                }else if(nBlockHash == uint256()) {
+                                    change.nVoteProofConfirmations = 0;
+                                }else{
+
+                                    LOCK(cs_main);
+
+                                    if (nBlockHash != uint256()) {
+                                        BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
+                                        if (mi != mapBlockIndex.end() && (*mi).second) {
+                                            CBlockIndex* pindex = (*mi).second;
+                                            if (chainActive.Contains(pindex)) {
+                                                change.nVoteProofConfirmations = chainActive.Height() - pindex->nHeight + 1;
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                             if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
@@ -530,7 +552,30 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
                     if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
 
                         uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
-                        proofField.nVoteProofConfirmations = 0;
+
+                        CTransaction tx;
+                        uint256 nBlockHash;
+
+                        if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
+                            proofField.nVoteProofConfirmations = -1;
+                        }else if(nBlockHash == uint256()) {
+                            proofField.nVoteProofConfirmations = 0;
+                        }else{
+
+                            LOCK(cs_main);
+
+                            if (nBlockHash != uint256()) {
+                                BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
+                                if (mi != mapBlockIndex.end() && (*mi).second) {
+                                    CBlockIndex* pindex = (*mi).second;
+                                    if (chainActive.Contains(pindex)) {
+                                        proofField.nVoteProofConfirmations = chainActive.Height() - pindex->nHeight + 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
                         pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() ){
                         ++nAvailableForProof;
