@@ -45,6 +45,8 @@ private:
     QTimer waitTimer;
 
     void voteOne();
+Q_SIGNALS:
+    void votedForAddress(QString &address, int proposalId, bool successful);
 
 public Q_SLOTS:
     int exec() final;

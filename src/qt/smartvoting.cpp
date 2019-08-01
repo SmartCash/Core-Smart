@@ -5,6 +5,7 @@
 #include "smartvoting.h"
 #include "ui_smartvoting.h"
 #include "smartproposal.h"
+#include "smartrewards/rewards.h"
 
 #include "addresstablemodel.h"
 #include "bitcoinunits.h"
@@ -193,6 +194,8 @@ void SmartVotingPage::selectAddresses(){
 void SmartVotingPage::castVotes(){
 
     CastVotesDialog dialog(platformStyle, votingManager, walletModel);
+
+    connect( &dialog, SIGNAL(votedForAddress(QString&, int, bool)), this, SLOT(voteDone(QString&, int, bool)));
     dialog.setVoting(mapVoteProposals);
 
     dialog.exec();
@@ -242,4 +245,25 @@ void SmartVotingPage::scrollChanged(int value)
 void SmartVotingPage::balanceChanged(const CAmount &balance, const CAmount &unconfirmedBalance, const CAmount &immatureBalance, const CAmount &watchOnlyBalance, const CAmount &watchUnconfBalance, const CAmount &watchImmatureBalance)
 {
     updateUI();
+}
+
+void SmartVotingPage::voteDone(QString &address, int nProposalId, bool successful)
+{
+    LOCK(pwalletMain->cs_wallet);
+
+    CKeyID keyId;
+    std::string strProposal = strprintf("%d", nProposalId);
+    uint256 nProposalHash = Hash(strProposal.begin(), strProposal.end());
+
+    if(CSmartAddress(address.toStdString()).GetKeyID(keyId)){
+
+        int nCurrentRound = prewards->GetCurrentRound().number;
+
+        if( !pwalletMain->mapVoted[keyId].count(nCurrentRound) ){
+            pwalletMain->mapVoted[keyId].insert(std::make_pair(nCurrentRound, nProposalHash));
+            pwalletMain->UpdateVotedMap(keyId);
+        }
+
+    }
+
 }

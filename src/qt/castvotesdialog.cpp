@@ -181,6 +181,8 @@ void CastVotesDialog::voted(const SmartProposalVote &vote, const QJsonArray &res
             }
 
             ui->results->append(QString("  -> %1 | %2 SMART <b>%3<b>").arg(address).arg(std::round(amount),0,'f',0).arg(resultString));
+
+            Q_EMIT votedForAddress(address, vote.GetProposalId(), status == "OK");
         }
 
     }
