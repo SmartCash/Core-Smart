@@ -834,6 +834,26 @@ void SpecialTransactionDialog::updateView()
 
         }
 
+        if( type == VOTE_PROOF_TRANSACTIONS ){
+            CKeyID keyId;
+            CSmartAddress voteAddress(sWalletAddress.toStdString());
+            int nCurrentRound = prewards->GetCurrentRound().number;
+
+            if( voteAddress.GetKeyID(keyId) ){
+
+                LOCK(pwalletMain->cs_wallet);
+
+                if( pwalletMain->mapVoted[keyId].find(nCurrentRound) == pwalletMain->mapVoted[keyId].end() ||
+                    pwalletMain->mapVoteProofs[keyId].find(nCurrentRound) != pwalletMain->mapVoteProofs[keyId].end() ){
+                    // If not yet voted or already vote proven skip it.
+                    continue;
+                }
+
+            }else{
+                continue;
+            }
+        }
+
         CCoinControlWidgetItem *itemWalletAddress = new CCoinControlWidgetItem();
         itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
 
