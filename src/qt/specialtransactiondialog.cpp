@@ -678,10 +678,9 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
         return Error("GenerateVoteProof",
               strprintf("Failed to generate transaction: %s for TX %s, index %d", err, out.hash.ToString(), out.n),
               strError);
+
     CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | 0);
     ssTx << proofTx;
-
-    LogPrintf("TX: %s", HexStr(ssTx.begin(), ssTx.end()));
 
     CValidationState state;
     if (!(CheckTransaction(proofTx, state, proofTx.GetHash(), false) || !state.IsValid()))

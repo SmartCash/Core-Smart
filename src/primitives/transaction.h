@@ -18,10 +18,15 @@ static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 static const CAmount REWARDS_VOTEPROOF_FEE = 0 * COIN;
 static const CAmount REWARDS_VOTEPROOF_TX_FEE = 0.002 * COIN;
 
-static const int REWARDS_VOTEPROOF_SCRIPT_SIZE = 0x00;
-static const int REWARDS_VOTEPROOF_DATA_SIZE = 0x00;
+static const int REWARDS_VOTEPROOF_O1_SCRIPT_SIZE = 0x28;
+static const int REWARDS_VOTEPROOF_O1_DATA_SIZE = 0x26;
+
+static const int REWARDS_VOTEPROOF_O2_SCRIPT_SIZE = 0x3D;
+static const int REWARDS_VOTEPROOF_O2_DATA_SIZE = 0x3B;
 
 static const int WITNESS_SCALE_FACTOR = 4;
+
+
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
 {
@@ -32,7 +37,7 @@ public:
     COutPoint() { SetNull(); }
     COutPoint(uint256 hashIn, uint32_t nIn) { hash = hashIn; n = nIn; }
 
-    ADD_SERIALIZE_METHODS;
+    ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
