@@ -15,12 +15,18 @@
 #include <QSslConfiguration>
 
 const QString urlHiveVotingPortal = "https://vote.smartcash.cc/api/v1/";
+const QString urlHiveVotingPortalTestnet = "https://testnet-vote.smartcash.cc/api/v1/";
 
 SmartHiveRequest::SmartHiveRequest(QString endpoint):
     QNetworkRequest(),
     endpoint(endpoint)
 {
-    setUrl(QUrl(urlHiveVotingPortal + endpoint));
+    if(MainNet()){
+        setUrl(QUrl(urlHiveVotingPortal + endpoint));
+    }else{
+        setUrl(QUrl(urlHiveVotingPortalTestnet + endpoint));
+    }
+
     setHeader(QNetworkRequest::ContentTypeHeader,
                 "application/json");
 }
