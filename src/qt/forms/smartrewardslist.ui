@@ -597,7 +597,7 @@ QProgressBar::chunk {
         </layout>
        </item>
        <item>
-        <widget class="QTableWidget" name="addressTable">
+        <widget class="QTableWidget" name="proofTable">
          <column>
           <property name="text">
            <string>Label</string>

@@ -43,9 +43,29 @@ struct QSmartRewardField
                           balance(0), eligible(0),reward(0){}
 };
 
+struct QSmartRewardVoteProofField
+{
+    QString label;
+    QString address;
+    CAmount eligible;
+    bool fVoted;
+    int nVoteProofConfirmations;
+
+    QSmartRewardVoteProofField() : label(QString()), address(QString()),
+                          eligible(0), fVoted(false), nVoteProofConfirmations(-1) {}
+};
+
 bool CSmartRewardWidgetItem::operator<(const QTableWidgetItem &other) const {
     int column = other.column();
     if (column == SmartrewardsList::COLUMN_AMOUNT || column == SmartrewardsList::COLUMN_ELIGIBLE || column == SmartrewardsList::COLUMN_REWARD)
+        return data(Qt::UserRole).toLongLong() < other.data(Qt::UserRole).toLongLong();
+    return QTableWidgetItem::operator<(other);
+}
+
+bool CSmartRewardVoteProofWidgetItem::operator<(const QTableWidgetItem &other) const
+{
+    int column = other.column();
+    if (column == SmartrewardsList::PROOF_COLUMN_ELIGIBLE)
         return data(Qt::UserRole).toLongLong() < other.data(Qt::UserRole).toLongLong();
     return QTableWidgetItem::operator<(other);
 }
@@ -69,11 +89,26 @@ SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *
     smartRewardsTable->setShowGrid(false);
     smartRewardsTable->verticalHeader()->hide();
 
-    smartRewardsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    smartRewardsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    smartRewardsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    smartRewardsTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    smartRewardsTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(COLUMN_LABEL, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(COLUMN_ADDRESS, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(COLUMN_AMOUNT, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(COLUMN_ELIGIBLE, QHeaderView::ResizeToContents);
+    smartRewardsTable->horizontalHeader()->setSectionResizeMode(COLUMN_REWARD, QHeaderView::Stretch);
+
+    QTableWidget *smartRewardsVoteProofTable = ui->proofTable;
+
+    smartRewardsVoteProofTable->setAlternatingRowColors(true);
+    smartRewardsVoteProofTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    smartRewardsVoteProofTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    smartRewardsVoteProofTable->setSortingEnabled(true);
+    smartRewardsVoteProofTable->setShowGrid(false);
+    smartRewardsVoteProofTable->verticalHeader()->hide();
+
+    smartRewardsVoteProofTable->horizontalHeader()->setSectionResizeMode(PROOF_COLUMN_LABEL, QHeaderView::ResizeToContents);
+    smartRewardsVoteProofTable->horizontalHeader()->setSectionResizeMode(PROOF_COLUMN_ADDRESS, QHeaderView::ResizeToContents);
+    smartRewardsVoteProofTable->horizontalHeader()->setSectionResizeMode(PROOF_COLUMN_ELIGIBLE, QHeaderView::ResizeToContents);
+    smartRewardsVoteProofTable->horizontalHeader()->setSectionResizeMode(PROOF_COLUMN_VOTED, QHeaderView::ResizeToContents);
+    smartRewardsVoteProofTable->horizontalHeader()->setSectionResizeMode(PROOF_COLUMN_PROVEN, QHeaderView::Stretch);
 
     WaitingSpinnerWidget * spinner = ui->spinnerWidget;
 
@@ -400,6 +435,149 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
 {
 
     ui->lblProofsTitleRound->setText(QString("%1").arg(currentRound.number));
+
+    int nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
+
+    std::map<QString, std::vector<COutput> > mapCoins;
+    model->listCoins(mapCoins);
+
+    std::vector<QSmartRewardVoteProofField> proofList;
+
+    BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
+
+        QString sWalletAddress = coins.first;
+        QString sWalletLabel = model->getAddressTableModel()->labelForAddress(sWalletAddress);
+
+        if (sWalletLabel.isEmpty())
+            sWalletLabel = tr("(no label)");
+
+        QSmartRewardVoteProofField proofField;
+        CKeyID keyId;
+
+        proofField.address = sWalletAddress;
+        proofField.label = sWalletLabel;
+
+        BOOST_FOREACH(const COutput& out, coins.second) {
+
+            CTxDestination outputAddress;
+            QString sAddress;
+
+            if(ExtractDestination(out.tx->vout[out.i].scriptPubKey, outputAddress)){
+
+                sAddress = QString::fromStdString(CBitcoinAddress(outputAddress).ToString());
+
+                if (!(sAddress == sWalletAddress)){ // change address
+
+                    QSmartRewardVoteProofField change;
+                    CSmartRewardEntry reward;
+
+                    change.address = sAddress;
+                    change.label = tr("(change)");
+
+                    if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
+                        change.eligible = reward.balanceEligible;
+
+                        if( reward.id.GetKeyID(keyId) ){
+
+                            LOCK(pwalletMain->cs_wallet);
+
+                            change.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
+
+                            if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
+
+                                uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
+                                change.nVoteProofConfirmations = 0;
+                            }
+
+                            proofList.push_back(change);
+                        }
+                    }
+
+                    continue;
+
+                }else{
+
+                    proofField.label = model->getAddressTableModel()->labelForAddress(proofField.address);
+
+                    if (proofField.label.isEmpty())
+                        proofField.label = tr("(no label)");
+                }
+
+            }
+
+        }
+
+        if( !proofField.address.isEmpty() ){
+
+            CSmartRewardEntry reward;
+
+            if( prewards->GetRewardEntry(CSmartAddress(proofField.address.toStdString()), reward) ){
+
+                proofField.eligible = reward.balanceEligible;
+
+                if( reward.id.GetKeyID(keyId) ){
+
+                    LOCK(pwalletMain->cs_wallet);
+
+                    proofField.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
+
+                    if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
+
+                        uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
+                        proofField.nVoteProofConfirmations = 0;
+                    }
+
+                    proofList.push_back(proofField);
+                }
+            }
+
+        }
+    }
+
+    int nRow = 0;
+
+    ui->proofTable->clearContents();
+    ui->proofTable->setRowCount(0);
+
+    ui->proofTable->setSortingEnabled(false);
+    std::function<CSmartRewardVoteProofWidgetItem * (QString)> createItem = [](QString title) {
+        CSmartRewardVoteProofWidgetItem * item = new CSmartRewardVoteProofWidgetItem(title);
+        item->setTextAlignment(Qt::AlignCenter);
+        return item;
+    };
+
+    BOOST_FOREACH(const QSmartRewardVoteProofField& field, proofList) {
+
+        ui->proofTable->insertRow(nRow);
+
+        QString strConfirmations;
+        int nConfirmationsRequired = Params().GetConsensus().nRewardsConfirmationsRequired - field.nVoteProofConfirmations;
+
+        if( field.nVoteProofConfirmations == -1 ){
+            strConfirmations = tr("No");
+        }else if( nConfirmationsRequired > 0 ){
+            QString("%1").arg(nConfirmationsRequired) + tr("confirmations required");
+        }else{
+            tr("Yes");
+        }
+
+        CSmartRewardWidgetItem *eligibleItem = new CSmartRewardWidgetItem(BitcoinUnits::format(nDisplayUnit, field.eligible) + " " +  BitcoinUnits::name(nDisplayUnit));
+        CSmartRewardWidgetItem *votedItem = new CSmartRewardWidgetItem(field.fVoted ? tr("Yes") : tr("No"));
+        CSmartRewardWidgetItem *provenItem = new CSmartRewardWidgetItem(strConfirmations);
+
+        ui->proofTable->setItem(nRow, PROOF_COLUMN_LABEL, createItem(field.label));
+        ui->proofTable->setItem(nRow, PROOF_COLUMN_ADDRESS, createItem(field.address));
+        ui->proofTable->setItem(nRow, PROOF_COLUMN_ELIGIBLE, eligibleItem);
+        eligibleItem->setData(Qt::UserRole, QVariant((qlonglong)field.eligible));
+        ui->proofTable->setItem(nRow, PROOF_COLUMN_VOTED, votedItem);
+        votedItem->setData(Qt::UserRole, QVariant((bool)field.fVoted));
+        ui->proofTable->setItem(nRow, PROOF_COLUMN_PROVEN, provenItem);
+        provenItem->setData(Qt::UserRole, QVariant((qlonglong)field.nVoteProofConfirmations));
+
+        nRow++;
+    }
+
+    ui->proofTable->setSortingEnabled(true);
 }
 
 void SmartrewardsList::updateUI()

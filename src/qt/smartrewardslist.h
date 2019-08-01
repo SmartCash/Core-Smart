@@ -30,6 +30,13 @@ public:
     bool operator<(const QTableWidgetItem &other) const;
 };
 
+class CSmartRewardVoteProofWidgetItem : public QTableWidgetItem
+{
+public:
+    CSmartRewardVoteProofWidgetItem(const QString &text, int type = Type) : QTableWidgetItem(text, type) {}
+    bool operator<(const QTableWidgetItem &other) const;
+};
+
 class WalletModel;
 class ClientModel;
 class OptionsModel;
@@ -72,13 +79,22 @@ public:
     void setModel(WalletModel *model);
     void setClientModel(ClientModel *model);
 
-    enum
+    enum OverviewColummns
     {
         COLUMN_LABEL = 0,
         COLUMN_ADDRESS,
         COLUMN_AMOUNT,
         COLUMN_ELIGIBLE,
         COLUMN_REWARD,
+    };
+
+    enum VoteProofColummns
+    {
+        PROOF_COLUMN_LABEL = 0,
+        PROOF_COLUMN_ADDRESS,
+        PROOF_COLUMN_ELIGIBLE,
+        PROOF_COLUMN_VOTED,
+        PROOF_COLUMN_PROVEN
     };
 
 public Q_SLOTS:
