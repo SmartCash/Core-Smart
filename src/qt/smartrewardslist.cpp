@@ -441,6 +441,7 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
     std::map<QString, std::vector<COutput> > mapCoins;
     model->listCoins(mapCoins);
 
+    int nAvailableForProof = 0;
     std::vector<QSmartRewardVoteProofField> proofList;
 
     BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
@@ -489,6 +490,11 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
                                 change.nVoteProofConfirmations = 0;
                             }
 
+                            if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
+                                pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() ){
+                                ++nAvailableForProof;
+                            }
+
                             proofList.push_back(change);
                         }
                     }
@@ -525,6 +531,9 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
 
                         uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
                         proofField.nVoteProofConfirmations = 0;
+                    if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
+                        pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() ){
+                        ++nAvailableForProof;
                     }
 
                     proofList.push_back(proofField);
@@ -575,6 +584,14 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
         provenItem->setData(Qt::UserRole, QVariant((qlonglong)field.nVoteProofConfirmations));
 
         nRow++;
+    }
+
+    if( nAvailableForProof ){
+        ui->btnSendProofs->setText( QString(tr("Send VoteProofs [%1]")).arg(nAvailableForProof) );
+        ui->btnSendProofs->setEnabled(true);
+    }else{
+        ui->btnSendProofs->setText( tr("No address ready for a VoteProof") );
+        ui->btnSendProofs->setEnabled(false);
     }
 
     ui->proofTable->setSortingEnabled(true);
