@@ -689,8 +689,11 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
                         out.hash.ToString(), out.n, state.GetRejectReason()),
               strError);
 
-    pwalletMain->mapVoteProofs[voteAddressKeyID].insert(std::make_pair(nCurrentRound, proofTx.GetHash()));
-    pwalletMain->UpdateVoteProofs(voteAddressKeyID);
+    {
+        LOCK(pwalletMain->cs_wallet);
+        pwalletMain->mapVoteProofs[voteAddressKeyID].insert(std::make_pair(nCurrentRound, proofTx.GetHash()));
+        pwalletMain->UpdateVoteProofs(voteAddressKeyID);
+    }
 
     if( !pwalletMain->CommitTransaction(proofTx, reservekey, g_connman.get()) )
         return Error("GenerateVoteProof",
