@@ -708,4 +708,5 @@ void SmartrewardsList::on_btnSendProofs_clicked()
     SpecialTransactionDialog dlg(VOTE_PROOF_TRANSACTIONS, platformStyle);
     dlg.setModel(model);
     dlg.exec();
+    updateUI();
 }
