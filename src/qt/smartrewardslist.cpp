@@ -545,7 +545,7 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
 
                 if( reward.id.GetKeyID(keyId) ){
 
-                    LOCK(pwalletMain->cs_wallet);
+                    LOCK2(cs_main, pwalletMain->cs_wallet);
 
                     proofField.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
 
@@ -561,8 +561,6 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
                         }else if(nBlockHash == uint256()) {
                             proofField.nVoteProofConfirmations = 0;
                         }else{
-
-                            LOCK(cs_main);
 
                             if (nBlockHash != uint256()) {
                                 BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
@@ -610,9 +608,9 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
         if( field.nVoteProofConfirmations == -1 ){
             strConfirmations = tr("No");
         }else if( nConfirmationsRequired > 0 ){
-            QString("%1").arg(nConfirmationsRequired) + tr("confirmations required");
+            strConfirmations = QString("%1 ").arg(nConfirmationsRequired) + tr("confirmations required");
         }else{
-            tr("Yes");
+            strConfirmations = tr("Yes");
         }
 
         CSmartRewardWidgetItem *eligibleItem = new CSmartRewardWidgetItem(BitcoinUnits::format(nDisplayUnit, field.eligible) + " " +  BitcoinUnits::name(nDisplayUnit));
@@ -710,4 +708,5 @@ void SmartrewardsList::on_btnSendProofs_clicked()
     SpecialTransactionDialog dlg(VOTE_PROOF_TRANSACTIONS, platformStyle);
     dlg.setModel(model);
     dlg.exec();
+    updateUI();
 }
