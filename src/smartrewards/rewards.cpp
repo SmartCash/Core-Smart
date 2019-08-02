@@ -283,6 +283,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                                 if( cProofOption == 0x01 &&
                                     voteProofCheck->ToString(false) != Params().GetConsensus().strRewardsGlobalVoteProofAddress){
                                     proofAddress = *voteProofCheck;
+                                    proofEntry = rEntry;
                                 }else if( cProofOption == 0x02 &&
                                           voteProofCheck->ToString(false) == Params().GetConsensus().strRewardsGlobalVoteProofAddress ){
 
