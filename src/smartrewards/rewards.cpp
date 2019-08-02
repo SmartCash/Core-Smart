@@ -273,7 +273,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                             if( outData.IsVoteProofData() ){
 
                                 std::vector<unsigned char> scriptData;
-                                scriptData.insert(scriptData.end(), outData.scriptPubKey.begin() + 4, outData.scriptPubKey.end());
+                                scriptData.insert(scriptData.end(), outData.scriptPubKey.begin() + 3, outData.scriptPubKey.end());
                                 CDataStream ss(scriptData, SER_NETWORK, 0);
 
                                 ss >> cProofOption;
