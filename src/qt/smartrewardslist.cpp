@@ -608,9 +608,9 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
         if( field.nVoteProofConfirmations == -1 ){
             strConfirmations = tr("No");
         }else if( nConfirmationsRequired > 0 ){
-            QString("%1").arg(nConfirmationsRequired) + tr("confirmations required");
+            strConfirmations = QString("%1 ").arg(nConfirmationsRequired) + tr("confirmations required");
         }else{
-            tr("Yes");
+            strConfirmations = tr("Yes");
         }
 
         CSmartRewardWidgetItem *eligibleItem = new CSmartRewardWidgetItem(BitcoinUnits::format(nDisplayUnit, field.eligible) + " " +  BitcoinUnits::name(nDisplayUnit));
