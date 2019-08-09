@@ -249,21 +249,24 @@ void SmartVotingPage::balanceChanged(const CAmount &balance, const CAmount &unco
 
 void SmartVotingPage::voteDone(QString &address, int nProposalId, bool successful)
 {
-    LOCK(pwalletMain->cs_wallet);
+    if( successful ){
 
-    CKeyID keyId;
-    std::string strProposal = strprintf("%d", nProposalId);
-    uint256 nProposalHash = Hash(strProposal.begin(), strProposal.end());
+        LOCK(pwalletMain->cs_wallet);
 
-    if(CSmartAddress(address.toStdString()).GetKeyID(keyId)){
+        CKeyID keyId;
+        std::string strProposal = strprintf("%d", nProposalId);
+        uint256 nProposalHash = Hash(strProposal.begin(), strProposal.end());
 
-        int nCurrentRound = prewards->GetCurrentRound().number;
+        if(CSmartAddress(address.toStdString()).GetKeyID(keyId)){
 
-        if( !pwalletMain->mapVoted[keyId].count(nCurrentRound) ){
-            pwalletMain->mapVoted[keyId].insert(std::make_pair(nCurrentRound, nProposalHash));
-            pwalletMain->UpdateVotedMap(keyId);
+            int nCurrentRound = prewards->GetCurrentRound().number;
+
+            if( !pwalletMain->mapVoted[keyId].count(nCurrentRound) ){
+                pwalletMain->mapVoted[keyId].insert(std::make_pair(nCurrentRound, nProposalHash));
+                pwalletMain->UpdateVotedMap(keyId);
+            }
+
         }
-
     }
 
 }
