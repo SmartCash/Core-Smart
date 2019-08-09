@@ -132,6 +132,8 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
         }
 
         CSmartAddress *voteProofCheck = nullptr;
+        CAmount nVoteProofIn = 0;
+        unsigned char cProofOption = 0;
 
         // No reason to check the input here for new coins.
         if( !tx.IsCoinBase() ){
@@ -171,31 +173,34 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                     rewardEntries.insert(make_pair(ids.at(0), rEntry));
                 }
 
+                // If its a voteproof transaction not instantly make the
+                // balance ineligible. First check if the change is sent back
+                // to the address or not to avoid exploiting fund sending
+                // with voteproof transactions
+                if( nCurrentRound >= nFirst_1_3_Round && tx.IsVoteProof() ){
+                    voteProofCheck = new CSmartAddress(rEntry->id);
+                }
+
                 rEntry->balance -= rOut.nValue;
+
+                if( voteProofCheck ){
+                    nVoteProofIn += rOut.nValue;
+                }
 
                 // If its a voteproof transaction not instantly make the
                 // balance ineligible. First check if the change is sent back
                 // to the address or not to avoid exploiting fund sending
                 // with voteproof transactions
-                if( nCurrentRound >= nFirst_1_3_Round ){
+                if( nCurrentRound >= nFirst_1_3_Round && voteProofCheck == nullptr && rEntry->balanceEligible ){
 
-                    if( tx.IsVoteProof() ){
-                        voteProofCheck = new CSmartAddress(rEntry->id);
-                    }else{
-
-                        if( rEntry->balanceEligible ){
-
-                            if( rEntry->IsEligible() ){
-                                result.disqualifiedEntries++;
-                                result.disqualifiedSmart += rEntry->balanceEligible;
-                            }
-
-                            rEntry->balanceEligible = 0;
-                        }
-
+                    if( rEntry->IsEligible() ){
+                        result.disqualifiedEntries++;
+                        result.disqualifiedSmart += rEntry->balanceEligible;
                     }
 
-                }else if( rEntry->balanceEligible ){
+                    rEntry->balanceEligible = 0;
+
+                }else if( nCurrentRound < nFirst_1_3_Round && rEntry->balanceEligible ){
 
                     result.disqualifiedEntries++;
                     result.disqualifiedSmart += rEntry->balanceEligible;
@@ -262,7 +267,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                              (*voteProofCheck == rEntry->id) ){
 
                         CSmartRewardEntry *proofEntry = nullptr;
-                        unsigned char cProofOption = 0, cAddressType = 0;
+                        unsigned char cAddressType = 0;
                         uint32_t nProofRound;
                         uint160 addressHash;
                         uint256 nProposalHash; // Placeholder only for now
@@ -311,6 +316,10 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                         }
 
                         if( proofAddress.IsValid() && proofEntry != nullptr && !proofEntry->fVoteProven && !SmartHive::IsHive(*voteProofCheck) ){
+
+                            if( cProofOption == 0x01 ){
+                                proofEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
+                            }
 
                             proofEntry->fVoteProven = true;
 
