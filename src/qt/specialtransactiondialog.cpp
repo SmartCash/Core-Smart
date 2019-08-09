@@ -841,13 +841,16 @@ void SpecialTransactionDialog::updateView()
             CSmartAddress voteAddress(sWalletAddress.toStdString());
             int nCurrentRound = prewards->GetCurrentRound().number;
 
-            if( voteAddress.GetKeyID(keyId) ){
+            CSmartRewardEntry reward;
+
+            if( voteAddress.GetKeyID(keyId) && prewards->GetRewardEntry(voteAddress, reward) ){
 
                 LOCK(pwalletMain->cs_wallet);
 
                 if( pwalletMain->mapVoted[keyId].find(nCurrentRound) == pwalletMain->mapVoted[keyId].end() ||
-                    pwalletMain->mapVoteProofs[keyId].find(nCurrentRound) != pwalletMain->mapVoteProofs[keyId].end() ){
-                    // If not yet voted or already vote proven skip it.
+                    pwalletMain->mapVoteProofs[keyId].find(nCurrentRound) != pwalletMain->mapVoteProofs[keyId].end() ||
+                    reward.balanceEligible == 0 ){
+                    // If not yet voted, no eligible balance or already vote proven skip it.
                     continue;
                 }
 

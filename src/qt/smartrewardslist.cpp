@@ -218,7 +218,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
     int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
 
-    if( !lastUpdate || currentTime - lastUpdate  > 10 ){
+    if( !lastUpdate || currentTime - lastUpdate  > 5 ){
         lastUpdate = currentTime;
     }else{
         return;
@@ -513,7 +513,8 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
                             }
 
                             if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
-                                pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() ){
+                                pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
+                                reward.balanceEligible ){
                                 ++nAvailableForProof;
                             }
 
@@ -575,7 +576,8 @@ void SmartrewardsList::updateVoteProofUI(const CSmartRewardRound &currentRound, 
                     }
 
                     if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
-                        pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() ){
+                        pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
+                        reward.balanceEligible ){
                         ++nAvailableForProof;
                     }
 
