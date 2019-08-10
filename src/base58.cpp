@@ -240,6 +240,9 @@ std::string CBase58Data::ToString(bool newFormat) const
       vch.insert(vch.end(), vchData.begin(), vchData.end());
       return EncodeBase58CheckNew(vch);
     }else{
+      if(vchVersion == Params().Base58Prefix(CChainParams::NEW_PUBKEY_ADDRESS)){
+        vch = Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS);
+      }
       vch.insert(vch.end(), vchData.begin(), vchData.end());
       return EncodeBase58Check(vch);
     }
