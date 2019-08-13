@@ -306,6 +306,14 @@ bool CScript::IsVoteKeyData() const {
 }
 
 bool CScript::IsVoteProofData() const {
+
+    return (this->size() == REWARDS_VOTEPROOF_O1_SCRIPT_SIZE &&
+            (*this)[0] == OP_RETURN &&
+            (*this)[1] == REWARDS_VOTEPROOF_O1_DATA_SIZE &&
+            (*this)[2] == OP_RETURN_VOTE_PROOF_FLAG &&
+            (*this)[3] == 0x01);
+
+    /*
     return  (this->size() == REWARDS_VOTEPROOF_O1_SCRIPT_SIZE &&
             (*this)[0] == OP_RETURN &&
             (*this)[1] == REWARDS_VOTEPROOF_O1_DATA_SIZE &&
@@ -317,6 +325,7 @@ bool CScript::IsVoteProofData() const {
             (*this)[1] == REWARDS_VOTEPROOF_O2_DATA_SIZE &&
             (*this)[2] == OP_RETURN_VOTE_PROOF_FLAG &&
             (*this)[3] == 0x02);
+    */
 }
 
 bool CScript::HasCanonicalPushes() const
