@@ -85,7 +85,7 @@ void CSmartRewards::UpdatePayoutParameter(CSmartRewardRound &round)
     if( round.number < nFirst_1_3_Round ){
         round.nBlockPayees  = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
         round.nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
-    }else{
+    }else if( nPayeeCount ){
 
         int64_t nBlockStretch = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch;
         int64_t nBlocksPerRound = Params().GetConsensus().nRewardsBlocksPerRound_1_3;
@@ -103,7 +103,13 @@ void CSmartRewards::UpdatePayoutParameter(CSmartRewardRound &round)
         }else if( nStretchedLength < nBlockStretch ){
             round.nBlockInterval++;
         }
+
+    }else{
+        // If there are no eligible smartreward entries
+        round.nBlockPayees = 0;
+        round.nBlockInterval = 0;
     }
+
 }
 
 bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult &result) {
