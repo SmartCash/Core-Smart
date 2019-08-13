@@ -115,19 +115,25 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
             UniValue payObj(UniValue::VOBJ);
 
             int nPayeeCount = round.eligibleEntries - round.disqualifiedEntries;
-            int nBlockPayees = round.nBlockPayees;
-            int nPayoutInterval = round.nBlockInterval;
-            int nRewardBlocks = nPayeeCount / nBlockPayees;
-            if( nPayeeCount % nBlockPayees ) nRewardBlocks += 1;
-            int nLastRoundBlock = round.endBlockHeight + nPayoutDelay + ( (nRewardBlocks - 1) * nPayoutInterval );
 
-            payObj.pushKV("firstBlock", round.endBlockHeight + nPayoutDelay );
-            payObj.pushKV("totalBlocks", nRewardBlocks );
-            payObj.pushKV("lastBlock", nLastRoundBlock );
-            payObj.pushKV("totalPayees", nPayeeCount);
-            payObj.pushKV("blockPayees", round.nBlockPayees);
-            payObj.pushKV("lastBlockPayees", nPayeeCount % nBlockPayees );
-            payObj.pushKV("blockInterval",round.nBlockInterval);
+            if( nPayeeCount ){
+
+                int nBlockPayees = round.nBlockPayees;
+                int nPayoutInterval = round.nBlockInterval;
+                int nRewardBlocks = nPayeeCount / nBlockPayees;
+                if( nPayeeCount % nBlockPayees ) nRewardBlocks += 1;
+                int nLastRoundBlock = round.endBlockHeight + nPayoutDelay + ( (nRewardBlocks - 1) * nPayoutInterval );
+
+                payObj.pushKV("firstBlock", round.endBlockHeight + nPayoutDelay );
+                payObj.pushKV("totalBlocks", nRewardBlocks );
+                payObj.pushKV("lastBlock", nLastRoundBlock );
+                payObj.pushKV("totalPayees", nPayeeCount);
+                payObj.pushKV("blockPayees", round.nBlockPayees);
+                payObj.pushKV("lastBlockPayees", nPayeeCount % nBlockPayees );
+                payObj.pushKV("blockInterval",round.nBlockInterval);
+            }else{
+                payObj.pushKV("error", "No payees were eligible for this round");
+            }
 
             roundObj.pushKV("payouts", payObj);
 
