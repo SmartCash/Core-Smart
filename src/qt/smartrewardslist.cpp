@@ -665,7 +665,7 @@ void SmartrewardsList::updateUI()
         break;
     case STATE_PROCESSING:
 
-        if( prewards->IsSynced() ){
+        if( prewards->IsSynced() && !fReindex ){
             setState(STATE_OVERVIEW);
         }else{
             double progress = prewards->GetProgress() * ui->loadingProgress->maximum();
