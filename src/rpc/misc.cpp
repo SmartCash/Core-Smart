@@ -385,7 +385,7 @@ UniValue snsync(const UniValue& params, bool fHelp)
         objStatus.push_back(Pair("IsSmartNodeSyncStarted", smartnodeSync.IsSmartNodeSyncStarted()));
         objStatus.push_back(Pair("IsSmartnodeListSynced", smartnodeSync.IsSmartnodeListSynced()));
         objStatus.push_back(Pair("IsWinnersListSynced", smartnodeSync.IsWinnersListSynced()));
-        objStatus.push_back(Pair("IsProposalDataSynced", smartnodeSync.IsProposalDataSynced()));
+// WIP-VOTING uncomment ->  objStatus.push_back(Pair("IsProposalDataSynced", smartnodeSync.IsProposalDataSynced()));
         objStatus.push_back(Pair("IsSynced", smartnodeSync.IsSynced()));
         objStatus.push_back(Pair("IsFailed", smartnodeSync.IsFailed()));
         return objStatus;
