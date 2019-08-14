@@ -327,7 +327,9 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                                 proofEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
                             }
 
-                            proofEntry->fVoteProven = true;
+                            if( nProofRound == currentRound.number ){
+                                proofEntry->fVoteProven = true;
+                            }
 
                             // If the entry is eligible now after the vote proof update the results
                             if( proofEntry->IsEligible() ){
