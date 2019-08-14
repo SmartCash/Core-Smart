@@ -323,7 +323,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
 
                         if( proofAddress.IsValid() && proofEntry != nullptr && !proofEntry->fVoteProven && !SmartHive::IsHive(*voteProofCheck) ){
 
-                            if( cProofOption == 0x01 ){
+                            if( cProofOption == 0x01 && proofEntry->balanceEligible ){
                                 proofEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
                             }
 
