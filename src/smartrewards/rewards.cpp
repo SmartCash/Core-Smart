@@ -93,15 +93,22 @@ void CSmartRewards::UpdatePayoutParameter(CSmartRewardRound &round)
 
         round.nBlockPayees = std::max<int>(nBlockPayees, (nPayeeCount / nBlockStretch * nBlockPayees) + 1);
 
-        int64_t nStartDelayBlocks = Params().GetConsensus().nRewardsPayoutStartDelay;
-        int64_t nBlocksTarget = nStartDelayBlocks + nBlocksPerRound;
-        round.nBlockInterval = ((nBlockStretch * round.nBlockPayees) / nPayeeCount) + 1;
-        int64_t nStretchedLength = nPayeeCount / round.nBlockPayees * (round.nBlockInterval);
+        if( nPayeeCount > round.nBlockPayees ){
 
-        if( nStretchedLength > nBlocksTarget ){
-            round.nBlockInterval--;
-        }else if( nStretchedLength < nBlockStretch ){
-            round.nBlockInterval++;
+            int64_t nStartDelayBlocks = Params().GetConsensus().nRewardsPayoutStartDelay;
+            int64_t nBlocksTarget = nStartDelayBlocks + nBlocksPerRound;
+            round.nBlockInterval = ((nBlockStretch * round.nBlockPayees) / nPayeeCount) + 1;
+            int64_t nStretchedLength = nPayeeCount / round.nBlockPayees * (round.nBlockInterval);
+
+            if( nStretchedLength > nBlocksTarget ){
+                round.nBlockInterval--;
+            }else if( nStretchedLength < nBlockStretch ){
+                round.nBlockInterval++;
+            }
+
+        }else{
+            // If its only one block to pay
+            round.nBlockInterval = 1;
         }
 
     }else{
