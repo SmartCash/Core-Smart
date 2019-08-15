@@ -1884,6 +1884,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
                     hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23));
                     addressType = 1;
+                } else if (out.scriptPubKey.IsPayToPublicKey()) {
+
+                    vector<unsigned char> pubKeyBytes(out.scriptPubKey.begin()+1, out.scriptPubKey.begin()+34);
+                    CPubKey pubKey(pubKeyBytes);
+                    hashBytes = pubKey.GetID();
+                    addressType = 1;
                 } else {
                     continue;
                 }
@@ -1967,6 +1973,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                         hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin()+3, prevout.scriptPubKey.begin()+23));
                         addressType = 1;
 
+                    } else if (prevout.scriptPubKey.IsPayToPublicKey()) {
+
+                        vector<unsigned char> pubKeyBytes(prevout.scriptPubKey.begin()+1, prevout.scriptPubKey.begin()+34);
+                        CPubKey pubKey(pubKeyBytes);
+                        hashBytes = pubKey.GetID();
+                        addressType = 1;
                     } else {
                         continue;
                     }
@@ -2384,6 +2396,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                     } else if (prevout.scriptPubKey.IsPayToPublicKeyHash()) {
                         hashBytes = uint160(vector <unsigned char>(prevout.scriptPubKey.begin()+3, prevout.scriptPubKey.begin()+23));
                         addressType = 1;
+                    } else if (prevout.scriptPubKey.IsPayToPublicKey()) {
+                        vector<unsigned char> pubKeyBytes(prevout.scriptPubKey.begin()+1, prevout.scriptPubKey.begin()+34);
+                        CPubKey pubKey(pubKeyBytes);
+                        hashBytes = pubKey.GetID();
+                        addressType = 1;
                     } else {
                         hashBytes.SetNull();
                         addressType = 0;
@@ -2453,6 +2470,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                     addressType = 2;
                 } else if (out.scriptPubKey.IsPayToPublicKeyHash()) {
                     hashBytes = uint160(vector <unsigned char>(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23));
+                    addressType = 1;
+                } else if (out.scriptPubKey.IsPayToPublicKey()) {
+                    vector<unsigned char> pubKeyBytes(out.scriptPubKey.begin()+1, out.scriptPubKey.begin()+34);
+                    CPubKey pubKey(pubKeyBytes);
+                    hashBytes = pubKey.GetID();
                     addressType = 1;
                 } else {
                     continue;
@@ -3902,7 +3924,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
 
     int nHeight = pindex->nHeight;
     if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
-      newHash = true;
+//      newHash = true;
     }
 
     // Write block to history file
@@ -4319,7 +4341,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
 
         int nHeight = pindex->nHeight;
         if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
-          newHash = true;
+//          newHash = true;
         }
 
         if (pindex->nHeight < chainActive.Height()-nCheckDepth)
