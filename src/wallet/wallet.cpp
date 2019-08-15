@@ -4017,7 +4017,7 @@ void CWallet::GetScriptForMining(boost::shared_ptr <CReserveScript> &script) {
         return;
 
     script = rKey;
-    script->reserveScript = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
+    script->reserveScript = CScript() << OP_DUP << OP_HASH160 << ToByteVector(pubkey.GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
 }
 
 void CWallet::LockCoin(const COutPoint &output) {
