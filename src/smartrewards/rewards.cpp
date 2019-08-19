@@ -211,6 +211,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                         result.disqualifiedSmart += rEntry->balanceEligible;
                     }
 
+                    rEntry->disqualifyingTx = tx.GetHash();
                     rEntry->balanceEligible = 0;
 
                 }else if( nCurrentRound < nFirst_1_3_Round && rEntry->balanceEligible ){
@@ -218,6 +219,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                     result.disqualifiedEntries++;
                     result.disqualifiedSmart += rEntry->balanceEligible;
 
+                    rEntry->disqualifyingTx = tx.GetHash();
                     rEntry->balanceEligible = 0;
                 }
 
@@ -273,6 +275,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                         // Finally invalidate the balance since the change was not sent
                         // back to the sender! We don't want to allow
                         // a exploit to send around funds withouht breaking smartrewards.
+                        vkEntry->disqualifyingTx = tx.GetHash();
                         vkEntry->balanceEligible = 0;
 
                     }else if( tx.IsVoteProof() &&
@@ -431,6 +434,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
         if( entry.balance >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id) ){
             entry.balanceEligible = entry.balance;
         }
+
+        entry.disqualifyingTx.SetNull();
 
         // Reset SmartNode flag with every cycle in case a node was shut down during the cycle.
         entry.fIsSmartNode = false;
