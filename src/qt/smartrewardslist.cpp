@@ -420,7 +420,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             if( field.fIsSmartNode ){
                 entry->setInfoText("Address belongs to a SmartNode.", COLOR_NEGATIVE);
             }else if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE ){
-                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE/COIN), COLOR_NEGATIVE);
+                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE/COIN), COLOR_NEGATIVE);
             }else if( !field.disqualifyingTx.IsNull() ){
                 entry->setDisqualifyingTx(field.disqualifyingTx);
                 entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
