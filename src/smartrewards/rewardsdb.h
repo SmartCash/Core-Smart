@@ -175,14 +175,16 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(id);
-        READWRITE(balanceEligible);
         READWRITE(balance);
+        READWRITE(balanceAtStart);
+        READWRITE(balanceEligible);
         READWRITE(fIsSmartNode);
         READWRITE(fVoteProven);
     }
 
     CSmartAddress id;
     CAmount balance;
+    CAmount balanceAtStart;
     CAmount balanceEligible;
     CAmount reward;
     bool fIsSmartNode;

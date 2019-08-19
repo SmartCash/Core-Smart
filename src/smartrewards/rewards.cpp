@@ -426,6 +426,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
             snapshots.push_back(CSmartRewardSnapshot(entry.id, entry.balance, nReward));
         }
 
+        entry.balanceAtStart = entry.balance;
+
         if( entry.balance >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry.id) ){
             entry.balanceEligible = entry.balance;
         }
