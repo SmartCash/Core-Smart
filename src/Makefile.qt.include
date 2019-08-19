@@ -116,6 +116,7 @@ QT_FORMS_UI = \
   qt/forms/receiverequestdialog.ui \
   qt/forms/smartnodelist.ui \
   qt/forms/smartrewardslist.ui \
+  qt/forms/smartrewardentry.ui \
   qt/forms/smartvoting.ui \
   qt/forms/smartproposal.ui \
   qt/forms/smartproposaltab.ui \
@@ -170,6 +171,7 @@ QT_MOC_CPP = \
   qt/moc_signverifymessagedialog.cpp \
   qt/moc_smartnodelist.cpp \
   qt/moc_smartrewardslist.cpp \
+  qt/moc_smartrewardentry.cpp \
   qt/moc_smartvoting.cpp \
   qt/moc_smartproposal.cpp \
   qt/moc_smartvotingmanager.cpp \
@@ -256,6 +258,7 @@ BITCOIN_QT_H = \
   qt/sendcoinsentry.h \
   qt/signverifymessagedialog.h \
   qt/smartnodelist.h \
+  qt/smartrewardentry.h \
   qt/smartrewardslist.h \
   qt/smartvoting.h \
   qt/smartproposal.h \
@@ -391,6 +394,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/sendcoinsentry.cpp \
   qt/signverifymessagedialog.cpp \
   qt/smartnodelist.cpp \
+  qt/smartrewardentry.cpp \
   qt/smartrewardslist.cpp \
   qt/smartvoting.cpp \
   qt/smartproposal.cpp \

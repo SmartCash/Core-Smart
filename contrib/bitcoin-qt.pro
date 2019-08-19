@@ -25,6 +25,7 @@ FORMS += \
     ../src/qt/forms/smartrewardslist.ui \
     ../src/qt/forms/smartvoting.ui \
     ../src/qt/forms/smartproposal.ui \
+    ../src/qt/forms/smartrewardentry.ui \
     ../src/qt/forms/smartproposaltab.ui \
     ../src/qt/forms/specialtransactiondialog.ui \
     ../src/qt/forms/transactiondescdialog.ui \

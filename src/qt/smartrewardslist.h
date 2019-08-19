@@ -42,6 +42,7 @@ class ClientModel;
 class OptionsModel;
 class PlatformStyle;
 class QModelIndex;
+class QSmartRewardEntry;
 
 QT_BEGIN_NAMESPACE
 class QItemSelection;
@@ -59,15 +60,14 @@ class SmartrewardsList : public QWidget
     enum SmartRewardsListState{
         STATE_INIT,
         STATE_PROCESSING,
-        STATE_OVERVIEW,
-        STATE_VOTEPROOF
+        STATE_OVERVIEW
     };
 
     Ui::SmartrewardsList *ui;
     WalletModel *model;
     ClientModel *clientModel;
     const PlatformStyle *platformStyle;
-    QMenu *contextMenu;
+    std::map<QString, QSmartRewardEntry*> mapEntries;
     SmartRewardsListState state;
 
     void setState(SmartrewardsList::SmartRewardsListState state);
@@ -88,29 +88,12 @@ public:
         COLUMN_REWARD,
     };
 
-    enum VoteProofColummns
-    {
-        PROOF_COLUMN_LABEL = 0,
-        PROOF_COLUMN_ADDRESS,
-        PROOF_COLUMN_ELIGIBLE,
-        PROOF_COLUMN_VOTED,
-        PROOF_COLUMN_PROVEN
-    };
-
 public Q_SLOTS:
-    void contextualMenu(const QPoint &);
-    void copyAddress();
-    void copyLabel();
-    void copyAmount();
-    void copyEligibleAmount();
-    void copyReward();
     void updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip);
-    void updateVoteProofUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip);
     void updateUI();
 
-    void on_btnManageProofs_clicked();
-    void on_btnCancelProofs_clicked();
     void on_btnSendProofs_clicked();
 
+    void scrollChanged(int value);
 };
 #endif // SMARTREWARDSLIST_H
