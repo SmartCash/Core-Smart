@@ -399,6 +399,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
         }
     }
 
+    int nEligibleAddresses = 0;
     CAmount rewardSum = 0;
 
     BOOST_FOREACH(const QSmartRewardField& field, rewardList) {
@@ -445,10 +446,12 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                       nConfirmationsRequired <= 0 &&
                       field.eligible ){
                 entry->setEligible(field.eligible, field.reward);
+                ++nEligibleAddresses;
             }
 
         }else{
             entry->setEligible(field.eligible, field.reward);
+            ++nEligibleAddresses;
         }
 
         rewardSum += field.reward;
@@ -509,7 +512,9 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     }
 
 
-    ui->sumLabel->setText(BitcoinUnits::format(BitcoinUnits::SMART, rewardSum) + " " +  BitcoinUnits::name(BitcoinUnit::SMART));
+    ui->lblActiveAddresses->setText(QString::number(vecEntries.size()));
+    ui->lblEligibleAddresses->setText(QString::number(nEligibleAddresses));
+    ui->lblTotalRewards->setText(BitcoinUnits::format(BitcoinUnits::SMART, rewardSum) + " " +  BitcoinUnits::name(BitcoinUnit::SMART));
 }
 
 void SmartrewardsList::updateUI()
