@@ -477,7 +477,6 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     std::sort(vecEntries.begin(), vecEntries.end(), SortSmartRewardWidgets());
 
-
     for( size_t i=0; i<vecEntries.size(); i++ ){
 
         ui->smartRewardsList->layout()->addWidget(vecEntries[i]);
@@ -512,10 +511,11 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
         ui->btnSendProofs->setEnabled(false);
     }
 
-
     ui->lblActiveAddresses->setText(QString::number(vecEntries.size()));
     ui->lblEligibleAddresses->setText(QString::number(nEligibleAddresses));
-    ui->lblTotalRewards->setText(BitcoinUnits::format(BitcoinUnits::SMART, rewardSum) + " " +  BitcoinUnits::name(BitcoinUnit::SMART));
+    QString strEstimated = QString::fromStdString(strprintf("%d", rewardSum/COIN));
+    AddThousandsSpaces(strEstimated);
+    ui->lblTotalRewards->setText(strEstimated + " SMART");
 }
 
 void SmartrewardsList::updateUI()
