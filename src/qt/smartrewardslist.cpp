@@ -489,6 +489,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             QSpacerItem* spacerLeft = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
             QSpacerItem* spacerRight = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
             QWidget* lineContainer = new QWidget();
+            lineContainer->setStyleSheet("background-color: rgb(247, 245, 248);");
             QFrame* line = new QFrame(lineContainer);
             line->setFrameShape(QFrame::HLine);
             line->setFrameShadow(QFrame::Plain);

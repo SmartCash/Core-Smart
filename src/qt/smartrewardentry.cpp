@@ -77,7 +77,9 @@ void QSmartRewardEntry::setEligible(CAmount nEligible, CAmount nEstimated)
     this->nEligible = nEligible;
     ui->stackedWidget->setCurrentIndex(0);
     ui->lblEligible->setText(BitcoinUnits::formatWithUnit(BitcoinUnit::SMART, nEligible));
-    ui->lblEstimated->setText(BitcoinUnits::formatWithUnit(BitcoinUnit::SMART, nEstimated));
+    QString strEstimated = QString::fromStdString(strprintf("%d", nEstimated/COIN));
+    AddThousandsSpaces(strEstimated);
+    ui->lblEstimated->setText(strEstimated + " SMART");
 }
 
 void QSmartRewardEntry::setVoted(bool fState)
