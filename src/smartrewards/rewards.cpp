@@ -376,6 +376,7 @@ bool CSmartRewards::Update(CBlockIndex *pindexNew, const CChainParams& chainpara
                                 result.disqualifiedSmart += rEntry->balanceEligible;
                             }
 
+                            rEntry->balanceEligible = 0;
                             rEntry->fIsSmartNode = true;
                         }
                     }
