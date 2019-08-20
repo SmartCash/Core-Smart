@@ -152,7 +152,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Estimated Reward</string>
+            <string>Estimated SmartReward</string>
            </property>
           </widget>
          </item>
