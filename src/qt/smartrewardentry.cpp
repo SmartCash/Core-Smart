@@ -74,6 +74,7 @@ void QSmartRewardEntry::setInfoText(const QString &strText, const QColor &color)
 
 void QSmartRewardEntry::setEligible(CAmount nEligible, CAmount nEstimated)
 {
+    this->nEligible = nEligible;
     ui->stackedWidget->setCurrentIndex(0);
     ui->lblEligible->setText(BitcoinUnits::formatWithUnit(BitcoinUnit::SMART, nEligible));
     ui->lblEstimated->setText(BitcoinUnits::formatWithUnit(BitcoinUnit::SMART, nEstimated));
@@ -116,6 +117,11 @@ QSmartRewardEntry::State QSmartRewardEntry::CurrentState()
     if( nEligible ) return IsEligible;
 
     return Unknown;
+}
+
+string QSmartRewardEntry::ToString()
+{
+    return strprintf("QSmartRewardEntry( address: %s, currentState: %d, balanceAtStart: %d )\n", ui->lblAddress->text().toStdString(), CurrentState(), BalanceAtStart());
 }
 
 void QSmartRewardEntry::contextMenuEvent(QContextMenuEvent *event)

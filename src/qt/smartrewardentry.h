@@ -48,6 +48,8 @@ public:
     int VoteProofConfirmations() const { return nVoteProofConfirmations; }
     State CurrentState();
 
+    std::string ToString();
+
 protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
 
