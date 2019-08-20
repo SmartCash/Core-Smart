@@ -474,28 +474,30 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     std::sort(vecEntries.begin(), vecEntries.end(), SortSmartRewardWidgets());
 
-    for( QSmartRewardEntry* entry : vecEntries ){
 
-        LogPrintf("%s\n", entry->ToString());
+    for( size_t i=0; i<vecEntries.size(); i++ ){
 
-        ui->smartRewardsList->layout()->addWidget(entry);
+        ui->smartRewardsList->layout()->addWidget(vecEntries[i]);
 
-        // Add a horizontal line
-        QHBoxLayout* hBox = new QHBoxLayout();
-        QSpacerItem* spacerLeft = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
-        QSpacerItem* spacerRight = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
-        QWidget* lineContainer = new QWidget();
-        QFrame* line = new QFrame(lineContainer);
-        line->setFrameShape(QFrame::HLine);
-        line->setFrameShadow(QFrame::Plain);
-        hBox->addSpacerItem(spacerLeft);
-        hBox->addWidget(line);
-        hBox->addSpacerItem(spacerRight);
-        hBox->setSpacing(0);
-        hBox->setContentsMargins(0, 0, 0, 0);
-        lineContainer->setLayout(hBox);
-        ui->smartRewardsList->layout()->addWidget(lineContainer);
-        vecLines.push_back(lineContainer);
+        if( i < vecEntries.size() - 1 ){
+
+            // Add a horizontal line
+            QHBoxLayout* hBox = new QHBoxLayout();
+            QSpacerItem* spacerLeft = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+            QSpacerItem* spacerRight = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+            QWidget* lineContainer = new QWidget();
+            QFrame* line = new QFrame(lineContainer);
+            line->setFrameShape(QFrame::HLine);
+            line->setFrameShadow(QFrame::Plain);
+            hBox->addSpacerItem(spacerLeft);
+            hBox->addWidget(line);
+            hBox->addSpacerItem(spacerRight);
+            hBox->setSpacing(0);
+            hBox->setContentsMargins(0, 0, 0, 0);
+            lineContainer->setLayout(hBox);
+            ui->smartRewardsList->layout()->addWidget(lineContainer);
+            vecLines.push_back(lineContainer);
+        }
     }
 
     if( nAvailableForProof ){
