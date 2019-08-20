@@ -67,7 +67,8 @@ class SmartrewardsList : public QWidget
     WalletModel *model;
     ClientModel *clientModel;
     const PlatformStyle *platformStyle;
-    std::map<QString, QSmartRewardEntry*> mapEntries;
+    std::vector<QSmartRewardEntry*> vecEntries;
+    std::vector<QWidget*> vecLines;
     SmartRewardsListState state;
 
     void setState(SmartrewardsList::SmartRewardsListState state);

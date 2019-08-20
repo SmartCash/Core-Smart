@@ -1,5 +1,6 @@
 #include "smartrewardentry.h"
 #include "ui_smartrewardentry.h"
+#include "smartrewards/rewards.h"
 #include "amount.h"
 #include "guiutil.h"
 #include "guiconstants.h"
@@ -9,10 +10,11 @@
 #include <QMenu>
 #include <QContextMenuEvent>
 
-QSmartRewardEntry::QSmartRewardEntry(const QString& strLabel, const QString& strAddress, QWidget *parent):
+QSmartRewardEntry::QSmartRewardEntry(const QString& strLabel, const QString& strAddress, CAmount nBalanceAtStart, QWidget *parent):
     QFrame(parent),
     ui(new Ui::QSmartRewardEntry),
-    contextMenu(nullptr)
+    contextMenu(nullptr),
+    nBalanceAtStart(nBalanceAtStart)
 {
     ui->setupUi(this);
 
@@ -75,6 +77,45 @@ void QSmartRewardEntry::setEligible(CAmount nEligible, CAmount nEstimated)
     ui->stackedWidget->setCurrentIndex(0);
     ui->lblEligible->setText(BitcoinUnits::formatWithUnit(BitcoinUnit::SMART, nEligible));
     ui->lblEstimated->setText(BitcoinUnits::formatWithUnit(BitcoinUnit::SMART, nEstimated));
+}
+
+void QSmartRewardEntry::setVoted(bool fState)
+{
+    fVoted = fState;
+}
+
+void QSmartRewardEntry::setIsSmartNode(bool fState)
+{
+    fIsSmartNode = fState;
+}
+
+void QSmartRewardEntry::setVoteProofConfirmations(int nConfirmations)
+{
+    nVoteProofConfirmations = nConfirmations;
+}
+
+QString QSmartRewardEntry::Address() const
+{
+    return ui->lblAddress->text();
+}
+
+QSmartRewardEntry::State QSmartRewardEntry::CurrentState()
+{
+    if( nBalanceAtStart < SMART_REWARDS_MIN_BALANCE ) return LowBalance;
+
+    if( fIsSmartNode ) return IsASmartNode;
+
+    if( !disqualifyingTx.IsNull() ) return OutgoingTransaction;
+
+    if( !fVoted ) return VotingRequired;
+
+    if( nVoteProofConfirmations == -1 ) return VoteProofRequired;
+
+    if( nVoteProofConfirmations < Params().GetConsensus().nRewardsConfirmationsRequired ) return VoteProofConfirmationsRequired;
+
+    if( nEligible ) return IsEligible;
+
+    return Unknown;
 }
 
 void QSmartRewardEntry::contextMenuEvent(QContextMenuEvent *event)

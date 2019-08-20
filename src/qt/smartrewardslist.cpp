@@ -55,6 +55,26 @@ struct QSmartRewardField
                           fIsSmartNode(false), fVoted(false), nVoteProofConfirmations(-1){}
 };
 
+struct SortSmartRewardWidgets
+{
+    bool operator()(QSmartRewardEntry* w1,
+                    QSmartRewardEntry* w2) const
+    {
+
+        if( w1->CurrentState() > w2->CurrentState() ){
+            return true;
+        }
+
+        if( w1->CurrentState() == w2->CurrentState() &&
+                w1->BalanceAtStart() > w2->BalanceAtStart() ){
+            return true;
+        }
+
+        return false;
+    }
+};
+
+
 SmartrewardsList::SmartrewardsList(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::SmartrewardsList),
@@ -385,33 +405,23 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
         QSmartRewardEntry* entry;
 
-        auto it = mapEntries.find(field.address);
+        auto it = std::find_if(vecEntries.begin(),
+                               vecEntries.end(),
+                               [field](QSmartRewardEntry *entry) -> bool {
+            return entry->Address() == field.address;
+        });
 
-        if( it == mapEntries.end() ){
-            entry = new QSmartRewardEntry(field.label, field.address, this);
-            mapEntries.insert(std::make_pair(field.address, entry));
-            ui->smartRewardsList->layout()->addWidget(entry);
-
-            // Add a horizontal line
-            QWidget* lineContainer = new QWidget();
-            QHBoxLayout* hBox = new QHBoxLayout();
-            QSpacerItem* spacerLeft = new QSpacerItem(20,0,QSizePolicy::Fixed, QSizePolicy::Fixed);
-            QSpacerItem* spacerRight = new QSpacerItem(20,0,QSizePolicy::Fixed, QSizePolicy::Fixed);
-            QFrame* line = new QFrame(this);
-            line->setFrameShape(QFrame::HLine);
-            line->setFrameShadow(QFrame::Plain);
-            hBox->addSpacerItem(spacerLeft);
-            hBox->addWidget(line);
-            hBox->addSpacerItem(spacerRight);
-            hBox->setSpacing(0);
-            hBox->setContentsMargins(0,0,0,0);
-            lineContainer->setLayout(hBox);
-            ui->smartRewardsList->layout()->addWidget(lineContainer);
+        if( it == vecEntries.end() ){
+            entry = new QSmartRewardEntry(field.label, field.address, field.balanceAtStart, this);
+            vecEntries.push_back(entry);
         }else{
-            entry = it->second;
+            entry = *it;
         }
 
         entry->setBalance(field.balance);
+        entry->setIsSmartNode(field.fIsSmartNode);
+        entry->setVoted(field.fVoted);
+        entry->setVoteProofConfirmations(field.nVoteProofConfirmations);
 
         if( currentRound.number >= nFirst_1_3_Round ){
 
@@ -442,6 +452,50 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
         }
 
         rewardSum += field.reward;
+    }
+
+    for( QWidget* line : vecLines ){
+        ui->smartRewardsList->layout()->removeWidget(line);
+        delete line;
+    }
+
+    vecLines.clear();
+
+    for( QSmartRewardEntry* entry : vecEntries ){
+        ui->smartRewardsList->layout()->removeWidget(entry);
+    }
+
+    QLayoutItem * item;
+
+    while( ( item = ui->smartRewardsList->layout()->takeAt(0) ) != 0){
+        delete item->widget();
+        delete item;
+    }
+
+    std::sort(vecEntries.begin(), vecEntries.end(), SortSmartRewardWidgets());
+
+    for( QSmartRewardEntry* entry : vecEntries ){
+
+        LogPrintf("%s\n", entry->ToString());
+
+        ui->smartRewardsList->layout()->addWidget(entry);
+
+        // Add a horizontal line
+        QHBoxLayout* hBox = new QHBoxLayout();
+        QSpacerItem* spacerLeft = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+        QSpacerItem* spacerRight = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+        QWidget* lineContainer = new QWidget();
+        QFrame* line = new QFrame(lineContainer);
+        line->setFrameShape(QFrame::HLine);
+        line->setFrameShadow(QFrame::Plain);
+        hBox->addSpacerItem(spacerLeft);
+        hBox->addWidget(line);
+        hBox->addSpacerItem(spacerRight);
+        hBox->setSpacing(0);
+        hBox->setContentsMargins(0, 0, 0, 0);
+        lineContainer->setLayout(hBox);
+        ui->smartRewardsList->layout()->addWidget(lineContainer);
+        vecLines.push_back(lineContainer);
     }
 
     if( nAvailableForProof ){
