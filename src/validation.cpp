@@ -2976,10 +2976,6 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     LogPrint("bench", "  - Connect postprocess: %.2fms [%.2fs]\n", (nTime6 - nTime5) * 0.001, nTimePostConnect * 0.000001);
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
 
-    //### SMARTCASH START
-    if(pindexNew->nHeight > 0) prewards->ProcessBlock(pindexNew, chainparams);
-    //### SMARTCASH END
-
     return true;
 }
 
