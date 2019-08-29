@@ -370,6 +370,11 @@ void CSmartRewards::UpdateHeights(const int nHeight, const int nRewardHeight)
     rewardHeight = nRewardHeight;
 }
 
+void CSmartRewards::StartBlock()
+{
+    rewardEntries.clear();
+    transactionEntries.clear();
+}
 
 void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result)
 {

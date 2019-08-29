@@ -102,6 +102,7 @@ public:
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult &result);
     bool UpdateRound(const CSmartRewardRound &round);
 
+    void StartBlock();
     void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
     void CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
