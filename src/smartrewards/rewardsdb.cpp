@@ -119,48 +119,6 @@ bool CSmartRewardsDB::IsLocked()
     return Exists(DB_LOCK);
 }
 
-// --- TBD ---
-bool CSmartRewardsDB::ResetToRound(const int16_t number, const CSmartRewardRound &round, const CSmartRewardEntryList &entries)
-{
-//    CDBBatch batch(*this);
-
-//    CSmartRewardRoundList rounds;
-//    if( !ReadRounds(rounds) ) return false;
-
-//    BOOST_FOREACH(CSmartRewardRound &r, rounds)
-//    {
-//        if( r.number < number) continue;
-
-//        batch.Erase(make_pair(DB_ROUND, r.number));
-
-//        boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
-
-//        pcursor->Seek(make_pair(DB_ROUND_SNAPSHOT,number));
-
-//        while (pcursor->Valid()) {
-//            std::pair<char,std::pair<int16_t, CSmartAddress>> key;
-//            if (pcursor->GetKey(key) && key.first == DB_ROUND_SNAPSHOT) {
-
-//                if( key.second.first != round ) break;
-
-//                batch.Erase(key);
-
-//                pcursor->Next();
-//            } else {
-//                break;
-//            }
-//        }
-//    }
-
-//    BOOST_FOREACH(CSmartRewardEntry e, entries) {
-//        batch.Write(make_pair(DB_REWARD_ENTRY,e.id), e);
-//    }
-
-//    batch.Write(make_pair(DB_ROUND,round.number), round);
-//    batch.Write(DB_ROUND_CURRENT, round);
-    return false;
-}
-
 bool CSmartRewardsDB::ReadBlock(const int nHeight, CSmartRewardBlock &block)
 {
     return Read(make_pair(DB_BLOCK,nHeight), block);
@@ -216,12 +174,13 @@ bool CSmartRewardsDB::ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry
     return Read(make_pair(DB_REWARD_ENTRY,id), entry);
 }
 
-bool CSmartRewardsDB::SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions)
+bool CSmartRewardsDB::SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions)
 {
-
+    return SyncCached(CSmartRewardBlock(), current, rewards, transactions);
+}
+bool CSmartRewardsDB::SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions)
+{
     CDBBatch batch(*this);
-
-    if(!blocks.size()) return true;
 
     BOOST_FOREACH(const PAIRTYPE(CSmartAddress, CSmartRewardEntry*)& r, rewards) {
         if( r.second->balance <= 0 ){
@@ -235,17 +194,14 @@ bool CSmartRewardsDB::SyncBlocks(const CSmartRewardBlockList &blocks, const CSma
         batch.Write(make_pair(DB_TX_HASH,t.hash), t);
     }
 
-    BOOST_FOREACH(const CSmartRewardBlock &b, blocks) {
-        batch.Write(make_pair(DB_BLOCK,b.nHeight), b);
+    if( block.IsValid() ){
+        batch.Write(make_pair(DB_BLOCK,block.nHeight), block);
+        batch.Write(DB_BLOCK_LAST, block);
     }
 
     batch.Write(DB_ROUND_CURRENT, current);
 
-    auto last = std::max_element(blocks.begin(), blocks.end());
-
-    batch.Write(DB_BLOCK_LAST, *last);
-
-    return WriteBatch(batch, true);
+    return WriteBatch(batch);
 }
 
 bool CSmartRewardsDB::StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries)

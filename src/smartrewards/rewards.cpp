@@ -234,18 +234,22 @@ bool CSmartRewards::GetRewardEntries(CSmartRewardEntryList &entries)
     return pdb->ReadRewardEntries(entries);
 }
 
-bool CSmartRewards::SyncPrepared()
+bool CSmartRewards::SyncCached()
+{
+    return SyncCached(CSmartRewardBlock());
+}
+
+bool CSmartRewards::SyncCached(const CSmartRewardBlock &block)
 {
     LOCK2(cs_rewardsdb, cs_rewardrounds);
 
-    bool ret =  pdb->SyncBlocks(blockEntries,currentRound, rewardEntries, transactionEntries);
+    bool ret =  pdb->SyncCached(block, currentRound, rewardEntries, transactionEntries);
 
     for( std::pair<CSmartAddress, CSmartRewardEntry*> it : rewardEntries ){
         delete it.second;
     }
 
     rewardEntries.clear();
-    blockEntries.clear();
     transactionEntries.clear();
 
     return ret;
@@ -281,26 +285,6 @@ int CSmartRewards::GetBlocksPerRound(const int nRound)
         return chainparams.GetConsensus().nRewardsBlocksPerRound_1_3;
     }
 
-}
-
-bool CSmartRewards::AddBlock(const CSmartRewardBlock &block, bool sync)
-{
-    blockEntries.push_back(block);
-
-#ifdef DEBUG_LOCKORDER
-    int nTime1 = GetTimeMicros();
-#endif
-
-    if(sync) return SyncPrepared();
-
-#ifdef DEBUG_LOCKORDER
-    int nTimeSync = GetTimeMicros() - nTime1;
-    if( nTimeSync > 300000){
-        LogPrint("smartrewards", "CSmartRewards::AddBlock - Sync - Block: %d - Progress %.2fms\n",block.nHeight, nTimeSync * 0.001);
-    }
-#endif
-
-    return true;
 }
 
 void CSmartRewards::AddTransaction(const CSmartRewardTransaction &transaction)
@@ -673,11 +657,8 @@ void CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
     if(!pIndex || pIndex->nHeight != currentBlock.nHeight + 1 ) throw runtime_error("CSmartRewards::CommitBlock - Invalid next block!");
 
-    // Sync the data all nCacheEntires to the db.
-    int preparedEntries = rewardEntries.size() + transactionEntries.size();
-
-    if(!AddBlock(result.block, preparedEntries > nCacheEntires )){
-            throw runtime_error("CSmartRewards::CommitBlock - Failed to add block entry!");
+    if(!SyncCached(result.block)){
+        throw runtime_error("CSmartRewards::CommitBlock - Failed to sync cache - Initial!");
     }
 
     // Update the current block to the processed one
@@ -688,8 +669,6 @@ void CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
         if( (MainNet() && pIndex->GetBlockTime() > nFirstRoundStartTime) ||
             (TestNet() && pIndex->nHeight >= nFirstRoundStartBlock_Testnet) ){
-
-            if( !SyncPrepared() ) throw runtime_error("Failed to sync current prepared entries!");
 
             // Create the very first smartrewards round.
             CSmartRewardRound first;
@@ -735,8 +714,6 @@ void CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
     if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() > currentRound.endBlockTime ) ||
         ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight >= currentRound.endBlockHeight ) ){
 
-        if( !SyncPrepared() ) throw runtime_error("Failed to sync current prepared entries!");
-
         // Write the round to the history
         currentRound.endBlockHeight = pIndex->nHeight;
         currentRound.endBlockTime = pIndex->GetBlockTime();
@@ -777,8 +754,6 @@ void CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
             next.endBlockTime = startTime + nBlocksPerRound * 55;
         }
 
-        if( !SyncPrepared() ) throw runtime_error("Failed to sync current prepared entries!");
-
         // Get the current entries
         if( !GetRewardEntries(entries) ) throw runtime_error("Failed to read all reward entries!");
 
@@ -796,6 +771,10 @@ void CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
         finishedRounds.push_back(currentRound);
         lastRound = currentRound;
         currentRound = next;
+    }
+
+    if(!SyncCached()){
+        throw runtime_error("CSmartRewards::CommitBlock - Failed to sync cached - Processed!");
     }
 
     prewards->UpdateHeights(GetBlockHeight(pIndex), currentBlock.nHeight);

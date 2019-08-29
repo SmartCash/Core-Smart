@@ -100,6 +100,8 @@ public:
     }
 
     std::string ToString() const;
+
+    bool IsValid() const { return !blockHash.IsNull(); }
 };
 
 class CSmartRewardRound
@@ -283,8 +285,6 @@ public:
     void Lock();
     bool IsLocked();
 
-    bool ResetToRound(const int16_t number, const CSmartRewardRound &round, const CSmartRewardEntryList &entries);
-
     bool ReadBlock(const int nHeight, CSmartRewardBlock &block);
     bool ReadLastBlock(CSmartRewardBlock &block);
 
@@ -302,7 +302,8 @@ public:
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
 
-    bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
+    bool SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
+    bool SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshot);
 

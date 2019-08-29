@@ -51,7 +51,7 @@ struct CSmartRewardsUpdateResult
     int64_t qualifiedEntries;
     int64_t qualifiedSmart;
     CSmartRewardBlock block;
-    CSmartRewardsUpdateResult(const int nHeight, const uint256* pBlockHash, const int64_t nBlockTime) : disqualifiedEntries(0), disqualifiedSmart(0), block(nHeight, pBlockHash, nBlockTime) { }
+    CSmartRewardsUpdateResult(const int nHeight, const uint256* pBlockHash, const int64_t nBlockTime) : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block(nHeight, pBlockHash, nBlockTime) { }
 };
 
 class CSmartRewards
@@ -65,7 +65,6 @@ class CSmartRewards
     int chainHeight;
     int rewardHeight;
 
-    CSmartRewardBlockList blockEntries;
     CSmartRewardTransactionList transactionEntries;
     CSmartRewardEntryMap rewardEntries;
 
@@ -76,12 +75,11 @@ class CSmartRewards
     bool GetCachedRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&entry);
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool GetRewardEntries(CSmartRewardEntryList &entries);
-    bool AddBlock(const CSmartRewardBlock &block, bool sync);
     void AddTransaction(const CSmartRewardTransaction &transaction);
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb);
-    ~CSmartRewards() { SyncPrepared(); delete pdb; }
+    ~CSmartRewards() { delete pdb; }
     void Lock();
     bool IsLocked();
 
@@ -93,7 +91,8 @@ public:
 
     void UpdateHeights(const int nHeight, const int nRewardHeight);
     bool Verify();
-    bool SyncPrepared();
+    bool SyncCached();
+    bool SyncCached(const CSmartRewardBlock &block);
     bool IsSynced();
     double GetProgress();
     int GetLastHeight();
