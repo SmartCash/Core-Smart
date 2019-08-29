@@ -2352,6 +2352,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
+    prewards->StartBlock();
+
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = block.vtx[i];
