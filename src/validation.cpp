@@ -2347,6 +2347,9 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::map<CVoteKey, CVoteKeyValue> mapVoteKeys;
     */
 
+    // Result of the smartrewards block processing.
+    CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
+
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
@@ -2355,6 +2358,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         const uint256 txhash = tx.GetHash();
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
+
+        if( pindex->nHeight > 0 ) prewards->ProcessTransaction(pindex, tx, view, chainparams, smartRewardsResult);
 
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
@@ -2604,6 +2609,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         return false;
     }
 
+    prewards->CommitBlock(pindex, smartRewardsResult);
+
     // END SMARTCASH
 
     if (!control.Wait())
@@ -2810,10 +2817,15 @@ void static UpdateTip(CBlockIndex *pindexNew) {
     mempool.AddTransactionsUpdated(1);
 
     if(fDebug || !(pindexNew->nHeight % 1000) ){
-        LogPrintf("%s: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%.1fMiB(%utxo)\n", __func__,
-          chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
-          DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
-          Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+
+        double dProgress = Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip());
+
+        if( LogAcceptCategory("tip") || dProgress > 0.95 ){
+            LogPrintf("%s: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%.1fMiB(%utxo)\n", __func__,
+              chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
+              DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
+              dProgress, pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+        }
     }
 
     cvBlockChange.notify_all();
