@@ -3932,7 +3932,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
 
     int nHeight = pindex->nHeight;
     if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
-//      newHash = true;
+      newHash = true;
     }
 
     // Write block to history file
@@ -4349,7 +4349,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
 
         int nHeight = pindex->nHeight;
         if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
-//          newHash = true;
+          newHash = true;
         }
 
         if (pindex->nHeight < chainActive.Height()-nCheckDepth)
