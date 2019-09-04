@@ -181,8 +181,8 @@ public:
         READWRITE(balanceAtStart);
         READWRITE(balanceEligible);
         READWRITE(disqualifyingTx);
+        READWRITE(voteProof);
         READWRITE(fIsSmartNode);
-        READWRITE(fVoteProven);
     }
 
     CSmartAddress id;
@@ -191,17 +191,17 @@ public:
     CAmount balanceEligible;
     CAmount reward;
     uint256 disqualifyingTx;
+    uint256 voteProof;
     bool fIsSmartNode;
-    bool fVoteProven;
 
     CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceAtStart(0), balanceEligible(0), reward(0),
-                          disqualifyingTx(uint256()),
-                          fIsSmartNode(false), fVoteProven(false) {}
+                          disqualifyingTx(uint256()), voteProof(uint256()),
+                          fIsSmartNode(false) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceAtStart(0), balanceEligible(0), reward(0),
-                          disqualifyingTx(uint256()),
-                          fIsSmartNode(false), fVoteProven(false) {}
+                          disqualifyingTx(uint256()), voteProof(uint256()),
+                          fIsSmartNode(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {

@@ -358,7 +358,7 @@ void CSmartRewardEntry::setNull()
     balance = 0;
     balanceEligible = 0;
     fIsSmartNode = false;
-    fVoteProven = false;
+    voteProof = uint256();
 }
 
 string CSmartRewardEntry::ToString() const
@@ -369,13 +369,13 @@ string CSmartRewardEntry::ToString() const
         balance,
         balanceEligible,
         fIsSmartNode,
-        fVoteProven);
+        !voteProof.IsNull());
     return s.str();
 }
 
 bool CSmartRewardEntry::IsEligible()
 {
-  return fVoteProven && !fIsSmartNode && balanceEligible;
+    return !voteProof.IsNull() && !fIsSmartNode && balanceEligible;
 }
 
 string CSmartRewardBlock::ToString() const

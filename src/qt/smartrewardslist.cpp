@@ -290,7 +290,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                                 CTransaction tx;
                                 uint256 nBlockHash;
 
-                                if( reward.fVoteProven ){
+                                if( !reward.voteProof.IsNull() ){
                                     change.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
                                 }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
                                     change.nVoteProofConfirmations = -1;
@@ -366,7 +366,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         CTransaction tx;
                         uint256 nBlockHash;
 
-                        if( reward.fVoteProven ){
+                        if( !reward.voteProof.IsNull() ){
                             rewardField.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
                         }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
                             rewardField.nVoteProofConfirmations = -1;

@@ -91,7 +91,7 @@ static bool CheckAddresses(HTTPRequest* req, std::vector<std::string> vecAddr, s
         obj.pushKV("balance",UniValueFromAmount(entry.balance));
         obj.pushKV("balance_eligible", UniValueFromAmount(entry.balanceEligible));
         obj.pushKV("is_smartnode", entry.fIsSmartNode);
-        obj.pushKV("voted", entry.fVoteProven);
+        obj.pushKV("voted", !entry.voteProof.IsNull());
         obj.pushKV("eligible", current.number < nFirst_1_3_Round ? entry.balanceEligible > 0 : entry.IsEligible());
 
         vecResults.push_back(obj);

@@ -154,7 +154,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
         // Reset SmartNode flag with every cycle in case a node was shut down during the cycle.
         entry.fIsSmartNode = false;
         // Reset the voted flag with every cycle to force a new vote for eligibility
-        entry.fVoteProven = false;
+        entry.voteProof.SetNull();
 
         if( next.number < nFirst_1_3_Round && entry.balanceEligible ){
             ++next.eligibleEntries;
@@ -589,14 +589,14 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
                         }
                     }
 
-                    if( proofAddress.IsValid() && proofEntry != nullptr && !proofEntry->fVoteProven && !SmartHive::IsHive(*voteProofCheck) ){
+                    if( proofAddress.IsValid() && proofEntry != nullptr && proofEntry->voteProof.IsNull() && !SmartHive::IsHive(*voteProofCheck) ){
 
                         if( cProofOption == 0x01 && proofEntry->balanceEligible ){
                             proofEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
                         }
 
                         if( nProofRound == currentRound.number ){
-                            proofEntry->fVoteProven = true;
+                            proofEntry->voteProof = tx.GetHash();
                         }
 
                         // If the entry is eligible now after the vote proof update the results
