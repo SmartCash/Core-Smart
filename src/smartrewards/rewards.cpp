@@ -376,8 +376,9 @@ void CSmartRewards::StartBlock()
     transactionEntries.clear();
 }
 
-void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result)
+void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool fUndo)
 {
+    LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - %s", tx.GetHash().ToString());
 
     CSmartRewardEntry *rEntry = nullptr;
     int nFirst_1_3_Round = chainparams.GetConsensus().nRewardsFirst_1_3_Round;
@@ -400,14 +401,23 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
     CSmartRewardTransaction testTx;
 
     // First check if the transaction hash did already come up in the past.
-    if( GetTransaction(tx.GetHash(),testTx)){
-        // If yes we want to ignore it!
-        LogPrintf("CSmartRewards::ProcessTransaction - [%s] Double appearance! First in %d - Now in %d\n",testTx.hash.ToString(), testTx.blockHeight, pIndex->nHeight);
-        return;
-    }else{
+    if( GetTransaction(tx.GetHash(), testTx) ){
+
+        if( fUndo ){
+
+            if( testTx.blockHeight == pIndex->nHeight ){
+                AddTransaction(testTx);
+            }
+
+        }else{
+            // If yes we want to ignore it! There are some double appearing transactions in the history due to zerocoin exploits.
+            LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - [%s] Double appearance! First in %d - Now in %d\n", testTx.hash.ToString(), testTx.blockHeight, pIndex->nHeight);
+            return;
+        }
+
+    }else if( !fUndo ){
         // If not save add it to the database.
-        CSmartRewardTransaction saveTx(pIndex->nHeight, tx.GetHash());
-        AddTransaction(saveTx);
+        AddTransaction(CSmartRewardTransaction(pIndex->nHeight, tx.GetHash()));
     }
 
     CSmartAddress *voteProofCheck = nullptr;
@@ -439,7 +449,7 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
 
                 if(!ReadRewardEntry(rEntry->id, *rEntry)){
                     delete rEntry;
-                    LogPrintf("%s: Spend without previous receive - %s", __func__, tx.ToString());
+                    LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - Spend without previous receive - %s", tx.ToString());
                     continue;
                 }
 
@@ -454,7 +464,11 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
                 voteProofCheck = new CSmartAddress(rEntry->id);
             }
 
-            rEntry->balance -= rOut.nValue;
+            if( fUndo ){
+                rEntry->balance += rOut.nValue;
+            }else{
+                rEntry->balance -= rOut.nValue;
+            }
 
             if( voteProofCheck ){
                 nVoteProofIn += rOut.nValue;
@@ -466,25 +480,59 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
             // with voteproof transactions
             if( nCurrentRound >= nFirst_1_3_Round && voteProofCheck == nullptr && rEntry->balanceEligible ){
 
-                if( rEntry->IsEligible() ){
-                    result.disqualifiedEntries++;
-                    result.disqualifiedSmart += rEntry->balanceEligible;
-                }
+                if( fUndo ){
 
-                rEntry->disqualifyingTx = tx.GetHash();
-                rEntry->balanceEligible = 0;
+                    if( rEntry->disqualifyingTx == tx.GetHash() ){
+
+                        rEntry->disqualifyingTx.SetNull();
+                        rEntry->balanceEligible = rEntry->balanceAtStart >= SMART_REWARDS_MIN_BALANCE ? rEntry->balanceAtStart : 0;
+
+                        if( rEntry->IsEligible() ){
+                            --result.disqualifiedEntries;
+                            result.disqualifiedSmart -= rEntry->balanceEligible;
+                        }
+                    }
+
+                }else{
+
+                    if( rEntry->IsEligible() ){
+                        result.disqualifiedEntries++;
+                        result.disqualifiedSmart += rEntry->balanceEligible;
+                    }
+
+                    rEntry->disqualifyingTx = tx.GetHash();
+                    rEntry->balanceEligible = 0;
+                }
 
             }else if( nCurrentRound < nFirst_1_3_Round && rEntry->balanceEligible ){
 
-                result.disqualifiedEntries++;
-                result.disqualifiedSmart += rEntry->balanceEligible;
+                if( fUndo ){
 
-                rEntry->disqualifyingTx = tx.GetHash();
-                rEntry->balanceEligible = 0;
+                    if( rEntry->disqualifyingTx == tx.GetHash() ){
+
+                        rEntry->disqualifyingTx.SetNull();
+
+                        if( rEntry->balanceAtStart >= SMART_REWARDS_MIN_BALANCE ){
+
+                            rEntry->balanceEligible = rEntry->balanceAtStart;
+
+                            --result.disqualifiedEntries;
+                            result.disqualifiedSmart -= rEntry->balanceEligible;
+                        }
+                    }
+
+                }else{
+
+                    result.disqualifiedEntries++;
+                    result.disqualifiedSmart += rEntry->balanceEligible;
+
+                    rEntry->disqualifyingTx = tx.GetHash();
+                    rEntry->balanceEligible = 0;
+                }
             }
 
             if(rEntry->balance < 0 ){
-                LogPrintf("%s: Negative amount?! - %s", __func__, rEntry->ToString());
+                LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - Negative amount?! - %s", rEntry->ToString());
                 rEntry->balance = 0;
             }
 
@@ -515,7 +563,8 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
 
                 if( tx.IsVoteProof() &&
                     !out.IsVoteProofData() &&
-                    !(*voteProofCheck == rEntry->id) ){
+                    !(*voteProofCheck == rEntry->id) &&
+                    !fUndo ){
 
                     CSmartRewardEntry *vkEntry = nullptr;
 
@@ -589,20 +638,31 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
                         }
                     }
 
-                    if( proofAddress.IsValid() && proofEntry != nullptr && proofEntry->voteProof.IsNull() && !SmartHive::IsHive(*voteProofCheck) ){
+                    if( proofAddress.IsValid() && proofEntry != nullptr && !SmartHive::IsHive(*voteProofCheck) ){
 
-                        if( cProofOption == 0x01 && proofEntry->balanceEligible ){
-                            proofEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
-                        }
+                        if( !fUndo && proofEntry->voteProof.IsNull() ){
 
-                        if( nProofRound == currentRound.number ){
-                            proofEntry->voteProof = tx.GetHash();
-                        }
+                            if( cProofOption == 0x01 && proofEntry->balanceEligible ){
+                                proofEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
+                            }
 
-                        // If the entry is eligible now after the vote proof update the results
-                        if( proofEntry->IsEligible() ){
-                            result.qualifiedEntries++;
-                            result.qualifiedSmart += proofEntry->balanceEligible;
+                            if( nProofRound == currentRound.number ){
+                                proofEntry->voteProof = tx.GetHash();
+                            }
+
+                            // If the entry is eligible now after the vote proof update the results
+                            if( proofEntry->IsEligible() ){
+                                result.qualifiedEntries++;
+                                result.qualifiedSmart += proofEntry->balanceEligible;
+                            }
+
+                        }else if( fUndo && rEntry->voteProof == tx.GetHash() ){
+
+                            proofEntry->balanceEligible += nVoteProofIn - tx.GetValueOut();
+                            proofEntry->voteProof.SetNull();
+
+                            --result.qualifiedEntries;
+                            result.qualifiedSmart -= proofEntry->balanceEligible;
                         }
                     }
                 }
@@ -610,7 +670,11 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
                 delete voteProofCheck;
             }
 
-            rEntry->balance += out.nValue;
+            if( fUndo ){
+                rEntry->balance -= out.nValue;
+            }else{
+                rEntry->balance += out.nValue;
+            }
 
             // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
             if( nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase() ){
@@ -626,16 +690,30 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
                 if( nInterval && !(nHeight % nInterval) ){
 
                     // If the amount matches and the entry is not yet marked as node do it
-                    if( abs(out.nValue - nNodeReward ) < 2 && !rEntry->fIsSmartNode ){
+                    if( abs(out.nValue - nNodeReward ) < 2 ){
 
-                        // If it is currently eligible adjust the round's results
-                        if( rEntry->IsEligible() ){
-                            result.disqualifiedEntries++;
-                            result.disqualifiedSmart += rEntry->balanceEligible;
-                        }
+                        if( fUndo && rEntry->smartnodePaymentTx == tx.GetHash() ){
 
-                        rEntry->balanceEligible = 0;
+                            rEntry->balanceEligible = rEntry->balanceAtStart >= SMART_REWARDS_MIN_BALANCE ? rEntry->balanceAtStart : 0;
+                            rEntry->smartnodePaymentTx.SetNull();
+
+                            // If it is eligible now adjust the round's results
+                            if( rEntry->IsEligible() ){
+                                --result.disqualifiedEntries;
+                                result.disqualifiedSmart -= rEntry->balanceEligible;
+                            }
+
+                        }else if( !fUndo && rEntry->smartnodePaymentTx.IsNull() ){
+
+                            // If it is currently eligible adjust the round's results
+                            if( rEntry->IsEligible() ){
+                                ++result.disqualifiedEntries;
+                                result.disqualifiedSmart += rEntry->balanceEligible;
+                            }
+
+                            rEntry->balanceEligible = 0;
                             rEntry->smartnodePaymentTx = tx.GetHash();
+                        }
                     }
                 }
             }

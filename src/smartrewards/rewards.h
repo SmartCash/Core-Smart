@@ -103,8 +103,8 @@ public:
     bool UpdateRound(const CSmartRewardRound &round);
 
     void StartBlock();
-    void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
     void CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
+    void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool fUndo = false);
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
 
