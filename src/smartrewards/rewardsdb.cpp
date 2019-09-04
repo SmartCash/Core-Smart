@@ -357,8 +357,8 @@ void CSmartRewardEntry::setNull()
     id = CSmartAddress();
     balance = 0;
     balanceEligible = 0;
-    fIsSmartNode = false;
-    voteProof = uint256();
+    smartnodePaymentTx.SetNull();
+    voteProof.SetNull();
 }
 
 string CSmartRewardEntry::ToString() const
@@ -368,14 +368,14 @@ string CSmartRewardEntry::ToString() const
         GetAddress(),
         balance,
         balanceEligible,
-        fIsSmartNode,
+        !smartnodePaymentTx.IsNull(),
         !voteProof.IsNull());
     return s.str();
 }
 
 bool CSmartRewardEntry::IsEligible()
 {
-    return !voteProof.IsNull() && !fIsSmartNode && balanceEligible;
+    return !voteProof.IsNull() && smartnodePaymentTx.IsNull() && balanceEligible;
 }
 
 string CSmartRewardBlock::ToString() const

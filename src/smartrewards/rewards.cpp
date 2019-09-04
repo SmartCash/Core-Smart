@@ -151,9 +151,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
 
         entry.disqualifyingTx.SetNull();
 
-        // Reset SmartNode flag with every cycle in case a node was shut down during the cycle.
-        entry.fIsSmartNode = false;
-        // Reset the voted flag with every cycle to force a new vote for eligibility
+        // Reset SmartNode payment tx with every cycle in case a node was shut down during the cycle.
+        entry.smartnodePaymentTx.SetNull();
+        // Reset the vote proof tx with every cycle to force a new vote for eligibility
         entry.voteProof.SetNull();
 
         if( next.number < nFirst_1_3_Round && entry.balanceEligible ){
@@ -635,7 +635,7 @@ void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
                         }
 
                         rEntry->balanceEligible = 0;
-                        rEntry->fIsSmartNode = true;
+                            rEntry->smartnodePaymentTx = tx.GetHash();
                     }
                 }
             }

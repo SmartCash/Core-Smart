@@ -265,7 +265,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
                     if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
                         change.balance = reward.balance;
-                        change.fIsSmartNode = reward.fIsSmartNode;
+                        change.fIsSmartNode = !reward.smartnodePaymentTx.IsNull();
                         change.balanceAtStart = reward.balanceAtStart;
                         change.disqualifyingTx = reward.disqualifyingTx;
 
@@ -341,7 +341,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
             if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward) ){
                 rewardField.balance = reward.balance;
-                rewardField.fIsSmartNode = reward.fIsSmartNode;
+                rewardField.fIsSmartNode = !reward.smartnodePaymentTx.IsNull();
                 rewardField.balanceAtStart = reward.balanceAtStart;
                 rewardField.disqualifyingTx = reward.disqualifyingTx;
 
