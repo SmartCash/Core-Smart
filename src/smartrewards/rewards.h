@@ -110,13 +110,13 @@ public:
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
 
-    void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots);
+    void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardRoundResultList &results);
     bool StartFirstRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
-    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshots);
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results);
 
-    bool GetRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
-    bool GetRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
-    bool GetRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
+    bool GetRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results);
+    bool GetRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts);
+    bool GetRewardPayouts(const int16_t round, CSmartRewardRoundResultPtrList &payouts);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */

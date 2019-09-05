@@ -119,10 +119,10 @@ void CSmartRewards::UpdatePayoutParameter(CSmartRewardRound &round)
 
 }
 
-void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardSnapshotList &snapshots)
+void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardRoundResultList &results)
 {
     LOCK(cs_rewardsdb);
-    snapshots.clear();
+    results.clear();
 
     UpdatePayoutParameter(current);
 
@@ -140,7 +140,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
                 nReward = entry.IsEligible() ? CAmount(entry.balanceEligible * current.percent) : 0;
             }
 
-            snapshots.push_back(CSmartRewardSnapshot(entry.id, entry.balance, nReward));
+            results.push_back(CSmartRewardRoundResult(entry, nReward));
         }
 
         entry.balanceAtStart = entry.balance;
@@ -149,8 +149,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &current, CSmartRewardRound 
             entry.balanceEligible = entry.balance;
         }
 
+        // Reset outgoing transaction with every cycle.
         entry.disqualifyingTx.SetNull();
-
         // Reset SmartNode payment tx with every cycle in case a node was shut down during the cycle.
         entry.smartnodePaymentTx.SetNull();
         // Reset the vote proof tx with every cycle to force a new vote for eligibility
@@ -169,25 +169,25 @@ bool CSmartRewards::StartFirstRound(const CSmartRewardRound &first, const CSmart
     return pdb->StartFirstRound(first,entries);
 }
 
-bool CSmartRewards::FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshots)
+bool CSmartRewards::FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results)
 {
     LOCK(cs_rewardsdb);
-    return pdb->FinalizeRound(current, next, entries, snapshots);
+    return pdb->FinalizeRound(current, next, entries, results);
 }
 
-bool CSmartRewards::GetRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots)
+bool CSmartRewards::GetRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results)
 {
     LOCK(cs_rewardsdb);
-    return pdb->ReadRewardSnapshots(round, snapshots);
+    return pdb->ReadRewardRoundResults(round, results);
 }
 
-bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts)
+bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts)
 {
     LOCK(cs_rewardsdb);
     return pdb->ReadRewardPayouts(round, payouts);
 }
 
-bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts)
+bool CSmartRewards::GetRewardPayouts(const int16_t round, CSmartRewardRoundResultPtrList &payouts)
 {
     LOCK(cs_rewardsdb);
     return pdb->ReadRewardPayouts(round, payouts);
@@ -961,7 +961,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
             first.endBlockHeight = MainNet() ? nFirstRoundEndBlock : nFirstRoundEndBlock_Testnet;
 
             CSmartRewardEntryList entries;
-            CSmartRewardSnapshotList snapshots;
+            CSmartRewardRoundResultList results;
 
             // Get the current entries
             if( !GetRewardEntries(entries) ){
@@ -970,7 +970,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
             }
 
             // Evaluate the round and update the next rounds parameter.
-            EvaluateRound(currentRound, first, entries, snapshots );
+            EvaluateRound(currentRound, first, entries, results );
 
             CalculateRewardRatio(first);
 
@@ -1006,7 +1006,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
         currentRound.endBlockTime = pIndex->GetBlockTime();
 
         CSmartRewardEntryList entries;
-        CSmartRewardSnapshotList snapshots;
+        CSmartRewardRoundResultList results;
 
         // Create the next round.
         CSmartRewardRound next;
@@ -1050,11 +1050,11 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
         CalculateRewardRatio(currentRound);
 
         // Evaluate the round and update the next rounds parameter.
-        EvaluateRound(currentRound, next, entries, snapshots);
+        EvaluateRound(currentRound, next, entries, results);
 
         CalculateRewardRatio(next);
 
-        if( !FinalizeRound(currentRound, next, entries, snapshots) ){
+        if( !FinalizeRound(currentRound, next, entries, results) ){
             LogPrintf("CSmartRewards::CommitBlock - Failed to finalize round!");
             return false;
         }
@@ -1124,79 +1124,79 @@ bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpda
         CalculateRewardRatio(currentRound);
     }
 
-//    // If just hit the next round threshold
-//    if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() > currentRound.endBlockTime ) ||
-//            ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == currentRound.endBlockHeight ) ){
+    // If just hit the next round threshold
+    if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() > currentRound.endBlockTime ) ||
+            ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == currentRound.endBlockHeight ) ){
 
-//        // Write the round to the history
-//        currentRound.endBlockHeight = pIndex->nHeight;
-//        currentRound.endBlockTime = pIndex->GetBlockTime();
+        // Write the round to the history
+        currentRound.endBlockHeight = pIndex->nHeight;
+        currentRound.endBlockTime = pIndex->GetBlockTime();
 
-//        CSmartRewardEntryList entries;
-//        CSmartRewardSnapshotList snapshots;
+        CSmartRewardEntryList entries;
+        CSmartRewardRoundResultList results;
 
-//        // Create the next round.
-//        CSmartRewardRound next;
-//        next.number = currentRound.number + 1;
-//        next.startBlockTime = currentRound.endBlockTime;
-//        next.startBlockHeight = currentRound.endBlockHeight + 1;
+        // Create the next round.
+        CSmartRewardRound next;
+        next.number = currentRound.number + 1;
+        next.startBlockTime = currentRound.endBlockTime;
+        next.startBlockHeight = currentRound.endBlockHeight + 1;
 
-//        int nBlocksPerRound = GetBlocksPerRound(next.number);
-//        time_t startTime = (time_t)next.startBlockTime;
+        int nBlocksPerRound = GetBlocksPerRound(next.number);
+        time_t startTime = (time_t)next.startBlockTime;
 
-//        if( MainNet() ){
+        if( MainNet() ){
 
-//            if( next.number == nRewardsFirstAutomatedRound - 1 ){
-//                // Let the round 12 end at height 574099 so that round 13 starts at 574100
-//                next.endBlockHeight = HF_V1_2_SMARTREWARD_HEIGHT - 1;
-//                next.endBlockTime = startTime + ( (next.endBlockHeight - next.startBlockHeight) * 55 );
-//            }else if(next.number < nRewardsFirstAutomatedRound){
+            if( next.number == nRewardsFirstAutomatedRound - 1 ){
+                // Let the round 12 end at height 574099 so that round 13 starts at 574100
+                next.endBlockHeight = HF_V1_2_SMARTREWARD_HEIGHT - 1;
+                next.endBlockTime = startTime + ( (next.endBlockHeight - next.startBlockHeight) * 55 );
+            }else if(next.number < nRewardsFirstAutomatedRound){
 
-//                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
+                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
 
-//                endDate += boost::gregorian::months(1);
-//                // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
-//                next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
-//                next.endBlockHeight = next.startBlockHeight + ( (next.endBlockTime - next.startBlockTime) / 55 );
-//            }else{
-//                next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
-//                next.endBlockTime = startTime + nBlocksPerRound * 55;
-//            }
+                endDate += boost::gregorian::months(1);
+                // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
+                next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
+                next.endBlockHeight = next.startBlockHeight + ( (next.endBlockTime - next.startBlockTime) / 55 );
+            }else{
+                next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
+                next.endBlockTime = startTime + nBlocksPerRound * 55;
+            }
 
-//        }else{
-//            next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
-//            next.endBlockTime = startTime + nBlocksPerRound * 55;
-//        }
+        }else{
+            next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
+            next.endBlockTime = startTime + nBlocksPerRound * 55;
+        }
 
-//        // Get the current entries
-//        if( !GetRewardEntries(entries) ){
-//            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to read all reward entries!");
-//            return false;
-//        }
+        // Get the current entries
+        if( !GetRewardEntries(entries) ){
+            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to read all reward entries!");
+            return false;
+        }
 
-//        CalculateRewardRatio(currentRound);
+        CalculateRewardRatio(currentRound);
 
-//        // Evaluate the round and update the next rounds parameter.
-//        EvaluateRound(currentRound, next, entries, snapshots);
+        // Evaluate the round and update the next rounds parameter.
+        EvaluateRound(currentRound, next, entries, results);
 
-//        CalculateRewardRatio(next);
+        CalculateRewardRatio(next);
 
-//        if( !FinalizeRound(currentRound, next, entries, snapshots) ){
-//            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to finalize round!");
-//            return false;
-//        }
+        if( !FinalizeRound(currentRound, next, entries, results) ){
+            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to finalize round!");
+            return false;
+        }
 
-//        LOCK(cs_rewardrounds);
+        LOCK(cs_rewardrounds);
 
-//        finishedRounds.push_back(currentRound);
-//        lastRound = currentRound;
-//        currentRound = next;
-//    }
+        finishedRounds.push_back(currentRound);
+        lastRound = currentRound;
+        currentRound = next;
+    }
 
-//    if(!SyncCached(true)){
-//        LogPrintf("CSmartRewards::CommitUndoBlock - Failed to sync cached - Processed!");
-//        return false;
-//    }
+    if(!SyncCached(true)){
+        LogPrintf("CSmartRewards::CommitUndoBlock - Failed to sync cached - Processed!");
+        return false;
+    }
 
     prewards->UpdateHeights(GetBlockHeight(pIndex), currentBlock.nHeight);
 

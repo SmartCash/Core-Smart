@@ -24,14 +24,14 @@ static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 class CSmartRewardBlock;
 class CSmartRewardEntry;
 class CSmartRewardRound;
-class CSmartRewardSnapshot;
+class CSmartRewardRoundResult;
 class CSmartRewardTransaction;
 
 typedef std::vector<CSmartRewardBlock> CSmartRewardBlockList;
 typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
-typedef std::vector<CSmartRewardSnapshot> CSmartRewardSnapshotList;
-typedef std::vector<CSmartRewardSnapshot*> CSmartRewardSnapshotPtrList;
+typedef std::vector<CSmartRewardRoundResult> CSmartRewardRoundResultList;
+typedef std::vector<CSmartRewardRoundResult*> CSmartRewardRoundResultPtrList;
 typedef std::vector<CSmartRewardTransaction> CSmartRewardTransactionList;
 
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
@@ -220,43 +220,41 @@ public:
     bool IsEligible();
 };
 
-class CSmartRewardSnapshot
+class CSmartRewardRoundResult
 {
 
 public:
 
-    CSmartAddress id;
-    CAmount balance;
+    CSmartRewardEntry entry;
     CAmount reward;
 
     ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(id);
-        READWRITE(balance);
+        READWRITE(entry);
         READWRITE(reward);
     }
 
-    CSmartRewardSnapshot(){}
+    CSmartRewardRoundResult(){}
 
-    CSmartRewardSnapshot(CSmartAddress &id, const CAmount nBalance, CAmount nReward) :
-        id(id), balance(nBalance), reward(nReward){}
+    CSmartRewardRoundResult(CSmartRewardEntry &entry, CAmount nReward) :
+        entry(entry), reward(nReward){}
 
-    friend bool operator==(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
+    friend bool operator==(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
     {
-        return (a.id == b.id);
+        return (a.entry.id == b.entry.id);
     }
 
-    friend bool operator!=(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
+    friend bool operator!=(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
     {
         return !(a == b);
     }
 
-    friend bool operator<(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
+    friend bool operator<(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
     {
         // TBD, verify this sort is fast/unique
-        int cmp = a.id.Compare(b.id);
+        int cmp = a.entry.id.Compare(b.entry.id);
         return cmp < 0 || (cmp == 0 && a.reward < b.reward);
     }
 
@@ -299,14 +297,14 @@ public:
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool ReadRewardEntries(CSmartRewardEntryList &vect);
 
-    bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
-    bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
-    bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
+    bool ReadRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardRoundResultPtrList &payouts);
 
     bool SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
     bool SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
-    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshot);
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results);
 
 };
 

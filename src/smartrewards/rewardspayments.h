@@ -23,8 +23,8 @@ typedef enum{
     CoreError
 } Result;
 
-CSmartRewardSnapshotPtrList GetPayments(const CSmartRewardRound &round, const int64_t nPayoutDelay, const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
-CSmartRewardSnapshotPtrList GetPaymentsForBlock(const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
+CSmartRewardRoundResultPtrList GetPayments(const CSmartRewardRound &round, const int64_t nPayoutDelay, const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
+CSmartRewardRoundResultPtrList GetPaymentsForBlock(const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
 SmartRewardPayments::Result Validate(const CBlock& block, const int nHeight, CAmount& smartReward);
 void FillPayments(CMutableTransaction& txNew, int nHeight, int64_t prevBlockTime, std::vector<CTxOut>& voutSmartRewards);
 

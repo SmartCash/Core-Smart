@@ -650,7 +650,16 @@ UniValue decoderawtransaction(const UniValue& params, bool fHelp)
     if (!DecodeHexTx(tx, params[0].get_str(), true))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
 
+    CTransaction_V2 txV2;
+
+    if (!DecodeHexTx(txV2, params[0].get_str(), true))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+
     UniValue result(UniValue::VOBJ);
+
+    result.pushKV("hashV1", tx.GetHash().ToString());
+    result.pushKV("hashV2", txV2.GetHash().ToString());
+    return result;
     TxToJSON(tx, uint256(), result);
 
     return result;

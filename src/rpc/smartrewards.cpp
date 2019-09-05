@@ -172,17 +172,17 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         if(round < 1 || round >= current.number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
-        CSmartRewardSnapshotList payouts;
+        CSmartRewardRoundResultList payouts;
 
         if( !prewards->GetRewardPayouts(round,payouts) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't fetch the list from the database.");
 
         UniValue obj(UniValue::VARR);
 
-        BOOST_FOREACH(CSmartRewardSnapshot payout, payouts) {
+        BOOST_FOREACH(CSmartRewardRoundResult payout, payouts) {
 
             UniValue addrObj(UniValue::VOBJ);
-            addrObj.pushKV("address", payout.id.ToString());
+            addrObj.pushKV("address", payout.entry.id.ToString());
             addrObj.pushKV("reward", format(payout.reward));
 
             obj.push_back(addrObj);
@@ -220,18 +220,18 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         if(round < 1 || round >= current.number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
-        CSmartRewardSnapshotList snapshot;
+        CSmartRewardRoundResultList results;
 
-        if( !prewards->GetRewardSnapshots(round,snapshot) )
+        if( !prewards->GetRewardRoundResults(round, results) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't fetch the list from the database.");
 
         UniValue obj(UniValue::VARR);
 
-        BOOST_FOREACH(CSmartRewardSnapshot s, snapshot) {
+        BOOST_FOREACH(CSmartRewardRoundResult s, results) {
 
             UniValue addrObj(UniValue::VOBJ);
-            addrObj.pushKV("address", s.id.ToString());
-            addrObj.pushKV("balance", format(s.balance));
+            addrObj.pushKV("address", s.entry.id.ToString());
+            addrObj.pushKV("balance", format(s.entry.balance));
 
             obj.push_back(addrObj);
         }
