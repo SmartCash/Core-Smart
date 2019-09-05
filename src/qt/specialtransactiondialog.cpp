@@ -858,7 +858,7 @@ void SpecialTransactionDialog::updateView()
 
                 if( pwalletMain->mapVoted[keyId].find(nCurrentRound) == pwalletMain->mapVoted[keyId].end() ||
                     pwalletMain->mapVoteProofs[keyId].find(nCurrentRound) != pwalletMain->mapVoteProofs[keyId].end() ||
-                    reward.balanceEligible == 0 ){
+                    reward.balanceEligible == 0 || !reward.disqualifyingTx.IsNull() || !reward.smartnodePaymentTx.IsNull() ){
                     // If not yet voted, no eligible balance or already vote proven skip it.
                     continue;
                 }
