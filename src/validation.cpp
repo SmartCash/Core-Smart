@@ -1833,6 +1833,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 {
     assert(pindex->GetBlockHash() == view.GetBestBlock());
 
+    CChainParams params = Params();
     bool fClean = true;
 
     CBlockUndo blockUndo;
@@ -1859,6 +1860,11 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     std::map<CVoteKey, CSmartAddress> mapVoteKeys;
     std::vector<CVoteKeyRegistrationKey> vecInvalidVoteKeyRegistrations;
     */
+
+    // Result of the smartrewards block processing.
+    CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
+
+    prewards->StartBlock();
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -2061,6 +2067,8 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
             // At this point, all of txundo.vprevout should have been moved out.
         }
+
+        prewards->UndoTransaction((CBlockIndex*) pindex, tx, view, params, smartRewardsResult);
     }
 
 
@@ -2084,6 +2092,11 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
             AbortNode(state, "Failed to write address unspent index");
             return DISCONNECT_FAILED;
         }
+    }
+
+    if( !prewards->CommitUndoBlock( (CBlockIndex*) pindex, smartRewardsResult) ){
+        AbortNode(state, "Failed to commit smartrewards block undo");
+        return DISCONNECT_FAILED;
     }
 
     /* WIP-VOTING uncomment
