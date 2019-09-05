@@ -113,6 +113,7 @@ public:
     void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardRoundResultList &results);
     bool StartFirstRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results);
+    bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardRoundResultList &results);
 
     bool GetRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results);
     bool GetRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts);

@@ -219,7 +219,7 @@ bool CSmartRewardsDB::StartFirstRound(const CSmartRewardRound &start, const CSma
 
     batch.Write(DB_ROUND_CURRENT, start);
 
-    return WriteBatch(batch, true);
+    return WriteBatch(batch);
 }
 
 bool CSmartRewardsDB::FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results)
@@ -237,7 +237,22 @@ bool CSmartRewardsDB::FinalizeRound(const CSmartRewardRound &current, const CSma
     batch.Write(make_pair(DB_ROUND,current.number), current);
     batch.Write(DB_ROUND_CURRENT, next);
 
-    return WriteBatch(batch, true);
+    return WriteBatch(batch);
+}
+
+bool CSmartRewardsDB::UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardRoundResultList &results)
+{
+    CDBBatch batch(*this);
+
+    BOOST_FOREACH(const CSmartRewardRoundResult &s, results) {
+        batch.Erase(make_pair(DB_ROUND_SNAPSHOT, make_pair(current.number, s.entry.id)));
+        batch.Write(make_pair(DB_REWARD_ENTRY,s.entry.id), s.entry);
+    }
+
+    batch.Erase(make_pair(DB_ROUND, current.number));
+    batch.Write(DB_ROUND_CURRENT, current);
+
+    return WriteBatch(batch);
 }
 
 bool CSmartRewardsDB::ReadRewardEntries(CSmartRewardEntryList &entries) {

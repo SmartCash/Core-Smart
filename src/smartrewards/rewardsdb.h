@@ -305,7 +305,7 @@ public:
     bool SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results);
-
+    bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardRoundResultList &results);
 };
 
 

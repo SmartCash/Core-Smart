@@ -175,6 +175,12 @@ bool CSmartRewards::FinalizeRound(const CSmartRewardRound &current, const CSmart
     return pdb->FinalizeRound(current, next, entries, results);
 }
 
+bool CSmartRewards::UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardRoundResultList &results)
+{
+    LOCK(cs_rewardsdb);
+    return pdb->UndoFinalizeRound(current, results);
+}
+
 bool CSmartRewards::GetRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results)
 {
     LOCK(cs_rewardsdb);
@@ -1124,73 +1130,34 @@ bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpda
         CalculateRewardRatio(currentRound);
     }
 
-    // If just hit the next round threshold
-    if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() > currentRound.endBlockTime ) ||
-            ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == currentRound.endBlockHeight ) ){
+    // If just hit the last round's threshold
+    if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() < currentRound.endBlockTime ) ||
+            ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == currentRound.startBlockHeight ) ){
 
-        // Write the round to the history
-        currentRound.endBlockHeight = pIndex->nHeight;
-        currentRound.endBlockTime = pIndex->GetBlockTime();
+        LOCK2(cs_rewardsdb, cs_rewardrounds);
+
+        // Recover the last round from the history as current round
+        currentRound = finishedRounds.back();
+        finishedRounds.pop_back();
+
+        lastRound = finishedRounds.back();
 
         CSmartRewardEntryList entries;
         CSmartRewardRoundResultList results;
 
-        // Create the next round.
-        CSmartRewardRound next;
-        next.number = currentRound.number + 1;
-        next.startBlockTime = currentRound.endBlockTime;
-        next.startBlockHeight = currentRound.endBlockHeight + 1;
-
-        int nBlocksPerRound = GetBlocksPerRound(next.number);
-        time_t startTime = (time_t)next.startBlockTime;
-
-        if( MainNet() ){
-
-            if( next.number == nRewardsFirstAutomatedRound - 1 ){
-                // Let the round 12 end at height 574099 so that round 13 starts at 574100
-                next.endBlockHeight = HF_V1_2_SMARTREWARD_HEIGHT - 1;
-                next.endBlockTime = startTime + ( (next.endBlockHeight - next.startBlockHeight) * 55 );
-            }else if(next.number < nRewardsFirstAutomatedRound){
-
-                boost::gregorian::date endDate = boost::posix_time::from_time_t(startTime).date();
-
-                endDate += boost::gregorian::months(1);
-                // End date at 00:00:00 + 25200 seconds (7 hours) to match the date at 07:00 UTC
-                next.endBlockTime = time_t((boost::posix_time::ptime(endDate, boost::posix_time::seconds(25200)) - epoch).total_seconds());
-                next.endBlockHeight = next.startBlockHeight + ( (next.endBlockTime - next.startBlockTime) / 55 );
-            }else{
-                next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
-                next.endBlockTime = startTime + nBlocksPerRound * 55;
-            }
-
-        }else{
-            next.endBlockHeight = next.startBlockHeight + nBlocksPerRound - 1;
-            next.endBlockTime = startTime + nBlocksPerRound * 55;
-        }
-
         // Get the current entries
-        if( !GetRewardEntries(entries) ){
-            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to read all reward entries!");
+        if( !GetRewardRoundResults(currentRound.number, results) ){
+            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to read last round's results!");
             return false;
         }
 
         CalculateRewardRatio(currentRound);
 
-        // Evaluate the round and update the next rounds parameter.
-        EvaluateRound(currentRound, next, entries, results);
-
-        CalculateRewardRatio(next);
-
-        if( !FinalizeRound(currentRound, next, entries, results) ){
+        if( !UndoFinalizeRound(currentRound, results) ){
             LogPrintf("CSmartRewards::CommitUndoBlock - Failed to finalize round!");
             return false;
         }
 
-        LOCK(cs_rewardrounds);
-
-        finishedRounds.push_back(currentRound);
-        lastRound = currentRound;
-        currentRound = next;
     }
 
     if(!SyncCached(true)){
