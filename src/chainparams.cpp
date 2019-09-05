@@ -130,7 +130,7 @@ public:
 
         /* SmartReward params */
 
-        consensus.nRewardsConfirmationsRequired = 100;
+        consensus.nRewardsConfirmationsRequired = 1;
         consensus.nRewardsPayoutStartDelay = 200;
 
         //! 1.2 Parameter
@@ -276,7 +276,7 @@ public:
 
         /* SmartReward params */
 
-        consensus.nRewardsConfirmationsRequired = 10;
+        consensus.nRewardsConfirmationsRequired = 1;
         consensus.nRewardsPayoutStartDelay = 20;
 
         //! 1.2 Parameter
