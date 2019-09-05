@@ -104,7 +104,8 @@ public:
 
     void StartBlock();
     void CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
-    void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result, bool fUndo = false);
+    void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
+    void UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
 

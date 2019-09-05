@@ -375,7 +375,7 @@ string CSmartRewardEntry::ToString() const
 
 bool CSmartRewardEntry::IsEligible()
 {
-    return !voteProof.IsNull() && smartnodePaymentTx.IsNull() && balanceEligible;
+    return !voteProof.IsNull() && smartnodePaymentTx.IsNull() && balanceEligible > 0 && disqualifyingTx.IsNull();
 }
 
 string CSmartRewardBlock::ToString() const
