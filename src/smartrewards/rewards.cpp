@@ -234,16 +234,16 @@ bool CSmartRewards::GetRewardEntries(CSmartRewardEntryList &entries)
     return pdb->ReadRewardEntries(entries);
 }
 
-bool CSmartRewards::SyncCached()
+bool CSmartRewards::SyncCached(bool fUndo)
 {
-    return SyncCached(CSmartRewardBlock());
+    return SyncCached(CSmartRewardBlock(), fUndo);
 }
 
-bool CSmartRewards::SyncCached(const CSmartRewardBlock &block)
+bool CSmartRewards::SyncCached(const CSmartRewardBlock &block, bool fUndo)
 {
     LOCK2(cs_rewardsdb, cs_rewardrounds);
 
-    bool ret =  pdb->SyncCached(block, currentRound, rewardEntries, transactionEntries);
+    bool ret =  pdb->SyncCached(block, currentRound, rewardEntries, transactionEntries, fUndo);
 
     for( std::pair<CSmartAddress, CSmartRewardEntry*> it : rewardEntries ){
         delete it.second;

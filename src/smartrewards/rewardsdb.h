@@ -12,7 +12,7 @@
 #include "base58.h"
 #include "smarthive/hive.h"
 
-static constexpr uint8_t REWARDS_DB_VERSION = 0x08;
+static constexpr uint8_t REWARDS_DB_VERSION = 0x09;
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
@@ -74,6 +74,7 @@ public:
     int64_t blockTime;
     CSmartRewardBlock(){nHeight = 0; blockHash = uint256(); blockTime = 0;}
     CSmartRewardBlock(int height, const uint256* pHash, int64_t time) : nHeight(height), blockHash(*pHash), blockTime(time) {}
+    CSmartRewardBlock(int height, const uint256 nHash, int64_t time) : nHeight(height), blockHash(nHash), blockTime(time) {}
 
     ADD_SERIALIZE_METHODS
 
@@ -302,8 +303,8 @@ public:
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
 
-    bool SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
-    bool SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
+    bool SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
+    bool SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshot);
 

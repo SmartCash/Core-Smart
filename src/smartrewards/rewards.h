@@ -91,8 +91,8 @@ public:
 
     void UpdateHeights(const int nHeight, const int nRewardHeight);
     bool Verify();
-    bool SyncCached();
-    bool SyncCached(const CSmartRewardBlock &block);
+    bool SyncCached(bool fUndo = false);
+    bool SyncCached(const CSmartRewardBlock &block, bool fUndo = false);
     bool IsSynced();
     double GetProgress();
     int GetLastHeight();
@@ -103,9 +103,10 @@ public:
     bool UpdateRound(const CSmartRewardRound &round);
 
     void StartBlock();
-    void CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
     void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
     void UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
+    bool CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
+    bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
 

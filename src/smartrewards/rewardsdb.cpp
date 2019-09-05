@@ -174,11 +174,11 @@ bool CSmartRewardsDB::ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry
     return Read(make_pair(DB_REWARD_ENTRY,id), entry);
 }
 
-bool CSmartRewardsDB::SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions)
+bool CSmartRewardsDB::SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo)
 {
-    return SyncCached(CSmartRewardBlock(), current, rewards, transactions);
+    return SyncCached(CSmartRewardBlock(), current, rewards, transactions, fUndo);
 }
-bool CSmartRewardsDB::SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions)
+bool CSmartRewardsDB::SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo)
 {
     CDBBatch batch(*this);
 
@@ -191,7 +191,12 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardBlock &block, const CSmartRew
     }
 
     BOOST_FOREACH(const CSmartRewardTransaction &t, transactions) {
-        batch.Write(make_pair(DB_TX_HASH,t.hash), t);
+
+        if( fUndo ){
+            batch.Erase(make_pair(DB_TX_HASH, t.hash));
+        }else{
+            batch.Write(make_pair(DB_TX_HASH,t.hash), t);
+        }
     }
 
     if( block.IsValid() ){
