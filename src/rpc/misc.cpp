@@ -60,6 +60,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
             "  \"protocolversion\": xxxxx,   (numeric) the protocol version\n"
             "  \"walletversion\": xxxxx,     (numeric) the wallet version\n"
             "  \"balance\": xxxxxxx,         (numeric) the total smartcash balance of the wallet\n"
+            "  \"headers\": xxxxxx,          (numeric) the current number of block headers in the server\n"
             "  \"blocks\": xxxxxx,           (numeric) the current number of blocks processed in the server\n"
             "  \"timeoffset\": xxxxx,        (numeric) the time offset\n"
             "  \"connections\": xxxxx,       (numeric) the number of connections\n"
@@ -96,6 +97,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
         obj.push_back(Pair("balance",       ValueFromAmount(pwalletMain->GetBalance())));
     }
 #endif
+    obj.push_back(Pair("headers",        (int) (pindexBestHeader ? pindexBestHeader->nHeight : 0)));
     obj.push_back(Pair("blocks",        (int)chainActive.Height()));
     obj.push_back(Pair("timeoffset",    GetTimeOffset()));
     obj.push_back(Pair("connections",   (int)g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL)));
