@@ -13,8 +13,7 @@
 using namespace std;
 
 static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
-// Cache max. n prepared entries before the sync (leveldb batch write).
-const int64_t nCacheEntires = 8000;
+
 // Minimum distance of the last processed block compared to the current chain
 // height to assume the rewards are synced.
 const int64_t nRewardsSyncDistance = 150;
@@ -118,6 +117,12 @@ public:
     bool GetRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results);
     bool GetRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts);
     bool GetRewardPayouts(const int16_t round, CSmartRewardRoundResultPtrList &payouts);
+private:
+    void ProcessInput(const CTransaction &tx, const CTxOut &in, CSmartAddress **voteProofCheck, CAmount &nVoteProofIn, uint32_t nCurrentRound, CSmartRewardsUpdateResult &result);
+    void ProcessOutput(const CTransaction &tx, const CTxOut &out, CSmartAddress *voteProofCheck, CAmount nVoteProofIn, uint32_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult &result);
+
+    void UndoInput(const CTransaction &tx, const CTxOut &in, uint32_t nCurrentRound, CSmartRewardsUpdateResult &result);
+    void UndoOutput(const CTransaction &tx, const CTxOut &out, CSmartAddress *voteProofCheck, CAmount &nVoteProofIn, uint32_t nCurrentRound, CSmartRewardsUpdateResult &result);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
