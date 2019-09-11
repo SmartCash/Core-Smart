@@ -270,19 +270,14 @@ class CSmartRewardsDB : public CDBWrapper
 {
 public:
     CSmartRewardsDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
-    ~CSmartRewardsDB() { Unlock(); }
+    ~CSmartRewardsDB() {Sync();}
 private:
     CSmartRewardsDB(const CSmartRewardsDB&);
     void operator=(const CSmartRewardsDB&);
 
-    bool locked;
-    void Unlock();
 public:
 
     bool Verify(int& lastBlockHeight);
-
-    void Lock();
-    bool IsLocked();
 
     bool ReadBlock(const int nHeight, CSmartRewardBlock &block);
     bool ReadLastBlock(CSmartRewardBlock &block);

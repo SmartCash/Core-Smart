@@ -323,18 +323,6 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
     pdb->ReadCurrentRound(currentRound);
 }
 
-void CSmartRewards::Lock()
-{
-    LOCK(cs_rewardsdb);
-    pdb->Lock();
-}
-
-bool CSmartRewards::IsLocked()
-{
-    LOCK(cs_rewardsdb);
-    return pdb->IsLocked();
-}
-
 bool CSmartRewards::GetLastBlock(CSmartRewardBlock &block)
 {
     LOCK(cs_rewardsdb);

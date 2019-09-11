@@ -1799,15 +1799,11 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                     prewards = new CSmartRewards(prewardsdb);
                 }
 
-                if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database is incomplete."));
-
                 if( !(fLoaded = prewards->Verify()) ) throw std::runtime_error(_("Failed to verify SmartRewards database."));
 
                 if( pLastIndex != NULL && !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
 
                 if (fRequestShutdown) break;
-
-                prewards->Lock();
 
             } catch (const std::runtime_error &e) {
                 if (fDebug) LogPrintf("%s\n", e.what());
