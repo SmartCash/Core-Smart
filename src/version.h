@@ -12,7 +12,7 @@
 static const int PROTOCOL_BASE_VERSION = 90000;
 static const int PROTOCOL_MAX_VERSION = 90000 + 0xFF;
 
-static const int PROTOCOL_VERSION = 90029;
+static const int PROTOCOL_VERSION = 90030;
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 90013;

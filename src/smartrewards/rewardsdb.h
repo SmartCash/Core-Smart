@@ -12,7 +12,7 @@
 #include "base58.h"
 #include "smarthive/hive.h"
 
-static constexpr uint8_t REWARDS_DB_VERSION = 0x05;
+static constexpr uint8_t REWARDS_DB_VERSION = 0x09;
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
@@ -24,14 +24,14 @@ static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 class CSmartRewardBlock;
 class CSmartRewardEntry;
 class CSmartRewardRound;
-class CSmartRewardSnapshot;
+class CSmartRewardRoundResult;
 class CSmartRewardTransaction;
 
 typedef std::vector<CSmartRewardBlock> CSmartRewardBlockList;
 typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
-typedef std::vector<CSmartRewardSnapshot> CSmartRewardSnapshotList;
-typedef std::vector<CSmartRewardSnapshot*> CSmartRewardSnapshotPtrList;
+typedef std::vector<CSmartRewardRoundResult> CSmartRewardRoundResultList;
+typedef std::vector<CSmartRewardRoundResult*> CSmartRewardRoundResultPtrList;
 typedef std::vector<CSmartRewardTransaction> CSmartRewardTransactionList;
 
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
@@ -73,7 +73,8 @@ public:
     uint256 blockHash;
     int64_t blockTime;
     CSmartRewardBlock(){nHeight = 0; blockHash = uint256(); blockTime = 0;}
-    CSmartRewardBlock(int height, uint256 &hash, int64_t time) : nHeight(height), blockHash(hash), blockTime(time) {}
+    CSmartRewardBlock(int height, const uint256* pHash, int64_t time) : nHeight(height), blockHash(*pHash), blockTime(time) {}
+    CSmartRewardBlock(int height, const uint256 nHash, int64_t time) : nHeight(height), blockHash(nHash), blockTime(time) {}
 
     ADD_SERIALIZE_METHODS
 
@@ -100,6 +101,8 @@ public:
     }
 
     std::string ToString() const;
+
+    bool IsValid() const { return !blockHash.IsNull(); }
 };
 
 class CSmartRewardRound
@@ -175,29 +178,31 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(id);
-        READWRITE(balanceOnStart);
         READWRITE(balance);
-        READWRITE(fBalanceEligible);
-        READWRITE(fIsSmartNode);
-        READWRITE(fVoteProved);
+        READWRITE(balanceAtStart);
+        READWRITE(balanceEligible);
+        READWRITE(disqualifyingTx);
+        READWRITE(voteProof);
+        READWRITE(smartnodePaymentTx);
     }
 
     CSmartAddress id;
     CAmount balance;
-    CAmount balanceOnStart;
+    CAmount balanceAtStart;
+    CAmount balanceEligible;
     CAmount reward;
-    bool fBalanceEligible;
-    bool fIsSmartNode;
-    bool fVoteProved;
+    uint256 disqualifyingTx;
+    uint256 voteProof;
+    uint256 smartnodePaymentTx;
 
     CSmartRewardEntry() : id(CSmartAddress()),
-                          balance(0), balanceOnStart(0),
-                          reward(0), fBalanceEligible(false),
-                          fIsSmartNode(false), fVoteProved(false) {}
+                          balance(0), balanceAtStart(0), balanceEligible(0), reward(0),
+                          disqualifyingTx(uint256()), voteProof(uint256()),
+                          smartnodePaymentTx(uint256()) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
-                          balance(0), balanceOnStart(0),
-                          reward(0), fBalanceEligible(false),
-                          fIsSmartNode(false), fVoteProved(false) {}
+                          balance(0), balanceAtStart(0), balanceEligible(0), reward(0),
+                          disqualifyingTx(uint256()), voteProof(uint256()),
+                          smartnodePaymentTx(uint256()) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -215,46 +220,41 @@ public:
     bool IsEligible();
 };
 
-class CSmartRewardSnapshot
+class CSmartRewardRoundResult
 {
 
 public:
 
-    CSmartAddress id;
-    CAmount balance;
+    CSmartRewardEntry entry;
     CAmount reward;
 
     ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(id);
-        READWRITE(balance);
+        READWRITE(entry);
         READWRITE(reward);
     }
 
-    CSmartRewardSnapshot(){}
+    CSmartRewardRoundResult(){}
 
-    CSmartRewardSnapshot(CSmartRewardEntry &entry, const CSmartRewardRound &round) {
-        id = entry.id;
-        balance = entry.balance;
-        reward = entry.IsEligible() ? CAmount(entry.balanceOnStart * round.percent) : 0;
-    }
+    CSmartRewardRoundResult(CSmartRewardEntry &entry, CAmount nReward) :
+        entry(entry), reward(nReward){}
 
-    friend bool operator==(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
+    friend bool operator==(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
     {
-        return (a.id == b.id);
+        return (a.entry.id == b.entry.id);
     }
 
-    friend bool operator!=(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
+    friend bool operator!=(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
     {
         return !(a == b);
     }
 
-    friend bool operator<(const CSmartRewardSnapshot& a, const CSmartRewardSnapshot& b)
+    friend bool operator<(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
     {
         // TBD, verify this sort is fast/unique
-        int cmp = a.id.Compare(b.id);
+        int cmp = a.entry.id.Compare(b.entry.id);
         return cmp < 0 || (cmp == 0 && a.reward < b.reward);
     }
 
@@ -284,8 +284,6 @@ public:
     void Lock();
     bool IsLocked();
 
-    bool ResetToRound(const int16_t number, const CSmartRewardRound &round, const CSmartRewardEntryList &entries);
-
     bool ReadBlock(const int nHeight, CSmartRewardBlock &block);
     bool ReadLastBlock(CSmartRewardBlock &block);
 
@@ -299,14 +297,15 @@ public:
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool ReadRewardEntries(CSmartRewardEntryList &vect);
 
-    bool ReadRewardSnapshots(const int16_t round, CSmartRewardSnapshotList &snapshots);
-    bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotList &payouts);
-    bool ReadRewardPayouts(const int16_t round, CSmartRewardSnapshotPtrList &payouts);
+    bool ReadRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardRoundResultPtrList &payouts);
 
-    bool SyncBlocks(const CSmartRewardBlockList &blocks, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions);
+    bool SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
+    bool SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
-    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardSnapshotList &snapshot);
-
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results);
+    bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardRoundResultList &results);
 };
 
 

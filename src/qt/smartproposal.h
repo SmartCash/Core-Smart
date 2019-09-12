@@ -4,10 +4,7 @@
 #include <QFrame>
 #include <QButtonGroup>
 
-#include "smartvoting/manager.h"
-#include "smartvoting/proposal.h"
-
-class WalletModel;
+#include "smartvotingmanager.h"
 
 namespace Ui {
 class SmartProposalWidget;
@@ -18,53 +15,22 @@ class SmartProposalWidget : public QFrame
     Q_OBJECT
 
 public:
-    explicit SmartProposalWidget(const CProposal *cProposal, WalletModel *walletModel, QWidget *parent = 0);
+    explicit SmartProposalWidget(SmartProposal * proposal, QWidget *parent = 0);
     ~SmartProposalWidget();
+    SmartProposal proposal;
 
-    void ResetVoteSelection();
-    vote_signal_enum_t GetVoteSignal();
-    vote_outcome_enum_t GetVoteOutcome();
-    bool votedFunding();
-
-    void UpdateFromProposal(const CProposal *proposal);
+    SmartHiveVoting::Type getVoteType();
+    void setVoted(const SmartProposalVote &vote);
+    bool voted();
 private:
     Ui::SmartProposalWidget *ui;
-    WalletModel *walletModel;
 
-    uint256 hash;
-    QString title;
-    QString url;
-    double amountSmart;
-    double amountUSD;
-    int votingStartHeight;
-    QString createdDate;
-    int voteYesFunding;
-    int voteNoFunding;
-    int voteAbstainFunding;
-    double percentYesFunding;
-    double percentNoFunding;
-    double percentAbstainFunding;
-
-    std::map <CVoteKey, vote_outcome_enum_t> mapVotesFunding;
-
-    QButtonGroup signalSelection;
-    QButtonGroup outcomeSelection;
-    QButtonGroup resultSelection;
-
-    void UpdateVotes(const CProposal *proposal);
-    void UpdateUI();
-
-    int GetVoteResultAmount(vote_signal_enum_t signal, vote_outcome_enum_t outcome);
-    double GetVoteResultPercent(vote_signal_enum_t signal, vote_outcome_enum_t outcome);
-    int GetVotedAmount(vote_signal_enum_t signal, vote_outcome_enum_t outcome);
+    QButtonGroup voteSelection;
+    SmartHiveVoting::Type voteState;
 
 private Q_SLOTS:
     void viewProposal();
-    void viewPortal();
-    void UpdateDeadlines();
-    void UpdateResult();
     void voteButtonClicked();
-    void copyProposalHash();
 
 Q_SIGNALS:
     void voteChanged();

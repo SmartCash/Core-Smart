@@ -123,9 +123,32 @@ void CSmartnodeSync::SwitchToNextAsset(CConnman& connman)
             LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
             break;
         case(SMARTNODE_SYNC_MNW):
-            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
-            nRequestedSmartnodeAssets = SMARTNODE_SYNC_VOTING;
-            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
+// WIP-VOTING
+//            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Completed %s in %llds\n", GetAssetName(), GetTime() - nTimeAssetSyncStarted);
+//            nRequestedSmartnodeAssets = SMARTNODE_SYNC_VOTING;
+//            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Starting %s\n", GetAssetName());
+
+            nRequestedSmartnodeAssets = SMARTNODE_SYNC_FINISHED;
+            uiInterface.NotifyAdditionalDataSyncProgressChanged(1);
+
+            {
+                LOCK(cs_unknownpings);
+                mapTryUnknownPings.clear();
+            }
+
+            LogPrintf("CSmartnodeSync::SwitchToNextAsset -- Sync has finished\n");
+
+            //try to activate our smartnode if possible
+            activeSmartnode.ManageState(connman);
+
+            // TODO: Find out whether we can just use LOCK instead of:
+            // TRY_LOCK(cs_vNodes, lockRecv);
+            // if(lockRecv) { ... }
+
+            connman.ForEachNode(CConnman::FullyConnectedOnly, [](CNode* pnode) {
+                netfulfilledman.AddFulfilledRequest(pnode->addr, "full-sync");
+            });
+
             break;
         case(SMARTNODE_SYNC_VOTING):
 

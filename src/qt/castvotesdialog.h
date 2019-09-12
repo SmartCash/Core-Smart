@@ -15,8 +15,6 @@
 #include <QTableWidgetItem>
 
 #include "primitives/transaction.h"
-#include "smartvoting/proposal.h"
-#include "smartvoting/proposal.h"
 #include "smartproposal.h"
 
 class PlatformStyle;
@@ -30,19 +28,25 @@ class CastVotesDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit CastVotesDialog(const PlatformStyle *platformStyle,
-                             WalletModel *model,
-                             const std::map<uint256, std::pair<vote_signal_enum_t, vote_outcome_enum_t>> &mapVotings,
-                             QWidget *parent = 0);
+    explicit CastVotesDialog(const PlatformStyle *platformStyle, SmartVotingManager *votingManager, WalletModel *model, QWidget *parent = 0);
     ~CastVotesDialog();
+
+    void setVoting(std::map<SmartProposal, SmartHiveVoting::Type> mapVotings){this->mapVotings = mapVotings;}
 
 private:
     Ui::CastVotesDialog *ui;
-    const PlatformStyle *platformStyle;
-    WalletModel *walletModel;
-    std::map<uint256, std::pair<vote_signal_enum_t, vote_outcome_enum_t>> mapVotings;
 
-    bool castVote(const CVoteKeySecret &voteKeySecret, const uint256 &hash, const vote_signal_enum_t eVoteSignal, const vote_outcome_enum_t eVoteOutcome, QString &strError);
+    const PlatformStyle *platformStyle;
+
+    SmartVotingManager * votingManager;
+    WalletModel *walletModel;
+    std::map<SmartProposal, SmartHiveVoting::Type> mapVotings;
+    std::vector<SmartProposalVote> vecVotes;
+    QTimer waitTimer;
+
+    void voteOne();
+Q_SIGNALS:
+    void votedForAddress(QString &address, int proposalId, bool successful);
 
 public Q_SLOTS:
     int exec() final;
@@ -50,6 +54,8 @@ public Q_SLOTS:
 private Q_SLOTS:
     void start();
     void close();
+    void waitForResponse();
+    void voted(const SmartProposalVote &vote, const QJsonArray &result, const std::string &strErr);
 };
 
 #endif // SMARTCASH_QT_CASTVOTESDIALOG_H

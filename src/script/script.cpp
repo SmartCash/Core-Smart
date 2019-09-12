@@ -7,6 +7,7 @@
 
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "primitives/transaction.h"
 #include "smartvoting/votekeys.h"
 
 using namespace std;
@@ -217,6 +218,14 @@ bool CScript::IsPayToPublicKeyHash() const
             (*this)[24] == OP_CHECKSIG);
 }
 
+bool CScript::IsPayToPublicKey() const
+{
+    // Extra-fast test for pay-to-pubkey CScripts:
+    return (this->size() == 35 &&
+            (*this)[0] == 0x21 &&
+            (*this)[34] == OP_CHECKSIG);
+}
+
 bool CScript::IsNormalPaymentScript() const 
 { 
     if(this->size() != 25) return false; 
@@ -302,6 +311,29 @@ bool CScript::IsVoteKeyData() const {
             (*this)[2] == VOTEKEY_REGISTRATION_O2_DATA_SIZE &&
             (*this)[3] == OP_RETURN_VOTE_KEY_REG_FLAG &&
             (*this)[4] == 0x02);
+}
+
+bool CScript::IsVoteProofData() const {
+
+    return (this->size() == REWARDS_VOTEPROOF_O1_SCRIPT_SIZE &&
+            (*this)[0] == OP_RETURN &&
+            (*this)[1] == REWARDS_VOTEPROOF_O1_DATA_SIZE &&
+            (*this)[2] == OP_RETURN_VOTE_PROOF_FLAG &&
+            (*this)[3] == 0x01);
+
+    /*
+    return  (this->size() == REWARDS_VOTEPROOF_O1_SCRIPT_SIZE &&
+            (*this)[0] == OP_RETURN &&
+            (*this)[1] == REWARDS_VOTEPROOF_O1_DATA_SIZE &&
+            (*this)[2] == OP_RETURN_VOTE_PROOF_FLAG &&
+            (*this)[3] == 0x01) ||
+
+            (this->size() == REWARDS_VOTEPROOF_O2_SCRIPT_SIZE &&
+            (*this)[0] == OP_RETURN &&
+            (*this)[1] == REWARDS_VOTEPROOF_O2_DATA_SIZE &&
+            (*this)[2] == OP_RETURN_VOTE_PROOF_FLAG &&
+            (*this)[3] == 0x02);
+    */
 }
 
 bool CScript::HasCanonicalPushes() const

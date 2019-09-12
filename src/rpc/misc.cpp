@@ -60,6 +60,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
             "  \"protocolversion\": xxxxx,   (numeric) the protocol version\n"
             "  \"walletversion\": xxxxx,     (numeric) the wallet version\n"
             "  \"balance\": xxxxxxx,         (numeric) the total smartcash balance of the wallet\n"
+            "  \"headers\": xxxxxx,          (numeric) the current number of block headers in the server\n"
             "  \"blocks\": xxxxxx,           (numeric) the current number of blocks processed in the server\n"
             "  \"timeoffset\": xxxxx,        (numeric) the time offset\n"
             "  \"connections\": xxxxx,       (numeric) the number of connections\n"
@@ -96,6 +97,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
         obj.push_back(Pair("balance",       ValueFromAmount(pwalletMain->GetBalance())));
     }
 #endif
+    obj.push_back(Pair("headers",        (int) (pindexBestHeader ? pindexBestHeader->nHeight : 0)));
     obj.push_back(Pair("blocks",        (int)chainActive.Height()));
     obj.push_back(Pair("timeoffset",    GetTimeOffset()));
     obj.push_back(Pair("connections",   (int)g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL)));
@@ -385,7 +387,7 @@ UniValue snsync(const UniValue& params, bool fHelp)
         objStatus.push_back(Pair("IsSmartNodeSyncStarted", smartnodeSync.IsSmartNodeSyncStarted()));
         objStatus.push_back(Pair("IsSmartnodeListSynced", smartnodeSync.IsSmartnodeListSynced()));
         objStatus.push_back(Pair("IsWinnersListSynced", smartnodeSync.IsWinnersListSynced()));
-        objStatus.push_back(Pair("IsProposalDataSynced", smartnodeSync.IsProposalDataSynced()));
+// WIP-VOTING uncomment ->  objStatus.push_back(Pair("IsProposalDataSynced", smartnodeSync.IsProposalDataSynced()));
         objStatus.push_back(Pair("IsSynced", smartnodeSync.IsSynced()));
         objStatus.push_back(Pair("IsFailed", smartnodeSync.IsFailed()));
         return objStatus;
@@ -645,7 +647,7 @@ UniValue getaddressmempool(const UniValue& params, bool fHelp)
             "    \"address\"  (string) The base58check encoded address\n"
             "    \"txid\"  (string) The related txid\n"
             "    \"index\"  (number) The related input or output index\n"
-            "    \"satoshis\"  (number) The difference of duffs\n"
+            "    \"satoshis\"  (number) The difference of satoshis\n"
             "    \"timestamp\"  (number) The time the transaction entered the mempool (seconds)\n"
             "    \"prevtxid\"  (string) The previous txid (if spending)\n"
             "    \"prevout\"  (string) The previous transaction output index (if spending)\n"
@@ -717,7 +719,7 @@ UniValue getaddressutxos(const UniValue& params, bool fHelp)
             "    \"txid\"  (string) The output txid\n"
             "    \"outputIndex\"  (number) The output index\n"
             "    \"script\"  (string) The script hex encoded\n"
-            "    \"satoshis\"  (number) The number of duffs of the output\n"
+            "    \"satoshis\"  (number) The number of satoshis of the output\n"
             "    \"height\"  (number) The block height\n"
             "  }\n"
             "]\n"
@@ -780,7 +782,7 @@ UniValue getaddressdeltas(const UniValue& params, bool fHelp)
             "\nResult:\n"
             "[\n"
             "  {\n"
-            "    \"satoshis\"  (number) The difference of duffs\n"
+            "    \"satoshis\"  (number) The difference of satoshis\n"
             "    \"txid\"  (string) The related txid\n"
             "    \"index\"  (number) The related input or output index\n"
             "    \"blockindex\"  (number) The related block index\n"
@@ -865,8 +867,8 @@ UniValue getaddressbalance(const UniValue& params, bool fHelp)
             "}\n"
             "\nResult:\n"
             "{\n"
-            "  \"balance\"  (string) The current balance in duffs\n"
-            "  \"received\"  (string) The total number of duffs received (including change)\n"
+            "  \"balance\"  (string) The current balance in satoshis\n"
+            "  \"received\"  (string) The total number of satoshis received (including change)\n"
             "}\n"
             "\nExamples:\n"
             + HelpExampleCli("getaddressbalance", "'{\"addresses\": [\"SwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"]}'")

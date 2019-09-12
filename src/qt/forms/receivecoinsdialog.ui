@@ -180,6 +180,16 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="checkUseNewAddressFormat">
+            <property name="text">
+             <string>Use New Address Format</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="horizontalSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>

@@ -76,6 +76,7 @@ int nScriptCheckThreads = 0;
 bool fImporting = false;
 bool fReindex = false;
 bool fTxIndex = true;
+bool fInstantPayIndex = DEFAULT_INSTANTPAYINDEX;
 bool fAddressIndex = true;
 bool fTimestampIndex = false;
 bool fSpentIndex = false;
@@ -1227,6 +1228,29 @@ bool GetDepositIndex(uint160 addressHash, int type,
     return true;
 }
 
+bool GetInstantPayIndexCount(int &count, int &firstTime, int &lastTime, int start, int end)
+{
+    if (!fInstantPayIndex)
+        return error("instantpay index not enabled");
+
+    if (!pblocktree->ReadInstantPayIndexCount(count, firstTime, lastTime, start, end))
+        return error("unable to get instantpay index count");
+
+    return true;
+}
+
+bool GetInstantPayIndex(std::vector<std::pair<CInstantPayIndexKey, CInstantPayValue>> &instantPayIndex,
+                        int start, int offset, int limit, bool reverse)
+{
+    if (!fInstantPayIndex)
+        return error("instantpay index not enabled");
+
+    if (!pblocktree->ReadInstantPayIndex(instantPayIndex, start, offset, limit, reverse))
+        return error("unable to get instantpay index");
+
+    return true;
+}
+
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransaction &tx, bool fLimitFree,
                         bool* pfMissingInputs, bool fOverrideMempoolLimit, bool fRejectAbsurdFee, bool fDryRun)
 {
@@ -1809,6 +1833,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 {
     assert(pindex->GetBlockHash() == view.GetBestBlock());
 
+    CChainParams params = Params();
     bool fClean = true;
 
     CBlockUndo blockUndo;
@@ -1831,8 +1856,15 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    /* WIP-VOTING uncomment
     std::map<CVoteKey, CSmartAddress> mapVoteKeys;
     std::vector<CVoteKeyRegistrationKey> vecInvalidVoteKeyRegistrations;
+    */
+
+    // Result of the smartrewards block processing.
+    CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
+
+    prewards->StartBlock();
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -1857,6 +1889,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                 } else if (out.scriptPubKey.IsPayToPublicKeyHash()) {
 
                     hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23));
+                    addressType = 1;
+                } else if (out.scriptPubKey.IsPayToPublicKey()) {
+
+                    vector<unsigned char> pubKeyBytes(out.scriptPubKey.begin()+1, out.scriptPubKey.begin()+34);
+                    CPubKey pubKey(pubKeyBytes);
+                    hashBytes = pubKey.GetID();
                     addressType = 1;
                 } else {
                     continue;
@@ -1941,6 +1979,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                         hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin()+3, prevout.scriptPubKey.begin()+23));
                         addressType = 1;
 
+                    } else if (prevout.scriptPubKey.IsPayToPublicKey()) {
+
+                        vector<unsigned char> pubKeyBytes(prevout.scriptPubKey.begin()+1, prevout.scriptPubKey.begin()+34);
+                        CPubKey pubKey(pubKeyBytes);
+                        hashBytes = pubKey.GetID();
+                        addressType = 1;
                     } else {
                         continue;
                     }
@@ -1972,6 +2016,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
             }
 
+            /* WIP-VOTING uncomment
             if( tx.IsVoteKeyRegistration() ){
 
                 CVoteKey voteKey;
@@ -1996,6 +2041,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
                 vecInvalidVoteKeyRegistrations.push_back(CVoteKeyRegistrationKey(pindex->nHeight, tx.GetHash()));
             }
+            */
 
             if( fDepositIndex ){
 
@@ -2021,6 +2067,8 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
             // At this point, all of txundo.vprevout should have been moved out.
         }
+
+        prewards->UndoTransaction((CBlockIndex*) pindex, tx, view, params, smartRewardsResult);
     }
 
 
@@ -2046,6 +2094,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         }
     }
 
+    if( !prewards->CommitUndoBlock( (CBlockIndex*) pindex, smartRewardsResult) ){
+        AbortNode(state, "Failed to commit smartrewards block undo");
+        return DISCONNECT_FAILED;
+    }
+
+    /* WIP-VOTING uncomment
     if( mapVoteKeys.size() && !pblocktree->EraseVoteKeys(mapVoteKeys) ){
         AbortNode(state, "Failed to erase vote keys");
         return DISCONNECT_FAILED;
@@ -2055,6 +2109,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         AbortNode(state, "Failed to erase invalid VoteKey registrations");
         return DISCONNECT_FAILED;
     }
+    */
 
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
@@ -2300,10 +2355,17 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > addressUnspentIndex;
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue> > spentIndex;
     std::vector<std::pair<CDepositIndexKey, CDepositValue> > depositIndex;
+    /* WIP-VOTING uncomment
     std::vector<std::pair<CVoteKeyRegistrationKey, VoteKeyParseResult>> vecInvalidVoteKeyRegistrations;
     std::map<CVoteKey, CVoteKeyValue> mapVoteKeys;
+    */
+
+    // Result of the smartrewards block processing.
+    CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
+
+    prewards->StartBlock();
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -2311,6 +2373,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         const uint256 txhash = tx.GetHash();
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
+
+        if( pindex->nHeight > 0 ) prewards->ProcessTransaction(pindex, tx, view, chainparams, smartRewardsResult);
 
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
@@ -2351,6 +2415,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                         addressType = 2;
                     } else if (prevout.scriptPubKey.IsPayToPublicKeyHash()) {
                         hashBytes = uint160(vector <unsigned char>(prevout.scriptPubKey.begin()+3, prevout.scriptPubKey.begin()+23));
+                        addressType = 1;
+                    } else if (prevout.scriptPubKey.IsPayToPublicKey()) {
+                        vector<unsigned char> pubKeyBytes(prevout.scriptPubKey.begin()+1, prevout.scriptPubKey.begin()+34);
+                        CPubKey pubKey(pubKeyBytes);
+                        hashBytes = pubKey.GetID();
                         addressType = 1;
                     } else {
                         hashBytes.SetNull();
@@ -2422,6 +2491,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 } else if (out.scriptPubKey.IsPayToPublicKeyHash()) {
                     hashBytes = uint160(vector <unsigned char>(out.scriptPubKey.begin()+3, out.scriptPubKey.begin()+23));
                     addressType = 1;
+                } else if (out.scriptPubKey.IsPayToPublicKey()) {
+                    vector<unsigned char> pubKeyBytes(out.scriptPubKey.begin()+1, out.scriptPubKey.begin()+34);
+                    CPubKey pubKey(pubKeyBytes);
+                    hashBytes = pubKey.GetID();
+                    addressType = 1;
                 } else {
                     continue;
                 }
@@ -2474,6 +2548,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             }
         }
 
+        /* WIP-VOTING uncomment
         if( tx.IsVoteKeyRegistration() ){
 
             CVoteKey voteKey, otherVoteKey;
@@ -2521,6 +2596,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 vecInvalidVoteKeyRegistrations.push_back(std::make_pair(CVoteKeyRegistrationKey(pindex->nHeight, tx.GetHash()), result));
 
         }
+        */
 
         CTxUndo undoDummy;
         if (i > 0) {
@@ -2547,6 +2623,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         mapRejectedBlocks.insert(make_pair(block.GetHash(), GetTime()));
         return false;
     }
+
+    prewards->CommitBlock(pindex, smartRewardsResult);
 
     // END SMARTCASH
 
@@ -2606,11 +2684,13 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
     }
 
+    /* WIP-VOTING uncomment
     if ( vecInvalidVoteKeyRegistrations.size() && !pblocktree->WriteInvalidVoteKeyRegistrations(vecInvalidVoteKeyRegistrations) )
         return AbortNode(state, "Failed to write invalid VoteKey registrations");
 
     if( mapVoteKeys.size() && !pblocktree->WriteVoteKeys(mapVoteKeys) )
         return AbortNode(state, "Failed to write VoteKeys");
+    */
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());
@@ -2752,10 +2832,15 @@ void static UpdateTip(CBlockIndex *pindexNew) {
     mempool.AddTransactionsUpdated(1);
 
     if(fDebug || !(pindexNew->nHeight % 1000) ){
-        LogPrintf("%s: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%.1fMiB(%utxo)\n", __func__,
-          chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
-          DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
-          Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+
+        double dProgress = Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip());
+
+        if( LogAcceptCategory("tip") || dProgress > 0.95 ){
+            LogPrintf("%s: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%.1fMiB(%utxo)\n", __func__,
+              chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
+              DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
+              dProgress, pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+        }
     }
 
     cvBlockChange.notify_all();
@@ -2917,10 +3002,6 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5; nTimeTotal += nTime6 - nTime1;
     LogPrint("bench", "  - Connect postprocess: %.2fms [%.2fs]\n", (nTime6 - nTime5) * 0.001, nTimePostConnect * 0.000001);
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
-
-    //### SMARTCASH START
-    if(pindexNew->nHeight > 0) prewards->ProcessBlock(pindexNew, chainparams);
-    //### SMARTCASH END
 
     return true;
 }
@@ -3865,6 +3946,9 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
     }
 
     int nHeight = pindex->nHeight;
+    if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
+      newHash = true;
+    }
 
     // Write block to history file
     try {
@@ -4277,6 +4361,12 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     {
         boost::this_thread::interruption_point();
         uiInterface.ShowProgress(_("Verifying blocks..."), std::max(1, std::min(99, (int)(((double)(chainActive.Height() - pindex->nHeight)) / (double)nCheckDepth * (nCheckLevel >= 4 ? 50 : 100)))));
+
+        int nHeight = pindex->nHeight;
+        if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
+          newHash = true;
+        }
+
         if (pindex->nHeight < chainActive.Height()-nCheckDepth)
             break;
         CBlock block;
@@ -5043,5 +5133,3 @@ bool IsRegisteredForVoting(const CVoteKey &voteKey)
 
     return false;
 }
-
-

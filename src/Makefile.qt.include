@@ -116,6 +116,7 @@ QT_FORMS_UI = \
   qt/forms/receiverequestdialog.ui \
   qt/forms/smartnodelist.ui \
   qt/forms/smartrewardslist.ui \
+  qt/forms/smartrewardentry.ui \
   qt/forms/smartvoting.ui \
   qt/forms/smartproposal.ui \
   qt/forms/smartproposaltab.ui \
@@ -124,6 +125,7 @@ QT_FORMS_UI = \
   qt/forms/signverifymessagedialog.ui \
   qt/forms/specialtransactiondialog.ui \
   qt/forms/transactiondescdialog.ui \
+  qt/forms/voteaddressesdialog.ui \
   qt/forms/zerocoinpage.ui
 
 QT_MOC_CPP = \
@@ -169,8 +171,10 @@ QT_MOC_CPP = \
   qt/moc_signverifymessagedialog.cpp \
   qt/moc_smartnodelist.cpp \
   qt/moc_smartrewardslist.cpp \
+  qt/moc_smartrewardentry.cpp \
   qt/moc_smartvoting.cpp \
   qt/moc_smartproposal.cpp \
+  qt/moc_smartvotingmanager.cpp \
   qt/moc_smartproposaltab.cpp \
   qt/moc_splashscreen.cpp \
   qt/moc_specialtransactiondialog.cpp \
@@ -181,11 +185,12 @@ QT_MOC_CPP = \
   qt/moc_transactiontablemodel.cpp \
   qt/moc_transactionview.cpp \
   qt/moc_utilitydialog.cpp \
+  qt/moc_voteaddressesdialog.cpp \
   qt/moc_walletframe.cpp \
   qt/moc_walletmodel.cpp \
   qt/moc_walletview.cpp \
-  qt/moc_zerocoinpage.cpp \
-  qt/moc_waitingspinnerwidget.cpp
+  qt/moc_waitingspinnerwidget.cpp \
+  qt/moc_zerocoinpage.cpp
 
 BITCOIN_MM = \
   qt/macdockiconhandler.mm \
@@ -253,9 +258,11 @@ BITCOIN_QT_H = \
   qt/sendcoinsentry.h \
   qt/signverifymessagedialog.h \
   qt/smartnodelist.h \
+  qt/smartrewardentry.h \
   qt/smartrewardslist.h \
   qt/smartvoting.h \
   qt/smartproposal.h \
+  qt/smartvotingmanager.h \
   qt/smartproposaltab.h \
   qt/splashscreen.h \
   qt/specialtransactiondialog.h \
@@ -268,13 +275,14 @@ BITCOIN_QT_H = \
   qt/transactiontablemodel.h \
   qt/transactionview.h \
   qt/utilitydialog.h \
+  qt/voteaddressesdialog.h \
   qt/walletframe.h \
   qt/walletmodel.h \
   qt/walletmodeltransaction.h \
   qt/walletview.h \
   qt/winshutdownmonitor.h \
-  qt/zerocoinpage.h \
-  qt/waitingspinnerwidget.h
+  qt/waitingspinnerwidget.h \
+  qt/zerocoinpage.h
 
 RES_ICONS = \
   qt/res/icons/add.png \
@@ -386,9 +394,11 @@ BITCOIN_QT_WALLET_CPP = \
   qt/sendcoinsentry.cpp \
   qt/signverifymessagedialog.cpp \
   qt/smartnodelist.cpp \
+  qt/smartrewardentry.cpp \
   qt/smartrewardslist.cpp \
   qt/smartvoting.cpp \
   qt/smartproposal.cpp \
+  qt/smartvotingmanager.cpp \
   qt/smartproposaltab.cpp \
   qt/specialtransactiondialog.cpp \
   qt/transactiondesc.cpp \
@@ -397,12 +407,13 @@ BITCOIN_QT_WALLET_CPP = \
   qt/transactionrecord.cpp \
   qt/transactiontablemodel.cpp \
   qt/transactionview.cpp \
+  qt/voteaddressesdialog.cpp \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
   qt/walletview.cpp \
-  qt/zerocoinpage.cpp \
-  qt/waitingspinnerwidget.cpp
+  qt/waitingspinnerwidget.cpp \
+  qt/zerocoinpage.cpp
 
 BITCOIN_QT_CPP = $(BITCOIN_QT_BASE_CPP)
 if TARGET_WINDOWS

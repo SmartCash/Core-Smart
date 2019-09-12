@@ -63,7 +63,7 @@ std::string DecodeDumpString(const std::string &str) {
     for (unsigned int pos = 0; pos < str.length(); pos++) {
         unsigned char c = str[pos];
         if (c == '%' && pos+2 < str.length()) {
-            c = (((str[pos+1]>>6)*9+((str[pos+1]-'0')&15)) << 4) | 
+            c = (((str[pos+1]>>6)*9+((str[pos+1]-'0')&15)) << 4) |
                 ((str[pos+2]>>6)*9+((str[pos+2]-'0')&15));
             pos += 2;
         }
@@ -76,7 +76,7 @@ UniValue importprivkey(const UniValue& params, bool fHelp)
 {
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
-    
+
     if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
             "importprivkey \"smartcashprivkey\" ( \"label\" rescan )\n"
@@ -186,7 +186,7 @@ UniValue importaddress(const UniValue& params, bool fHelp)
 {
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
-    
+
     if (fHelp || params.size() < 1 || params.size() > 4)
         throw runtime_error(
             "importaddress \"address\" ( \"label\" rescan p2sh )\n"
@@ -409,7 +409,7 @@ UniValue importwallet(const UniValue& params, bool fHelp)
 {
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
-    
+
     if (fHelp || params.size() != 1)
         throw runtime_error(
             "importwallet \"filename\"\n"
@@ -650,14 +650,15 @@ UniValue dumpprivkey(const UniValue& params, bool fHelp)
 {
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
-    
-    if (fHelp || params.size() != 1)
+
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
-            "dumpprivkey \"smartcashaddress\"\n"
+            "dumpprivkey \"smartcashaddress\" false\n"
             "\nReveals the private key corresponding to 'smartcashaddress'.\n"
             "Then the importprivkey can be used with this output\n"
             "\nArguments:\n"
             "1. \"smartcashaddress\"   (string, required) The smartcash address for the private key\n"
+            "2. newFormat              (boolean, optional, default=false) Use the standard format (sha256)\n"
             "\nResult:\n"
             "\"key\"                (string) The private key\n"
             "\nExamples:\n"
@@ -671,6 +672,11 @@ UniValue dumpprivkey(const UniValue& params, bool fHelp)
     EnsureWalletIsUnlocked();
 
     string strAddress = params[0].get_str();
+
+    bool newFormat = false;
+    if(params.size() > 1)
+      newFormat = params[1].get_bool();
+
     CBitcoinAddress address;
     if (!address.SetString(strAddress))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid SmartCash address");
@@ -680,7 +686,7 @@ UniValue dumpprivkey(const UniValue& params, bool fHelp)
     CKey vchSecret;
     if (!pwalletMain->GetKey(keyID, vchSecret))
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
-    return CBitcoinSecret(vchSecret).ToString();
+    return CBitcoinSecret(vchSecret).ToString(newFormat);
 }
 
 UniValue dumphdinfo(const UniValue& params, bool fHelp)
@@ -734,13 +740,14 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
 {
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
-    
-    if (fHelp || params.size() != 1)
+
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "dumpwallet \"filename\"\n"
             "\nDumps all wallet keys in a human-readable format.\n"
             "\nArguments:\n"
             "1. \"filename\"    (string, required) The filename\n"
+            "2. newFormat       (boolean, optional, default=false) Use the standard format (sha256)\n"
             "\nExamples:\n"
             + HelpExampleCli("dumpwallet", "\"test\"")
             + HelpExampleRpc("dumpwallet", "\"test\"")
@@ -754,6 +761,10 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
     file.open(params[0].get_str().c_str());
     if (!file.is_open())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open wallet dump file");
+
+    bool newFormat = false;
+    if(params.size() > 1)
+      newFormat = params[1].get_bool();
 
     std::map<CKeyID, int64_t> mapKeyBirth;
     std::set<CKeyID> setKeyPool;
@@ -798,14 +809,14 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
         CBitcoinExtKey b58extkey;
         b58extkey.SetKey(masterKey);
 
-        file << "# extended private masterkey: " << b58extkey.ToString() << "\n";
+        file << "# extended private masterkey: " << b58extkey.ToString(newFormat) << "\n";
 
         CExtPubKey masterPubkey;
         masterPubkey = masterKey.Neuter();
 
         CBitcoinExtPubKey b58extpubkey;
         b58extpubkey.SetKey(masterPubkey);
-        file << "# extended public masterkey: " << b58extpubkey.ToString() << "\n\n";
+        file << "# extended public masterkey: " << b58extpubkey.ToString(newFormat) << "\n\n";
 
         for (size_t i = 0; i < hdChainCurrent.CountAccounts(); ++i)
         {
@@ -822,10 +833,10 @@ UniValue dumpwallet(const UniValue& params, bool fHelp)
     for (std::vector<std::pair<int64_t, CKeyID> >::const_iterator it = vKeyBirth.begin(); it != vKeyBirth.end(); it++) {
         const CKeyID &keyid = it->second;
         std::string strTime = EncodeDumpTime(it->first);
-        std::string strAddr = CBitcoinAddress(keyid).ToString();
+        std::string strAddr = CBitcoinAddress(keyid).ToString(newFormat);
         CKey key;
         if (pwalletMain->GetKey(keyid, key)) {
-            file << strprintf("%s %s ", CBitcoinSecret(key).ToString(), strTime);
+            file << strprintf("%s %s ", CBitcoinSecret(key).ToString(newFormat), strTime);
             if (pwalletMain->mapAddressBook.count(keyid)) {
                 file << strprintf("label=%s", EncodeDumpString(pwalletMain->mapAddressBook[keyid].name));
             } else if (setKeyPool.count(keyid)) {

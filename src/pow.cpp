@@ -39,12 +39,9 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     uint32_t              PastBlocksMin       = PastSecondsMin / BlocksTargetSpacing; // 2 blocks
     uint32_t              PastBlocksMax       = PastSecondsMax / BlocksTargetSpacing; // 785 blocks
 
-    bool fTestNet = Params().NetworkIDString() == CBaseChainParams::TESTNET;
-    if(fTestNet){
-//       if((pindexLast->nTime - 1499790000) / 55 > (unsigned)pindexLast->nHeight)
-       if(pindexLast->nHeight < 274998 || pindexLast->nHeight > 316199 ){
+    if( TestNet() ){
+          //  No difficulty adjust in Testnet
           return bnProofOfWorkLimit.GetCompact();
-       }
     }
 
     if ((pindexLast->nHeight+1) % nInterval != 0) // Retarget every nInterval blocks

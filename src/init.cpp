@@ -282,6 +282,7 @@ void PrepareShutdown()
         flatdb.Dump(netfulfilledman);
     }
 
+    /* WIP-VOTING uncomment
     fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_VOTING);
     if( fCache ){
         CFlatDB<CSmartVotingManager> flatdb("smartvoting.dat", "magicSmartVotingCache");
@@ -293,6 +294,7 @@ void PrepareShutdown()
         CFlatDB<CSAPIStatistics> flatdb(".sapi_stats", "magicSAPIStatistics");
         flatdb.Dump(sapiStatistics);
     }
+    */
 
     UnregisterNodeSignals(GetNodeSignals());
 
@@ -926,7 +928,10 @@ void InitParameterInteraction()
         SoftSetBoolArg("-addressindex", true);
         SoftSetBoolArg("-spentindex", true);
         SoftSetBoolArg("-depositindex", true);
+        SoftSetBoolArg("-instantpayindex", true);
     }
+
+    fInstantPayIndex = GetBoolArg("-instantpayindex", DEFAULT_INSTANTPAYINDEX);
 
     // Make sure additional indexes are recalculated correctly in VerifyDB
     // (we must reconnect blocks whenever we disconnect them for these indexes to work)
@@ -1053,8 +1058,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             "sncache.dat",
             "snpayments.dat",
             "banlist.dat",
-            "fee_estimates.dat",
-            "smartvoting.dat"
+            "fee_estimates.dat"
+            // WIP-VOTING uncomment
+            //"smartvoting.dat"
         };
 
         boost::filesystem::path cachePath = GetDataDir();
@@ -1828,8 +1834,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     }
 
-    prewards->CatchUp();
-
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
     // As the program has not fully started yet, Shutdown() is possibly overkill.
@@ -2188,6 +2192,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             }
         }
 
+        /* WIP-VOTING uncomment
         fCache = GetBoolArg("-cachevoting", DEFAULT_CACHE_VOTING);
         if( fCache ){
             strDBName = "smartvoting.dat";
@@ -2204,6 +2209,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 smartVoting.InitOnLoad();
             }
         }
+        */
     }
 
     // ********************************************************* Step 11c: update block tip in SmartCash modules
@@ -2216,7 +2222,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 11d: start smartcash threads
 
     threadGroup.create_thread(boost::bind(&ThreadSmartnode, boost::ref(*g_connman)));
-    threadGroup.create_thread(&ThreadSmartVoting);
+
+//  WIP-VOTING uncomment
+//    threadGroup.create_thread(&ThreadSmartVoting);
 
     // ********************************************************* Step 12: start node
 

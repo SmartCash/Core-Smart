@@ -16,6 +16,9 @@
 #include <QWidget>
 #include <QTableWidgetItem>
 
+class CSmartRewardRound;
+class CBlockIndex;
+
 namespace Ui {
     class SmartrewardsList;
 }
@@ -27,11 +30,19 @@ public:
     bool operator<(const QTableWidgetItem &other) const;
 };
 
+class CSmartRewardVoteProofWidgetItem : public QTableWidgetItem
+{
+public:
+    CSmartRewardVoteProofWidgetItem(const QString &text, int type = Type) : QTableWidgetItem(text, type) {}
+    bool operator<(const QTableWidgetItem &other) const;
+};
+
 class WalletModel;
 class ClientModel;
 class OptionsModel;
 class PlatformStyle;
 class QModelIndex;
+class QSmartRewardEntry;
 
 QT_BEGIN_NAMESPACE
 class QItemSelection;
@@ -46,6 +57,22 @@ class SmartrewardsList : public QWidget
 {
     Q_OBJECT
 
+    enum SmartRewardsListState{
+        STATE_INIT,
+        STATE_PROCESSING,
+        STATE_OVERVIEW
+    };
+
+    Ui::SmartrewardsList *ui;
+    WalletModel *model;
+    ClientModel *clientModel;
+    const PlatformStyle *platformStyle;
+    std::vector<QSmartRewardEntry*> vecEntries;
+    std::vector<QWidget*> vecLines;
+    SmartRewardsListState state;
+
+    void setState(SmartrewardsList::SmartRewardsListState state);
+
 public:
     explicit SmartrewardsList(const PlatformStyle *platformStyle, QWidget *parent = 0);
     ~SmartrewardsList();
@@ -53,7 +80,7 @@ public:
     void setModel(WalletModel *model);
     void setClientModel(ClientModel *model);
 
-    enum
+    enum OverviewColummns
     {
         COLUMN_LABEL = 0,
         COLUMN_ADDRESS,
@@ -62,20 +89,12 @@ public:
         COLUMN_REWARD,
     };
 
-private:
-    Ui::SmartrewardsList *ui;
-    WalletModel *model;
-    ClientModel *clientModel;
-    QMenu *contextMenu;
-    
-
 public Q_SLOTS:
-    void contextualMenu(const QPoint &);
-    void copyAddress();
-    void copyLabel();
-    void copyAmount();
-    void copyEligibleAmount();
-    void copyReward();
+    void updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip);
     void updateUI();
+
+    void on_btnSendProofs_clicked();
+
+    void scrollChanged(int value);
 };
 #endif // SMARTREWARDSLIST_H

@@ -684,4 +684,134 @@ struct CVoteKeyValue {
     }
 };
 
+struct CInstantPayIndexKey {
+    unsigned int timestamp;
+    uint256 txhash;
+
+    size_t GetSerializeSize(int nType, int nVersion) const {
+        return 36;
+    }
+    template<typename Stream>
+    void Serialize(Stream& s, int nType, int nVersion) const {
+        // Timestamps are stored big-endian for key sorting in LevelDB
+        ser_writedata32be(s, timestamp);
+        txhash.Serialize(s, nType, nVersion);
+    }
+    template<typename Stream>
+    void Unserialize(Stream& s, int nType, int nVersion) {
+        timestamp = ser_readdata32be(s);
+        txhash.Unserialize(s, nType, nVersion);
+    }
+
+    CInstantPayIndexKey(unsigned int time, uint256 txid) {
+        timestamp = time;
+        txhash = txid;
+    }
+
+    CInstantPayIndexKey() {
+        SetNull();
+    }
+
+    void SetNull() {
+        timestamp = 0;
+        txhash.SetNull();
+    }
+
+    friend inline bool operator==(const CInstantPayIndexKey& a, const CInstantPayIndexKey& b) {
+        return a.timestamp == b.timestamp && a.txhash == b.txhash;
+    }
+    friend inline bool operator!=(const CInstantPayIndexKey& a, const CInstantPayIndexKey& b) {
+        return !(a == b);
+    }
+    friend inline bool operator<(const CInstantPayIndexKey& a, const CInstantPayIndexKey& b) {
+        return a.timestamp == b.timestamp ? a.txhash < b.txhash : a.timestamp < b.timestamp;;
+    }
+
+};
+
+struct CInstantPayValue {
+    bool fProcessed; // Internal only
+    bool fWritten; // Internal only
+    int64_t timeCreated; // Internal only
+
+    bool fValid;
+    int receivedLocks;
+    int maxLocks;
+    int elapsedTime;
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(fValid);
+        READWRITE(receivedLocks);
+        READWRITE(maxLocks);
+        READWRITE(elapsedTime);
+    }
+
+    CInstantPayValue(bool valid, int receivedLocks, int maxLocks, int elapsedTime) :
+                                                           fProcessed(false),
+                                                           fWritten(false),
+                                                           fValid(valid),
+                                                           receivedLocks(receivedLocks),
+                                                           maxLocks(maxLocks),
+                                                           elapsedTime(elapsedTime) {
+
+    }
+
+    CInstantPayValue() {
+        SetNull();
+    }
+
+    CInstantPayValue(int64_t nTimeCreated) {
+        SetNull();
+        timeCreated = nTimeCreated;
+    }
+
+    void SetNull() {
+        fProcessed = false;
+        fWritten = false;
+        timeCreated = 0;
+
+        fValid = false;
+        receivedLocks = -1;
+        maxLocks = -1;
+        elapsedTime = 0;
+    }
+
+    bool IsNull() const {
+        return (receivedLocks == -1);
+    }
+};
+
+
+struct CInstantPayIndexIteratorTimeKey {
+    unsigned int timestamp;
+
+    size_t GetSerializeSize(int nType, int nVersion) const {
+        return 4;
+    }
+    template<typename Stream>
+    void Serialize(Stream& s, int nType, int nVersion) const {
+        ser_writedata32be(s, timestamp);
+    }
+    template<typename Stream>
+    void Unserialize(Stream& s, int nType, int nVersion) {
+        timestamp = ser_readdata32be(s);
+    }
+
+    CInstantPayIndexIteratorTimeKey(int time) {
+        timestamp = time;
+    }
+
+    CInstantPayIndexIteratorTimeKey() {
+        SetNull();
+    }
+
+    void SetNull() {
+        timestamp = 0;
+    }
+};
+
+
 #endif // BITCOIN_SPENTINDEX_H

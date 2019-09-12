@@ -791,7 +791,7 @@ void CProposal::UpdateSentinelVariables()
     if( UpdateProposalStartHeight() ){
 
         int nValidEndHeight = GetValidVoteEndHeight();
-        int nFundingEndHeight = GetFundingVoteEndHeight();
+        //int nFundingEndHeight = GetFundingVoteEndHeight();
 
         if( fundingResult.percentYes > consensus.nVotingMinYesPercent ) fCachedFunding = true;
 
@@ -816,4 +816,3 @@ string CInternalProposal::ToString() const
 {
     return strprintf("CInternalProposal %s -- %s", hashInternal.ToString(), CProposal::ToString());
 }
-

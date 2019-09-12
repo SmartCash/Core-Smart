@@ -93,6 +93,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getblockheader", 1 },
     { "getblockheaders", 1 },
     { "getblockheaders", 2 },
+    { "getchaintxstats", 0 },
     { "gettransaction", 1 },
     { "getrawtransaction", 1 },
     { "createrawtransaction", 0 },
@@ -142,7 +143,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressmempool", 0},
     { "getaddresses", 0},
     { "getaddresses", 1},
-    { "getrandomkeypair", 0}
+    { "getrandomkeypair", 0},
+    { "dumpprivkey", 1},
+    { "dumpwallet", 1}
 };
 
 class CRPCConvertTable

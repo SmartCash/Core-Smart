@@ -57,6 +57,14 @@ static bool CheckAddresses(HTTPRequest* req, std::vector<std::string> vecAddr, s
 
     vecResults.clear();
 
+    TRY_LOCK(cs_rewardrounds,roundsLocked);
+
+    if(!roundsLocked) return SAPI::Error(req, SAPI::RewardsDatabaseBusy, "Rewards database is busy..Try it again!");
+
+    const CSmartRewardRound& current = prewards->GetCurrentRound();
+
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
+
     for( auto addrStr : vecAddr ){
 
         CSmartAddress id = CSmartAddress(addrStr);
@@ -81,10 +89,10 @@ static bool CheckAddresses(HTTPRequest* req, std::vector<std::string> vecAddr, s
 
         obj.pushKV("address",id.ToString());
         obj.pushKV("balance",UniValueFromAmount(entry.balance));
-        obj.pushKV("balance_eligible", UniValueFromAmount(entry.fBalanceEligible ? entry.balanceOnStart : 0));
-        obj.pushKV("is_smartnode", entry.fIsSmartNode);
-        obj.pushKV("voted", entry.fVoteProved);
-        obj.pushKV("eligible", entry.IsEligible());
+        obj.pushKV("balance_eligible", UniValueFromAmount(entry.balanceEligible));
+        obj.pushKV("is_smartnode", !entry.smartnodePaymentTx.IsNull());
+        obj.pushKV("voted", !entry.voteProof.IsNull());
+        obj.pushKV("eligible", current.number < nFirst_1_3_Round ? entry.balanceEligible > 0 : entry.IsEligible());
 
         vecResults.push_back(obj);
     }
@@ -140,7 +148,7 @@ static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, s
 
     const CSmartRewardRoundList& history = prewards->GetRewardRounds();
 
-    int64_t nPayoutDelay = MainNet() ? nRewardPayoutStartDelay : nRewardPayoutStartDelay_Testnet;
+    int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
     if(!history.size()) return SAPI::Error(req, SAPI::NoFinishedRewardRound, "No finished reward round available yet.");
 

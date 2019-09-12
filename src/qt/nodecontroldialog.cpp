@@ -172,7 +172,12 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
                       tr("Required format: xxx.xxx.xxx.xxx or xxx.xxx.xxx.xxx:port"));
             return;
         }else{
-            LogPrintf("SmartnodeControlDialog -- valid ip: %s\n",qip.toStdString());
+            if(!validateSmartnodeIPAddress(qip)){
+              showError(tr("Invalid SmartNode IP-Address (Unreachable)"));
+              return;
+            }else{
+              LogPrintf("SmartnodeControlDialog -- valid ip: %s\n",qip.toStdString());
+            }
         }
 
         LogPrintf("SmartnodeControlDialog -- remove whitespaces\n");
@@ -270,6 +275,14 @@ void SmartnodeControlDialog::buttonBoxClicked(QAbstractButton* button)
     }
 
     done(QDialog::Rejected);
+}
+
+bool SmartnodeControlDialog::validateSmartnodeIPAddress(QString qip){
+  std::string ip = qip.toStdString();
+  if(ip == "0.0.0.0" || ip == "255.255.255.255" || ip.rfind("10.",0) == 0 || ip.rfind("172.16.",0) == 0 || ip.rfind("192.168.",0) == 0)
+    return false;
+
+  return true;
 }
 
 void SmartnodeControlDialog::copySmartnodeKey()

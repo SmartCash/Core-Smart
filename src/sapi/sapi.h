@@ -55,6 +55,7 @@ enum Codes{
     RequestRateLimitExceeded,
     RessourceRateLimitExceeded,
     AddressNotFound,
+    NoInstantPayLocksAvailble,
     /* block errors */
     BlockHeightOutOfRange = 3000,
     BlockNotFound,

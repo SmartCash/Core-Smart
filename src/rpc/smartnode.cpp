@@ -281,7 +281,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
                 int nDoS;
                 if (fResult && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDoS, *g_connman)) {
-                    strError = "Failed to verify MNB";
+                    strError = "Please wait 15 confirmations or check your configuration";
                     fResult = false;
                 }
 
@@ -336,7 +336,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
             int nDoS;
             if (fResult && !mnodeman.CheckMnbAndUpdateSmartnodeList(NULL, mnb, nDoS, *g_connman)) {
-                strError = "Failed to verify MNB";
+                strError = "Please wait 15 confirmations or check your configuration";
                 fResult = false;
             }
 

@@ -55,6 +55,7 @@ public:
         AvailableCoinsType inputType;
     #endif // ENABLE_WALLET
     bool fUseInstantSend;
+    bool fUseNewAddressFormat;
     CAmount amount;
     // If from a payment request, this is used for storing the memo
     QString message;
@@ -320,7 +321,7 @@ public Q_SLOTS:
     /* New transaction, or transaction changed status */
     void updateTransaction();
     /* New, updated or removed address book entry */
-    void updateAddressBook(const QString &address, const QString &label, bool isMine, const QString &purpose, int status);
+    void updateAddressBook(const QString &address, const QString &addressNew, const QString &label, bool isMine, const QString &purpose, int status);
     /* Watch-only added */
     void updateWatchOnlyFlag(bool fHaveWatchonly);
     /* Current, immature or unconfirmed balance might have changed - emit 'balanceChanged' if so */

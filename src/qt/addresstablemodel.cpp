@@ -17,6 +17,7 @@
 
 const QString AddressTableModel::Send = "S";
 const QString AddressTableModel::Receive = "R";
+const QString AddressTableModel::ReceiveNew = "N";
 const QString AddressTableModel::Zerocoin = "X";
 
 struct AddressTableEntry
@@ -31,11 +32,12 @@ struct AddressTableEntry
     Type type;
     QString label;
     QString address;
+    QString addressNew;
     QString pubcoin;
 
     AddressTableEntry() {}
-    AddressTableEntry(Type type, const QString &label, const QString &address):
-        type(type), label(label), address(address) {}
+    AddressTableEntry(Type type, const QString &label, const QString &address, const QString &addressNew):
+        type(type), label(label), address(address), addressNew(addressNew) {}
     AddressTableEntry(Type type, const QString &pubcoin):
             type(type), pubcoin(pubcoin) {}
 };
@@ -95,7 +97,9 @@ public:
                 const std::string& strName = item.second.name;
                 cachedAddressTable.append(AddressTableEntry(addressType,
                                   QString::fromStdString(strName),
-                                  QString::fromStdString(address.ToString())));
+                                  QString::fromStdString(address.ToString()),
+                                  QString::fromStdString(address.ToString(true))
+                                ));
             }
         }
         // qLowerBound() and qUpperBound() require our cachedAddressTable list to be sorted in asc order
@@ -104,7 +108,7 @@ public:
         qSort(cachedAddressTable.begin(), cachedAddressTable.end(), AddressTableEntryLessThan());
     }
 
-    void updateEntry(const QString &address, const QString &label, bool isMine, const QString &purpose, int status)
+    void updateEntry(const QString &address,const QString &addressNew, const QString &label, bool isMine, const QString &purpose, int status)
     {
         // Find address / label in model
         QList<AddressTableEntry>::iterator lower = qLowerBound(
@@ -125,7 +129,7 @@ public:
                 break;
             }
             parent->beginInsertRows(QModelIndex(), lowerIndex, lowerIndex);
-            cachedAddressTable.insert(lowerIndex, AddressTableEntry(newEntryType, label, address));
+            cachedAddressTable.insert(lowerIndex, AddressTableEntry(newEntryType, label, address, addressNew));
             parent->endInsertRows();
             break;
         case CT_UPDATED:
@@ -150,42 +154,6 @@ public:
             break;
         }
     }
-    //[zcoin] updateEntry
-    void updateEntry(const QString &pubCoin, const QString &isUsed, int status)
-    {
-        // Find address / label in model
-        QList<AddressTableEntry>::iterator lower = qLowerBound(
-                cachedAddressTable.begin(), cachedAddressTable.end(), pubCoin, AddressTableEntryLessThan());
-        QList<AddressTableEntry>::iterator upper = qUpperBound(
-                cachedAddressTable.begin(), cachedAddressTable.end(), pubCoin, AddressTableEntryLessThan());
-        int lowerIndex = (lower - cachedAddressTable.begin());
-        bool inModel = (lower != upper);
-        AddressTableEntry::Type newEntryType = AddressTableEntry::Zerocoin;
-
-        switch(status)
-        {
-            case CT_NEW:
-                if(inModel)
-                {
-                    qWarning() << "Warning: AddressTablePriv::updateEntry: Got CT_NOW, but entry is already in model";
-                }
-                parent->beginInsertRows(QModelIndex(), lowerIndex, lowerIndex);
-                cachedAddressTable.insert(lowerIndex, AddressTableEntry(newEntryType, isUsed, pubCoin));
-                parent->endInsertRows();
-                break;
-            case CT_UPDATED:
-                if(!inModel)
-                {
-                    qWarning() << "Warning: AddressTablePriv::updateEntry: Got CT_UPDATED, but entry is not in model";
-                    break;
-                }
-                lower->type = newEntryType;
-                lower->label = isUsed;
-                parent->emitDataChanged(lowerIndex);
-                break;
-        }
-
-    }
 
     int size()
     {
@@ -208,7 +176,7 @@ public:
 AddressTableModel::AddressTableModel(CWallet *wallet, WalletModel *parent) :
     QAbstractTableModel(parent),walletModel(parent),wallet(wallet),priv(0)
 {
-    columns << tr("Label") << tr("Address");
+    columns << tr("Label") << tr("Address Legacy") << tr("Address");
     priv = new AddressTablePriv(wallet, this);
     priv->refreshAddressTable();
 }
@@ -251,6 +219,8 @@ QVariant AddressTableModel::data(const QModelIndex &index, int role) const
                 return rec->label;
             }
         case Address:
+            return rec->addressNew;
+        case AddressLegacy:
             return rec->address;
         }
     }
@@ -378,17 +348,11 @@ QModelIndex AddressTableModel::index(int row, int column, const QModelIndex &par
     }
 }
 
-void AddressTableModel::updateEntry(const QString &address,
+void AddressTableModel::updateEntry(const QString &address, const QString &addressNew,
         const QString &label, bool isMine, const QString &purpose, int status)
 {
     // Update address book model from Bitcoin core
-    priv->updateEntry(address, label, isMine, purpose, status);
-}
-//[zcoin] AddressTableModel.updateEntry()
-void AddressTableModel::updateEntry(const QString &pubCoin, const QString &isUsed, int status)
-{
-    // Update stealth address book model from Bitcoin core
-    priv->updateEntry(pubCoin, isUsed, status);
+    priv->updateEntry(address, addressNew, label, isMine, purpose, status);
 }
 
 QString AddressTableModel::addRow(const QString &type, const QString &label, const QString &address)
@@ -415,7 +379,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
             }
         }
     }
-    else if(type == Receive)
+    else if(type == Receive || type == ReceiveNew)
     {
         // Generate a new address to associate with given label
         CPubKey newKey;
@@ -434,7 +398,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
                 return QString();
             }
         }
-        strAddress = CBitcoinAddress(newKey.GetID()).ToString();
+        strAddress = CBitcoinAddress(newKey.GetID()).ToString(type == ReceiveNew);
     }
     else
     {
@@ -445,7 +409,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
     {
         LOCK(wallet->cs_wallet);
         wallet->SetAddressBook(CBitcoinAddress(strAddress).Get(), strLabel,
-                               (type == Send ? "send" : "receive"));
+                                 (type == Send ? "send" : "receive"));
     }
     return QString::fromStdString(strAddress);
 }
