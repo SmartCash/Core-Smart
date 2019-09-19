@@ -1121,11 +1121,7 @@ CSmartRewardsCache::~CSmartRewardsCache()
     }
 
     if( result ){
-        for( CSmartRewardResultEntry *resultEntry : result->results ){
-            delete resultEntry;
-        }
-
-        result->results.clear();
+        result->Clear();
         delete result;
     }
 
@@ -1188,6 +1184,12 @@ void CSmartRewardsCache::SetCurrentRound(const CSmartRewardRound &currentRound)
 void CSmartRewardsCache::SetResult(CSmartRewardsRoundResult *pResult)
 {
     AssertLockHeld(cs_rewardscache);
+
+    if( result ){
+        result->Clear();
+        delete result;
+    }
+
     result = pResult;
 }
 
@@ -1258,4 +1260,14 @@ void CSmartRewardsCache::AddEntry(CSmartRewardEntry *entry)
 {
     LOCK(cs_rewardscache);
     entries.insert(std::make_pair(entry->id, entry));
+}
+
+void CSmartRewardsRoundResult::Clear()
+{
+    for( CSmartRewardResultEntry *resultEntry : results ){
+        delete resultEntry;
+    }
+
+    results.clear();
+    payouts.clear();
 }

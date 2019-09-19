@@ -63,6 +63,8 @@ struct CSmartRewardsRoundResult
     CSmartRewardResultEntryPtrList payouts;
     bool fSynced;
     CSmartRewardsRoundResult(){fSynced = false;}
+
+    void Clear();
 };
 
 class CSmartRewardsCache
