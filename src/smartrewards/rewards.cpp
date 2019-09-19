@@ -367,6 +367,8 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
     std::sort(rounds.begin(), rounds.end());
 
     cache.Load(block, round, rounds, entries);
+
+    LogPrintf("CSmartRewards::CSmartRewards - Cache Size %d MB", cache.EstimatedSize() / 1000 / 1000);
 }
 
 bool CSmartRewards::GetLastBlock(CSmartRewardBlock &block)
@@ -1137,7 +1139,11 @@ CSmartRewardsCache::~CSmartRewardsCache()
 
 unsigned long CSmartRewardsCache::EstimatedSize()
 {
-    return sizeof *this;
+    unsigned long nEntriesSize = entries.size() * (sizeof(CSmartAddress) + sizeof(CSmartRewardEntry));
+    unsigned long nRoundsSize = (rounds.size() + 1) * sizeof(CSmartRewardRound);
+    unsigned long nTransactionsSize = (addTransactions.size() + removeTransactions.size()) * (sizeof(uint256) + sizeof(CSmartRewardTransaction));
+    unsigned long nBlockSize = sizeof(CSmartRewardBlock);
+    return nEntriesSize + nRoundsSize + nTransactionsSize + nBlockSize;
 }
 
 void CSmartRewardsCache::Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds, const CSmartRewardEntryMap &entries)
