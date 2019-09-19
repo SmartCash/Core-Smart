@@ -143,10 +143,8 @@ void CSmartRewards::UpdateRoundParameter(const CSmartRewardsUpdateResult &result
 
     while( nStartHeight <= round->endBlockHeight) nRewards += GetBlockValue(nStartHeight++,0,nTime) * 0.15;
 
-    CAmount nCalcSmart = round->eligibleSmart - round->disqualifiedSmart;
-
-    if( nCalcSmart ){
-        nPercent = double(nRewards) / nCalcSmart;
+    if( (round->eligibleSmart - round->disqualifiedSmart) > 0 ){
+        nPercent = double(nRewards) / (round->eligibleSmart - round->disqualifiedSmart);
     }else{
         nPercent = 0;
     }
