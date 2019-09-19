@@ -257,27 +257,27 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 if (!(sAddress == sWalletAddress)){ // change address
 
                     QSmartRewardField change;
-                    CSmartRewardEntry reward;
+                    CSmartRewardEntry *reward = nullptr;
 
                     change.address = sAddress;
                     change.label = tr("(change)");
                     change.balance = out.tx->vout[out.i].nValue;
 
-                    if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
-                        change.balance = reward.balance;
-                        change.fIsSmartNode = !reward.smartnodePaymentTx.IsNull();
-                        change.balanceAtStart = reward.balanceAtStart;
-                        change.disqualifyingTx = reward.disqualifyingTx;
+                    if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward, false) ){
+                        change.balance = reward->balance;
+                        change.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
+                        change.balanceAtStart = reward->balanceAtStart;
+                        change.disqualifyingTx = reward->disqualifyingTx;
 
                         if( currentRound.number < nFirst_1_3_Round ){
-                            change.eligible = reward.balanceEligible && reward.disqualifyingTx.IsNull() ? reward.balanceEligible : 0;
+                            change.eligible = reward->balanceEligible && reward->disqualifyingTx.IsNull() ? reward->balanceEligible : 0;
                         }else{
-                            change.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
+                            change.eligible = reward->IsEligible() ? reward->balanceEligible : 0;
                         }
 
                         change.reward = currentRound.percent * change.eligible;
 
-                        if( reward.id.GetKeyID(keyId) ){
+                        if( reward->id.GetKeyID(keyId) ){
 
                             LOCK2(cs_main, pwalletMain->cs_wallet);
 
@@ -290,7 +290,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                                 CTransaction tx;
                                 uint256 nBlockHash;
 
-                                if( !reward.voteProof.IsNull() ){
+                                if( !reward->voteProof.IsNull() ){
                                     change.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
                                 }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
                                     change.nVoteProofConfirmations = -1;
@@ -312,7 +312,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
                             if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
                                 pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
-                                reward.balanceEligible && reward.disqualifyingTx.IsNull() && reward.smartnodePaymentTx.IsNull() ){
+                                reward->balanceEligible && reward->disqualifyingTx.IsNull() && reward->smartnodePaymentTx.IsNull() ){
                                 ++nAvailableForProof;
                             }
 
@@ -337,23 +337,23 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
         if( !rewardField.address.isEmpty() ){
 
-            CSmartRewardEntry reward;
+            CSmartRewardEntry *reward = nullptr;
 
-            if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward) ){
-                rewardField.balance = reward.balance;
-                rewardField.fIsSmartNode = !reward.smartnodePaymentTx.IsNull();
-                rewardField.balanceAtStart = reward.balanceAtStart;
-                rewardField.disqualifyingTx = reward.disqualifyingTx;
+            if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward, false) ){
+                rewardField.balance = reward->balance;
+                rewardField.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
+                rewardField.balanceAtStart = reward->balanceAtStart;
+                rewardField.disqualifyingTx = reward->disqualifyingTx;
 
                 if( currentRound.number < nFirst_1_3_Round ){
-                    rewardField.eligible = reward.balanceEligible && reward.disqualifyingTx.IsNull() ? reward.balanceEligible : 0;
+                    rewardField.eligible = reward->balanceEligible && reward->disqualifyingTx.IsNull() ? reward->balanceEligible : 0;
                 }else{
-                    rewardField.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
+                    rewardField.eligible = reward->IsEligible() ? reward->balanceEligible : 0;
                 }
 
                 rewardField.reward = currentRound.percent * rewardField.eligible;
 
-                if( reward.id.GetKeyID(keyId) ){
+                if( reward->id.GetKeyID(keyId) ){
 
                     LOCK2(cs_main, pwalletMain->cs_wallet);
 
@@ -366,7 +366,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         CTransaction tx;
                         uint256 nBlockHash;
 
-                        if( !reward.voteProof.IsNull() ){
+                        if( !reward->voteProof.IsNull() ){
                             rewardField.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
                         }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
                             rewardField.nVoteProofConfirmations = -1;
@@ -388,7 +388,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
                     if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
                         pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
-                        reward.balanceEligible && reward.disqualifyingTx.IsNull() && reward.smartnodePaymentTx.IsNull() ){
+                        reward->balanceEligible && reward->disqualifyingTx.IsNull() && reward->smartnodePaymentTx.IsNull() ){
                         ++nAvailableForProof;
                     }
 
@@ -533,8 +533,8 @@ void SmartrewardsList::updateUI()
     CSmartRewardRound currentRound;
     CBlockIndex* tip = nullptr;
     {
-        LOCK(cs_rewardrounds);
-        currentRound = prewards->GetCurrentRound();
+        LOCK(cs_rewardscache);
+        currentRound = *prewards->GetCurrentRound();
         tip = chainActive.Tip();
     }
 

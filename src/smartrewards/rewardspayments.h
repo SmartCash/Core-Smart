@@ -12,6 +12,8 @@
 #include "coins.h"
 #include "base58.h"
 
+struct CSmartRewardsRoundResult;
+
 namespace SmartRewardPayments{
 
 typedef enum{
@@ -23,8 +25,8 @@ typedef enum{
     CoreError
 } Result;
 
-CSmartRewardRoundResultPtrList GetPayments(const CSmartRewardRound &round, const int64_t nPayoutDelay, const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
-CSmartRewardRoundResultPtrList GetPaymentsForBlock(const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
+CSmartRewardResultEntryPtrList GetPayments(const CSmartRewardsRoundResult *pResult, const int64_t nPayoutDelay, const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
+CSmartRewardResultEntryPtrList GetPaymentsForBlock(const int nHeight, int64_t blockTime, SmartRewardPayments::Result &result);
 SmartRewardPayments::Result Validate(const CBlock& block, const int nHeight, CAmount& smartReward);
 void FillPayments(CMutableTransaction& txNew, int nHeight, int64_t prevBlockTime, std::vector<CTxOut>& voutSmartRewards);
 

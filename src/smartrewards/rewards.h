@@ -40,8 +40,8 @@ const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + 1000
 void ThreadSmartRewards(bool fRecreate = false);
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
+extern CCriticalSection cs_rewardscache;
 extern CCriticalSection cs_rewardsdb;
-extern CCriticalSection cs_rewardrounds;
 
 struct CSmartRewardsUpdateResult
 {
@@ -50,31 +50,79 @@ struct CSmartRewardsUpdateResult
     int64_t qualifiedEntries;
     int64_t qualifiedSmart;
     CSmartRewardBlock block;
+    CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block() {}
     CSmartRewardsUpdateResult(const int nHeight, const uint256* pBlockHash, const int64_t nBlockTime) : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block(nHeight, pBlockHash, nBlockTime) { }
+
+    bool IsValid() const { return block.IsValid(); }
+};
+
+struct CSmartRewardsRoundResult
+{
+    CSmartRewardRound round;
+    CSmartRewardResultEntryPtrList results;
+    CSmartRewardResultEntryPtrList payouts;
+    bool fSynced;
+    CSmartRewardsRoundResult(){fSynced = false;}
+};
+
+class CSmartRewardsCache
+{
+    int chainHeight;
+    int rewardHeight;
+
+    CSmartRewardBlock block;
+    CSmartRewardRound round;
+    CSmartRewardRoundList rounds;
+    CSmartRewardTransactionMap addTransactions;
+    CSmartRewardTransactionMap removeTransactions;
+    CSmartRewardEntryMap entries;
+    CSmartRewardsRoundResult *result;
+
+public:
+
+    CSmartRewardsCache() : block(), round(), rounds(), addTransactions(), removeTransactions(), entries(), result(nullptr) { }
+    ~CSmartRewardsCache();
+
+    unsigned long EstimatedSize();
+
+    void Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds, const CSmartRewardEntryMap &entries);
+
+    bool NeedsSync();
+    void Clear();
+
+    void SetCurrentBlock(const CSmartRewardBlock &currentBlock);
+    void SetCurrentRound(const CSmartRewardRound &currentRound);
+    void SetResult(CSmartRewardsRoundResult *pResult);
+
+    void UpdateRoundParameter(const CSmartRewardsUpdateResult &result, int64_t nBlockPayees, int64_t nBlockInterval, CAmount nRewards, double dPercent);
+    void UpdateRoundEnd(int nBlockHeight, int64_t nBlockTime);
+    void UpdateHeights(const int nHeight, const int nRewardHeight);
+
+    const CSmartRewardBlock* GetCurrentBlock() const { return &block; }
+    const CSmartRewardRound* GetCurrentRound() const { return &round; }
+    const CSmartRewardRoundList* GetRounds() const { return &rounds; }
+    const CSmartRewardTransactionMap* GetAddedTransactions() const { return &addTransactions; }
+    const CSmartRewardTransactionMap* GetRemovedTransactions() const { return &removeTransactions; }
+    const CSmartRewardEntryMap* GetEntries() const { return &entries; }
+    const CSmartRewardsRoundResult* GetLastRoundResult() const { return result; }
+
+    void AddFinishedRound(const CSmartRewardRound &round);
+    void AddTransaction(const CSmartRewardTransaction &transaction);
+    void RemoveTransaction(const CSmartRewardTransaction &transaction);
+    void AddEntry(CSmartRewardEntry *entry);
 };
 
 class CSmartRewards
 {
     CSmartRewardsDB * pdb;
-    CSmartRewardRoundList finishedRounds;
-    CSmartRewardRound currentRound;
-    CSmartRewardRound lastRound;
-    CSmartRewardBlock currentBlock;
-
-    int chainHeight;
-    int rewardHeight;
-
-    CSmartRewardTransactionList transactionEntries;
-    CSmartRewardEntryMap rewardEntries;
+    CSmartRewardsCache cache;
 
     mutable CCriticalSection csRounds;
 
-    void UpdatePayoutParameter(CSmartRewardRound &round);
+    void UpdateRoundParameter(const CSmartRewardsUpdateResult &result);
 
-    bool GetCachedRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&entry);
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
-    bool GetRewardEntries(CSmartRewardEntryList &entries);
-    void AddTransaction(const CSmartRewardTransaction &transaction);
+    bool GetRewardEntries(CSmartRewardEntryMap &entries);
 public:
 
     CSmartRewards(CSmartRewardsDB *prewardsdb);
@@ -84,39 +132,37 @@ public:
 
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
-    const CSmartRewardRound& GetCurrentRound();
-    const CSmartRewardRound &GetLastRound();
-    const CSmartRewardRoundList& GetRewardRounds();
+    const CSmartRewardRound* GetCurrentRound();
+    const CSmartRewardRoundList* GetRewardRounds();
 
     void UpdateHeights(const int nHeight, const int nRewardHeight);
     bool Verify();
-    bool SyncCached(bool fUndo = false);
-    bool SyncCached(const CSmartRewardBlock &block, bool fUndo = false);
+    bool NeedsCacheWrite();
+    bool SyncCached();
     bool IsSynced();
     double GetProgress();
-    int GetLastHeight();
 
     int GetBlocksPerRound(const int nRound);
 
     bool Update(CBlockIndex *pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult &result);
     bool UpdateRound(const CSmartRewardRound &round);
 
-    void StartBlock();
     void ProcessTransaction(CBlockIndex* pLastIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
     void UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result);
     bool CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
     bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
-    bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
+    bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&entry, bool fCreate);
 
-    void EvaluateRound(CSmartRewardRound &current, CSmartRewardRound &next, CSmartRewardEntryList &entries, CSmartRewardRoundResultList &results);
+    void EvaluateRound(CSmartRewardRound &next);
     bool StartFirstRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);
-    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results);
-    bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardRoundResultList &results);
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardResultEntryList &results);
+    bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardResultEntryList &results);
 
-    bool GetRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results);
-    bool GetRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts);
-    bool GetRewardPayouts(const int16_t round, CSmartRewardRoundResultPtrList &payouts);
+    bool GetRewardRoundResults(const int16_t round, CSmartRewardResultEntryList &results);
+    const CSmartRewardsRoundResult* GetLastRoundResult();
+    bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryList &payouts);
+    bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList &payouts);
 private:
     void ProcessInput(const CTransaction &tx, const CTxOut &in, CSmartAddress **voteProofCheck, CAmount &nVoteProofIn, uint32_t nCurrentRound, CSmartRewardsUpdateResult &result);
     void ProcessOutput(const CTransaction &tx, const CTxOut &out, CSmartAddress *voteProofCheck, CAmount nVoteProofIn, uint32_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult &result);

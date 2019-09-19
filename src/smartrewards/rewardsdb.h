@@ -24,16 +24,17 @@ static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 class CSmartRewardBlock;
 class CSmartRewardEntry;
 class CSmartRewardRound;
-class CSmartRewardRoundResult;
+class CSmartRewardResultEntry;
 class CSmartRewardTransaction;
+class CSmartRewardsCache;
 
 typedef std::vector<CSmartRewardBlock> CSmartRewardBlockList;
 typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
-typedef std::vector<CSmartRewardRoundResult> CSmartRewardRoundResultList;
-typedef std::vector<CSmartRewardRoundResult*> CSmartRewardRoundResultPtrList;
-typedef std::vector<CSmartRewardTransaction> CSmartRewardTransactionList;
+typedef std::vector<CSmartRewardResultEntry> CSmartRewardResultEntryList;
+typedef std::vector<CSmartRewardResultEntry*> CSmartRewardResultEntryPtrList;
 
+typedef std::map<uint256, CSmartRewardTransaction> CSmartRewardTransactionMap;
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
 
 class CSmartRewardTransaction
@@ -70,19 +71,19 @@ class CSmartRewardBlock
 
 public:
     int nHeight;
-    uint256 blockHash;
-    int64_t blockTime;
-    CSmartRewardBlock(){nHeight = 0; blockHash = uint256(); blockTime = 0;}
-    CSmartRewardBlock(int height, const uint256* pHash, int64_t time) : nHeight(height), blockHash(*pHash), blockTime(time) {}
-    CSmartRewardBlock(int height, const uint256 nHash, int64_t time) : nHeight(height), blockHash(nHash), blockTime(time) {}
+    uint256 nHash;
+    int64_t nTime;
+    CSmartRewardBlock() : nHeight(0), nHash(uint256()), nTime(0) {}
+    CSmartRewardBlock(int nHeight, const uint256* pHash, int64_t nTime) : nHeight(nHeight), nHash(*pHash), nTime(nTime) {}
+    CSmartRewardBlock(int nHeight, const uint256 nHash, int64_t nTime) : nHeight(nHeight), nHash(nHash), nTime(nTime) {}
 
     ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nHeight);
-        READWRITE(blockHash);
-        READWRITE(blockTime);
+        READWRITE(nHash);
+        READWRITE(nTime);
     }
 
     friend bool operator==(const CSmartRewardBlock& a, const CSmartRewardBlock& b)
@@ -102,7 +103,7 @@ public:
 
     std::string ToString() const;
 
-    bool IsValid() const { return !blockHash.IsNull(); }
+    bool IsValid() const { return !nHash.IsNull(); }
 };
 
 class CSmartRewardRound
@@ -220,7 +221,7 @@ public:
     bool IsEligible();
 };
 
-class CSmartRewardRoundResult
+class CSmartRewardResultEntry
 {
 
 public:
@@ -236,22 +237,22 @@ public:
         READWRITE(reward);
     }
 
-    CSmartRewardRoundResult(){}
+    CSmartRewardResultEntry(){}
 
-    CSmartRewardRoundResult(CSmartRewardEntry &entry, CAmount nReward) :
-        entry(entry), reward(nReward){}
+    CSmartRewardResultEntry(CSmartRewardEntry *entry, CAmount nReward) :
+        entry(*entry), reward(nReward){}
 
-    friend bool operator==(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
+    friend bool operator==(const CSmartRewardResultEntry& a, const CSmartRewardResultEntry& b)
     {
         return (a.entry.id == b.entry.id);
     }
 
-    friend bool operator!=(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
+    friend bool operator!=(const CSmartRewardResultEntry& a, const CSmartRewardResultEntry& b)
     {
         return !(a == b);
     }
 
-    friend bool operator<(const CSmartRewardRoundResult& a, const CSmartRewardRoundResult& b)
+    friend bool operator<(const CSmartRewardResultEntry& a, const CSmartRewardResultEntry& b)
     {
         // TBD, verify this sort is fast/unique
         int cmp = a.entry.id.Compare(b.entry.id);
@@ -290,17 +291,16 @@ public:
     bool ReadCurrentRound(CSmartRewardRound &round);
 
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
-    bool ReadRewardEntries(CSmartRewardEntryList &vect);
+    bool ReadRewardEntries(CSmartRewardEntryMap &entries);
 
-    bool ReadRewardRoundResults(const int16_t round, CSmartRewardRoundResultList &results);
-    bool ReadRewardPayouts(const int16_t round, CSmartRewardRoundResultList &payouts);
-    bool ReadRewardPayouts(const int16_t round, CSmartRewardRoundResultPtrList &payouts);
+    bool ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryList &results);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryList &payouts);
+    bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList &payouts);
 
-    bool SyncCached(const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
-    bool SyncCached(const CSmartRewardBlock &block, const CSmartRewardRound& current, const CSmartRewardEntryMap &rewards, const CSmartRewardTransactionList &transactions, bool fUndo = false);
+    bool SyncCached(const CSmartRewardsCache &cache);
     bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
-    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardRoundResultList &results);
-    bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardRoundResultList &results);
+    bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardResultEntryList &results);
+    bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardResultEntryList &results);
 };
 
 

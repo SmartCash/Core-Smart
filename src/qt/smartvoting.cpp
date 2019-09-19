@@ -259,7 +259,9 @@ void SmartVotingPage::voteDone(QString &address, int nProposalId, bool successfu
 
         if(CSmartAddress(address.toStdString()).GetKeyID(keyId)){
 
-            int nCurrentRound = prewards->GetCurrentRound().number;
+            LOCK(cs_rewardscache);
+
+            int nCurrentRound = prewards->GetCurrentRound()->number;
 
             if( !pwalletMain->mapVoted[keyId].count(nCurrentRound) ){
                 pwalletMain->mapVoted[keyId].insert(std::make_pair(nCurrentRound, nProposalHash));

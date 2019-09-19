@@ -1801,7 +1801,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
                 if( !(fLoaded = prewards->Verify()) ) throw std::runtime_error(_("Failed to verify SmartRewards database."));
 
-                if( pLastIndex != NULL && !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
+//                if( pLastIndex && prewards->GetLastHeight() <= pLastIndex->nHeight){
+//                    prewards->RollBack(pLastIndex);
+//                }else if( pLastIndex && prewards->GetLastHeight() > pLastIndex->nHeight ){
+//                    prewards->CatchUp(pLastIndex);
+//                }
+//                if( pLastIndex != NULL && !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
 
                 if (fRequestShutdown) break;
 
