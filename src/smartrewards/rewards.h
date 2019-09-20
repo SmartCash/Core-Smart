@@ -96,7 +96,8 @@ public:
     void SetCurrentRound(const CSmartRewardRound &currentRound);
     void SetResult(CSmartRewardsRoundResult *pResult);
 
-    void UpdateRoundParameter(const CSmartRewardsUpdateResult &result, int64_t nBlockPayees, int64_t nBlockInterval, CAmount nRewards, double dPercent);
+    void ApplyRoundUpdateResult(const CSmartRewardsUpdateResult &result);
+    void UpdateRoundParameter(int64_t nBlockPayees, int64_t nBlockInterval, CAmount nRewards, double dPercent);
     void UpdateRoundEnd(int nBlockHeight, int64_t nBlockTime);
     void UpdateHeights(const int nHeight, const int nRewardHeight);
 

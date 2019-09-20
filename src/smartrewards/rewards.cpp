@@ -135,13 +135,15 @@ void CSmartRewards::UpdateRoundParameter(const CSmartRewardsUpdateResult &result
         nBlockInterval = 0;
     }
 
+    cache.ApplyRoundUpdateResult(result);
+
     // Calculate the current rewards percentage
     int64_t nTime = GetTime();
     int64_t nStartHeight = round->startBlockHeight;
     CAmount nRewards = 0;
     double nPercent = 0.0;
 
-    while( nStartHeight <= round->endBlockHeight) nRewards += GetBlockValue(nStartHeight++,0,nTime) * 0.15;
+    while( nStartHeight <= round->endBlockHeight) nRewards += GetBlockValue(nStartHeight++, 0, nTime) * 0.15;
 
     if( (round->eligibleSmart - round->disqualifiedSmart) > 0 ){
         nPercent = double(nRewards) / (round->eligibleSmart - round->disqualifiedSmart);
@@ -149,7 +151,7 @@ void CSmartRewards::UpdateRoundParameter(const CSmartRewardsUpdateResult &result
         nPercent = 0;
     }
 
-    cache.UpdateRoundParameter(result, nBlockPayees, nBlockInterval, nRewards, nPercent);
+    cache.UpdateRoundParameter(nBlockPayees, nBlockInterval, nRewards, nPercent);
 }
 
 void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
@@ -1191,7 +1193,7 @@ void CSmartRewardsCache::SetResult(CSmartRewardsRoundResult *pResult)
     result = pResult;
 }
 
-void CSmartRewardsCache::UpdateRoundParameter(const CSmartRewardsUpdateResult &result, int64_t nBlockPayees, int64_t nBlockInterval, CAmount nRewards, double dPercent)
+void CSmartRewardsCache::ApplyRoundUpdateResult(const CSmartRewardsUpdateResult &result)
 {
     AssertLockHeld(cs_rewardscache);
 
@@ -1204,6 +1206,11 @@ void CSmartRewardsCache::UpdateRoundParameter(const CSmartRewardsUpdateResult &r
         round.eligibleEntries += result.qualifiedEntries;
         round.eligibleSmart += result.qualifiedSmart;
     }
+}
+
+void CSmartRewardsCache::UpdateRoundParameter(int64_t nBlockPayees, int64_t nBlockInterval, CAmount nRewards, double dPercent)
+{
+    AssertLockHeld(cs_rewardscache);
 
     round.nBlockPayees = nBlockPayees;
     round.nBlockInterval = nBlockInterval;
