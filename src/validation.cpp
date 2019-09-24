@@ -2342,6 +2342,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : NULL);
 
     std::vector<int> prevheights;
+    std::vector<Coin> prevouts;
     CAmount nFees = 0;
     int nInputs = 0;
     unsigned int nSigOps = 0;
@@ -2388,8 +2389,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             // BIP68 lock checks (as opposed to nLockTime checks) must
             // be in ConnectBlock because they require the UTXO set
             prevheights.resize(tx.vin.size());
+            prevouts.resize(tx.vin.size());
+
             for (size_t j = 0; j < tx.vin.size(); j++) {
-                prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
+                prevouts[j] = view.AccessCoin(tx.vin[j].prevout);
+                prevheights[j] = prevouts[j].nHeight;
             }
 
             if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
@@ -2401,8 +2405,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             {
                 for (size_t j = 0; j < tx.vin.size(); j++) {
                     const CTxIn input = tx.vin[j];
-                    const Coin& coin = view.AccessCoin(tx.vin[j].prevout);
                     const CTxOut &prevout = coin.out;
+                const Coin& coin = prevouts[j];
                     uint160 hashBytes;
                     int addressType;
 
