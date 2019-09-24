@@ -2371,7 +2371,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
-        if( pindex->nHeight > 0 ) prewards->ProcessTransaction(pindex, tx, view, chainparams, smartRewardsResult);
+        CSmartAddress *voteProofCheck = nullptr;
+        CAmount nVoteProofIn = 0;
+
+        int nCurrentRewardsRound = prewards->GetCurrentRound()->number;
+        bool fProcessRewards = prewards->ProcessTransaction(pindex, tx, nCurrentRewardsRound);
 
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
@@ -2401,12 +2405,18 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                                  REJECT_INVALID, "bad-txns-nonfinal");
             }
 
-            if (fAddressIndex || fSpentIndex || fDepositIndex)
-            {
-                for (size_t j = 0; j < tx.vin.size(); j++) {
-                    const CTxIn input = tx.vin[j];
-                    const CTxOut &prevout = coin.out;
+            for (size_t j = 0; j < tx.vin.size(); j++) {
+
+                const CTxIn input = tx.vin[j];
                 const Coin& coin = prevouts[j];
+                const CTxOut &prevout = coin.out;
+
+                if( fProcessRewards && !input.scriptSig.IsZerocoinSpend() ){
+                    prewards->ProcessInput(tx, prevout, &voteProofCheck, nVoteProofIn, nCurrentRewardsRound, smartRewardsResult);
+                }
+
+                if (fAddressIndex || fSpentIndex || fDepositIndex)
+                {
                     uint160 hashBytes;
                     int addressType;
 
@@ -2478,9 +2488,15 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             control.Add(vChecks);
         }
 
-        if (fAddressIndex || fDepositIndex) {
-            for (unsigned int k = 0; k < tx.vout.size(); k++) {
-                const CTxOut &out = tx.vout[k];
+        for (unsigned int k = 0; k < tx.vout.size(); k++) {
+
+            const CTxOut &out = tx.vout[k];
+
+            if( fProcessRewards && !out.scriptPubKey.IsZerocoinMint() ){
+                prewards->ProcessOutput(tx, out, voteProofCheck, nVoteProofIn, nCurrentRewardsRound, pindex->nHeight, smartRewardsResult);
+            }
+
+            if (fAddressIndex || fDepositIndex) {
 
                 uint160 hashBytes;
                 int addressType;
@@ -2525,7 +2541,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             }
 
             if( fDepositIndex ){
-
 
                 for( auto const &output : vecOutputs ){
 
@@ -2624,7 +2639,9 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         return false;
     }
 
-    prewards->CommitBlock(pindex, smartRewardsResult);
+    if( smartRewardsResult.IsValid() ){
+        prewards->CommitBlock(pindex, smartRewardsResult);
+    }
 
     // END SMARTCASH
 

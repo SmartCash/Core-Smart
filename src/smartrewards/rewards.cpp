@@ -290,6 +290,7 @@ bool CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&
 {
     LOCK(cs_rewardscache);
 
+    int nTime1 = GetTimeMicros();
     // Return the entry if its already in cache.
     auto it = cache.GetEntries()->find(id);
 
@@ -298,10 +299,23 @@ bool CSmartRewards::GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&
         return entry->balance > 0;
     }
 
+    int nTime2 = GetTimeMicros();
+    double dFind = (nTime2 - nTime1) * 0.001;
+
+    if(dFind > 10){
+        LogPrint("smartrewards-bench", "CSmartRewards::GetRewardEntry - Find: %.2fms", dFind);
+    }
+
     if( fCreate ){
         entry = new CSmartRewardEntry(id);
         cache.AddEntry(entry);
         return true;
+    }
+
+    int nTime3 = GetTimeMicros();
+    double dAdd = (nTime3 - nTime2) * 0.001;
+    if( dAdd > 10.0 ){
+        LogPrint("smartrewards-bench", "CSmartRewards::GetRewardEntry - Add: %.2fsm", dAdd);
     }
 
     return false;
@@ -410,13 +424,15 @@ void CSmartRewards::ProcessInput(const CTransaction &tx, const CTxOut &in, CSmar
 
     int required = ParseScript(in.scriptPubKey ,ids);
 
+    int nTime1 = GetTimeMicros();
+
     if( !required || required > 1 || ids.size() > 1 ){
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - Process Inputs: Could't parse CSmartAddress: %s\n",in.ToString());
+        LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Could't parse CSmartAddress: %s\n",in.ToString());
         return;
     }
 
     if(!GetRewardEntry(ids.at(0), rEntry, false)){
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - Spend without previous receive - %s", tx.ToString());
+        LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
 
@@ -456,7 +472,7 @@ void CSmartRewards::ProcessInput(const CTransaction &tx, const CTxOut &in, CSmar
     }
 
     if(rEntry->balance <= 0 ){
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - Negative amount?! - %s", rEntry->ToString());
+        LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Negative amount?! - %s", rEntry->ToString());
         rEntry->balance = 0;
     }
 
@@ -470,7 +486,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
     int required = ParseScript(out.scriptPubKey ,ids);
 
     if( !required || required > 1 || ids.size() > 1 ){
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - Process Outputs: Could't parse CSmartAddress: %s\n",out.ToString());
+        LogPrint("smartrewards-tx", "CSmartRewards::ProcessOutput - Could't parse CSmartAddress: %s\n",out.ToString());
         return;
     }else{
 
@@ -608,73 +624,32 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
     }
 }
 
-void CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult &result)
+bool CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, int nCurrentRound)
 {
     LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - %s", tx.GetHash().ToString());
 
-    int nCurrentRound;
-
-    {
-        LOCK(cs_rewardscache);
-        nCurrentRound = cache.GetCurrentRound()->number;
-    }
-
     int nHeight = pIndex->nHeight;
 
-    if(nHeight > sporkManager.GetSporkValue(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)){
-        return;
+    if(nHeight == 0 || nHeight > sporkManager.GetSporkValue(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)){
+        return false;
     }
-
-    int nTime1 = GetTimeMicros();
 
     CSmartRewardTransaction testTx;
 
-    // First check if the transaction hash did already come up in the past.
-    if( GetTransaction(tx.GetHash(), testTx) ){
-
-        // If yes we want to ignore it! There are some double appearing transactions in the history due to zerocoin exploits.
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - [%s] Double appearance! First in %d - Now in %d\n", testTx.hash.ToString(), testTx.blockHeight, pIndex->nHeight);
-        return;
-
-    }else{
-        // If not save add it to the cache.
-        cache.AddTransaction(CSmartRewardTransaction(pIndex->nHeight, tx.GetHash()));
-    }
-
-    CSmartAddress *voteProofCheck = nullptr;
-    CAmount nVoteProofIn = 0;
-
-    // No reason to check the input here for new coins.
-    if( !tx.IsCoinBase() ){
-
-        BOOST_FOREACH(const CTxIn &in, tx.vin) {
-
-            if( in.scriptSig.IsZerocoinSpend() ) continue;
-
-            const Coin &coin = coins.AccessCoin(in.prevout);
-            const CTxOut &rOut = coin.out;
-
-            ProcessInput(tx, rOut, &voteProofCheck, nVoteProofIn, nCurrentRound, result);
+    // For the first 4 rounds we have zerocoin exploits and we don't want to add them to the rewards db.
+    if( nCurrentRound < 4 ){
+        // First check if the transaction hash did already come up in the past.
+        if( GetTransaction(tx.GetHash(), testTx) ){
+            // If yes we want to ignore it! There are some double appearing transactions in the history due to zerocoin exploits.
+            LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - [%s] Double appearance! First in %d - Now in %d\n", testTx.hash.ToString(), testTx.blockHeight, pIndex->nHeight);
+            return false;
+        }else{
+            // If not save add it to the cache.
+            cache.AddTransaction(CSmartRewardTransaction(pIndex->nHeight, tx.GetHash()));
         }
     }
 
-    int nTime2 = GetTimeMicros();
-
-    BOOST_FOREACH(const CTxOut &out, tx.vout) {
-
-        if(out.scriptPubKey.IsZerocoinMint() ) continue;
-
-        ProcessOutput(tx, out, voteProofCheck, nVoteProofIn, nCurrentRound, nHeight, result);
-    }
-
-    int nTime3 = GetTimeMicros();
-    int nTimeTx = nTime3 - nTime1;
-
-    if( LogAcceptCategory("smartrewards-tx") ){
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessTransaction - TX %s - %.2fms\n",HexStr(tx.GetHash()), nTimeTx * 0.001);
-        LogPrint("smartrewards-tx", " inputs - %.2fms\n", (nTime2 - nTime1) * 0.001);
-        LogPrint("smartrewards-tx", " outputs - %.2fms\n", (nTime3 - nTime2) * 0.001);
-    }
+    return true;
 }
 
 void CSmartRewards::UndoInput(const CTransaction &tx, const CTxOut &in, uint32_t nCurrentRound, CSmartRewardsUpdateResult &result)
@@ -920,10 +895,10 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
     }
 
     int nTime3 = GetTimeMicros();
-    int nTimeTx = nTime3 - nTime1;
+    double dProcessingTime = (nTime3 - nTime1) * 0.001;
 
-    if( LogAcceptCategory("smartrewards-tx") ){
-        LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - TX %s - %.2fms\n",HexStr(tx.GetHash()), nTimeTx * 0.001);
+    if( dProcessingTime > 10.0 && LogAcceptCategory("smartrewards-tx") ){
+        LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - TX %s - %.2fms\n",HexStr(tx.GetHash()), dProcessingTime);
         LogPrint("smartrewards-tx", " outputs - %.2fms\n", (nTime2 - nTime1) * 0.001);
         LogPrint("smartrewards-tx", " inputs - %.2fms\n", (nTime3 - nTime2) * 0.001);
     }
@@ -1018,10 +993,11 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
     cache.UpdateHeights(GetBlockHeight(pIndex), cache.GetCurrentBlock()->nHeight);
 
     int nTime2 = GetTimeMicros();
+    double dProcessingTime = (nTime2 - nTime1) * 0.001;
 
-    if( LogAcceptCategory("smartrewards-block") ){
-            LogPrint("smartrewards-block", "Round %d - Block: %d - Progress %d%%\n",round->number, cache.GetCurrentBlock()->nHeight, int(prewards->GetProgress() * 100));
-            LogPrint("smartrewards-block", "  Commit block: %.2fms\n", (nTime2 - nTime1) * 0.001);
+    if( dProcessingTime > 10.0 && LogAcceptCategory("smartrewards-bench") ){
+            LogPrint("smartrewards-bench", "Round %d - Block: %d - Progress %d%%\n",round->number, cache.GetCurrentBlock()->nHeight, int(prewards->GetProgress() * 100));
+            LogPrint("smartrewards-bench", "  Commit block: %.2fms\n", dProcessingTime);
     }
 
     // If we are synced notify the UI on each new block.
