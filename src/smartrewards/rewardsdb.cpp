@@ -156,7 +156,7 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache &cache)
     batch.Write(DB_BLOCK_LAST, *cache.GetCurrentBlock());
     batch.Write(DB_ROUND_CURRENT, *cache.GetCurrentRound());
 
-    return WriteBatch(batch);
+    return WriteBatch(batch, true);
 }
 
 bool CSmartRewardsDB::StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries)
