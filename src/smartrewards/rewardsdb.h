@@ -172,6 +172,8 @@ public:
 class CSmartRewardEntry
 {
 
+    bool fUpdated;
+
 public:
 
     ADD_SERIALIZE_METHODS
@@ -183,27 +185,35 @@ public:
         READWRITE(balanceAtStart);
         READWRITE(balanceEligible);
         READWRITE(disqualifyingTx);
+        READWRITE(fDisqualifyingTx);
         READWRITE(voteProof);
+        READWRITE(fVoteProven);
         READWRITE(smartnodePaymentTx);
+        READWRITE(fSmartnodePaymentTx);
+        fUpdated = false;
     }
 
     CSmartAddress id;
     CAmount balance;
     CAmount balanceAtStart;
     CAmount balanceEligible;
-    CAmount reward;
     uint256 disqualifyingTx;
+    bool fDisqualifyingTx;
     uint256 voteProof;
+    bool fVoteProven;
     uint256 smartnodePaymentTx;
+    bool fSmartnodePaymentTx;
 
-    CSmartRewardEntry() : id(CSmartAddress()),
-                          balance(0), balanceAtStart(0), balanceEligible(0), reward(0),
-                          disqualifyingTx(uint256()), voteProof(uint256()),
-                          smartnodePaymentTx(uint256()) {}
-    CSmartRewardEntry(const CSmartAddress &address) : id(address),
-                          balance(0), balanceAtStart(0), balanceEligible(0), reward(0),
-                          disqualifyingTx(uint256()), voteProof(uint256()),
-                          smartnodePaymentTx(uint256()) {}
+    CSmartRewardEntry() : fUpdated(false), id(CSmartAddress()),
+                          balance(0), balanceAtStart(0), balanceEligible(0),
+                          disqualifyingTx(uint256()), fDisqualifyingTx(false),
+                          voteProof(uint256()), fVoteProven(false),
+                          smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false) {}
+    CSmartRewardEntry(const CSmartAddress &address) : fUpdated(false), id(address),
+                          balance(0), balanceAtStart(0), balanceEligible(0),
+                          disqualifyingTx(uint256()), fDisqualifyingTx(false),
+                          voteProof(uint256()), fVoteProven(false),
+                          smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
@@ -214,6 +224,10 @@ public:
     {
         return !(a == b);
     }
+
+    bool NeedsSync(){ return fUpdated; }
+    void SetUpdated(){ fUpdated = true; }
+    void SetSynced(){ fUpdated = false; }
 
     std::string GetAddress() const;
     void setNull();

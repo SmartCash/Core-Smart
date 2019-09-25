@@ -173,7 +173,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         if( cache.GetCurrentRound()->number ){
 
             if( cache.GetCurrentRound()->number < nFirst_1_3_Round ){
-                nReward = entry->second->balanceEligible > 0 && entry->second->disqualifyingTx.IsNull() ? CAmount(entry->second->balanceEligible * round->percent) : 0;
+                nReward = entry->second->balanceEligible > 0 && !entry->second->fDisqualifyingTx ? CAmount(entry->second->balanceEligible * round->percent) : 0;
             }else{
                 nReward = entry->second->IsEligible() ? CAmount(entry->second->balanceEligible * round->percent) : 0;
             }
@@ -195,10 +195,13 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         // Reset outgoing transaction with every cycle.
         entry->second->disqualifyingTx.SetNull();
+        entry->second->fDisqualifyingTx = false;
         // Reset SmartNode payment tx with every cycle in case a node was shut down during the cycle.
         entry->second->smartnodePaymentTx.SetNull();
+        entry->second->fSmartnodePaymentTx = false;
         // Reset the vote proof tx with every cycle to force a new vote for eligibility
         entry->second->voteProof.SetNull();
+        entry->second->fVoteProven = false;
 
         if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
             ++next.eligibleEntries;
@@ -451,7 +454,7 @@ void CSmartRewards::ProcessInput(const CTransaction &tx, const CTxOut &in, CSmar
     // balance ineligible. First check if the change is sent back
     // to the address or not to avoid exploiting fund sending
     // with voteproof transactions
-    if( nCurrentRound >= nFirst_1_3_Round && *voteProofCheck == nullptr && rEntry->disqualifyingTx.IsNull() ){
+    if( nCurrentRound >= nFirst_1_3_Round && *voteProofCheck == nullptr && !rEntry->fDisqualifyingTx ){
 
         if( rEntry->IsEligible() ){
             result.disqualifiedEntries++;
@@ -459,10 +462,12 @@ void CSmartRewards::ProcessInput(const CTransaction &tx, const CTxOut &in, CSmar
         }
 
         rEntry->disqualifyingTx = tx.GetHash();
+        rEntry->fDisqualifyingTx = true;
 
-    }else if( nCurrentRound < nFirst_1_3_Round && rEntry->disqualifyingTx.IsNull() ){
+    }else if( nCurrentRound < nFirst_1_3_Round && !rEntry->fDisqualifyingTx ){
 
         rEntry->disqualifyingTx = tx.GetHash();
+        rEntry->fDisqualifyingTx = true;
 
         if( rEntry->balanceEligible ){
             result.disqualifiedEntries++;
@@ -512,6 +517,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
                 // back to the sender! We don't want to allow
                 // a exploit to send around funds withouht breaking smartrewards.
                 vkEntry->disqualifyingTx = tx.GetHash();
+                vkEntry->fDisqualifyingTx = true;
 
             }else if( !out.IsVoteProofData() &&
                       (*voteProofCheck == rEntry->id) ){
@@ -675,6 +681,7 @@ void CSmartRewards::UndoInput(const CTransaction &tx, const CTxOut &in, uint32_t
     if( nCurrentRound >= nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash() ){
 
         rEntry->disqualifyingTx.SetNull();
+        rEntry->fDisqualifyingTx = false;
 
         if( rEntry->IsEligible() ){
             --result.disqualifiedEntries;
@@ -684,6 +691,7 @@ void CSmartRewards::UndoInput(const CTransaction &tx, const CTxOut &in, uint32_t
     }else if( nCurrentRound < nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash() ){
 
         rEntry->disqualifyingTx.SetNull();
+        rEntry->fDisqualifyingTx = false;
 
         if( rEntry->balanceEligible ){
             --result.disqualifiedEntries;
@@ -727,6 +735,8 @@ void CSmartRewards::UndoOutput(const CTransaction &tx, const CTxOut &out, CSmart
                 if( vkEntry->disqualifyingTx == tx.GetHash() ){
 
                     vkEntry->disqualifyingTx.SetNull();
+                    vkEntry->fDisqualifyingTx = false;
+
 
                     if( vkEntry->IsEligible() ){
                         --result.disqualifiedEntries;
