@@ -637,7 +637,7 @@ bool CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
     CSmartRewardTransaction testTx;
 
     // For the first 4 rounds we have zerocoin exploits and we don't want to add them to the rewards db.
-    if( nCurrentRound < 4 ){
+    if( nCurrentRound <= 4 ){
         // First check if the transaction hash did already come up in the past.
         if( GetTransaction(tx.GetHash(), testTx) ){
             // If yes we want to ignore it! There are some double appearing transactions in the history due to zerocoin exploits.
