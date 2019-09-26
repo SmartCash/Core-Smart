@@ -614,7 +614,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
                 // If the amount matches and the entry is not yet marked as node do it
                 if( abs(out.nValue - nNodeReward ) < 2 ){
 
-                    if( rEntry->smartnodePaymentTx.IsNull() ){
+                    if( rEntry->fSmartnodePaymentTx ){
 
                         // If it is currently eligible adjust the round's results
                         if( rEntry->IsEligible() ){
@@ -623,6 +623,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
                         }
 
                         rEntry->smartnodePaymentTx = tx.GetHash();
+                        rEntry->fSmartnodePaymentTx = true;
                     }
                 }
             }
@@ -820,6 +821,7 @@ void CSmartRewards::UndoOutput(const CTransaction &tx, const CTxOut &out, CSmart
             if( rEntry->smartnodePaymentTx == tx.GetHash() ){
 
                 rEntry->smartnodePaymentTx.SetNull();
+                rEntry->fSmartnodePaymentTx = false;
 
                 // If it is eligible now adjust the round's results
                 if( rEntry->IsEligible() ){
