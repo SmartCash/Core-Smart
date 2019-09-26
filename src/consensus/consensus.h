@@ -29,7 +29,7 @@ static const int HF_V1_2_MULTINODE_VOTING_HEIGHT = 535000;
 static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545005;
 static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
 static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
-static const int HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT = 1200000; // TBD - set  the right height before release
+static const int HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT = 1400000; // TBD - set  the right height before release
 
 /* Mainnet payment intervals*/
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
