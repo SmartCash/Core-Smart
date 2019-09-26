@@ -103,7 +103,7 @@ public:
 
     std::string ToString() const;
 
-    bool IsValid() const { return !nHash.IsNull(); }
+    bool IsValid() const { return nHeight > 0; }
 };
 
 class CSmartRewardRound
@@ -172,8 +172,6 @@ public:
 class CSmartRewardEntry
 {
 
-    bool fUpdated;
-
 public:
 
     ADD_SERIALIZE_METHODS
@@ -190,7 +188,6 @@ public:
         READWRITE(fVoteProven);
         READWRITE(smartnodePaymentTx);
         READWRITE(fSmartnodePaymentTx);
-        fUpdated = false;
     }
 
     CSmartAddress id;
@@ -204,12 +201,12 @@ public:
     uint256 smartnodePaymentTx;
     bool fSmartnodePaymentTx;
 
-    CSmartRewardEntry() : fUpdated(false), id(CSmartAddress()),
+    CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceAtStart(0), balanceEligible(0),
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
                           voteProof(uint256()), fVoteProven(false),
                           smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false) {}
-    CSmartRewardEntry(const CSmartAddress &address) : fUpdated(false), id(address),
+    CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceAtStart(0), balanceEligible(0),
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
                           voteProof(uint256()), fVoteProven(false),
@@ -225,12 +222,8 @@ public:
         return !(a == b);
     }
 
-    bool NeedsSync(){ return fUpdated; }
-    void SetUpdated(){ fUpdated = true; }
-    void SetSynced(){ fUpdated = false; }
-
     std::string GetAddress() const;
-    void setNull();
+    void SetNull();
     std::string ToString() const;
     bool IsEligible();
 };

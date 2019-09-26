@@ -12,6 +12,8 @@
 
 using namespace std;
 
+#define REWARDS_CACHE_ENTRIES_DEFAULT 50000
+
 static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
 
 // Minimum distance of the last processed block compared to the current chain
@@ -42,6 +44,8 @@ CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
 extern CCriticalSection cs_rewardscache;
 extern CCriticalSection cs_rewardsdb;
+
+extern size_t nCacheRewardEntries;
 
 struct CSmartRewardsUpdateResult
 {
@@ -97,7 +101,7 @@ public:
     void SetResult(CSmartRewardsRoundResult *pResult);
 
     void ApplyRoundUpdateResult(const CSmartRewardsUpdateResult &result);
-    void UpdateRoundParameter(int64_t nBlockPayees, int64_t nBlockInterval, CAmount nRewards, double dPercent);
+    void UpdateRoundParameter(int64_t nBlockPayees, int64_t nBlockInterval, double dPercent);
     void UpdateRoundEnd(int nBlockHeight, int64_t nBlockTime);
     void UpdateHeights(const int nHeight, const int nRewardHeight);
 

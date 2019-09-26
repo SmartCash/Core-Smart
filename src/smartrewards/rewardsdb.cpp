@@ -154,7 +154,10 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache &cache)
     }
 
     batch.Write(DB_BLOCK_LAST, *cache.GetCurrentBlock());
-    batch.Write(DB_ROUND_CURRENT, *cache.GetCurrentRound());
+
+    if( cache.GetCurrentRound()->number ){
+        batch.Write(DB_ROUND_CURRENT, *cache.GetCurrentRound());
+    }
 
     return WriteBatch(batch, true);
 }
@@ -324,7 +327,6 @@ string CSmartRewardEntry::GetAddress() const
 
 void CSmartRewardEntry::SetNull()
 {
-    fUpdated = false;
     id = CSmartAddress();
     balance = 0;
     balanceAtStart = 0;

@@ -1645,6 +1645,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     int64_t nRewardsCache = (GetArg("-rewardsdbcache", nRewardsDefaultDbCache) << 20);
     LogPrintf("* Using %.1fMiB for smart rewards database\n", nRewardsCache * (1.0 / 1024 / 1024));
 
+    nCacheRewardEntries = GetArg("-rewardsentrycache", REWARDS_CACHE_ENTRIES_DEFAULT);
+
     delete prewards;
 
     CSmartRewardsDB *prewardsdb = new CSmartRewardsDB(nRewardsCache, false, false);
