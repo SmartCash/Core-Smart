@@ -645,7 +645,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
                 // If the amount matches and the entry is not yet marked as node do it
                 if( abs(out.nValue - nNodeReward ) < 2 ){
 
-                    if( rEntry->fSmartnodePaymentTx ){
+                    if( !rEntry->fSmartnodePaymentTx ){
 
                         // If it is currently eligible adjust the round's results
                         if( rEntry->IsEligible() ){
