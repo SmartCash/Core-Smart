@@ -108,6 +108,12 @@ public:
 
 class CSmartRewardRound
 {
+
+    /* Memory only */
+    int nPayeeCount;
+    int nRewardBlocks;
+    int nLastRoundBlock;
+
 public:
     uint16_t number;
     int64_t startBlockHeight;
@@ -140,6 +146,9 @@ public:
         nBlockInterval = 0;
         rewards = 0;
         percent = 0;
+        nPayeeCount = 0;
+        nRewardBlocks = 0;
+        nLastRoundBlock = 0;
     }
 
     ADD_SERIALIZE_METHODS
@@ -159,12 +168,21 @@ public:
         READWRITE(nBlockInterval);
         READWRITE(rewards);
         READWRITE(percent);
+
+        if( ser_action.ForRead())
+            UpdatePayoutParameter();
     }
 
     friend bool operator<(const CSmartRewardRound& a, const CSmartRewardRound& b)
     {
         return a.number < b.number;
     }
+
+    void UpdatePayoutParameter();
+
+    int GetPayeeCount() const { return nPayeeCount; }
+    int GetRewardBlocks() const { return nRewardBlocks; }
+    int GetLastRoundBlock() const { return nLastRoundBlock; }
 
     std::string ToString() const;
 };

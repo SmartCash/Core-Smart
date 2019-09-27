@@ -174,6 +174,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
     CAmount nReward;
     const CSmartRewardRound *round = cache.GetCurrentRound();
     pResult->round = *round;
+    pResult->round.UpdatePayoutParameter();
 
     CSmartRewardEntryMap tmpEntries;
     pdb->ReadRewardEntries(tmpEntries);
@@ -1250,6 +1251,7 @@ void CSmartRewardsCache::AddFinishedRound(const CSmartRewardRound &round)
 {
     AssertLockHeld(cs_rewardscache);
     rounds.push_back(round);
+    rounds.back().UpdatePayoutParameter();
 }
 
 void CSmartRewardsCache::AddTransaction(const CSmartRewardTransaction &transaction)

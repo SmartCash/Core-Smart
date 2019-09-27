@@ -373,6 +373,20 @@ string CSmartRewardBlock::ToString() const
     return s.str();
 }
 
+void CSmartRewardRound::UpdatePayoutParameter()
+{
+    nPayeeCount = eligibleEntries - disqualifiedEntries;
+
+    if( nPayeeCount > 0 ){
+        int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
+
+        nRewardBlocks = nPayeeCount / nBlockPayees;
+        if( nPayeeCount % nBlockPayees ) nRewardBlocks += 1;
+
+        nLastRoundBlock = endBlockHeight + nPayoutDelay + ( (nRewardBlocks - 1) * nBlockInterval );
+    }
+}
+
 string CSmartRewardRound::ToString() const
 {
     std::stringstream s;
