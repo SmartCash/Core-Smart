@@ -95,6 +95,7 @@ public:
 
     bool NeedsSync();
     void Clear();
+    void ClearResult();
 
     void SetCurrentBlock(const CSmartRewardBlock &currentBlock);
     void SetCurrentRound(const CSmartRewardRound &currentRound);

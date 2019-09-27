@@ -959,6 +959,12 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
         return false;
     }
 
+    if( cache.GetLastRoundResult() &&
+        cache.GetLastRoundResult()->fSynced &&
+        pIndex->nHeight > cache.GetLastRoundResult()->round.GetLastRoundBlock() ){
+            cache.ClearResult();
+    }
+
     UpdateRoundParameter(result);
 
     // For the first round we have special parameter..
@@ -1184,6 +1190,25 @@ void CSmartRewardsCache::Clear()
     entries.clear();
     addTransactions.clear();
     removeTransactions.clear();
+}
+
+void CSmartRewardsCache::ClearResult()
+{
+    if( result ){
+
+        auto it = result->results.begin();
+
+        while( it != result->results.end() ){
+
+            delete *it;
+            ++it;
+        }
+
+        result->results.clear();
+        result->payouts.clear();
+        delete result;
+        result = nullptr;
+    }
 }
 
 void CSmartRewardsCache::SetCurrentBlock(const CSmartRewardBlock &currentBlock)
