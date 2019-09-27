@@ -166,6 +166,13 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache &cache)
         batch.Write(DB_ROUND_CURRENT, *cache.GetCurrentRound());
     }
 
+    if( cache.GetLastRoundResult() != nullptr && !cache.GetLastRoundResult()->fSynced ){
+
+        BOOST_FOREACH(const CSmartRewardResultEntry *s, cache.GetLastRoundResult()->results) {
+            batch.Write(make_pair(DB_ROUND_SNAPSHOT, make_pair(cache.GetCurrentRound()->number, s->entry.id)), *s);
+        }
+    }
+
     return WriteBatch(batch, true);
 }
 
