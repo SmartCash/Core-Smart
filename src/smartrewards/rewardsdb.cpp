@@ -153,6 +153,13 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache &cache)
         ++removeTx;
     }
 
+    auto round = cache.GetRounds()->begin();
+
+    while( round != cache.GetRounds()->end() ){
+        batch.Write(make_pair(DB_ROUND, round->number), *round);
+        ++round;
+    }
+
     batch.Write(DB_BLOCK_LAST, *cache.GetCurrentBlock());
 
     if( cache.GetCurrentRound()->number ){
