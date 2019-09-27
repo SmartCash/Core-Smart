@@ -607,10 +607,11 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
                         }
                     }
 
-                    if( proofEntry->voteProof.IsNull() ){
+                    if( !proofEntry->fVoteProven ){
 
                         if( nProofRound == nCurrentRound ){
                             proofEntry->voteProof = tx.GetHash();
+                            proofEntry->fVoteProven = true;
                         }
 
                         // If the entry is eligible now after the vote proof update the results
