@@ -91,7 +91,7 @@ public:
 
     unsigned long EstimatedSize();
 
-    void Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds, const CSmartRewardEntryMap &entries);
+    void Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds);
 
     bool NeedsSync();
     void Clear();

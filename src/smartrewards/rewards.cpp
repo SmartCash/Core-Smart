@@ -408,19 +408,18 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
     CSmartRewardBlock block;
     CSmartRewardRound round;
     CSmartRewardRoundList rounds;
-    CSmartRewardEntryMap entries;
     CSmartRewardResultEntryList results;
 
     pdb->ReadLastBlock(block);
     pdb->ReadCurrentRound(round);
     pdb->ReadRounds(rounds);
-    pdb->ReadRewardEntries(entries);
 
     std::sort(rounds.begin(), rounds.end());
+    cache.Load(block, round, rounds);
 
-    cache.Load(block, round, rounds, entries);
 
     LogPrintf("CSmartRewards::CSmartRewards - Cache Size %d MB", cache.EstimatedSize() / 1000 / 1000);
+    LogPrintf("CSmartRewards::CSmartRewards\n  Last block %s\n  Current Round %s\n  Rounds: %d", block.ToString(), round.ToString(), rounds.size());
 }
 
 bool CSmartRewards::GetLastBlock(CSmartRewardBlock &block)
@@ -1156,13 +1155,11 @@ unsigned long CSmartRewardsCache::EstimatedSize()
     return nEntriesSize + nRoundsSize + nTransactionsSize + nBlockSize;
 }
 
-void CSmartRewardsCache::Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds, const CSmartRewardEntryMap &entries)
+void CSmartRewardsCache::Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds)
 {
     this->block = block;
     this->round = round;
     this->rounds = rounds;
-    this->entries = entries;
-//    this->payouts = payouts;
 }
 
 bool CSmartRewardsCache::NeedsSync()
