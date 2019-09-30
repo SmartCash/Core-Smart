@@ -90,7 +90,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         if(!cacheLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
 
-        const CSmartRewardRoundList* history = prewards->GetRewardRounds();
+        const CSmartRewardRoundMap* history = prewards->GetRewardRounds();
 
         int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
@@ -102,29 +102,29 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
             UniValue roundObj(UniValue::VOBJ);
 
-            roundObj.pushKV("rewards_cycle",round->number);
-            roundObj.pushKV("start_blockheight",round->startBlockHeight);
-            roundObj.pushKV("start_blocktime",round->startBlockTime);
-            roundObj.pushKV("end_blockheight",round->endBlockHeight);
-            roundObj.pushKV("end_blocktime",round->endBlockTime);
-            roundObj.pushKV("eligible_addresses",round->eligibleEntries - round->disqualifiedEntries);
-            roundObj.pushKV("eligible_smart",format(round->eligibleSmart - round->disqualifiedSmart));
-            roundObj.pushKV("disqualified_addresses",round->disqualifiedEntries);
-            roundObj.pushKV("disqualified_smart",format(round->disqualifiedSmart));
-            roundObj.pushKV("rewards",format(round->rewards));
-            roundObj.pushKV("percent",round->percent);
+            roundObj.pushKV("rewards_cycle",round->second.number);
+            roundObj.pushKV("start_blockheight",round->second.startBlockHeight);
+            roundObj.pushKV("start_blocktime",round->second.startBlockTime);
+            roundObj.pushKV("end_blockheight",round->second.endBlockHeight);
+            roundObj.pushKV("end_blocktime",round->second.endBlockTime);
+            roundObj.pushKV("eligible_addresses",round->second.eligibleEntries - round->second.disqualifiedEntries);
+            roundObj.pushKV("eligible_smart",format(round->second.eligibleSmart - round->second.disqualifiedSmart));
+            roundObj.pushKV("disqualified_addresses",round->second.disqualifiedEntries);
+            roundObj.pushKV("disqualified_smart",format(round->second.disqualifiedSmart));
+            roundObj.pushKV("rewards",format(round->second.rewards));
+            roundObj.pushKV("percent",round->second.percent);
 
             UniValue payObj(UniValue::VOBJ);
 
-            if( round->GetPayeeCount() ){
+            if( round->second.GetPayeeCount() ){
 
-                payObj.pushKV("firstBlock", round->endBlockHeight + nPayoutDelay );
-                payObj.pushKV("totalBlocks", round->GetRewardBlocks() );
-                payObj.pushKV("lastBlock", round->GetLastRoundBlock() );
-                payObj.pushKV("totalPayees", round->GetPayeeCount() );
-                payObj.pushKV("blockPayees", round->nBlockPayees);
-                payObj.pushKV("lastBlockPayees", round->GetPayeeCount() % round->nBlockPayees );
-                payObj.pushKV("blockInterval",round->nBlockInterval);
+                payObj.pushKV("firstBlock", round->second.endBlockHeight + nPayoutDelay );
+                payObj.pushKV("totalBlocks", round->second.GetRewardBlocks() );
+                payObj.pushKV("lastBlock", round->second.GetLastRoundBlock() );
+                payObj.pushKV("totalPayees", round->second.GetPayeeCount() );
+                payObj.pushKV("blockPayees", round->second.nBlockPayees);
+                payObj.pushKV("lastBlockPayees", round->second.GetPayeeCount() % round->second.nBlockPayees );
+                payObj.pushKV("blockInterval", round->second.nBlockInterval);
             }else{
                 payObj.pushKV("error", "No payees were eligible for this round");
             }

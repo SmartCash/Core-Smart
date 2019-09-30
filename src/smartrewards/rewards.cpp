@@ -408,14 +408,13 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
 
     CSmartRewardBlock block;
     CSmartRewardRound round;
-    CSmartRewardRoundList rounds;
+    CSmartRewardRoundMap rounds;
     CSmartRewardResultEntryList results;
 
     pdb->ReadLastBlock(block);
     pdb->ReadCurrentRound(round);
     pdb->ReadRounds(rounds);
 
-    std::sort(rounds.begin(), rounds.end());
     cache.Load(block, round, rounds);
 
 
@@ -449,7 +448,7 @@ const CSmartRewardRound* CSmartRewards::GetCurrentRound()
     return cache.GetCurrentRound();
 }
 
-const CSmartRewardRoundList* CSmartRewards::GetRewardRounds()
+const CSmartRewardRoundMap* CSmartRewards::GetRewardRounds()
 {
     return cache.GetRounds();
 }
@@ -1162,7 +1161,7 @@ unsigned long CSmartRewardsCache::EstimatedSize()
     return nEntriesSize + nRoundsSize + nTransactionsSize + nBlockSize;
 }
 
-void CSmartRewardsCache::Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds)
+void CSmartRewardsCache::Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundMap &rounds)
 {
     this->block = block;
     this->round = round;
@@ -1275,8 +1274,7 @@ void CSmartRewardsCache::UpdateHeights(const int nHeight, const int nRewardHeigh
 void CSmartRewardsCache::AddFinishedRound(const CSmartRewardRound &round)
 {
     AssertLockHeld(cs_rewardscache);
-    rounds.push_back(round);
-    rounds.back().UpdatePayoutParameter();
+    rounds[round.number] = round;
 }
 
 void CSmartRewardsCache::AddTransaction(const CSmartRewardTransaction &transaction)

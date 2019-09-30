@@ -30,7 +30,7 @@ class CSmartRewardsCache;
 
 typedef std::vector<CSmartRewardBlock> CSmartRewardBlockList;
 typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
-typedef std::vector<CSmartRewardRound> CSmartRewardRoundList;
+typedef std::map<uint16_t, CSmartRewardRound> CSmartRewardRoundMap;
 typedef std::vector<CSmartRewardResultEntry> CSmartRewardResultEntryList;
 typedef std::vector<CSmartRewardResultEntry*> CSmartRewardResultEntryPtrList;
 
@@ -311,7 +311,7 @@ public:
     bool ReadTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
 
     bool ReadRound(const int16_t number, CSmartRewardRound &round);
-    bool ReadRounds(CSmartRewardRoundList &vect);
+    bool ReadRounds(CSmartRewardRoundMap &rounds);
 
     bool ReadCurrentRound(CSmartRewardRound &round);
 

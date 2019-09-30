@@ -78,7 +78,7 @@ class CSmartRewardsCache
 
     CSmartRewardBlock block;
     CSmartRewardRound round;
-    CSmartRewardRoundList rounds;
+    CSmartRewardRoundMap rounds;
     CSmartRewardTransactionMap addTransactions;
     CSmartRewardTransactionMap removeTransactions;
     CSmartRewardEntryMap entries;
@@ -91,7 +91,7 @@ public:
 
     unsigned long EstimatedSize();
 
-    void Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundList &rounds);
+    void Load(const CSmartRewardBlock &block, const CSmartRewardRound &round, const CSmartRewardRoundMap &rounds);
 
     bool NeedsSync();
     void Clear();
@@ -108,7 +108,7 @@ public:
 
     const CSmartRewardBlock* GetCurrentBlock() const { return &block; }
     const CSmartRewardRound* GetCurrentRound() const { return &round; }
-    const CSmartRewardRoundList* GetRounds() const { return &rounds; }
+    const CSmartRewardRoundMap* GetRounds() const { return &rounds; }
     const CSmartRewardTransactionMap* GetAddedTransactions() const { return &addTransactions; }
     const CSmartRewardTransactionMap* GetRemovedTransactions() const { return &removeTransactions; }
     const CSmartRewardEntryMap* GetEntries() const { return &entries; }
@@ -141,7 +141,7 @@ public:
     bool GetLastBlock(CSmartRewardBlock &block);
     bool GetTransaction(const uint256 hash, CSmartRewardTransaction &transaction);
     const CSmartRewardRound* GetCurrentRound();
-    const CSmartRewardRoundList* GetRewardRounds();
+    const CSmartRewardRoundMap* GetRewardRounds();
 
     void UpdateHeights(const int nHeight, const int nRewardHeight);
     bool Verify();

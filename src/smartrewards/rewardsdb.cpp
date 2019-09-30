@@ -87,7 +87,7 @@ bool CSmartRewardsDB::ReadRound(const int16_t number, CSmartRewardRound &round)
     return Read(make_pair(DB_ROUND,number), round);
 }
 
-bool CSmartRewardsDB::ReadRounds(CSmartRewardRoundList &vect)
+bool CSmartRewardsDB::ReadRounds(CSmartRewardRoundMap &rounds)
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -95,11 +95,11 @@ bool CSmartRewardsDB::ReadRounds(CSmartRewardRoundList &vect)
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
-        std::pair<char,int16_t> key;
+        std::pair<char,uint16_t> key;
         if (pcursor->GetKey(key) && key.first == DB_ROUND) {
             CSmartRewardRound nValue;
             if (pcursor->GetValue(nValue)) {
-                vect.push_back(nValue);
+                rounds.insert(make_pair(nValue.number, nValue));
                 pcursor->Next();
             } else {
                 return error("failed to get reward round");
@@ -156,7 +156,7 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache &cache)
     auto round = cache.GetRounds()->begin();
 
     while( round != cache.GetRounds()->end() ){
-        batch.Write(make_pair(DB_ROUND, round->number), *round);
+        batch.Write(make_pair(DB_ROUND, round->first), round->second);
         ++round;
     }
 
