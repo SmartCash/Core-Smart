@@ -881,11 +881,12 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
 
     int nTime1 = GetTimeMicros();
 
+
     CSmartRewardTransaction testTx;
 
     if( GetTransaction(tx.GetHash(), testTx) && testTx.blockHeight == pIndex->nHeight ){
         cache.RemoveTransaction(testTx);
-    }else{
+    }else if( nCurrentRound <= 4 ){
         return;
     }
 
