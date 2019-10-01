@@ -83,10 +83,11 @@ class CSmartRewardsCache
     CSmartRewardTransactionMap removeTransactions;
     CSmartRewardEntryMap entries;
     CSmartRewardsRoundResult *result;
+    CSmartRewardsRoundResult *undoResults;
 
 public:
 
-    CSmartRewardsCache() : block(), round(), rounds(), addTransactions(), removeTransactions(), entries(), result(nullptr) { }
+    CSmartRewardsCache() : block(), round(), rounds(), addTransactions(), removeTransactions(), entries(), result(nullptr), undoResults(nullptr) { }
     ~CSmartRewardsCache();
 
     unsigned long EstimatedSize();
@@ -100,6 +101,7 @@ public:
     void SetCurrentBlock(const CSmartRewardBlock &currentBlock);
     void SetCurrentRound(const CSmartRewardRound &currentRound);
     void SetResult(CSmartRewardsRoundResult *pResult);
+    void SetUndoResult(CSmartRewardsRoundResult *pResult);
 
     void ApplyRoundUpdateResult(const CSmartRewardsUpdateResult &result);
     void UpdateRoundPayoutParameter(int64_t nBlockPayees, int64_t nBlockInterval);
@@ -114,8 +116,10 @@ public:
     const CSmartRewardTransactionMap* GetRemovedTransactions() const { return &removeTransactions; }
     const CSmartRewardEntryMap* GetEntries() const { return &entries; }
     const CSmartRewardsRoundResult* GetLastRoundResult() const { return result; }
+    const CSmartRewardsRoundResult* GetUndoResult() const { return undoResults; }
 
     void AddFinishedRound(const CSmartRewardRound &round);
+    void RemoveFinishedRound(const int &nNumber);
     void AddTransaction(const CSmartRewardTransaction &transaction);
     void RemoveTransaction(const CSmartRewardTransaction &transaction);
     void AddEntry(CSmartRewardEntry *entry);
@@ -177,6 +181,7 @@ public:
     bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardResultEntryList &results);
 
     bool GetRewardRoundResults(const int16_t round, CSmartRewardResultEntryList &results);
+    bool GetRewardRoundResults(const int16_t round, CSmartRewardResultEntryPtrList &results);
     const CSmartRewardsRoundResult* GetLastRoundResult();
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryList &payouts);
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList &payouts);

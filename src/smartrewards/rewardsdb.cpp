@@ -126,17 +126,57 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache &cache)
 {
     CDBBatch batch(*this);
 
-    auto entry = cache.GetEntries()->begin();
+    if( cache.GetUndoResult() != nullptr && !cache.GetUndoResult()->fSynced ){
 
-    while( entry != cache.GetEntries()->end() ){
+        CSmartRewardResultEntryPtrList tmpResults = cache.GetUndoResult()->results;
 
-        if( entry->second->balance <= 0 ){
-            batch.Erase(make_pair(DB_REWARD_ENTRY,entry->first));
-        }else{
-            batch.Write(make_pair(DB_REWARD_ENTRY,entry->first), *entry->second);
+        auto entry = cache.GetEntries()->begin();
+
+        while( entry != cache.GetEntries()->end() ){
+
+            CSmartAddress searchAddress = entry->second->id;
+
+            auto it = std::find_if(tmpResults.begin(),
+                                   tmpResults.end(),
+                                   [searchAddress](const CSmartRewardResultEntry* rEntry) -> bool {
+                                        return rEntry->entry.id == searchAddress;
+                                   });
+
+            if( it == tmpResults.end() ){
+                batch.Erase(make_pair(DB_REWARD_ENTRY, entry->first));
+            }else{
+                CSmartRewardEntry rewardEntry = (*it)->entry;
+                batch.Write(make_pair(DB_REWARD_ENTRY, rewardEntry.id), rewardEntry);
+                batch.Erase(make_pair(DB_ROUND_SNAPSHOT, make_pair(cache.GetUndoResult()->round.number, rewardEntry.id)));
+                tmpResults.erase(it);
+            }
+
+            ++entry;
         }
 
-        ++entry;
+        auto it = tmpResults.begin();
+
+        while( it != tmpResults.end() ){
+            batch.Write(make_pair(DB_REWARD_ENTRY,(*it)->entry.id), (*it)->entry);
+            batch.Erase(make_pair(DB_ROUND_SNAPSHOT, make_pair(cache.GetUndoResult()->round.number, (*it)->entry.id)));
+
+            ++it;
+        }
+
+    }else{
+
+        auto entry = cache.GetEntries()->begin();
+
+        while( entry != cache.GetEntries()->end() ){
+
+            if( entry->second->balance <= 0 ){
+                batch.Erase(make_pair(DB_REWARD_ENTRY,entry->first));
+            }else{
+                batch.Write(make_pair(DB_REWARD_ENTRY,entry->first), *entry->second);
+            }
+
+            ++entry;
+        }
     }
 
     auto addTx = cache.GetAddedTransactions()->begin();
@@ -366,7 +406,7 @@ void CSmartRewardRound::UpdatePayoutParameter()
 {
     nPayeeCount = eligibleEntries - disqualifiedEntries;
 
-    if( nPayeeCount > 0 ){
+    if( nPayeeCount > 0 && nBlockPayees > 0){
         int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
         nRewardBlocks = nPayeeCount / nBlockPayees;

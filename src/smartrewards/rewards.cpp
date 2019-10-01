@@ -293,6 +293,12 @@ bool CSmartRewards::GetRewardRoundResults(const int16_t round, CSmartRewardResul
     return pdb->ReadRewardRoundResults(round, results);
 }
 
+bool CSmartRewards::GetRewardRoundResults(const int16_t round, CSmartRewardResultEntryPtrList &results)
+{
+    LOCK(cs_rewardsdb);
+    return pdb->ReadRewardRoundResults(round, results);
+}
+
 const CSmartRewardsRoundResult *CSmartRewards::GetLastRoundResult()
 {
     return cache.GetLastRoundResult();
@@ -348,7 +354,7 @@ bool CSmartRewards::GetRewardEntries(CSmartRewardEntryMap &entries)
 
 bool CSmartRewards::SyncCached()
 {
-    LOCK2(cs_rewardsdb, cs_rewardscache);
+    LOCK2(cs_rewardscache, cs_rewardsdb);
 
     int nTimeStart = GetTimeMicros();
     int nEntriesPre = cache.GetEntries()->size();
@@ -394,7 +400,7 @@ int CSmartRewards::GetBlocksPerRound(const int nRound)
 
 CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
 {
-    LOCK2(cs_rewardsdb, cs_rewardscache);
+    LOCK2(cs_rewardscache, cs_rewardsdb);
 
     CSmartRewardBlock block;
     CSmartRewardRound round;
@@ -433,7 +439,7 @@ bool CSmartRewards::GetLastBlock(CSmartRewardBlock &block)
 
 bool CSmartRewards::GetTransaction(const uint256 nHash, CSmartRewardTransaction &transaction)
 {
-    LOCK2(cs_rewardsdb, cs_rewardscache);
+    LOCK2(cs_rewardscache, cs_rewardsdb);
     // If the transaction is already in the cache use this one.
     auto it = cache.GetAddedTransactions()->find(nHash);
 
@@ -698,12 +704,12 @@ void CSmartRewards::UndoInput(const CTransaction &tx, const CTxOut &in, uint32_t
     CSmartAddress id;
 
     if( !ExtractDestination(in.scriptPubKey, id) ){
-        LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - Process Inputs: Could't parse CSmartAddress: %s\n", in.ToString());
+        LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Process Inputs: Could't parse CSmartAddress: %s\n", in.ToString());
         return;
     }
 
-    if( !GetRewardEntry(id, rEntry, false) ){
-        LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - Spend without previous receive - %s", tx.ToString());
+    if( !GetRewardEntry(id, rEntry, true) ){
+        LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
 
@@ -732,7 +738,7 @@ void CSmartRewards::UndoInput(const CTransaction &tx, const CTxOut &in, uint32_t
     }
 
     if(rEntry->balance < 0 ){
-        LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - Negative amount?! - %s", rEntry->ToString());
+        LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Negative amount?! - %s", rEntry->ToString());
         rEntry->balance = 0;
     }
 
@@ -745,7 +751,7 @@ void CSmartRewards::UndoOutput(const CTransaction &tx, const CTxOut &out, CSmart
     CSmartAddress id;
 
     if( !ExtractDestination(out.scriptPubKey, id) ){
-        LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - Process Outputs: Could't parse CSmartAddress: %s\n", out.ToString());
+        LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Process Outputs: Could't parse CSmartAddress: %s\n", out.ToString());
         return;
     }else{
 
@@ -1057,12 +1063,13 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
 bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpdateResult &result)
 {
+    int nTime1 = GetTimeMicros();
 
     if(pIndex && pIndex->nHeight > sporkManager.GetSporkValue(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)){
         return true;
     }
 
-    LOCK(cs_rewardscache);
+    LOCK2(cs_rewardscache, cs_rewardsdb);
 
     if(!pIndex || pIndex->nHeight != cache.GetCurrentBlock()->nHeight ){
         LogPrintf("CSmartRewards::CommitUndoBlock - Invalid next block!");
@@ -1071,64 +1078,62 @@ bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpda
 
     const CSmartRewardRound *pRound = cache.GetCurrentRound();
 
-    CSmartRewardsUpdateResult undoResult(pIndex->pprev->nHeight, pIndex->pprev->phashBlock, pIndex->pprev->GetBlockTime());
+    CSmartRewardsUpdateResult undoUpdate(pIndex->pprev->nHeight, pIndex->pprev->phashBlock, pIndex->pprev->GetBlockTime());
 
-    undoResult.disqualifiedEntries = result.disqualifiedEntries;
-    undoResult.disqualifiedSmart = result.disqualifiedSmart;
-    undoResult.qualifiedEntries = result.qualifiedEntries;
-    undoResult.qualifiedSmart = result.qualifiedSmart;
+    undoUpdate.disqualifiedEntries = result.disqualifiedEntries;
+    undoUpdate.disqualifiedSmart = result.disqualifiedSmart;
+    undoUpdate.qualifiedEntries = result.qualifiedEntries;
+    undoUpdate.qualifiedSmart = result.qualifiedSmart;
 
-    UpdateRoundParameter(undoResult);
+    cache.ApplyRoundUpdateResult(undoUpdate);
 
-//    // If just hit the last round's threshold
-//    if( ( MainNet() && currentRound.number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() < currentRound.endBlockTime ) ||
-//            ( ( TestNet() || currentRound.number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == currentRound.startBlockHeight ) ){
+    // If just hit the last round's threshold
+    if( ( MainNet() && pRound->number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() < pRound->endBlockTime ) ||
+            ( ( TestNet() || pRound->number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == pRound->startBlockHeight ) ){
 
-//        LOCK2(cs_rewardsdb, cs_rewardrounds);
+        // Recover the last round from the history as current round
+        CSmartRewardRound prevRound = cache.GetRounds()->at(pRound->number - 1);
 
-//        // Recover the last round from the history as current round
-//        currentRound = finishedRounds.back();
-//        finishedRounds.pop_back();
+        cache.SetCurrentRound(prevRound);
+        cache.RemoveFinishedRound(prevRound.number);
 
-//        lastRound = finishedRounds.back();
+        CSmartRewardsRoundResult *undoResult = new CSmartRewardsRoundResult();
 
-//        CSmartRewardEntryList entries;
-//        CSmartRewardResultEntryList results;
+        undoResult->round = prevRound;
 
-//        // Get the current entries
-//        if( !GetRewardRoundResults(currentRound.number, results) ){
-//            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to read last round's results!");
-//            return false;
-//        }
+        if( !GetRewardRoundResults(prevRound.number, undoResult->results) ){
+            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to read last round's results!");
+            return false;
+        }
 
-//        CalculateRewardRatio(currentRound);
+        cache.SetUndoResult(undoResult);
 
-//        if( !UndoFinalizeRound(currentRound, results) ){
-//            LogPrintf("CSmartRewards::CommitUndoBlock - Failed to finalize round!");
-//            return false;
-//        }
+        // Load all entries into the cache
+        CSmartRewardEntryMap tmpEntries;
+        pdb->ReadRewardEntries(tmpEntries);
 
-//    }
+        for( auto itDb = tmpEntries.begin(); itDb != tmpEntries.end(); ++itDb){
 
-//    if(!SyncCached(true)){
-//        LogPrintf("CSmartRewards::CommitUndoBlock - Failed to sync cached - Processed!");
-//        return false;
-//    }
+            auto itCache = cache.GetEntries()->find(itDb->first);
 
-//    cache.UpdateHeights(GetBlockHeight(pIndex), currentBlock.nHeight);
+            if( itCache == cache.GetEntries()->end() ){
+                cache.AddEntry(itDb->second);
+            }else{
+                delete itDb->second;
+            }
+        }
+    }
 
-//    int nTime2 = GetTimeMicros();
+    UpdatePercentage();
 
-//    if( LogAcceptCategory("smartrewards-block") ){
-//        LogPrint("smartrewards-block", "Round %d - Block: %d - Progress %d%%\n",currentRound.number, currentBlock.nHeight, int(prewards->GetProgress() * 100));
-//        LogPrint("smartrewards-block", "  Commit undo block: %.2fms\n", (nTime2 - nTime1) * 0.001);
-//    }
+    cache.UpdateHeights(GetBlockHeight(pIndex), cache.GetCurrentBlock()->nHeight);
 
-//    // If we are synced notify the UI on each new block.
-//    // If not notify the UI every nRewardsUISyncUpdateRate blocks to let it update the
-//    // loading screen.
-//    if( IsSynced() || !(currentBlock.nHeight % nRewardsUISyncUpdateRate) )
-//        uiInterface.NotifySmartRewardUpdate();
+    int nTime2 = GetTimeMicros();
+
+    if( LogAcceptCategory("smartrewards-block") ){
+        LogPrint("smartrewards-block", "Round %d - Block: %d - Progress %d%%\n",pRound->number, cache.GetCurrentBlock()->nHeight, int(prewards->GetProgress() * 100));
+        LogPrint("smartrewards-block", "  Commit undo block: %.2fms\n", (nTime2 - nTime1) * 0.001);
+    }
 
     return true;
 }
@@ -1173,7 +1178,9 @@ void CSmartRewardsCache::Load(const CSmartRewardBlock &block, const CSmartReward
 bool CSmartRewardsCache::NeedsSync()
 {
     LOCK(cs_rewardscache);
-    return (result != nullptr && !result->fSynced) || EstimatedSize() > REWARDS_MAX_CACHE || entries.size() > nCacheRewardEntries;
+    return (result != nullptr && !result->fSynced) ||
+           (undoResults != nullptr && !undoResults->fSynced) ||
+           EstimatedSize() > REWARDS_MAX_CACHE || entries.size() > nCacheRewardEntries;
 }
 
 void CSmartRewardsCache::Clear()
@@ -1182,6 +1189,10 @@ void CSmartRewardsCache::Clear()
 
     if( result ){
         result->fSynced = true;
+    }
+
+    if( undoResults ){
+        undoResults->fSynced = true;
     }
 
     for( auto it = entries.cbegin(); it != entries.cend();it++){
@@ -1210,6 +1221,22 @@ void CSmartRewardsCache::ClearResult()
         delete result;
         result = nullptr;
     }
+
+    if( undoResults ){
+
+        auto it = undoResults->results.begin();
+
+        while( it != undoResults->results.end() ){
+
+            delete *it;
+            ++it;
+        }
+
+        undoResults->results.clear();
+        undoResults->payouts.clear();
+        delete undoResults;
+        undoResults = nullptr;
+    }
 }
 
 void CSmartRewardsCache::SetCurrentBlock(const CSmartRewardBlock &currentBlock)
@@ -1234,6 +1261,18 @@ void CSmartRewardsCache::SetResult(CSmartRewardsRoundResult *pResult)
     }
 
     result = pResult;
+}
+
+void CSmartRewardsCache::SetUndoResult(CSmartRewardsRoundResult *pResult)
+{
+    AssertLockHeld(cs_rewardscache);
+
+    if( undoResults ){
+        undoResults->Clear();
+        delete undoResults;
+    }
+
+    undoResults = pResult;
 }
 
 void CSmartRewardsCache::ApplyRoundUpdateResult(const CSmartRewardsUpdateResult &result)
@@ -1285,7 +1324,19 @@ void CSmartRewardsCache::UpdateHeights(const int nHeight, const int nRewardHeigh
 void CSmartRewardsCache::AddFinishedRound(const CSmartRewardRound &round)
 {
     AssertLockHeld(cs_rewardscache);
+
     rounds[round.number] = round;
+}
+
+void CSmartRewardsCache::RemoveFinishedRound(const int &nNumber)
+{
+    AssertLockHeld(cs_rewardscache);
+
+    auto it = rounds.find(nNumber);
+
+    if( it != rounds.end() ){
+        rounds.erase(it);
+    }
 }
 
 void CSmartRewardsCache::AddTransaction(const CSmartRewardTransaction &transaction)
@@ -1315,7 +1366,7 @@ void CSmartRewardsCache::RemoveTransaction(const CSmartRewardTransaction &transa
 void CSmartRewardsCache::AddEntry(CSmartRewardEntry *entry)
 {
     LOCK(cs_rewardscache);
-    entries.insert(std::make_pair(entry->id, entry));
+    entries[entry->id] = entry;
 }
 
 void CSmartRewardsRoundResult::Clear()
