@@ -319,11 +319,11 @@ public:
     bool ReadRewardEntries(CSmartRewardEntryMap &entries);
 
     bool ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryList &results);
+    bool ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryPtrList &results);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryList &payouts);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList &payouts);
 
     bool SyncCached(const CSmartRewardsCache &cache);
-    bool StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardResultEntryList &results);
     bool UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardResultEntryList &results);
 };

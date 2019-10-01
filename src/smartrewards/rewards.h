@@ -102,8 +102,9 @@ public:
     void SetResult(CSmartRewardsRoundResult *pResult);
 
     void ApplyRoundUpdateResult(const CSmartRewardsUpdateResult &result);
-    void UpdateRoundParameter(int64_t nBlockPayees, int64_t nBlockInterval, double dPercent);
+    void UpdateRoundPayoutParameter(int64_t nBlockPayees, int64_t nBlockInterval);
     void UpdateRoundEnd(int nBlockHeight, int64_t nBlockTime);
+    void UpdateRoundPercent(double dPercent);
     void UpdateHeights(const int nHeight, const int nRewardHeight);
 
     const CSmartRewardBlock* GetCurrentBlock() const { return &block; }
@@ -127,7 +128,8 @@ class CSmartRewards
 
     mutable CCriticalSection csRounds;
 
-    void UpdateRoundParameter(const CSmartRewardsUpdateResult &result);
+    void UpdateRoundPayoutParameter();
+    void UpdatePercentage();
 
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool GetRewardEntries(CSmartRewardEntryMap &entries);

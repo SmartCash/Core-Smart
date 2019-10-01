@@ -88,11 +88,6 @@ bool ExtractDestination(const CScript& scriptPubKey, CSmartAddress& idRet)
     return false;
 }
 
-void CalculateRewardRatio()
-{
-
-}
-
 bool CSmartRewards::Verify()
 {
     LOCK(cs_rewardsdb);
@@ -105,14 +100,12 @@ bool CSmartRewards::NeedsCacheWrite()
     return cache.NeedsSync();
 }
 
-void CSmartRewards::UpdateRoundParameter(const CSmartRewardsUpdateResult &result)
+void CSmartRewards::UpdateRoundPayoutParameter()
 {
     AssertLockHeld(cs_rewardscache);
 
-    cache.ApplyRoundUpdateResult(result);
-
     const CSmartRewardRound *round = cache.GetCurrentRound();
-    int64_t nBlockPayees = round->nBlockPayees, nBlockInterval = nBlockInterval;
+    int64_t nBlockPayees = round->nBlockPayees, nBlockInterval;
 
     int64_t nPayeeCount = round->eligibleEntries - round->disqualifiedEntries;
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
@@ -152,6 +145,15 @@ void CSmartRewards::UpdateRoundParameter(const CSmartRewardsUpdateResult &result
         nBlockInterval = 0;
     }
 
+    cache.UpdateRoundPayoutParameter(nBlockPayees, nBlockInterval);
+}
+
+void CSmartRewards::UpdatePercentage()
+{
+    AssertLockHeld(cs_rewardscache);
+
+    const CSmartRewardRound *round = cache.GetCurrentRound();
+
     double nPercent = 0.0;
 
     if( (round->eligibleSmart - round->disqualifiedSmart) > 0 ){
@@ -160,22 +162,25 @@ void CSmartRewards::UpdateRoundParameter(const CSmartRewardsUpdateResult &result
         nPercent = 0;
     }
 
-    cache.UpdateRoundParameter(nBlockPayees, nBlockInterval, nPercent);
+    cache.UpdateRoundPercent(nPercent);
 }
 
 void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 {
     LOCK(cs_rewardscache);
 
+    UpdateRoundPayoutParameter();
+
+    const CSmartRewardRound *round = cache.GetCurrentRound();
+
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     CSmartRewardsRoundResult *pResult = new CSmartRewardsRoundResult();
 
-    CAmount nReward;
-    const CSmartRewardRound *round = cache.GetCurrentRound();
     pResult->round = *round;
     pResult->round.UpdatePayoutParameter();
 
+    CAmount nReward;
     CSmartRewardEntryMap tmpEntries;
     pdb->ReadRewardEntries(tmpEntries);
 
@@ -235,7 +240,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         ++entry;
     }
 
-    if( !pResult->payouts.size() ){
+    if( pResult->payouts.size() ){
 
         if( round->number < nFirst_1_3_Round ){
             // Sort it to make sure the slices are the same network wide.
@@ -274,27 +279,12 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
     while( nStartHeight <= next.endBlockHeight) next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * 0.15;
 
-    cache.AddFinishedRound(pResult->round);
-    cache.SetCurrentRound(next);
+    if( pResult->round.number ){
+        cache.AddFinishedRound(pResult->round);
+    }
+
     cache.SetResult(pResult);
-}
-
-bool CSmartRewards::StartFirstRound(const CSmartRewardRound &first, const CSmartRewardEntryList &entries)
-{
-    LOCK(cs_rewardsdb);
-    return pdb->StartFirstRound(first,entries);
-}
-
-bool CSmartRewards::FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardResultEntryList &results)
-{
-    LOCK(cs_rewardsdb);
-    return pdb->FinalizeRound(current, next, entries, results);
-}
-
-bool CSmartRewards::UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardResultEntryList &results)
-{
-    LOCK(cs_rewardsdb);
-    return pdb->UndoFinalizeRound(current, results);
+    cache.SetCurrentRound(next);
 }
 
 bool CSmartRewards::GetRewardRoundResults(const int16_t round, CSmartRewardResultEntryList &results)
@@ -417,8 +407,20 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
 
     cache.Load(block, round, rounds);
 
+    CSmartRewardsRoundResult *pResult = new CSmartRewardsRoundResult();
 
-    LogPrintf("CSmartRewards::CSmartRewards - Cache Size %d MB", cache.EstimatedSize() / 1000 / 1000);
+    if( round.number > 1 ){
+        pdb->ReadRewardRoundResults(round.number - 1, pResult->results);
+
+        for( auto it : pResult->results ){
+            if( it->reward ){
+                pResult->payouts.push_back(it);
+            }
+        }
+    }
+
+    cache.SetResult(pResult);
+
     LogPrintf("CSmartRewards::CSmartRewards\n  Last block %s\n  Current Round %s\n  Rounds: %d", block.ToString(), round.ToString(), rounds.size());
 }
 
@@ -965,7 +967,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
             cache.ClearResult();
     }
 
-    UpdateRoundParameter(result);
+    cache.ApplyRoundUpdateResult(result);
 
     // For the first round we have special parameter..
     if( !round->number ){
@@ -991,6 +993,8 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
     // If just hit the next round threshold
     if( ( MainNet() && round->number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() > round->endBlockTime ) ||
         ( ( TestNet() || round->number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == round->endBlockHeight ) ){
+
+        UpdatePercentage();
 
         cache.UpdateRoundEnd(pIndex->nHeight, pIndex->GetBlockTime());
 
@@ -1029,19 +1033,17 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
         // Evaluate the round and update the next rounds parameter.
         EvaluateRound(next);
-
     }
 
-    UpdateRoundParameter(CSmartRewardsUpdateResult());
+    UpdatePercentage();
 
     cache.UpdateHeights(GetBlockHeight(pIndex), cache.GetCurrentBlock()->nHeight);
 
-    int nTime2 = GetTimeMicros();
-    double dProcessingTime = (nTime2 - nTime1) * 0.001;
-
-    if( dProcessingTime > 10.0 && LogAcceptCategory("smartrewards-bench") ){
-            LogPrint("smartrewards-bench", "Round %d - Block: %d - Progress %d%%\n", round->number, cache.GetCurrentBlock()->nHeight, int(prewards->GetProgress() * 100));
-            LogPrint("smartrewards-bench", "  Commit block: %.2fms\n", dProcessingTime);
+    if( LogAcceptCategory("smartrewards-bench") ){
+        int nTime2 = GetTimeMicros();
+        double dProcessingTime = (nTime2 - nTime1) * 0.001;
+        LogPrint("smartrewards-bench", "Round %d - Block: %d - Progress %d%%\n", round->number, cache.GetCurrentBlock()->nHeight, int(prewards->GetProgress() * 100));
+        LogPrint("smartrewards-bench", "  Commit block: %.2fms\n", dProcessingTime);
     }
 
     // If we are synced notify the UI on each new block.
@@ -1055,7 +1057,6 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
 bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpdateResult &result)
 {
-    int nTime1 = GetTimeMicros();
 
     if(pIndex && pIndex->nHeight > sporkManager.GetSporkValue(SPORK_15_SMARTREWARDS_BLOCKS_ENABLED)){
         return true;
@@ -1063,12 +1064,12 @@ bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpda
 
     LOCK(cs_rewardscache);
 
-    const CSmartRewardRound *round = cache.GetCurrentRound();
-
     if(!pIndex || pIndex->nHeight != cache.GetCurrentBlock()->nHeight ){
         LogPrintf("CSmartRewards::CommitUndoBlock - Invalid next block!");
         return false;
     }
+
+    const CSmartRewardRound *pRound = cache.GetCurrentRound();
 
     CSmartRewardsUpdateResult undoResult(pIndex->pprev->nHeight, pIndex->pprev->phashBlock, pIndex->pprev->GetBlockTime());
 
@@ -1250,24 +1251,33 @@ void CSmartRewardsCache::ApplyRoundUpdateResult(const CSmartRewardsUpdateResult 
     }
 }
 
-void CSmartRewardsCache::UpdateRoundParameter(int64_t nBlockPayees, int64_t nBlockInterval, double dPercent)
+void CSmartRewardsCache::UpdateRoundPayoutParameter(int64_t nBlockPayees, int64_t nBlockInterval)
 {
     AssertLockHeld(cs_rewardscache);
 
     round.nBlockPayees = nBlockPayees;
     round.nBlockInterval = nBlockInterval;
-    round.percent = dPercent;
 }
 
 void CSmartRewardsCache::UpdateRoundEnd(int nBlockHeight, int64_t nBlockTime)
 {
+    AssertLockHeld(cs_rewardscache);
+
     round.endBlockHeight = nBlockHeight;
     round.endBlockTime = nBlockTime;
+}
+
+void CSmartRewardsCache::UpdateRoundPercent(double dPercent)
+{
+    AssertLockHeld(cs_rewardscache);
+
+    round.percent = dPercent;
 }
 
 void CSmartRewardsCache::UpdateHeights(const int nHeight, const int nRewardHeight)
 {
     AssertLockHeld(cs_rewardscache);
+
     chainHeight = nHeight;
     rewardHeight = nRewardHeight;
 }

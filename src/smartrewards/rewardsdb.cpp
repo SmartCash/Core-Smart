@@ -176,52 +176,6 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache &cache)
     return WriteBatch(batch, true);
 }
 
-bool CSmartRewardsDB::StartFirstRound(const CSmartRewardRound &start, const CSmartRewardEntryList &entries)
-{
-    CDBBatch batch(*this);
-
-    BOOST_FOREACH(const CSmartRewardEntry &e, entries) {
-        batch.Write(make_pair(DB_REWARD_ENTRY,e.id), e);
-    }
-
-    batch.Write(DB_ROUND_CURRENT, start);
-
-    return WriteBatch(batch);
-}
-
-bool CSmartRewardsDB::FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardResultEntryList &results)
-{
-    CDBBatch batch(*this);
-
-    BOOST_FOREACH(const CSmartRewardResultEntry &s, results) {
-        batch.Write(make_pair(DB_ROUND_SNAPSHOT, make_pair(current.number, s.entry.id)), s);
-    }
-
-    BOOST_FOREACH(const CSmartRewardEntry &e, entries) {
-        batch.Write(make_pair(DB_REWARD_ENTRY,e.id), e);
-    }
-
-    batch.Write(make_pair(DB_ROUND,current.number), current);
-    batch.Write(DB_ROUND_CURRENT, next);
-
-    return WriteBatch(batch);
-}
-
-bool CSmartRewardsDB::UndoFinalizeRound(const CSmartRewardRound &current, const CSmartRewardResultEntryList &results)
-{
-    CDBBatch batch(*this);
-
-    BOOST_FOREACH(const CSmartRewardResultEntry &s, results) {
-        batch.Erase(make_pair(DB_ROUND_SNAPSHOT, make_pair(current.number, s.entry.id)));
-        batch.Write(make_pair(DB_REWARD_ENTRY,s.entry.id), s.entry);
-    }
-
-    batch.Erase(make_pair(DB_ROUND, current.number));
-    batch.Write(DB_ROUND_CURRENT, current);
-
-    return WriteBatch(batch);
-}
-
 bool CSmartRewardsDB::ReadRewardEntries(CSmartRewardEntryMap &entries) {
 
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
@@ -263,6 +217,34 @@ bool CSmartRewardsDB::ReadRewardRoundResults(const int16_t round, CSmartRewardRe
             CSmartRewardResultEntry nValue;
             if (pcursor->GetValue(nValue)) {
                 results.push_back(nValue);
+                pcursor->Next();
+            } else {
+                return error("failed to get reward entry");
+            }
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool CSmartRewardsDB::ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryPtrList &results) {
+
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(make_pair(DB_ROUND_SNAPSHOT,round));
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char,std::pair<int16_t, CSmartAddress>> key;
+        if (pcursor->GetKey(key) && key.first == DB_ROUND_SNAPSHOT) {
+
+            if( key.second.first != round ) break;
+
+            CSmartRewardResultEntry nValue;
+            if (pcursor->GetValue(nValue)) {
+                results.push_back(new CSmartRewardResultEntry(nValue));
                 pcursor->Next();
             } else {
                 return error("failed to get reward entry");
