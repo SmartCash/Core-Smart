@@ -1645,6 +1645,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     int64_t nRewardsCache = (GetArg("-rewardsdbcache", nRewardsDefaultDbCache) << 20);
     LogPrintf("* Using %.1fMiB for smart rewards database\n", nRewardsCache * (1.0 / 1024 / 1024));
 
+    nCacheRewardEntries = GetArg("-rewardsentrycache", REWARDS_CACHE_ENTRIES_DEFAULT);
+
     delete prewards;
 
     CSmartRewardsDB *prewardsdb = new CSmartRewardsDB(nRewardsCache, false, false);
@@ -1799,15 +1801,16 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                     prewards = new CSmartRewards(prewardsdb);
                 }
 
-                if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database is incomplete."));
-
                 if( !(fLoaded = prewards->Verify()) ) throw std::runtime_error(_("Failed to verify SmartRewards database."));
 
-                if( pLastIndex != NULL && !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
+//                if( pLastIndex && prewards->GetLastHeight() <= pLastIndex->nHeight){
+//                    prewards->RollBack(pLastIndex);
+//                }else if( pLastIndex && prewards->GetLastHeight() > pLastIndex->nHeight ){
+//                    prewards->CatchUp(pLastIndex);
+//                }
+//                if( pLastIndex != NULL && !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
 
                 if (fRequestShutdown) break;
-
-                prewards->Lock();
 
             } catch (const std::runtime_error &e) {
                 if (fDebug) LogPrintf("%s\n", e.what());

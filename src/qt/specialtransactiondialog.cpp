@@ -380,9 +380,13 @@ void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
         case REGISTRATION_TRANSACTIONS:
             fSuccess = SendRegistration(it.first, it.second, strError);
             break;
-        case VOTE_PROOF_TRANSACTIONS:
-            fSuccess = SendVoteProof(it.first, it.second, prewards->GetCurrentRound().number, strError);
-            break;
+        case VOTE_PROOF_TRANSACTIONS:{
+
+            LOCK(cs_rewardscache);
+            int nCurrentRound = prewards->GetCurrentRound()->number;
+
+            fSuccess = SendVoteProof(it.first, it.second, nCurrentRound, strError);
+        }break;
         }
 
         if( !fSuccess ){
@@ -848,17 +852,22 @@ void SpecialTransactionDialog::updateView()
         if( type == VOTE_PROOF_TRANSACTIONS ){
             CKeyID keyId;
             CSmartAddress voteAddress(sWalletAddress.toStdString());
-            int nCurrentRound = prewards->GetCurrentRound().number;
+            int nCurrentRound = 0;
 
-            CSmartRewardEntry reward;
+            {
+                LOCK(cs_rewardscache);
+                nCurrentRound = prewards->GetCurrentRound()->number;
+            }
 
-            if( voteAddress.GetKeyID(keyId) && prewards->GetRewardEntry(voteAddress, reward) ){
+            CSmartRewardEntry *reward = nullptr;
+
+            if( voteAddress.GetKeyID(keyId) && prewards->GetRewardEntry(voteAddress, reward, false) ){
 
                 LOCK(pwalletMain->cs_wallet);
 
                 if( pwalletMain->mapVoted[keyId].find(nCurrentRound) == pwalletMain->mapVoted[keyId].end() ||
                     pwalletMain->mapVoteProofs[keyId].find(nCurrentRound) != pwalletMain->mapVoteProofs[keyId].end() ||
-                    reward.balanceEligible == 0 || !reward.disqualifyingTx.IsNull() || !reward.smartnodePaymentTx.IsNull() ){
+                    reward->balanceEligible == 0 || !reward->disqualifyingTx.IsNull() || !reward->smartnodePaymentTx.IsNull() ){
                     // If not yet voted, no eligible balance or already vote proven skip it.
                     continue;
                 }

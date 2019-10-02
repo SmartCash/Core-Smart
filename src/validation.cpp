@@ -1829,7 +1829,7 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
 
 /** Undo the effects of this block (with given index) on the UTXO set represented by coins.
  *  When UNCLEAN or FAILED is returned, view is left in an indeterminate state. */
-static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockIndex* pindex, CCoinsViewCache& view)
+static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& state, const CBlockIndex* pindex, CCoinsViewCache& view, bool fIsVerifyDB = false)
 {
     assert(pindex->GetBlockHash() == view.GetBestBlock());
 
@@ -1863,8 +1863,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
     // Result of the smartrewards block processing.
     CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
-
-    prewards->StartBlock();
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -2068,14 +2066,16 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
             // At this point, all of txundo.vprevout should have been moved out.
         }
 
-        prewards->UndoTransaction((CBlockIndex*) pindex, tx, view, params, smartRewardsResult);
+        if( !fIsVerifyDB ){
+            prewards->UndoTransaction((CBlockIndex*) pindex, tx, view, params, smartRewardsResult);
+        }
     }
 
 
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
-    if (fDepositIndex) {
+    if (!fIsVerifyDB && fDepositIndex) {
 
         if( !pblocktree->EraseDepositIndex(depositIndex) ){
             AbortNode(state, "Failed to write deposit index");
@@ -2083,7 +2083,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         }
     }
 
-    if (fAddressIndex) {
+    if (!fIsVerifyDB && fAddressIndex) {
         if (!pblocktree->EraseAddressIndex(addressIndex)) {
             AbortNode(state, "Failed to delete address index");
             return DISCONNECT_FAILED;
@@ -2094,7 +2094,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         }
     }
 
-    if( !prewards->CommitUndoBlock( (CBlockIndex*) pindex, smartRewardsResult) ){
+    if( !fIsVerifyDB && !prewards->CommitUndoBlock( (CBlockIndex*) pindex, smartRewardsResult) ){
         AbortNode(state, "Failed to commit smartrewards block undo");
         return DISCONNECT_FAILED;
     }
@@ -2110,7 +2110,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         return DISCONNECT_FAILED;
     }
     */
-
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
@@ -2222,7 +2221,7 @@ static int64_t nTimeTotal = 0;
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
-static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool fJustCheck = false)
+static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool fJustCheck = false, bool fIsVerifyDB = false)
 {
     const CChainParams& chainparams = Params();
     AssertLockHeld(cs_main);
@@ -2344,6 +2343,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : NULL);
 
     std::vector<int> prevheights;
+    std::vector<Coin> prevouts;
     CAmount nFees = 0;
     int nInputs = 0;
     unsigned int nSigOps = 0;
@@ -2365,8 +2365,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
-    prewards->StartBlock();
-
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = block.vtx[i];
@@ -2374,7 +2372,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
-        if( pindex->nHeight > 0 ) prewards->ProcessTransaction(pindex, tx, view, chainparams, smartRewardsResult);
+        CSmartAddress *voteProofCheck = nullptr;
+        CAmount nVoteProofIn = 0;
+
+        int nCurrentRewardsRound = prewards->GetCurrentRound()->number;
+        bool fProcessRewards = !fIsVerifyDB && prewards->ProcessTransaction(pindex, tx, nCurrentRewardsRound);
 
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
@@ -2392,8 +2394,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             // BIP68 lock checks (as opposed to nLockTime checks) must
             // be in ConnectBlock because they require the UTXO set
             prevheights.resize(tx.vin.size());
+            prevouts.resize(tx.vin.size());
+
             for (size_t j = 0; j < tx.vin.size(); j++) {
-                prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
+                prevouts[j] = view.AccessCoin(tx.vin[j].prevout);
+                prevheights[j] = prevouts[j].nHeight;
             }
 
             if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
@@ -2401,12 +2406,18 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                                  REJECT_INVALID, "bad-txns-nonfinal");
             }
 
-            if (fAddressIndex || fSpentIndex || fDepositIndex)
-            {
-                for (size_t j = 0; j < tx.vin.size(); j++) {
-                    const CTxIn input = tx.vin[j];
-                    const Coin& coin = view.AccessCoin(tx.vin[j].prevout);
-                    const CTxOut &prevout = coin.out;
+            for (size_t j = 0; j < tx.vin.size(); j++) {
+
+                const CTxIn input = tx.vin[j];
+                const Coin& coin = prevouts[j];
+                const CTxOut &prevout = coin.out;
+
+                if( fProcessRewards && !input.scriptSig.IsZerocoinSpend() ){
+                    prewards->ProcessInput(tx, prevout, &voteProofCheck, nVoteProofIn, nCurrentRewardsRound, smartRewardsResult);
+                }
+
+                if (fAddressIndex || fSpentIndex || fDepositIndex)
+                {
                     uint160 hashBytes;
                     int addressType;
 
@@ -2478,9 +2489,15 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             control.Add(vChecks);
         }
 
-        if (fAddressIndex || fDepositIndex) {
-            for (unsigned int k = 0; k < tx.vout.size(); k++) {
-                const CTxOut &out = tx.vout[k];
+        for (unsigned int k = 0; k < tx.vout.size(); k++) {
+
+            const CTxOut &out = tx.vout[k];
+
+            if( fProcessRewards && !out.scriptPubKey.IsZerocoinMint() ){
+                prewards->ProcessOutput(tx, out, voteProofCheck, nVoteProofIn, nCurrentRewardsRound, pindex->nHeight, smartRewardsResult);
+            }
+
+            if (fAddressIndex || fDepositIndex) {
 
                 uint160 hashBytes;
                 int addressType;
@@ -2525,7 +2542,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             }
 
             if( fDepositIndex ){
-
 
                 for( auto const &output : vecOutputs ){
 
@@ -2624,8 +2640,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         return false;
     }
 
-    prewards->CommitBlock(pindex, smartRewardsResult);
-
     // END SMARTCASH
 
     if (!control.Wait())
@@ -2635,6 +2649,10 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     if (fJustCheck)
         return true;
+
+    if( !fIsVerifyDB && smartRewardsResult.IsValid() ){
+        prewards->CommitBlock(pindex, smartRewardsResult);
+    }
 
     // Write undo information to disk
     if (pindex->GetUndoPos().IsNull() || !pindex->IsValid(BLOCK_VALID_SCRIPTS))
@@ -2655,11 +2673,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         setDirtyBlockIndex.insert(pindex);
     }
 
-    if (fTxIndex)
+    if (!fIsVerifyDB && fTxIndex)
         if (!pblocktree->WriteTxIndex(vPos))
             return AbortNode(state, "Failed to write transaction index");
 
-    if (fAddressIndex) {
+    if (!fIsVerifyDB && fAddressIndex) {
         if (!pblocktree->WriteAddressIndex(addressIndex)) {
             return AbortNode(state, "Failed to write address index");
         }
@@ -2669,15 +2687,15 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
     }
 
-    if (fSpentIndex)
+    if (!fIsVerifyDB && fSpentIndex)
         if (!pblocktree->UpdateSpentIndex(spentIndex))
-            return AbortNode(state, "Failed to write transaction index");
+            return AbortNode(state, "Failed to write spent index");
 
-    if (fTimestampIndex)
+    if (!fIsVerifyDB && fTimestampIndex)
         if (!pblocktree->WriteTimestampIndex(CTimestampIndexKey(pindex->nTime, pindex->GetBlockHash())))
             return AbortNode(state, "Failed to write timestamp index");
 
-    if (fDepositIndex) {
+    if (!fIsVerifyDB && fDepositIndex) {
 
         if( !pblocktree->WriteDepositIndex(depositIndex) ){
             return AbortNode(state, "Failed to write deposit index");
@@ -2755,8 +2773,10 @@ bool static FlushStateToDisk(CValidationState &state, FlushStateMode mode) {
     bool fPeriodicWrite = mode == FLUSH_STATE_PERIODIC && nNow > nLastWrite + (int64_t)DATABASE_WRITE_INTERVAL * 1000000;
     // It's been very long since we flushed the cache. Do this infrequently, to optimize cache usage.
     bool fPeriodicFlush = mode == FLUSH_STATE_PERIODIC && nNow > nLastFlush + (int64_t)DATABASE_FLUSH_INTERVAL * 1000000;
+    // The cache is over the limit, we have to write now.
+    bool fRewardsNeedsSync = prewards->NeedsCacheWrite();
     // Combine all conditions that result in a full cache flush.
-    bool fDoFullFlush = (mode == FLUSH_STATE_ALWAYS) || fCacheLarge || fCacheCritical || fPeriodicFlush || fFlushForPrune;
+    bool fDoFullFlush = (mode == FLUSH_STATE_ALWAYS) || fCacheLarge || fCacheCritical || fPeriodicFlush || fFlushForPrune || fRewardsNeedsSync;
     // Write blocks and block index to disk.
     if (fDoFullFlush || fPeriodicWrite) {
         // Depend on nMinDiskSpace to ensure we can write block index
@@ -2779,6 +2799,9 @@ bool static FlushStateToDisk(CValidationState &state, FlushStateMode mode) {
                 setDirtyBlockIndex.erase(it++);
             }
             if (!pblocktree->WriteBatchSync(vFiles, nLastBlockFile, vBlocks)) {
+                return AbortNode(state, "Files to write to block index database");
+            }
+            if (!prewards->SyncCached()) {
                 return AbortNode(state, "Files to write to block index database");
             }
         }
@@ -2966,7 +2989,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     LogPrint("bench", "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * 0.001, nTimeReadFromDisk * 0.000001);
     {
         CCoinsViewCache view(pcoinsTip);
-        bool rv = ConnectBlock(*pblock, state, pindexNew, view);
+        bool rv = ConnectBlock(*pblock, state, pindexNew, view, false, false);
         GetMainSignals().BlockChecked(*pblock, state);
         if (!rv) {
             if (state.IsInvalid())
@@ -3947,7 +3970,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
 
     int nHeight = pindex->nHeight;
     if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
-      newHash = true;
+//      newHash = true;
     }
 
     // Write block to history file
@@ -4031,7 +4054,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
         return false;
     if (!ContextualCheckBlock(block, state, pindexPrev))
         return false;
-    if (!ConnectBlock(block, state, &indexDummy, viewNew, true))
+    if (!ConnectBlock(block, state, &indexDummy, viewNew, true, true))
         return false;
     assert(state.IsValid());
 
@@ -4364,7 +4387,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
 
         int nHeight = pindex->nHeight;
         if(!newHash && ((nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT && Params().NetworkIDString() == CBaseChainParams::MAIN) || (nHeight > HF_V1_3_SMARTREWARD_WITHOUT_NODE_HEIGHT_TESTNET && Params().NetworkIDString() == CBaseChainParams::TESTNET))){
-          newHash = true;
+//          newHash = true;
         }
 
         if (pindex->nHeight < chainActive.Height()-nCheckDepth)
@@ -4387,10 +4410,11 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         }
         // check level 3: check for inconsistencies during memory-only disconnect of tip blocks
         if (nCheckLevel >= 3 && pindex == pindexState && (coins.DynamicMemoryUsage() + pcoinsTip->DynamicMemoryUsage()) <= nCoinCacheUsage) {
-            DisconnectResult res = DisconnectBlock(block, state, pindex, coins);
+            DisconnectResult res = DisconnectBlock(block, state, pindex, coins, true);
             if (res == DISCONNECT_FAILED) {
                 return error("VerifyDB(): *** irrecoverable inconsistency in block data at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
             }
+
             pindexState = pindex->pprev;
             if (res == DISCONNECT_UNCLEAN) {
                 nGoodTransactions = 0;
@@ -4415,7 +4439,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
                 return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
-            if (!ConnectBlock(block, state, pindex, coins))
+            if (!ConnectBlock(block, state, pindex, coins, false, true))
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
         }
     }

@@ -59,25 +59,25 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         UniValue obj(UniValue::VOBJ);
 
-        TRY_LOCK(cs_rewardrounds,roundsLocked);
+        TRY_LOCK(cs_rewardscache, cacheLocked);
 
-        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+        if(!cacheLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
 
-        const CSmartRewardRound& current = prewards->GetCurrentRound();
+        const CSmartRewardRound *current = prewards->GetCurrentRound();
 
-        if( !current.number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
+        if( !current->number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
 
-        obj.pushKV("rewards_cycle",current.number);
-        obj.pushKV("start_blockheight",current.startBlockHeight);
-        obj.pushKV("start_blocktime",current.startBlockTime);
-        obj.pushKV("end_blockheight",current.endBlockHeight);
-        obj.pushKV("end_blocktime",current.endBlockTime);
-        obj.pushKV("eligible_addresses",current.eligibleEntries - current.disqualifiedEntries);
-        obj.pushKV("eligible_smart",format(current.eligibleSmart - current.disqualifiedSmart));
-        obj.pushKV("disqualified_addresses",current.disqualifiedEntries);
-        obj.pushKV("disqualified_smart",format(current.disqualifiedSmart));
-        obj.pushKV("estimated_rewards",format(current.rewards));
-        obj.pushKV("estimated_percent",current.percent);
+        obj.pushKV("rewards_cycle",current->number);
+        obj.pushKV("start_blockheight",current->startBlockHeight);
+        obj.pushKV("start_blocktime",current->startBlockTime);
+        obj.pushKV("end_blockheight",current->endBlockHeight);
+        obj.pushKV("end_blocktime",current->endBlockTime);
+        obj.pushKV("eligible_addresses",current->eligibleEntries - current->disqualifiedEntries);
+        obj.pushKV("eligible_smart",format(current->eligibleSmart - current->disqualifiedSmart));
+        obj.pushKV("disqualified_addresses",current->disqualifiedEntries);
+        obj.pushKV("disqualified_smart",format(current->disqualifiedSmart));
+        obj.pushKV("estimated_rewards",format(current->rewards));
+        obj.pushKV("estimated_percent",current->percent);
 
         return obj;
     }
@@ -86,51 +86,45 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         UniValue obj(UniValue::VARR);
 
-        TRY_LOCK(cs_rewardrounds,roundsLocked);
+        TRY_LOCK(cs_rewardscache, cacheLocked);
 
-        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+        if(!cacheLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
 
-        const CSmartRewardRoundList& history = prewards->GetRewardRounds();
+        const CSmartRewardRoundMap* history = prewards->GetRewardRounds();
 
         int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
 
-        if(!history.size()) throw JSONRPCError(RPC_DATABASE_ERROR, "No finished reward round available yet.");
+        if(!history->size()) throw JSONRPCError(RPC_DATABASE_ERROR, "No finished reward round available yet.");
 
-        BOOST_FOREACH(CSmartRewardRound round, history) {
+        auto round = history->begin();
+
+        while( round != history->end() ){
 
             UniValue roundObj(UniValue::VOBJ);
 
-            roundObj.pushKV("rewards_cycle",round.number);
-            roundObj.pushKV("start_blockheight",round.startBlockHeight);
-            roundObj.pushKV("start_blocktime",round.startBlockTime);
-            roundObj.pushKV("end_blockheight",round.endBlockHeight);
-            roundObj.pushKV("end_blocktime",round.endBlockTime);
-            roundObj.pushKV("eligible_addresses",round.eligibleEntries - round.disqualifiedEntries);
-            roundObj.pushKV("eligible_smart",format(round.eligibleSmart - round.disqualifiedSmart));
-            roundObj.pushKV("disqualified_addresses",round.disqualifiedEntries);
-            roundObj.pushKV("disqualified_smart",format(round.disqualifiedSmart));
-            roundObj.pushKV("rewards",format(round.rewards));
-            roundObj.pushKV("percent",round.percent);
+            roundObj.pushKV("rewards_cycle",round->second.number);
+            roundObj.pushKV("start_blockheight",round->second.startBlockHeight);
+            roundObj.pushKV("start_blocktime",round->second.startBlockTime);
+            roundObj.pushKV("end_blockheight",round->second.endBlockHeight);
+            roundObj.pushKV("end_blocktime",round->second.endBlockTime);
+            roundObj.pushKV("eligible_addresses",round->second.eligibleEntries - round->second.disqualifiedEntries);
+            roundObj.pushKV("eligible_smart",format(round->second.eligibleSmart - round->second.disqualifiedSmart));
+            roundObj.pushKV("disqualified_addresses",round->second.disqualifiedEntries);
+            roundObj.pushKV("disqualified_smart",format(round->second.disqualifiedSmart));
+            roundObj.pushKV("rewards",format(round->second.rewards));
+            roundObj.pushKV("percent",round->second.percent);
 
             UniValue payObj(UniValue::VOBJ);
 
-            int nPayeeCount = round.eligibleEntries - round.disqualifiedEntries;
+            if( round->second.GetPayeeCount() ){
 
-            if( nPayeeCount ){
-
-                int nBlockPayees = round.nBlockPayees;
-                int nPayoutInterval = round.nBlockInterval;
-                int nRewardBlocks = nPayeeCount / nBlockPayees;
-                if( nPayeeCount % nBlockPayees ) nRewardBlocks += 1;
-                int nLastRoundBlock = round.endBlockHeight + nPayoutDelay + ( (nRewardBlocks - 1) * nPayoutInterval );
-
-                payObj.pushKV("firstBlock", round.endBlockHeight + nPayoutDelay );
-                payObj.pushKV("totalBlocks", nRewardBlocks );
-                payObj.pushKV("lastBlock", nLastRoundBlock );
-                payObj.pushKV("totalPayees", nPayeeCount);
-                payObj.pushKV("blockPayees", round.nBlockPayees);
-                payObj.pushKV("lastBlockPayees", nPayeeCount % nBlockPayees );
-                payObj.pushKV("blockInterval",round.nBlockInterval);
+                payObj.pushKV("firstBlock", round->second.endBlockHeight + nPayoutDelay );
+                payObj.pushKV("totalBlocks", round->second.GetRewardBlocks() );
+                payObj.pushKV("lastBlock", round->second.GetLastRoundBlock() );
+                payObj.pushKV("totalPayees", round->second.GetPayeeCount() );
+                payObj.pushKV("blockPayees", round->second.nBlockPayees);
+                payObj.pushKV("lastBlockPayees", round->second.GetPayeeCount() % round->second.nBlockPayees );
+                payObj.pushKV("blockInterval", round->second.nBlockInterval);
             }else{
                 payObj.pushKV("error", "No payees were eligible for this round");
             }
@@ -138,6 +132,8 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
             roundObj.pushKV("payouts", payObj);
 
             obj.push_back(roundObj);
+
+            ++round;
         }
 
         return obj;
@@ -145,16 +141,16 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if(strCommand == "payouts")
     {
-        TRY_LOCK(cs_rewardrounds,roundsLocked);
+        TRY_LOCK(cs_rewardscache, cacheLocked);
 
-        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+        if(!cacheLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
 
-        const CSmartRewardRound& current = prewards->GetCurrentRound();
+        const CSmartRewardRound *current = prewards->GetCurrentRound();
 
-        if( !current.number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
+        if( !current->number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
 
         int round = 0;
-        std::string err = strprintf("Past SmartReward round required: 1 - %d ",current.number - 1 );
+        std::string err = strprintf("Past SmartReward round required: 1 - %d ",current->number - 1 );
 
         if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
@@ -170,16 +166,16 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         }
         catch (...) {}
 
-        if(round < 1 || round >= current.number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
+        if(round < 1 || round >= current->number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
-        CSmartRewardRoundResultList payouts;
+        CSmartRewardResultEntryList payouts;
 
         if( !prewards->GetRewardPayouts(round,payouts) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't fetch the list from the database.");
 
         UniValue obj(UniValue::VARR);
 
-        BOOST_FOREACH(CSmartRewardRoundResult payout, payouts) {
+        BOOST_FOREACH(CSmartRewardResultEntry payout, payouts) {
 
             UniValue addrObj(UniValue::VOBJ);
             addrObj.pushKV("address", payout.entry.id.ToString());
@@ -193,16 +189,16 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     if(strCommand == "snapshot")
     {
-        TRY_LOCK(cs_rewardrounds,roundsLocked);
+        TRY_LOCK(cs_rewardscache, cacheLocked);
 
-        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+        if(!cacheLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
 
-        const CSmartRewardRound& current = prewards->GetCurrentRound();
+        const CSmartRewardRound *current = prewards->GetCurrentRound();
 
-        if( !current.number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
+        if( !current->number ) throw JSONRPCError(RPC_DATABASE_ERROR, "No active reward round available yet.");
 
         int round = 0;
-        std::string err = strprintf("Past SmartReward round required: 1 - %d ",current.number - 1 );
+        std::string err = strprintf("Past SmartReward round required: 1 - %d ",current->number - 1 );
 
         if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
@@ -218,16 +214,16 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         }
         catch (...) {}
 
-        if(round < 1 || round >= current.number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
+        if(round < 1 || round >= current->number) throw JSONRPCError(RPC_INVALID_PARAMETER, err);
 
-        CSmartRewardRoundResultList results;
+        CSmartRewardResultEntryList results;
 
         if( !prewards->GetRewardRoundResults(round, results) )
             throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't fetch the list from the database.");
 
         UniValue obj(UniValue::VARR);
 
-        BOOST_FOREACH(CSmartRewardRoundResult s, results) {
+        BOOST_FOREACH(CSmartRewardResultEntry s, results) {
 
             UniValue addrObj(UniValue::VOBJ);
             addrObj.pushKV("address", s.entry.id.ToString());
@@ -243,11 +239,11 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
     {
         if (params.size() != 2) throw JSONRPCError(RPC_INVALID_PARAMETER, "SmartCash address required.");
 
-        TRY_LOCK(cs_rewardrounds,roundsLocked);
+        TRY_LOCK(cs_rewardscache, cacheLocked);
 
-        if(!roundsLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+        if(!cacheLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
 
-        const CSmartRewardRound& current = prewards->GetCurrentRound();
+        const CSmartRewardRound *current = prewards->GetCurrentRound();
 
         int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
@@ -256,18 +252,18 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         if( !id.IsValid() ) throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Invalid SmartCash address provided: %s",addressString));
 
-        CSmartRewardEntry entry;
+        CSmartRewardEntry *entry = nullptr;
 
-        if( !prewards->GetRewardEntry(id, entry) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SmartCash address in the database.");
+        if( !prewards->GetRewardEntry(id, entry, false) ) throw JSONRPCError(RPC_DATABASE_ERROR, "Couldn't find this SmartCash address in the database.");
 
         UniValue obj(UniValue::VOBJ);
 
         obj.pushKV("address",id.ToString());
-        obj.pushKV("balance",format(entry.balance));
-        obj.pushKV("balance_eligible", format(entry.balanceEligible));
-        obj.pushKV("is_smartnode", !entry.smartnodePaymentTx.IsNull());
-        obj.pushKV("voted", !entry.voteProof.IsNull());
-        obj.pushKV("eligible", current.number < nFirst_1_3_Round ? entry.balanceEligible > 0 : entry.IsEligible());
+        obj.pushKV("balance",format(entry->balance));
+        obj.pushKV("balance_eligible", format(entry->balanceEligible));
+        obj.pushKV("is_smartnode", !entry->smartnodePaymentTx.IsNull());
+        obj.pushKV("voted", !entry->voteProof.IsNull());
+        obj.pushKV("eligible", current->number < nFirst_1_3_Round ? entry->balanceEligible > 0 : entry->IsEligible());
 
         return obj;
     }
