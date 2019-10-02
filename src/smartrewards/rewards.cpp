@@ -416,6 +416,8 @@ CSmartRewards::CSmartRewards(CSmartRewardsDB *prewardsdb)  : pdb(prewardsdb)
     CSmartRewardsRoundResult *pResult = new CSmartRewardsRoundResult();
 
     if( round.number > 1 ){
+        pResult->fSynced = true;
+        pResult->round = rounds[round.number - 1];
         pdb->ReadRewardRoundResults(round.number - 1, pResult->results);
 
         for( auto it : pResult->results ){
