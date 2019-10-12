@@ -56,6 +56,11 @@ struct CSmartRewardsUpdateResult
     CSmartRewardBlock block;
     CSmartRewardsUpdateResult() : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block() {}
     CSmartRewardsUpdateResult(const int nHeight, const uint256* pBlockHash, const int64_t nBlockTime) : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block(nHeight, pBlockHash, nBlockTime) { }
+    CSmartRewardsUpdateResult(const CBlockIndex* pIndex) : disqualifiedEntries(0), disqualifiedSmart(0), qualifiedEntries(0), qualifiedSmart(0), block() {
+        if( pIndex && pIndex->phashBlock ){
+            block = CSmartRewardBlock(pIndex->nHeight, pIndex->phashBlock, pIndex->nTime);
+        }
+    }
 
     bool IsValid() const { return block.IsValid(); }
 };

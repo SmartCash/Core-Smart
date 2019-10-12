@@ -1862,7 +1862,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
     */
 
     // Result of the smartrewards block processing.
-    CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
+    CSmartRewardsUpdateResult smartRewardsResult(pindex);
 
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
@@ -2361,7 +2361,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     */
 
     // Result of the smartrewards block processing.
-    CSmartRewardsUpdateResult smartRewardsResult(pindex->nHeight, pindex->phashBlock, pindex->nTime);
+    CSmartRewardsUpdateResult smartRewardsResult(pindex);
 
     //bool fDIP0001Active_context = (VersionBitsState(pindex->pprev, chainparams.GetConsensus(), Consensus::DEPLOYMENT_DIP0001, versionbitscache) == THRESHOLD_ACTIVE);
 
