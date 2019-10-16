@@ -31,7 +31,6 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_SCRIPTHASH: return "scripthash";
     case TX_MULTISIG: return "multisig";
     case TX_NULL_DATA: return "nulldata";
-    case TX_ZEROCOINMINT: return "zerocoinmint";
     }
     return NULL;
 }
@@ -63,15 +62,6 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
     {
         typeRet = TX_SCRIPTHASH;
         vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
-        vSolutionsRet.push_back(hashBytes);
-        return true;
-    }
-
-    if (scriptPubKey.IsZerocoinMint())
-    {
-        typeRet = TX_ZEROCOINMINT;
-        if(scriptPubKey.size() > 150) return false;
-        vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.end());
         vSolutionsRet.push_back(hashBytes);
         return true;
     }
