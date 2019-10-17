@@ -3254,7 +3254,7 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                 // Note how the sequence number is set to max()-1 so that the
                 // nLockTime set above actually works.
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx *, unsigned int) &coin, setCoins)
-                    txNew.vin.push_back(CTxIn(coin.first->GetHash(), coin.second, CScript(), std::numeric_limits < unsigned int > ::max()));
+                    txNew.vin.push_back(CTxIn(coin.first->GetHash(), coin.second, CScript(), std::numeric_limits < unsigned int > ::max() - 1));
 
                 // Sign
                 int nIn = 0;
