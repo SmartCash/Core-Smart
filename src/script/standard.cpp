@@ -28,7 +28,9 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NONSTANDARD: return "nonstandard";
     case TX_PUBKEY: return "pubkey";
     case TX_PUBKEYHASH: return "pubkeyhash";
+    case TX_PUBKEYHASHLOCKED: return "pubkeyhashlocked";
     case TX_SCRIPTHASH: return "scripthash";
+    case TX_SCRIPTHASHLOCKED: return "scripthashlocked";
     case TX_MULTISIG: return "multisig";
     case TX_NULL_DATA: return "nulldata";
     }
@@ -56,12 +58,34 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
 
     vSolutionsRet.clear();
 
+    // Shortcut for pay-to-pubkey-hash-locked
+    if (scriptPubKey.IsPayToPublicKeyHashLocked())
+    {
+        int nOffset = scriptPubKey[0] + 6;
+
+        typeRet = TX_PUBKEYHASHLOCKED;
+        vector<unsigned char> hashBytes(scriptPubKey.begin() + nOffset, scriptPubKey.begin() + nOffset + 20);
+        vSolutionsRet.push_back(hashBytes);
+        return true;
+    }
+
     // Shortcut for pay-to-script-hash, which are more constrained than the other types:
     // it is always OP_HASH160 20 [20 byte hash] OP_EQUAL
     if (scriptPubKey.IsPayToScriptHash())
     {
         typeRet = TX_SCRIPTHASH;
         vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
+        vSolutionsRet.push_back(hashBytes);
+        return true;
+    }
+
+    // Shortcut for pay-to-script-hash-locked
+    if (scriptPubKey.IsPayToScriptHashLocked())
+    {
+        int nOffset = scriptPubKey[0] + 5;
+
+        typeRet = TX_SCRIPTHASHLOCKED;
+        vector<unsigned char> hashBytes(scriptPubKey.begin() + nOffset, scriptPubKey.begin() + nOffset + 20);
         vSolutionsRet.push_back(hashBytes);
         return true;
     }
@@ -177,12 +201,12 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = pubKey.GetID();
         return true;
     }
-    else if (whichType == TX_PUBKEYHASH)
+    else if (whichType == TX_PUBKEYHASH || whichType == TX_PUBKEYHASHLOCKED)
     {
         addressRet = CKeyID(uint160(vSolutions[0]));
         return true;
     }
-    else if (whichType == TX_SCRIPTHASH)
+    else if (whichType == TX_SCRIPTHASH || whichType == TX_SCRIPTHASHLOCKED)
     {
         addressRet = CScriptID(uint160(vSolutions[0]));
         return true;
