@@ -259,11 +259,49 @@ public:
 };
 }
 
+
+namespace
+{
+class CLockedScriptVisitor : public boost::static_visitor<bool>
+{
+private:
+    CScript *script;
+    int nLockTime;
+public:
+    CLockedScriptVisitor(CScript *scriptin, int nLockTime) : script(scriptin), nLockTime(nLockTime) { }
+
+    bool operator()(const CNoDestination &dest) const {
+        script->clear();
+        return false;
+    }
+
+    bool operator()(const CKeyID &keyID) const {
+        script->clear();
+        *script << nLockTime << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_DUP << OP_HASH160 << ToByteVector(keyID) << OP_EQUALVERIFY << OP_CHECKSIG;
+        return true;
+    }
+
+    bool operator()(const CScriptID &scriptID) const {
+        script->clear();
+        *script << nLockTime << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_HASH160 << ToByteVector(scriptID) << OP_EQUAL;
+        return true;
+    }
+};
+}
+
 CScript GetScriptForDestination(const CTxDestination& dest)
 {
     CScript script;
 
     boost::apply_visitor(CScriptVisitor(&script), dest);
+    return script;
+}
+
+CScript GetLockedScriptForDestination(const CTxDestination& dest, int nLockTime)
+{
+    CScript script;
+
+    boost::apply_visitor(CLockedScriptVisitor(&script, nLockTime), dest);
     return script;
 }
 
