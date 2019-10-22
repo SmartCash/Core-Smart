@@ -18,6 +18,7 @@
 #include <QPoint>
 #include <QSystemTrayIcon>
 
+class AddressConverter;
 class ClientModel;
 class NetworkStyle;
 class Notificator;
@@ -117,6 +118,7 @@ private:
     QAction *smartrewardsAction;
     QAction *smartvotingAction;
     QAction *openRPCConsoleAction;
+    QAction *openAddressConverterAction;
     QAction *openAction;
     QAction *showHelpMessageAction;
 
@@ -124,6 +126,7 @@ private:
     QMenu *trayIconMenu;
     Notificator *notificator;
     RPCConsole *rpcConsole;
+    AddressConverter *addressConverter;
     HelpMessageDialog *helpMessageDialog;
     ModalOverlay *modalOverlay;
 
@@ -234,6 +237,8 @@ private Q_SLOTS:
     void aboutClicked();
     /** Show debug window */
     void showDebugWindow();
+    /** Show address converter dialog */
+    void showAddressConverter();
     /** Show debug window and set focus to the console */
     void showDebugWindowActivateConsole();
     /** Show help message dialog */
