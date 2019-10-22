@@ -248,7 +248,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
         std::string addressString = params[1].get_str();
-        CSmartAddress id = CSmartAddress(addressString);
+        CSmartAddress id = CSmartAddress::Legacy(addressString);
 
         if( !id.IsValid() ) throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Invalid SmartCash address provided: %s",addressString));
 
@@ -258,8 +258,8 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
         UniValue obj(UniValue::VOBJ);
 
-        obj.pushKV("address",id.ToString());
-        obj.pushKV("balance",format(entry->balance));
+        obj.pushKV("address", id.ToString());
+        obj.pushKV("balance", format(entry->balance));
         obj.pushKV("balance_eligible", format(entry->balanceEligible));
         obj.pushKV("is_smartnode", !entry->smartnodePaymentTx.IsNull());
         obj.pushKV("voted", !entry->voteProof.IsNull());
