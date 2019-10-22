@@ -108,3 +108,29 @@ const CSmartAddress& SmartHive::Address(SmartHive::Payee payee)
 
     return *ptr->at(payee);
 }
+
+CSmartAddress CSmartAddress::Legacy(const CSmartAddress &address)
+{
+    if( address.IsValid(CChainParams::PUBKEY_ADDRESS_V2) ){
+        return CSmartAddress(address.ToString(false));
+    }
+    if( address.IsValid(CChainParams::SCRIPT_ADDRESS_V2) ){
+        return CSmartAddress(address.ToString(false));
+    }
+
+    return address;
+}
+
+CSmartAddress CSmartAddress::Legacy(const std::string &strAddress)
+{
+    CSmartAddress address(strAddress);
+
+    if( address.IsValid(CChainParams::PUBKEY_ADDRESS_V2) ){
+        return CSmartAddress(address.ToString(false));
+    }
+    if( address.IsValid(CChainParams::SCRIPT_ADDRESS_V2) ){
+        return CSmartAddress(address.ToString(false));
+    }
+
+    return address;
+}
