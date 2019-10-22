@@ -1259,6 +1259,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     nTxConfirmTarget = GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     bSpendZeroConfChange = GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
     fSendFreeTransactions = GetBoolArg("-sendfreetransactions", DEFAULT_SEND_FREE_TRANSACTIONS);
+    fUseNewAddressFormat = GetBoolArg("-usenewaddressformat", DEFAULT_USE_NEW_ADDRESS_FORMAT);
 
     std::string strWalletFile = GetArg("-wallet", "wallet.dat");
 #endif // ENABLE_WALLET
