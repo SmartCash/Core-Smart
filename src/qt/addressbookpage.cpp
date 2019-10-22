@@ -33,13 +33,11 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode mode, 
     if (!platformStyle->getImagesOnButtons()) {
         ui->newAddress->setIcon(QIcon());
         ui->copyAddress->setIcon(QIcon());
-        ui->copyAddressLegacy->setIcon(QIcon());
         ui->deleteAddress->setIcon(QIcon());
         ui->exportButton->setIcon(QIcon());
     } else {
         ui->newAddress->setIcon(platformStyle->SingleColorIcon(":/icons/add"));
         ui->copyAddress->setIcon(platformStyle->SingleColorIcon(":/icons/editcopy"));
-        ui->copyAddressLegacy->setIcon(platformStyle->SingleColorIcon(":/icons/editcopy"));
         ui->deleteAddress->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
         ui->exportButton->setIcon(platformStyle->SingleColorIcon(":/icons/export"));
     }
@@ -79,7 +77,6 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode mode, 
     }
 
     // Context menu actions
-    QAction *copyAddressActionLegacy = new QAction(tr("&Copy Address (Legacy)"), this);
     QAction *copyAddressAction = new QAction(tr("&Copy Address"), this);
     QAction *copyLabelAction = new QAction(tr("Copy &Label"), this);
     QAction *editAction = new QAction(tr("&Edit"), this);
@@ -87,7 +84,6 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode mode, 
 
     // Build context menu
     contextMenu = new QMenu(this);
-    contextMenu->addAction(copyAddressActionLegacy);
     contextMenu->addAction(copyAddressAction);
     contextMenu->addAction(copyLabelAction);
     contextMenu->addAction(editAction);
@@ -96,7 +92,6 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode mode, 
     contextMenu->addSeparator();
 
     // Connect signals for context menu actions
-    connect(copyAddressActionLegacy, SIGNAL(triggered()), this, SLOT(on_copyAddressLegacy_clicked()));
     connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(on_copyAddress_clicked()));
     connect(copyLabelAction, SIGNAL(triggered()), this, SLOT(onCopyLabelAction()));
     connect(editAction, SIGNAL(triggered()), this, SLOT(onEditAction()));
@@ -142,11 +137,9 @@ void AddressBookPage::setModel(AddressTableModel *model)
     // Set column widths
 #if QT_VERSION < 0x050000
     ui->tableView->horizontalHeader()->setResizeMode(AddressTableModel::Label, QHeaderView::Stretch);
-    ui->tableView->horizontalHeader()->setResizeMode(AddressTableModel::AddressLegacy, QHeaderView::ResizeToContents);
     ui->tableView->horizontalHeader()->setResizeMode(AddressTableModel::Address, QHeaderView::ResizeToContents);
 #else
     ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Label, QHeaderView::Stretch);
-    ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::AddressLegacy, QHeaderView::ResizeToContents);
     ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Address, QHeaderView::ResizeToContents);
 #endif
 
@@ -162,11 +155,6 @@ void AddressBookPage::setModel(AddressTableModel *model)
 void AddressBookPage::on_copyAddress_clicked()
 {
     GUIUtil::copyEntryData(ui->tableView, AddressTableModel::Address);
-}
-
-void AddressBookPage::on_copyAddressLegacy_clicked()
-{
-    GUIUtil::copyEntryData(ui->tableView, AddressTableModel::AddressLegacy);
 }
 
 void AddressBookPage::onCopyLabelAction()
@@ -249,13 +237,11 @@ void AddressBookPage::selectionChanged()
             break;
         }
         ui->copyAddress->setEnabled(true);
-        ui->copyAddressLegacy->setEnabled(true);
     }
     else
     {
         ui->deleteAddress->setEnabled(false);
         ui->copyAddress->setEnabled(false);
-        ui->copyAddressLegacy->setEnabled(false);
     }
 }
 
@@ -297,7 +283,6 @@ void AddressBookPage::on_exportButton_clicked()
     // name, column, role
     writer.setModel(proxyModel);
     writer.addColumn("Label", AddressTableModel::Label, Qt::EditRole);
-    writer.addColumn("Address Legacy", AddressTableModel::AddressLegacy, Qt::EditRole);
     writer.addColumn("Address", AddressTableModel::Address, Qt::EditRole);
 
     if(!writer.write()) {
