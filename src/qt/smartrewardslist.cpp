@@ -263,7 +263,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                     change.label = tr("(change)");
                     change.balance = out.tx->vout[out.i].nValue;
 
-                    if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward, false) ){
+                    if( prewards->GetRewardEntry(CSmartAddress::Legacy(sAddress.toStdString()), reward, false) ){
                         change.balance = reward->balance;
                         change.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
                         change.balanceAtStart = reward->balanceAtStart;
@@ -339,7 +339,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
             CSmartRewardEntry *reward = nullptr;
 
-            if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward, false) ){
+            if( prewards->GetRewardEntry(CSmartAddress::Legacy(rewardField.address.toStdString()), reward, false) ){
                 rewardField.balance = reward->balance;
                 rewardField.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
                 rewardField.balanceAtStart = reward->balanceAtStart;

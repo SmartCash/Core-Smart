@@ -861,7 +861,7 @@ void SpecialTransactionDialog::updateView()
 
             CSmartRewardEntry *reward = nullptr;
 
-            if( voteAddress.GetKeyID(keyId) && prewards->GetRewardEntry(voteAddress, reward, false) ){
+            if( voteAddress.GetKeyID(keyId) && prewards->GetRewardEntry(CSmartAddress::Legacy(voteAddress), reward, false) ){
 
                 LOCK(pwalletMain->cs_wallet);
 
