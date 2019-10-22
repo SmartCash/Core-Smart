@@ -67,7 +67,7 @@ static bool CheckAddresses(HTTPRequest* req, std::vector<std::string> vecAddr, s
 
     for( auto addrStr : vecAddr ){
 
-        CSmartAddress id = CSmartAddress(addrStr);
+        CSmartAddress id = CSmartAddress::Legacy(addrStr);
 
         if( !id.IsValid() ){
             code = SAPI::InvalidSmartCashAddress;
