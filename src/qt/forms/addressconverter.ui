@@ -32,8 +32,28 @@
    </item>
    <item>
     <widget class="QLineEdit" name="input">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>25</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>25</height>
+      </size>
+     </property>
      <property name="focusPolicy">
       <enum>Qt::ClickFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLineEdit{
+color: black;
+border: 1px solid;
+background-color: white;
+border-color: rgb(118, 118, 119);
+}</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
@@ -60,18 +80,35 @@
     </spacer>
    </item>
    <item>
-    <widget class="QLineEdit" name="output">
-     <property name="focusPolicy">
-      <enum>Qt::NoFocus</enum>
+    <widget class="QLabel" name="output">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>25</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>25</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLabel{
+color: black;
+border: 1px solid;
+background-color: white;
+border-color: rgb(118, 118, 119);
+}</string>
+     </property>
+     <property name="text">
+      <string/>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
      </property>
-     <property name="readOnly">
-      <bool>true</bool>
-     </property>
-     <property name="placeholderText">
-      <string>Converted address</string>
+     <property name="textInteractionFlags">
+      <set>Qt::TextSelectableByMouse</set>
      </property>
     </widget>
    </item>
@@ -79,7 +116,6 @@
  </widget>
  <tabstops>
   <tabstop>input</tabstop>
-  <tabstop>output</tabstop>
  </tabstops>
  <resources/>
  <connections/>
