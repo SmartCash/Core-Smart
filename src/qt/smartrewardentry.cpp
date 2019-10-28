@@ -48,6 +48,11 @@ QSmartRewardEntry::~QSmartRewardEntry()
     delete ui;
 }
 
+void QSmartRewardEntry::setMinBalance(CAmount nMinBalance)
+{
+    this->nMinBalance = nMinBalance;
+}
+
 void QSmartRewardEntry::setDisqualifyingTx(const uint256& txHash){
 
     if( disqualifyingTx.IsNull() ){
@@ -104,7 +109,7 @@ QString QSmartRewardEntry::Address() const
 
 QSmartRewardEntry::State QSmartRewardEntry::CurrentState()
 {
-    if( nBalanceAtStart < SMART_REWARDS_MIN_BALANCE ) return LowBalance;
+    if( nBalanceAtStart < nMinBalance ) return LowBalance;
 
     if( fIsSmartNode ) return IsASmartNode;
 

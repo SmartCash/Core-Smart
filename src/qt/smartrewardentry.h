@@ -31,6 +31,7 @@ public:
         IsEligible
     };
 
+    void setMinBalance(CAmount nMinBalance);
     void setDisqualifyingTx(const uint256& txHash);
     void setBalance(CAmount nBalance);
     void setInfoText(const QString& strText, const QColor& color);
@@ -58,6 +59,7 @@ private:
 
     QMenu* contextMenu;
 
+    CAmount nMinBalance;
     CAmount nBalanceAtStart;
     CAmount nBalance;
     CAmount nEligible;

@@ -14,7 +14,8 @@ using namespace std;
 
 #define REWARDS_CACHE_ENTRIES_DEFAULT 50000
 
-static const CAmount SMART_REWARDS_MIN_BALANCE = 1000 * COIN;
+static const CAmount SMART_REWARDS_MIN_BALANCE_1_2 = 1000 * COIN;
+static const CAmount SMART_REWARDS_MIN_BALANCE_1_3 = 10000 * COIN;
 
 // Minimum distance of the last processed block compared to the current chain
 // height to assume the rewards are synced.

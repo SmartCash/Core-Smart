@@ -174,6 +174,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
     const CSmartRewardRound *round = cache.GetCurrentRound();
 
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
+    CAmount nMinBalance = next.number < nFirst_1_3_Round ? SMART_REWARDS_MIN_BALANCE_1_2 : SMART_REWARDS_MIN_BALANCE_1_3;
 
     CSmartRewardsRoundResult *pResult = new CSmartRewardsRoundResult();
 
@@ -216,7 +217,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         entry->second->balanceAtStart = entry->second->balance;
 
-        if( entry->second->balance >= SMART_REWARDS_MIN_BALANCE && !SmartHive::IsHive(entry->second->id) ){
+        if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) ){
             entry->second->balanceEligible = entry->second->balance;
         }else{
             entry->second->balanceEligible = 0;
