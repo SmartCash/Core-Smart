@@ -188,10 +188,10 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
 
         base58Prefixes[PUBKEY_ADDRESS_V2] = std::vector<unsigned char>(1,125); //s
-        base58Prefixes[SCRIPT_ADDRESS_V2] = std::vector<unsigned char>(1,18);
-        base58Prefixes[SECRET_KEY_V2] =     std::vector<unsigned char>(1,191);
-        base58Prefixes[EXT_PUBLIC_KEY_V2] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
-        base58Prefixes[EXT_SECRET_KEY_V2] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[SCRIPT_ADDRESS_V2] = std::vector<unsigned char>(1,110);
+        base58Prefixes[SECRET_KEY_V2] =     std::vector<unsigned char>(1,237);
+        base58Prefixes[EXT_PUBLIC_KEY_V2] = boost::assign::list_of(0x04)(0x20)(0xBD)(0x3F).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[EXT_SECRET_KEY_V2] = boost::assign::list_of(0x04)(0x20)(0xB9)(0x03).convert_to_container<std::vector<unsigned char> >();
 
         base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,125);
         base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,82);
