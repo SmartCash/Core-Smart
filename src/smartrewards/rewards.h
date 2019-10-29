@@ -39,9 +39,8 @@ const int64_t nRewardsBlocksPerRound_Testnet = 1000;
 const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
-const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_PAYMENTS_HEIGHT;
-const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + nRewardsBlocksPerRound_Testnet;
-
+const int64_t nFirstRoundStartBlock_Testnet = TESTNET_V1_2_8_PAYMENTS_HEIGHT - 1;
+const int64_t nFirstRoundEndBlock_Testnet = nFirstRoundStartBlock_Testnet + 500;
 
 void ThreadSmartRewards(bool fRecreate = false);
 CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);

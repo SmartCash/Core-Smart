@@ -232,7 +232,7 @@ void CSmartnodeSync::ProcessTick(CConnman& connman)
     }
 
     int nHeight = chainActive.Height();
-    int nMinHeight = (MainNet() ? HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT : TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT) - 5000;
+    int nMinHeight = (MainNet() ? HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT : TESTNET_V1_2_8_PAYMENTS_HEIGHT) - 5000;
     int nMinProtocol = mnpayments.GetMinSmartnodePaymentsProto();
     int nMinProtocolFound = 0;
 
