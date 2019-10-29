@@ -45,14 +45,21 @@ struct CSmartAddress : public CBitcoinAddress
 namespace SmartHive{
 
     enum Payee{
+        Development_Legacy, //Deprecated with 1.3
+        Outreach_Legacy, //Deprecated with 1.3
+        Support_Legacy,  //Deprecated with 1.3
+        SmartRewards_Legacy, //Deprecated with 1.2
+        ProjectTreasury_Legacy, //Deprecated with 1.3
+        Outreach2_Legacy, //Deprecated with 1.3
+        Web_Legacy, //Deprecated with 1.3
+        Quality_Legacy, //Deprecated with 1.3
         Development,
         Outreach,
         Support,
-        SmartRewards, //Deprecated with 1.2
         ProjectTreasury,
-        Outreach2,
-        Web,
-        Quality
+        WebMobileSmartCard,
+        Exchanges,
+        Merchants
     };
 
     const CScript* ScriptPtr(SmartHive::Payee payee);
