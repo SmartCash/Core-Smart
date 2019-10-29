@@ -40,21 +40,14 @@ static const int HF_V1_2_8_NODES_PER_BLOCK      = 1;
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 
 /** Testnet payment start blocks*/
-static const int TESTNET_V1_2_PAYMENTS_HEIGHT = 1000;
-static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 = 1001; // 28500;
-static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 = 1002; // 30300;
-static const int TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3 = 1003; // 75000;
-static const int TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 1004; // 415000;
+static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 101;
 static const int TESTNET_V1_3_HEIGHT = 6526;
 
 /** Testnet payment intervals*/
-static const int TESTNET_V1_2_NODES_PER_BLOCK_1        = 3;
-static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_1   = 6;
-static const int TESTNET_V1_2_NODES_PER_BLOCK_2        = 3;
-static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_2   = 3;
-static const int TESTNET_V1_2_NODES_PER_BLOCK_3        = 10;
-static const int TESTNET_V1_2_NODES_BLOCK_INTERVAL_3   = 2;
-static const int TESTNET_V1_2_8_NODES_PER_BLOCK        = 1;
+static const int TESTNET_V1_2_8_NODES_PER_BLOCK         = 1;
+static const int TESTNET_V1_2_8_NODES_BLOCK_INTERVAL    = 2;
+static const int TESTNET_V1_3_NODES_PER_BLOCK           = 1;
+static const int TESTNET_V1_3_NODES_BLOCK_INTERVAL      = 2;
 
 inline unsigned int MaxBlockSigOps()
 {
