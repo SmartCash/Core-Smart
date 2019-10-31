@@ -1093,7 +1093,7 @@ bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpda
 
     // If just hit the last round's threshold
     if( ( MainNet() && pRound->number < nRewardsFirstAutomatedRound - 1 && pIndex->GetBlockTime() < pRound->endBlockTime ) ||
-            ( ( TestNet() || pRound->number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == pRound->startBlockHeight ) ){
+            ( ( (TestNet() && pRound->number > 1) || pRound->number >= nRewardsFirstAutomatedRound - 1 ) && pIndex->nHeight == pRound->startBlockHeight ) ){
 
         // Recover the last round from the history as current round
         CSmartRewardRound prevRound = cache.GetRounds()->at(pRound->number - 1);
