@@ -623,23 +623,24 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
               strprintf("Address does't refer to a key for TX %s, index %s", out.hash.ToString(), out.n),
               strError);
 
-    std::vector<CTxDestination> addresses;
-    txnouttype type;
-    int nRequired;
+    CTxDestination addressSolved;
 
-    if (!ExtractDestinations(utxo.scriptPubKey, type, addresses, nRequired) || addresses.size() != 1) {
+    if (!ExtractDestination(utxo.scriptPubKey, addressSolved)) {
         return Error("GenerateVoteProof",
               strprintf("Failed to extract address for output with TX %s, index %s",
                         out.hash.ToString(), out.n),
               strError);
     }
 
+    CKeyID keyIdSolved;
+
     // Force option 1 - verify the vote address with the input of the register tx
-    if(  !(CSmartAddress(addresses[0]) == voteAddress) )
+    if(  !CSmartAddress(addressSolved).GetKeyID(keyIdSolved) || keyIdSolved != voteAddressKeyID ){
         return Error("GenerateVoteProof",
               strprintf("Failed to force vote proof option one for address %s with TX %s, index %s",
                         voteAddress.ToString(), out.hash.ToString(), out.n),
               strError);
+    }
 
     // **
     // ** Prepare the VoteProof data
