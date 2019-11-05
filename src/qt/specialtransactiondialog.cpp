@@ -382,8 +382,12 @@ void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
             break;
         case VOTE_PROOF_TRANSACTIONS:{
 
-            LOCK(cs_rewardscache);
-            int nCurrentRound = prewards->GetCurrentRound()->number;
+            int nCurrentRound;
+
+            {
+                LOCK(cs_rewardscache);
+                nCurrentRound = prewards->GetCurrentRound()->number;
+            }
 
             fSuccess = SendVoteProof(it.first, it.second, nCurrentRound, strError);
         }break;
