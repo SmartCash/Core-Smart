@@ -1654,7 +1654,56 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     prewards = new CSmartRewards(prewardsdb);
 
+    uiInterface.InitMessage(_("Loading SmartRewards..."));
+
     bool fLoaded = false;
+
+    while (!fLoaded) {
+
+        std::string strLoadError;
+
+        nStart = GetTimeMillis();
+        do {
+            try {
+
+                if( fReindex ){
+                    delete prewards;
+
+                    prewardsdb = new CSmartRewardsDB(nRewardsCache, false, true);
+                    prewards = new CSmartRewards(prewardsdb);
+                }
+
+                if( !(fLoaded = prewards->Verify()) ) throw std::runtime_error(_("Failed to verify SmartRewards database."));
+
+                if (fRequestShutdown) break;
+
+            } catch (const std::runtime_error &e) {
+                if (fDebug) LogPrintf("%s\n", e.what());
+                strLoadError = e.what();
+                break;
+            } catch (const std::exception &e) {
+                if (fDebug) LogPrintf("%s\n", e.what());
+                strLoadError = _("Error opening rewards database");
+                break;
+            } catch ( ... ){
+                if (fDebug) LogPrintf("Unexpected exception\n");
+                strLoadError = _("Unexpected error with the rewards database");
+                break;
+            }
+
+            fLoaded = true;
+
+        } while(false);
+
+        if( !fLoaded ){
+            InitWarning(strLoadError + _("\n\nReindexing blockchain data now..."));
+            fReindex = true;
+        }
+
+    }
+
+    fLoaded = false;
+
     while (!fLoaded && !fRequestShutdown) {
         bool fReset = fReindex;
         std::string strLoadError;
@@ -1780,63 +1829,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         return false;
     }
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
-
-    uiInterface.InitMessage(_("Verifying SmartRewards..."));
-
-    CBlockIndex *pLastIndex = chainActive.Tip();
-    bool fResetRewards = fReindex;
-    fLoaded = false;
-
-    while (!fLoaded) {
-
-        std::string strLoadError;
-
-        nStart = GetTimeMillis();
-        do {
-            try {
-
-                if( fResetRewards ){
-                    delete prewards;
-
-                    prewardsdb = new CSmartRewardsDB(nRewardsCache, false, true);
-                    prewards = new CSmartRewards(prewardsdb);
-                }
-
-                if( !(fLoaded = prewards->Verify()) ) throw std::runtime_error(_("Failed to verify SmartRewards database."));
-
-//                if( pLastIndex && prewards->GetLastHeight() <= pLastIndex->nHeight){
-//                    prewards->RollBack(pLastIndex);
-//                }else if( pLastIndex && prewards->GetLastHeight() > pLastIndex->nHeight ){
-//                    prewards->CatchUp(pLastIndex);
-//                }
-//                if( pLastIndex != NULL && !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
-
-                if (fRequestShutdown) break;
-
-            } catch (const std::runtime_error &e) {
-                if (fDebug) LogPrintf("%s\n", e.what());
-                strLoadError = e.what();
-                break;
-            } catch (const std::exception &e) {
-                if (fDebug) LogPrintf("%s\n", e.what());
-                strLoadError = _("Error opening rewards database");
-                break;
-            } catch ( ... ){
-                if (fDebug) LogPrintf("Unexpected exception\n");
-                strLoadError = _("Unexpected error with the rewards database");
-                break;
-            }
-
-            fLoaded = true;
-
-        } while(false);
-
-        if( !fLoaded ){
-            InitWarning(strLoadError + _("\n\nRecreating it now..."));
-            fResetRewards = true;
-        }
-
-    }
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
