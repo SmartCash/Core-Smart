@@ -127,24 +127,15 @@ void SmartrewardsList::setClientModel(ClientModel *model)
 
 void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip)
 {
+    LogPrintf("SmartrewardsList::updateOverviewUI %d\n", tip->nHeight);
 
-    static int64_t lastUpdate = 0;
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
-    int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
-
-    if( !lastUpdate || currentTime - lastUpdate  > 5 ){
-        lastUpdate = currentTime;
-    }else{
-        return;
-    }
 
     if( currentRound.number < nFirst_1_3_Round ){
         ui->btnSendProofs->hide();
     }else{
         ui->btnSendProofs->show();
     }
-
-    ui->spinnerWidget->stop();
 
     QString percentText;
     percentText.sprintf("%.2f%%", currentRound.percent * 100);
@@ -193,6 +184,8 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
         }
 
     }else{
+
+        int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
 
         roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
 
@@ -548,16 +541,11 @@ void SmartrewardsList::updateUI()
     switch(state){
     case STATE_INIT:
 
-        setState(STATE_PROCESSING);
-
-        break;
-    case STATE_PROCESSING:
-
         if( prewards->IsSynced() && !fReindex ){
+
+            ui->spinnerWidget->stop();
+
             setState(STATE_OVERVIEW);
-        }else{
-            double progress = prewards->GetProgress() * ui->loadingProgress->maximum();
-            ui->loadingProgress->setValue(progress);
         }
 
         break;

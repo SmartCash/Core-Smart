@@ -378,15 +378,13 @@ bool CSmartRewards::SyncCached()
 
 bool CSmartRewards::IsSynced()
 {
-    int nSyncDistance = MainNet() ? nRewardsSyncDistance : nRewardsSyncDistance_Testnet;
-    return (pindexBestHeader->nHeight - cache.GetCurrentBlock()->nHeight ) <= nSyncDistance - 1;
-}
+    static bool fSynced = false;
 
-double CSmartRewards::GetProgress()
-{
-    int nSyncDistance = MainNet() ? nRewardsSyncDistance : nRewardsSyncDistance_Testnet;
-    double progress = pindexBestHeader->nHeight > nSyncDistance ? double(cache.GetCurrentBlock()->nHeight) / double(pindexBestHeader->nHeight - nSyncDistance) : 0.0;
-    return progress > 1 ? 1 : progress;
+    if( fSynced ) return true;
+
+    fSynced = (GetTime() - cache.GetCurrentBlock()->nTime ) <= nRewardsSyncDistance;
+
+    return fSynced;
 }
 
 int CSmartRewards::GetBlocksPerRound(const int nRound)
@@ -1052,7 +1050,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
     if( LogAcceptCategory("smartrewards-bench") ){
         int nTime2 = GetTimeMicros();
         double dProcessingTime = (nTime2 - nTime1) * 0.001;
-        LogPrint("smartrewards-bench", "Round %d - Block: %d - Progress %d%%\n", round->number, cache.GetCurrentBlock()->nHeight, int(prewards->GetProgress() * 100));
+        LogPrint("smartrewards-bench", "Round %d - Block: %d\n", round->number, cache.GetCurrentBlock()->nHeight);
         LogPrint("smartrewards-bench", "  Commit block: %.2fms\n", dProcessingTime);
     }
 
@@ -1135,7 +1133,7 @@ bool CSmartRewards::CommitUndoBlock(CBlockIndex *pIndex, const CSmartRewardsUpda
     int nTime2 = GetTimeMicros();
 
     if( LogAcceptCategory("smartrewards-block") ){
-        LogPrint("smartrewards-block", "Round %d - Block: %d - Progress %d%%\n",pRound->number, cache.GetCurrentBlock()->nHeight, int(prewards->GetProgress() * 100));
+        LogPrint("smartrewards-block", "Round %d - Block: %d\n",pRound->number, cache.GetCurrentBlock()->nHeight);
         LogPrint("smartrewards-block", "  Commit undo block: %.2fms\n", (nTime2 - nTime1) * 0.001);
     }
 

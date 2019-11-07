@@ -17,9 +17,8 @@ using namespace std;
 static const CAmount SMART_REWARDS_MIN_BALANCE_1_2 = 1000 * COIN;
 static const CAmount SMART_REWARDS_MIN_BALANCE_1_3 = 10000 * COIN;
 
-// Minimum distance of the last processed block compared to the current chain
-// height to assume the rewards are synced.
-const int64_t nRewardsSyncDistance = 150;
+// Seconds between current time and last blocktime which must be undershot for the rewards processing to assume its synced
+const int64_t nRewardsSyncDistance = 600;
 // Number of blocks we update the SmartRewards UI when we are in the sync process
 const int64_t nRewardsUISyncUpdateRate = 500;
 
@@ -33,7 +32,6 @@ const int64_t nFirstRoundStartBlock = 1;
 const int64_t nFirstRoundEndBlock = 60001;
 
 // Timestamps of the first round's start and end on testnet
-const int64_t nRewardsSyncDistance_Testnet = 60;
 const int64_t nFirstTxTimestamp_Testnet = 1527192589;
 const int64_t nFirstRoundStartTime_Testnet = nFirstTxTimestamp_Testnet;
 const int64_t nFirstRoundEndTime_Testnet = nFirstRoundStartTime_Testnet + (2*60*60);
@@ -160,7 +158,6 @@ public:
     bool NeedsCacheWrite();
     bool SyncCached();
     bool IsSynced();
-    double GetProgress();
 
     int GetBlocksPerRound(const int nRound);
 

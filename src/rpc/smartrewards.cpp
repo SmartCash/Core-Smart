@@ -47,7 +47,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
                 );
 
     if( !fDebug && !prewards->IsSynced() )
-        throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Rewards database is not up to date. Current progress %d%%",int(prewards->GetProgress() * 100)));
+        throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is not up to date.");
 
     TRY_LOCK(cs_rewardsdb, lockRewardsDb);
 
