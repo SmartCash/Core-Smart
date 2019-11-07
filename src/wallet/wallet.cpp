@@ -2407,16 +2407,10 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, bool fOnlyConfirmed, cons
                     (pcoin->vout[i].nValue > 0 || fIncludeZeroValue) &&
                     (!coinControl || !coinControl->HasSelected() || coinControl->fAllowOtherInputs || coinControl->IsSelected(COutPoint((*it).first, i)))){
 
-                        uint32_t nLockTime = pcoin->vout[i].GetLockTime();
-
-                        if( nLockTime ){
-                            LogPrintf("LOCKTIME FOUND: %d\n", nLockTime);
-                        }
-
                         vCoins.push_back(COutput(pcoin, i, nDepth,
                                                  ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
                                                   (coinControl && coinControl->fAllowWatchOnly && (mine & ISMINE_WATCH_SOLVABLE) != ISMINE_NO),
-                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO, nLockTime));
+                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO, pcoin->vout[i].GetLockTime()));
                 }
 
             }
@@ -2460,19 +2454,12 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, const CSmartAddress& addr
                 isminetype mine = IsMine(pcoin->vout[i]);
                 if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     !IsLockedCoin((*it).first, i) &&
-                    pcoin->vout[i].nValue > 0){
-
-                        uint32_t nLockTime = pcoin->vout[i].GetLockTime();
-
-                        if( nLockTime ){
-                            LogPrintf("LOCKTIME FOUND %d\n", nLockTime);
-                        }
-
+                    pcoin->vout[i].nValue > 0){                        
                         vCoins.push_back(COutput(pcoin, i, nDepth,
                                                  ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
                                                   false,
                                                  (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO,
-                                                 nLockTime));
+                                                 pcoin->vout[i].GetLockTime()));
                 }
 
             }
