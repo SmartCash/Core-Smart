@@ -12,7 +12,7 @@
 #include "base58.h"
 #include "smarthive/hive.h"
 
-static constexpr uint8_t REWARDS_DB_VERSION = 0x09;
+static constexpr uint8_t REWARDS_DB_VERSION = 0x0A;
 
 //! Compensate for extra memory peak (x1.5-x1.9) at flush time.
 static constexpr int REWARDS_DB_PEAK_USAGE_FACTOR = 2;
