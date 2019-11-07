@@ -77,7 +77,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         obj.pushKV("disqualified_addresses",current->disqualifiedEntries);
         obj.pushKV("disqualified_smart",format(current->disqualifiedSmart));
         obj.pushKV("estimated_rewards",format(current->rewards));
-        obj.pushKV("estimated_percent",current->percent);
+        obj.pushKV("estimated_percent",current->percent * 100.0);
 
         return obj;
     }
@@ -112,7 +112,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
             roundObj.pushKV("disqualified_addresses",round->second.disqualifiedEntries);
             roundObj.pushKV("disqualified_smart",format(round->second.disqualifiedSmart));
             roundObj.pushKV("rewards",format(round->second.rewards));
-            roundObj.pushKV("percent",round->second.percent);
+            roundObj.pushKV("percent",round->second.percent * 100.0);
 
             UniValue payObj(UniValue::VOBJ);
 
