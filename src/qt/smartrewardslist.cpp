@@ -395,6 +395,24 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     int nEligibleAddresses = 0;
     CAmount rewardSum = 0;
 
+    auto entry = vecEntries.begin();
+
+    while( entry != vecEntries.end() ){
+
+        auto it = std::find_if(rewardList.begin(),
+                               rewardList.end(),
+                               [entry](QSmartRewardField& field) -> bool {
+            return (*entry)->Address() == field.address;
+        });
+
+        if( it == rewardList.end() ) {
+            delete *entry;
+            entry = vecEntries.erase(entry);
+        }else{
+            ++entry;
+        }
+    }
+
     BOOST_FOREACH(const QSmartRewardField& field, rewardList) {
 
         QSmartRewardEntry* entry;
