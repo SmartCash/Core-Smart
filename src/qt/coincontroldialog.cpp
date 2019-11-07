@@ -24,6 +24,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QCursor>
+#include <QDateTime>
 #include <QDialogButtonBox>
 #include <QFlags>
 #include <QIcon>
@@ -215,13 +216,14 @@ void CoinControlDialog::showMenu(const QPoint &point)
         if (item->text(COLUMN_TXHASH).length() == 64) // transaction hash is 64 characters (this means its a child node, so its not a parent node in tree mode)
         {
             copyTransactionHashAction->setEnabled(true);
-            if (model->isLockedCoin(uint256S(item->text(COLUMN_TXHASH).toStdString()), item->text(COLUMN_VOUT_INDEX).toUInt()))
-            {
+
+            if( item->data(COLUMN_LOCKED, Qt::UserRole).toBool() ){
+                lockAction->setEnabled(false);
+                unlockAction->setEnabled(false);
+            }else if (model->isLockedCoin(uint256S(item->text(COLUMN_TXHASH).toStdString()), item->text(COLUMN_VOUT_INDEX).toUInt())){
                 lockAction->setEnabled(false);
                 unlockAction->setEnabled(true);
-            }
-            else
-            {
+            }else{
                 lockAction->setEnabled(true);
                 unlockAction->setEnabled(false);
             }
@@ -699,6 +701,9 @@ void CoinControlDialog::updateView()
 
     bool treeMode = ui->radioTreeMode->isChecked();
 
+    int nCurrentHeight = chainActive.Height();
+    int64_t nCurrentTime = chainActive.Tip() ? chainActive.Tip()->GetMedianTimePast() : GetTime();
+
     ui->treeWidget->clear();
     ui->treeWidget->setEnabled(false); // performance, otherwise updateLabels would be called for every checked checkbox
     ui->treeWidget->setAlternatingRowColors(!treeMode);
@@ -807,8 +812,25 @@ void CoinControlDialog::updateView()
             // vout index
             itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(out.i));
 
+            bool fOutputLocked = out.nLockTime && (
+                                   ( out.nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < (int)out.nLockTime ) ||
+                                   ( out.nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < out.nLockTime ) );
+
+            itemOutput->setData(COLUMN_LOCKED, Qt::UserRole, QVariant(fOutputLocked));
+
+            if( fOutputLocked ){
+
+                if( out.nLockTime < LOCKTIME_THRESHOLD ){
+                    itemOutput->setText(COLUMN_ADDRESS, QString("Output locked until block %1").arg(out.nLockTime));
+                }else{
+                    QDateTime timestamp;
+                    timestamp.setTime_t(out.nLockTime);
+                    itemOutput->setText(COLUMN_ADDRESS, QString("Output locked until %1").arg(timestamp.toString(Qt::SystemLocaleShortDate)));
+                }
+            }
+
              // disable locked coins
-            if (model->isLockedCoin(txhash, out.i))
+            if (model->isLockedCoin(txhash, out.i) || fOutputLocked)
             {
                 COutPoint outpt(txhash, out.i);
                 coinControl->UnSelect(outpt); // just to be sure
