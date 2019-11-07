@@ -84,6 +84,16 @@ bool ExtractDestination(const CScript& scriptPubKey, CSmartAddress& idRet)
         idRet = CSmartAddress(CScriptID(uint160(vSolutions[0])));
         return true;
     }
+    else if (whichType == TX_PUBKEYHASHLOCKED)
+    {
+        idRet = CSmartAddress(CKeyID(uint160(vSolutions[0])));
+        return true;
+    }
+    else if (whichType == TX_SCRIPTHASHLOCKED)
+    {
+        idRet = CSmartAddress(CScriptID(uint160(vSolutions[0])));
+        return true;
+    }
     // Multisig txns have more than one address...
     return false;
 }
