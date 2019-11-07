@@ -467,10 +467,11 @@ public:
     int nDepth;
     bool fSpendable;
     bool fSolvable;
+    unsigned int nLockTime;
 
-    COutput(const CWalletTx *txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn)
+    COutput(const CWalletTx *txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn, unsigned int nLockTimeIn)
     {
-        tx = txIn; i = iIn; nDepth = nDepthIn; fSpendable = fSpendableIn; fSolvable = fSolvableIn;
+        tx = txIn; i = iIn; nDepth = nDepthIn; fSpendable = fSpendableIn; fSolvable = fSolvableIn; nLockTime = nLockTimeIn;
     }
 
     std::string ToString() const;

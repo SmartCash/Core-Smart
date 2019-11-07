@@ -2405,11 +2405,19 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, bool fOnlyConfirmed, cons
                 if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     (!IsLockedCoin((*it).first, i) || nCoinType == ONLY_10000) &&
                     (pcoin->vout[i].nValue > 0 || fIncludeZeroValue) &&
-                    (!coinControl || !coinControl->HasSelected() || coinControl->fAllowOtherInputs || coinControl->IsSelected(COutPoint((*it).first, i))))
+                    (!coinControl || !coinControl->HasSelected() || coinControl->fAllowOtherInputs || coinControl->IsSelected(COutPoint((*it).first, i)))){
+
+                        uint32_t nLockTime = pcoin->vout[i].GetLockTime();
+
+                        if( nLockTime ){
+                            LogPrintf("LOCKTIME FOUND: %d\n", nLockTime);
+                        }
+
                         vCoins.push_back(COutput(pcoin, i, nDepth,
                                                  ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
                                                   (coinControl && coinControl->fAllowWatchOnly && (mine & ISMINE_WATCH_SOLVABLE) != ISMINE_NO),
-                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO));
+                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO, nLockTime));
+                }
 
             }
         }
@@ -2452,11 +2460,20 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, const CSmartAddress& addr
                 isminetype mine = IsMine(pcoin->vout[i]);
                 if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     !IsLockedCoin((*it).first, i) &&
-                    pcoin->vout[i].nValue > 0)
+                    pcoin->vout[i].nValue > 0){
+
+                        uint32_t nLockTime = pcoin->vout[i].GetLockTime();
+
+                        if( nLockTime ){
+                            LogPrintf("LOCKTIME FOUND %d\n", nLockTime);
+                        }
+
                         vCoins.push_back(COutput(pcoin, i, nDepth,
                                                  ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
                                                   false,
-                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO));
+                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO,
+                                                 nLockTime));
+                }
 
             }
         }
@@ -2937,7 +2954,14 @@ int CWallet::CountInputsWithAmount(CAmount nInputAmount)
                 int nDepth = pcoin->GetDepthInMainChain(false);
 
                 for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
-                    COutput out = COutput(pcoin, i, nDepth, true, true);
+
+                    uint32_t nLockTime = pcoin->vout[i].GetLockTime();
+
+                    if( nLockTime ){
+                        LogPrintf("LOGTIME FOUND %d\n", nLockTime);
+                    }
+
+                    COutput out = COutput(pcoin, i, nDepth, true, true, nLockTime);
                     //COutPoint outpoint = COutPoint(out.tx->GetHash(), out.i);
 
                     if(out.tx->vout[out.i].nValue != nInputAmount) continue;
