@@ -72,6 +72,18 @@ uint256 CTxOut::GetHash() const
     return SerializeHash(*this);
 }
 
+uint32_t CTxOut::GetLockTime() const
+{
+    uint32_t nLockTime = 0;
+
+    if( scriptPubKey.IsPayToPublicKeyHashLocked() || scriptPubKey.IsPayToPublicKeyHashLocked() ){
+        std::vector<unsigned char> vch(scriptPubKey.begin() + 1, scriptPubKey.begin() + 1 + scriptPubKey[0] );
+        nLockTime = CScriptNum(vch, false).getint();
+    }
+
+    return nLockTime;
+}
+
 std::string CTxOut::ToString() const
 {
     return strprintf("CTxOut(nValue=%d.%08d, scriptPubKey=%s)", nValue / COIN, nValue % COIN, HexStr(scriptPubKey).substr(0, 30));

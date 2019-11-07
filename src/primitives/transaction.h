@@ -236,6 +236,8 @@ public:
         return scriptPubKey.IsVoteProofData() && nValue == REWARDS_VOTEPROOF_FEE;
     }
 
+    uint32_t GetLockTime() const;
+
     friend bool operator==(const CTxOut& a, const CTxOut& b)
     {
         return (a.nValue       == b.nValue &&
