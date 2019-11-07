@@ -818,7 +818,11 @@ void CoinControlDialog::updateView()
 
             itemOutput->setData(COLUMN_LOCKED, Qt::UserRole, QVariant(fOutputLocked));
 
+            COutPoint outpt(txhash, out.i);
+
             if( fOutputLocked ){
+
+                model->lockCoin(outpt);
 
                 if( out.nLockTime < LOCKTIME_THRESHOLD ){
                     itemOutput->setText(COLUMN_ADDRESS, QString("Output locked until block %1").arg(out.nLockTime));
@@ -827,19 +831,20 @@ void CoinControlDialog::updateView()
                     timestamp.setTime_t(out.nLockTime);
                     itemOutput->setText(COLUMN_ADDRESS, QString("Output locked until %1").arg(timestamp.toString(Qt::SystemLocaleShortDate)));
                 }
+            }else if( out.nLockTime ){
+                model->unlockCoin(outpt);
             }
 
              // disable locked coins
-            if (model->isLockedCoin(txhash, out.i) || fOutputLocked)
+            if (model->isLockedCoin(outpt.hash, outpt.n) || fOutputLocked)
             {
-                COutPoint outpt(txhash, out.i);
                 coinControl->UnSelect(outpt); // just to be sure
                 itemOutput->setDisabled(true);
                 itemOutput->setIcon(COLUMN_CHECKBOX, platformStyle->SingleColorIcon(":/icons/lock_closed"));
             }
 
             // set checkbox
-            if (coinControl->IsSelected(COutPoint(txhash, out.i)))
+            if (coinControl->IsSelected(outpt))
                 itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
         }
 
