@@ -1894,6 +1894,18 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                     CPubKey pubKey(pubKeyBytes);
                     hashBytes = pubKey.GetID();
                     addressType = 1;
+                } else if (out.scriptPubKey.IsPayToScriptHashLocked()) {
+
+                    int nOffset = out.scriptPubKey[0] + 5;
+
+                    hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin() + nOffset, out.scriptPubKey.begin() + nOffset + 20));
+                    addressType = 2;
+                } else if (out.scriptPubKey.IsPayToPublicKeyHashLocked()) {
+
+                    int nOffset = out.scriptPubKey[0] + 6;
+
+                    hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin() + nOffset, out.scriptPubKey.begin() + nOffset + 20));
+                    addressType = 1;
                 } else {
                     continue;
                 }
@@ -1983,6 +1995,20 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
                         CPubKey pubKey(pubKeyBytes);
                         hashBytes = pubKey.GetID();
                         addressType = 1;
+                    } else if (prevout.scriptPubKey.IsPayToScriptHashLocked()) {
+
+                        int nOffset = prevout.scriptPubKey[0] + 5;
+
+                        hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin() + nOffset, prevout.scriptPubKey.begin() + nOffset + 20));
+                        addressType = 2;
+
+                    } else if (prevout.scriptPubKey.IsPayToPublicKeyHashLocked()) {
+
+                        int nOffset = prevout.scriptPubKey[0] + 6;
+
+                        hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin() + nOffset, prevout.scriptPubKey.begin() + nOffset + 20));
+                        addressType = 1;
+
                     } else {
                         continue;
                     }
@@ -2432,6 +2458,16 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                         CPubKey pubKey(pubKeyBytes);
                         hashBytes = pubKey.GetID();
                         addressType = 1;
+                    } else if (prevout.scriptPubKey.IsPayToScriptHashLocked()) {
+                        int nOffset = prevout.scriptPubKey[0] + 5;
+
+                        hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin() + nOffset, prevout.scriptPubKey.begin() + nOffset + 20));
+                        addressType = 2;
+                    } else if (prevout.scriptPubKey.IsPayToPublicKeyHashLocked()) {
+                        int nOffset = prevout.scriptPubKey[0] + 6;
+
+                        hashBytes = uint160(vector<unsigned char>(prevout.scriptPubKey.begin() + nOffset, prevout.scriptPubKey.begin() + nOffset + 20));
+                        addressType = 1;
                     } else {
                         hashBytes.SetNull();
                         addressType = 0;
@@ -2512,6 +2548,16 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                     vector<unsigned char> pubKeyBytes(out.scriptPubKey.begin()+1, out.scriptPubKey.begin()+34);
                     CPubKey pubKey(pubKeyBytes);
                     hashBytes = pubKey.GetID();
+                    addressType = 1;
+                } else if (out.scriptPubKey.IsPayToScriptHashLocked()) {
+                    int nOffset = out.scriptPubKey[0] + 5;
+
+                    hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin() + nOffset, out.scriptPubKey.begin() + nOffset + 20));
+                    addressType = 2;
+                } else if (out.scriptPubKey.IsPayToPublicKeyHashLocked()) {
+                    int nOffset = out.scriptPubKey[0] + 6;
+
+                    hashBytes = uint160(vector<unsigned char>(out.scriptPubKey.begin() + nOffset, out.scriptPubKey.begin() + nOffset + 20));
                     addressType = 1;
                 } else {
                     continue;
