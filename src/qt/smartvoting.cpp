@@ -201,6 +201,7 @@ void SmartVotingPage::castVotes(){
     dialog.exec();
 
     refreshProposals(true);
+    uiInterface.NotifySmartRewardUpdate();
 }
 
 void SmartVotingPage::updateRefreshLock()
