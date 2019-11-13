@@ -59,6 +59,8 @@ private:
     SmartVotingManager *votingManager;
     std::vector<SmartProposalWidget*> vecProposalWidgets;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
+
+    int nVoteProofRequired;
     
 public Q_SLOTS:
     void updateUI();

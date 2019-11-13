@@ -20,6 +20,7 @@
 #include "castvotesdialog.h"
 #include "validation.h"
 #include "voteaddressesdialog.h"
+#include "specialtransactiondialog.h"
 
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 
@@ -50,7 +51,8 @@ SmartVotingPage::SmartVotingPage(const PlatformStyle *platformStyle, QWidget *pa
     QWidget(parent),
     ui(new Ui::SmartVotingPage),
     platformStyle(platformStyle),
-    walletModel(0)
+    walletModel(0),
+    nVoteProofRequired(0)
 {
     ui->setupUi(this);
 
@@ -198,10 +200,29 @@ void SmartVotingPage::castVotes(){
     connect( &dialog, SIGNAL(votedForAddress(QString&, int, bool)), this, SLOT(voteDone(QString&, int, bool)));
     dialog.setVoting(mapVoteProposals);
 
+    nVoteProofRequired = 0;
+
     dialog.exec();
+
+    if( nVoteProofRequired ){
+
+        // Display message box
+        QMessageBox::StandardButton retval = QMessageBox::question(this, tr("VoteProof required"),
+            tr("Do you want to send a VoteProof for %1 address%2 to enable SmartRewards?\n\nThis can also be done later in the SmartRewards Tab.").arg(nVoteProofRequired).arg( nVoteProofRequired > 1 ? "es" : ""),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::Yes);
+
+        if(retval == QMessageBox::Yes){
+            SpecialTransactionDialog dlg(VOTE_PROOF_TRANSACTIONS, platformStyle);
+            dlg.setModel(walletModel);
+            dlg.exec();
+        }
+
+    }
 
     refreshProposals(true);
     uiInterface.NotifySmartRewardUpdate();
+
 }
 
 void SmartVotingPage::updateRefreshLock()
@@ -257,18 +278,30 @@ void SmartVotingPage::voteDone(QString &address, int nProposalId, bool successfu
         CKeyID keyId;
         std::string strProposal = strprintf("%d", nProposalId);
         uint256 nProposalHash = Hash(strProposal.begin(), strProposal.end());
+        CSmartAddress id(address.toStdString());
 
-        if(CSmartAddress(address.toStdString()).GetKeyID(keyId)){
+        if(id.GetKeyID(keyId)){
 
             LOCK(cs_rewardscache);
 
             int nCurrentRound = prewards->GetCurrentRound()->number;
 
             if( !pwalletMain->mapVoted[keyId].count(nCurrentRound) ){
+
                 pwalletMain->mapVoted[keyId].insert(std::make_pair(nCurrentRound, nProposalHash));
                 pwalletMain->UpdateVotedMap(keyId);
             }
 
+            CSmartRewardEntry * entry;
+
+            if( nCurrentRound >= Params().GetConsensus().nRewardsFirst_1_3_Round &&
+                pwalletMain->mapVoteProofs[keyId].find(nCurrentRound) == pwalletMain->mapVoteProofs[keyId].end() &&
+                prewards->GetRewardEntry(CSmartAddress(id.ToString(false)), entry, false) ){
+
+                if( entry->balanceEligible && !entry->fSmartnodePaymentTx ){
+                    ++nVoteProofRequired;
+                }
+            }
         }
     }
 
