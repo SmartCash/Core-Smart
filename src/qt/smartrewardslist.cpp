@@ -454,7 +454,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 entry->setInfoText("VoteProof required. Click the button at the bottom to send the VoteProof for this address.", COLOR_WARNING);
             }else if( field.fVoted &&
                       nConfirmationsRequired > 0){
-                entry->setInfoText(QString("%1 more block confirmations required for the VoteProof transaction to become processed.").arg(nConfirmationsRequired), COLOR_WARNING);
+                entry->setInfoText(QString("%1 block confirmation required for the VoteProof transaction to become processed.").arg(nConfirmationsRequired), COLOR_WARNING);
             }else if( field.fVoted &&
                       nConfirmationsRequired <= 0 &&
                       field.eligible ){

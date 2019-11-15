@@ -233,7 +233,7 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
                                   "with any earlier backup of your wallet."));
                 break;
             case VOTE_PROOF_TRANSACTIONS:
-                strResult.append(tr("It requires %1 block confirmations for the VoteProof transactions before the address will become eligible in the SmartRewards tab.").arg(Params().GetConsensus().nRewardsConfirmationsRequired));
+                strResult.append(tr("It requires %1 block confirmation for the VoteProof transactions before the address will become eligible in the SmartRewards tab.").arg(Params().GetConsensus().nRewardsConfirmationsRequired));
                 break;
             }
 
