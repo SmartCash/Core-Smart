@@ -2289,5 +2289,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     threadGroup.create_thread(boost::bind(&ThreadSendAlert, boost::ref(connman)));
 
+    if( MainNet() ){
+        InitError("Mainnet is not available in this beta. You can start the client on Testnet with testnet=1 in the smartcash.conf or -testnet=1 as command line argument.");
+        StartShutdown();
+    }
+
     return !fRequestShutdown;
 }
