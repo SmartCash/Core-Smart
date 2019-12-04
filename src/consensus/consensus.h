@@ -11,9 +11,9 @@
 /** The maximum allowed size for a serialized block, in bytes (only for buffer size limits) */
 static const unsigned int MAX_BLOCK_SERIALIZED_SIZE = 8000000;
 /** The maximum allowed weight for a block, see BIP 141 (network rule) */
-static const unsigned int MAX_BLOCK_WEIGHT = 16000000;
+static const unsigned int MAX_BLOCK_WEIGHT = 32000000;
 /** The maximum allowed size for a block excluding witness data, in bytes (network rule) */
-static const unsigned int MAX_BLOCK_BASE_SIZE = 4000000;
+static const unsigned int MAX_BLOCK_BASE_SIZE = 8000000;
 /** The maximum allowed number of signature check operations in a block (network rule) */
 static const int64_t MAX_BLOCK_SIGOPS_COST = 640000;
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
@@ -29,7 +29,7 @@ static const int HF_V1_2_MULTINODE_VOTING_HEIGHT = 535000;
 static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545005;
 static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
 static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
-static const int HF_V1_3_HEIGHT = 1380001;
+static const int HF_V1_3_HEIGHT = 1430001;
 
 /* Mainnet payment intervals*/
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
