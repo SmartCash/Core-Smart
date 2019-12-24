@@ -167,7 +167,7 @@ static bool smartnodes_check_one(HTTPRequest* req, const std::map<std::string, s
 static bool smartnodes_check_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     if( !bodyParameter.isArray() || bodyParameter.empty() )
-        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Addresses are expedted to be a JSON array: [ \"address\", ... ]");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Addresses are expected to be a JSON array: [ \"address\", ... ]");
 
     std::vector<UniValue> vecResults;
     std::vector<std::string> vecInfos;

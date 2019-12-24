@@ -208,7 +208,7 @@ void SmartVotingPage::castVotes(){
 
         // Display message box
         QMessageBox::StandardButton retval = QMessageBox::question(this, tr("VoteProof required"),
-            tr("Do you want to send a VoteProof for %1 address%2 to enable SmartRewards?\n\nThis can also be done later in the SmartRewards Tab.").arg(nVoteProofRequired).arg( nVoteProofRequired > 1 ? "es" : ""),
+            tr("Do you want to send a VoteProof for %1 address%2 to enable VoteRewards?\n\nThis can also be done later in the VoteRewards Tab.").arg(nVoteProofRequired).arg( nVoteProofRequired > 1 ? "es" : ""),
             QMessageBox::Yes | QMessageBox::No,
             QMessageBox::Yes);
 
