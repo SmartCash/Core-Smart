@@ -233,7 +233,7 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
                                   "with any earlier backup of your wallet."));
                 break;
             case VOTE_PROOF_TRANSACTIONS:
-                strResult.append(tr("It requires %1 block confirmation for the VoteProof transactions before the address will become eligible in the SmartRewards tab.").arg(Params().GetConsensus().nRewardsConfirmationsRequired));
+                strResult.append(tr("It requires %1 block confirmation for the VoteProof transactions before the address will become eligible in the VoteRewards tab.").arg(Params().GetConsensus().nRewardsConfirmationsRequired));
                 break;
             }
 
@@ -648,7 +648,7 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
 
     if( pwalletMain->mapVoted[voteAddressKeyID].find(nCurrentRound) == pwalletMain->mapVoted[voteAddressKeyID].end() ){
         return Error("GenerateVoteProof",
-              strprintf("Address %s did not yet vote during the SmartRewards round %d",
+              strprintf("Address %s did not yet vote during the VoteRewards round %d",
                         voteAddress.ToString(), nCurrentRound),
               strError);
     }

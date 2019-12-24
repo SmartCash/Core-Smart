@@ -570,12 +570,15 @@ UniValue sendtoaddresslocked(const UniValue& params, bool fHelp)
     if (fHelp || params.size() < 3 || params.size() > 5)
         throw runtime_error(
             "sendtoaddresslocked \"smartcashaddress\" amount blockheight( \"comment\" \"comment-to\" subtractfeefromamount )\n"
-            "\nSend an amount to a given address and lock the output for a given time or number of blocks.\n"
+            "\nSend an amount to a given address and lock the output until a future blockheight or Unix time.\n"
+            "This is not an InstantPay lock. Use sendmany or instantsendtoaddress instead.\n"
             + HelpRequiringPassphrase() +
             "\nArguments:\n"
             "1. \"smartcashaddress\"  (string, required) The SmartCash address to send to.\n"
             "2. \"amount\"      (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
-            "3. \"blockheight\" (numeric, required) The blockheight at which the output becomes spendable/unlocked.\n"
+            "3. \"blockheight\" (numeric, required) The blockheight at which the output becomes spendable/unlocked. \n"
+            "                             Unix time can be used for the time available to spend.\n"
+            "                             This is impossible to reverse after sent. Please be careful.\n"
             "4. \"comment\"     (string, optional) A comment used to store what the transaction is for. \n"
             "                             This is not part of the transaction, just kept in your wallet.\n"
             "5. \"comment-to\"  (string, optional) A comment to store the name of the person or organization \n"
@@ -584,10 +587,10 @@ UniValue sendtoaddresslocked(const UniValue& params, bool fHelp)
             "\nResult:\n"
             "\"transactionid\"  (string) The transaction id.\n"
             "\nExamples:\n"
-            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 500000")
-            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 500000 \"donation\" \"seans outpost\"")
-            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 500000 \"\" \"\" true")
-            + HelpExampleRpc("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\", 0.1, 500000, \"donation\", \"seans outpost\"")
+            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 1400000")
+            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 1577132833 \"donation\" \"seans outpost\"")
+            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 1400000 \"\" \"\" true")
+            + HelpExampleRpc("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\", 0.1, 1400000, \"donation\", \"seans outpost\"")
         );
 
     LOCK2(cs_main, pwalletMain->cs_wallet);

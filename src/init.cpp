@@ -607,7 +607,13 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE));
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
-
+    strUsage += HelpMessageGroup(_("SAPI server options:"));
+    strUsage += HelpMessageOpt("-sapi", _("Enable SmartCash API server and databases.  Also enables -addressindex, -spentindex, -depositindex, -instantpayindex."));
+    strUsage += HelpMessageOpt("-sapiport=<port>",_("Listen for SAPI requests on <port> (default: 8080)"));
+    strUsage += HelpMessageOpt("-sapithreads=<n>",_("Set the number of threads for SAPI requests (default: 4)"));
+    strUsage += HelpMessageOpt("-sapiworkqueue=<n>",_("Set the queue for SAPI requests (default: 16)"));
+    strUsage += HelpMessageOpt("-sapiservertimeout=<n>",_("Set the seconds before SAPI timeout (default: 30)"));
+    strUsage += HelpMessageOpt("-sapiwhitelist:<ip>",_("Whitelist ip for SAPI"));
     return strUsage;
 }
 
@@ -826,8 +832,8 @@ void InitParameterInteraction()
 
     if (GetBoolArg("-smartnode", false)) {
         // smartnodes must accept connections from outside
-        if (SoftSetBoolArg("-listen", true))
-            LogPrintf("%s: parameter interaction: -smartnode=1 -> setting -listen=1\n", __func__);
+        if (SoftSetBoolArg("-listen", true) && SoftSetBoolArg("-sapi", true))
+            LogPrintf("%s: parameter interaction: -smartnode=1 -> setting -listen=1 and -sapi=1\n", __func__);
     }
 
     if (mapArgs.count("-connect") && mapMultiArgs["-connect"].size() > 0) {
@@ -2289,10 +2295,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     threadGroup.create_thread(boost::bind(&ThreadSendAlert, boost::ref(connman)));
 
-    if( MainNet() ){
+/*    if( MainNet() ){
         InitError("Mainnet is not available in this beta. You can start the client on Testnet with testnet=1 in the smartcash.conf or -testnet=1 as command line argument.");
         StartShutdown();
-    }
+    }*/
 
     return !fRequestShutdown;
 }
