@@ -2991,9 +2991,9 @@ bool CWallet::GetProposalFeeTX(CWalletTx& tx, const CSmartAddress& fromAddress, 
     vector< CRecipient > vecSend;
     vecSend.push_back(dataRecipient);
 
-    CScript hiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
-    CRecipient hiveRecipient = {hiveScript, nAmount, false};
-    vecSend.push_back(hiveRecipient);
+//    CScript hiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
+//    CRecipient hiveRecipient = {hiveScript, nAmount, false};
+//    vecSend.push_back(hiveRecipient);
 
     CCoinControl coinControl;
 

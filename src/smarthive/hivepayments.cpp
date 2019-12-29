@@ -79,16 +79,13 @@ void SmartHivePayments::Init()
     );
 
     hiveSplit_1_3 = new CSmartHiveBatchSplit(
-        55, // Split 55% of the block reward as followed.
+        29, // Split 29% of the block reward as followed.
         nPayoutInterval_1_3, // Trigger the payouts every n blocks
         {
-            new CSmartHiveClassic(SmartHive::Exchanges, 0.05),
-            new CSmartHiveClassic(SmartHive::Merchants, 0.05),
-            new CSmartHiveClassic(SmartHive::Outreach, 0.0625),
-            new CSmartHiveClassic(SmartHive::Support, 0.0625),
-            new CSmartHiveClassic(SmartHive::Development, 0.0625),
-            new CSmartHiveClassic(SmartHive::WebMobileSmartCard, 0.0625),
-            new CSmartHiveClassic(SmartHive::ProjectTreasury, 0.2),
+            new CSmartHiveClassic(SmartHive::Outreach, 0.0075),
+            new CSmartHiveClassic(SmartHive::Support, 0.0725),
+            new CSmartHiveClassic(SmartHive::Development, 0.0725),
+            new CSmartHiveClassic(SmartHive::SmartHub, 0.0725),
         }
     );
 

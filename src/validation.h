@@ -239,7 +239,8 @@ static const int SYNC_TRANSACTION_NOT_IN_BLOCK = -1;
 // full block file chunks, we need the high water mark which triggers the prune to be
 // one 128MB block file + added 15% undo data = 147MB greater for a total of 545MB
 // Setting the target to > than 1414MB will make it likely we can respect the target.
-static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 1414 * 1024 * 1024;
+// x2 for 8MB blocks = 2818
+static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 2818 * 1024 * 1024;
 
 /** 
  * Process an incoming block. This only returns after the best known valid

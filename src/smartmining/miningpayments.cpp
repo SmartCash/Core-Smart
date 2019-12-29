@@ -220,7 +220,7 @@ static bool CheckSignature(const CBlock &block, const CBlockIndex *pindex)
 
 CAmount GetMiningReward(CBlockIndex * pindex, CAmount blockReward)
 {
-    return blockReward / 20; // 5%
+    return blockReward / 100; // 1%
 }
 
 void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward, CTxOut &outSignature, const CSmartAddress &signingAddress)

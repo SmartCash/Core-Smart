@@ -59,7 +59,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Initialize VoteRewards...</string>
+          <string>Initialize SmartRewards...</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -189,7 +189,7 @@
                  </font>
                 </property>
                 <property name="text">
-                 <string>VoteRewards round</string>
+                 <string>SmartRewards round</string>
                 </property>
                </widget>
               </item>
@@ -336,7 +336,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Estimated VoteRewards</string>
+             <string>Estimated SmartRewards</string>
             </property>
            </widget>
           </item>

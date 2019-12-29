@@ -286,7 +286,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
     // Calculate the current rewards percentage
     int64_t nTime = GetTime();
     int64_t nStartHeight = next.startBlockHeight;
-    double dBlockReward = next.number < nFirst_1_3_Round ? 0.15 : 0.30;
+    double dBlockReward = next.number < nFirst_1_3_Round ? 0.15 : 0.60;
     next.rewards = 0;
 
     while( nStartHeight <= next.endBlockHeight) next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * dBlockReward;
