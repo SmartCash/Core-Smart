@@ -29,7 +29,7 @@ static const int HF_V1_2_MULTINODE_VOTING_HEIGHT = 535000;
 static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545005;
 static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
 static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
-static const int HF_V1_3_HEIGHT = 1500001;
+static const int HF_V1_3_HEIGHT = 1524100; // Round 33 starts 1524100
 
 /* Mainnet payment intervals*/
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
@@ -40,8 +40,8 @@ static const int HF_V1_2_8_NODES_PER_BLOCK      = 1;
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 
 /** Testnet payment start blocks*/
-static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 101;
-static const int TESTNET_V1_3_HEIGHT = 6526;
+static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 201;
+static const int TESTNET_V1_3_HEIGHT = 1001;  //round start is 10 x 100 block 1000-1100 payments start at 1110
 
 /** Testnet payment intervals*/
 static const int TESTNET_V1_2_8_NODES_PER_BLOCK         = 1;

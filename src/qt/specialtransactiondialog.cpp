@@ -40,6 +40,7 @@
 #include <QTreeWidgetItem>
 
 #define SEND_CONFIRM_DELAY 5
+#define MAX_ACTIVATION_TRANSACTIONS 10
 
 bool Error(std::string where, std::string message, QString &strError)
 {
@@ -65,13 +66,13 @@ SpecialTransactionDialog::SpecialTransactionDialog(const SpecialTransactionType 
         ui->labelFeeDesc->setText(strRegistrationFeeDescription);
         ui->descriptionLabel->setText(strRegistrationDescription);
         break;
-    case VOTE_PROOF_TRANSACTIONS: // TBD
-        nRequiredFee = REWARDS_VOTEPROOF_FEE;
-        nRequiredNetworkFee = REWARDS_VOTEPROOF_TX_FEE;
-        this->setWindowTitle(strVoteProofTitle);
+    case ACTIVATION_TRANSACTIONS:
+        nRequiredFee = REWARDS_ACTIVATION_FEE;
+        nRequiredNetworkFee = REWARDS_ACTIVATION_TX_FEE;
+        this->setWindowTitle(strActivationTxTitle);
         ui->labelFeeDesc->hide();
         ui->labelFeeAmount->hide();
-        ui->descriptionLabel->setText(strVoteProofDescription);
+        ui->descriptionLabel->setText(strActivationTxDescription);
         break;
     default:
         nRequiredFee = -1;
@@ -135,23 +136,16 @@ void SpecialTransactionDialog::setModel(WalletModel *model)
     }
 }
 
-QString SpecialTransactionDialog::GetTypeString()
-{
-
-    switch(type){
-    case REGISTRATION_TRANSACTIONS:
-        return "registration transactions";
-    case VOTE_PROOF_TRANSACTIONS:
-        return "vote proof transactions";
-    }
-
-    return "Unknown";
-}
-
 // ok button
 void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
 {
     if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::AcceptRole){
+        if ((type == ACTIVATION_TRANSACTIONS) && (mapOutputs.size() > MAX_ACTIVATION_TRANSACTIONS)) {
+            QMessageBox::warning(this, windowTitle(),
+                tr("No more than %1 activation transactions can be sent at once.").arg(MAX_ACTIVATION_TRANSACTIONS),
+                QMessageBox::Ok, QMessageBox::Ok);
+            return;
+        }
 
         int nCount = mapOutputs.size();
         CAmount nTotalAmount = nCount * GetRequiredTotal();
@@ -161,7 +155,18 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
             LogPrintf("  %s, out: %s\n", it.first.toStdString(), it.second.ToString());
         }
 
-        QString strType = GetTypeString();
+        QString strType;
+        switch(type){
+        case REGISTRATION_TRANSACTIONS:
+          strType = nCount > 1 ? "registration transactions" : "registration transaction";
+          break;
+        case ACTIVATION_TRANSACTIONS:
+          strType = nCount > 1 ? "activation transactions" : "activation transaction";
+          break;
+        default:
+          strType = "Unknown";
+          break;
+        }
 
         QString questionString = QString("Sending %1 %2, %3 each including fee")
                 .arg(nCount)
@@ -232,8 +237,8 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
                                   "They are not derived from the wallet's seed so you are not able to recover them "
                                   "with any earlier backup of your wallet."));
                 break;
-            case VOTE_PROOF_TRANSACTIONS:
-                strResult.append(tr("It requires %1 block confirmation for the VoteProof transactions before the address will become eligible in the VoteRewards tab.").arg(Params().GetConsensus().nRewardsConfirmationsRequired));
+            case ACTIVATION_TRANSACTIONS:
+                strResult.append(tr("It requires %1 block confirmation for the activation transactions before the address will become eligible in the SmartRewards tab.").arg(Params().GetConsensus().nRewardsConfirmationsRequired));
                 break;
             }
 
@@ -364,7 +369,6 @@ void SpecialTransactionDialog::selectSmallestOutput(QTreeWidgetItem* topLevel)
         COutPoint outpt(uint256S(smallestItem->text(COLUMN_TXHASH).toStdString()), smallestItem->text(COLUMN_VOUT_INDEX).toUInt());
         mapOutputs.insert(std::make_pair(sAddress, outpt));
     }
-
 }
 
 void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
@@ -380,7 +384,7 @@ void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
         case REGISTRATION_TRANSACTIONS:
             fSuccess = SendRegistration(it.first, it.second, strError);
             break;
-        case VOTE_PROOF_TRANSACTIONS:{
+        case ACTIVATION_TRANSACTIONS:{
 
             int nCurrentRound;
 
@@ -389,7 +393,7 @@ void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
                 nCurrentRound = prewards->GetCurrentRound()->number;
             }
 
-            fSuccess = SendVoteProof(it.first, it.second, nCurrentRound, strError);
+            fSuccess = SendActivationTransaction(it.first, it.second, nCurrentRound, strError);
         }break;
         }
 
@@ -398,7 +402,6 @@ void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
             continue;
         }
     }
-
 }
 
 bool SpecialTransactionDialog::SendRegistration(const QString &address, const COutPoint &out, QString &strError)
@@ -584,7 +587,7 @@ bool SpecialTransactionDialog::SendRegistration(const QString &address, const CO
     return true;
 }
 
-bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutPoint &out, int nCurrentRound, QString &strError)
+bool SpecialTransactionDialog::SendActivationTransaction(const QString &address, const COutPoint &out, int nCurrentRound, QString &strError)
 {
     // **
     // Check if the unspent output belongs to <address> or not
@@ -594,12 +597,12 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
     uint256 blockHash;
 
     if( !GetTransaction(out.hash, spendTx, Params().GetConsensus(), blockHash, true) )
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("TX-Hash %s doesn't belong to a transaction",out.hash.ToString()),
               strError);
 
     if( static_cast<uint32_t>(spendTx.vout.size()) - 1 < out.n )
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("TX-Index %d out of range for TX %s",out.n, out.hash.ToString()),
               strError);
 
@@ -612,21 +615,21 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
     CSmartAddress voteAddress(address.toStdString());
 
     if ( !voteAddress.IsValid() )
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("Failed to validate address for TX %s, index %s", out.hash.ToString(), out.n),
               strError);
 
     CKeyID voteAddressKeyID;
 
     if (!voteAddress.GetKeyID(voteAddressKeyID))
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("Address does't refer to a key for TX %s, index %s", out.hash.ToString(), out.n),
               strError);
 
     CTxDestination addressSolved;
 
     if (!ExtractDestination(utxo.scriptPubKey, addressSolved)) {
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("Failed to extract address for output with TX %s, index %s",
                         out.hash.ToString(), out.n),
               strError);
@@ -636,36 +639,11 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
 
     // Force option 1 - verify the vote address with the input of the register tx
     if(  !CSmartAddress(addressSolved).GetKeyID(keyIdSolved) || keyIdSolved != voteAddressKeyID ){
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("Failed to force vote proof option one for address %s with TX %s, index %s",
                         voteAddress.ToString(), out.hash.ToString(), out.n),
               strError);
     }
-
-    // **
-    // ** Prepare the VoteProof data
-    // **
-
-    if( pwalletMain->mapVoted[voteAddressKeyID].find(nCurrentRound) == pwalletMain->mapVoted[voteAddressKeyID].end() ){
-        return Error("GenerateVoteProof",
-              strprintf("Address %s did not yet vote during the VoteRewards round %d",
-                        voteAddress.ToString(), nCurrentRound),
-              strError);
-    }
-
-    std::vector<unsigned char> vecData = {
-        OP_RETURN_VOTE_PROOF_FLAG,
-        0x01 // Proof option 1
-    };
-
-    CDataStream proofData(SER_NETWORK,0);
-
-    proofData << nCurrentRound;
-    proofData << pwalletMain->mapVoted[voteAddressKeyID][nCurrentRound];
-
-    vecData.insert(vecData.end(), proofData.begin(), proofData.end());
-
-    CScript proofScript = CScript() << OP_RETURN << vecData;
 
     // **
     // Create the transaction
@@ -680,6 +658,20 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
     coinControl.Select(output);
     coinControl.destChange = change;
 
+    // Write script to self address
+    CScript proofScript = GetScriptForDestination(addressSolved);
+
+
+    // Figure out how much the output contains
+    map<uint256, CWalletTx>::const_iterator it = pwalletMain->mapWallet.find(out.hash);
+    if (it == pwalletMain->mapWallet.end())
+        return Error("GenerateActivation",
+              "Failed to find output transaction in wallet",
+              strError);
+
+    const CWalletTx &tx = it->second;
+    CAmount nOutputAmount = tx.vout[out.n].nValue;
+
     // Create and send the transaction
     CReserveKey reservekey(pwalletMain);
     CWalletTx proofTx;
@@ -688,12 +680,12 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
     vector<CRecipient> vecSend;
     int nChangePosRet = -1;
 
-    CRecipient recipient = {proofScript, REWARDS_VOTEPROOF_FEE, false};
+    CRecipient recipient = {proofScript, nOutputAmount, true};
     vecSend.push_back(recipient);
 
     if (!pwalletMain->CreateTransaction(vecSend, proofTx, reservekey, nFeeRequired, nChangePosRet,
                                          err, &coinControl))
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("Failed to generate transaction: %s for TX %s, index %d", err, out.hash.ToString(), out.n),
               strError);
 
@@ -702,19 +694,13 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
 
     CValidationState state;
     if (!(CheckTransaction(proofTx, state, proofTx.GetHash(), false) || !state.IsValid()))
-        return Error("GenerateVoteProof",
-              strprintf("VoteProof transaction invalid for TX %s, index %d: %s",
+        return Error("GenerateActivation",
+              strprintf("Activation transaction invalid for TX %s, index %d: %s",
                         out.hash.ToString(), out.n, state.GetRejectReason()),
               strError);
 
-    {
-        LOCK(pwalletMain->cs_wallet);
-        pwalletMain->mapVoteProofs[voteAddressKeyID].insert(std::make_pair(nCurrentRound, proofTx.GetHash()));
-        pwalletMain->UpdateVoteProofs(voteAddressKeyID);
-    }
-
     if( !pwalletMain->CommitTransaction(proofTx, reservekey, g_connman.get()) )
-        return Error("GenerateVoteProof",
+        return Error("GenerateActivation",
               strprintf("Failed to send the transaction TX %s", proofTx.ToString()),
               strError);
 
@@ -854,7 +840,7 @@ void SpecialTransactionDialog::updateView()
 
         }
 
-        if( type == VOTE_PROOF_TRANSACTIONS ){
+        if( type == ACTIVATION_TRANSACTIONS ){
             CKeyID keyId;
             CSmartAddress voteAddress(sWalletAddress.toStdString());
             int nCurrentRound = 0;
@@ -864,20 +850,7 @@ void SpecialTransactionDialog::updateView()
                 nCurrentRound = prewards->GetCurrentRound()->number;
             }
 
-            CSmartRewardEntry *reward = nullptr;
-
-            if( voteAddress.GetKeyID(keyId) && prewards->GetRewardEntry(CSmartAddress::Legacy(voteAddress), reward, false) ){
-
-                LOCK(pwalletMain->cs_wallet);
-
-                if( pwalletMain->mapVoted[keyId].find(nCurrentRound) == pwalletMain->mapVoted[keyId].end() ||
-                    pwalletMain->mapVoteProofs[keyId].find(nCurrentRound) != pwalletMain->mapVoteProofs[keyId].end() ||
-                    reward->balanceEligible == 0 || !reward->disqualifyingTx.IsNull() || !reward->smartnodePaymentTx.IsNull() ){
-                    // If not yet voted, no eligible balance or already vote proven skip it.
-                    continue;
-                }
-
-            }else{
+            if( !voteAddress.GetKeyID(keyId) ){
                 continue;
             }
         }

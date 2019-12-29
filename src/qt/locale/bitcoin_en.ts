@@ -510,12 +510,12 @@
     </message>
     <message>
         <location line="+6"/>
-        <source>&amp;VoteRewards</source>
+        <source>&amp;SmartRewards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Show eligible addresses for VoteRewards</source>
+        <source>Show eligible addresses for SmartRewards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4427,7 +4427,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location line="+48"/>
-        <source>Initialize VoteRewards...</source>
+        <source>Initialize SmartRewards...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4437,7 +4437,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location line="+143"/>
-        <source>VoteRewards round</source>
+        <source>SmartRewards round</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4492,7 +4492,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location line="+43"/>
-        <source>Estimated VoteRewards</source>
+        <source>Estimated SmartRewards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5851,7 +5851,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location line="+2"/>
-        <source>Verifying VoteRewards...</source>
+        <source>Verifying SmartRewards...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -6128,7 +6128,7 @@ Recreating it now...</source>
     </message>
     <message>
         <location line="+1"/>
-        <source>Creating VoteRewards database: </source>
+        <source>Creating SmartRewards database: </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -6193,7 +6193,7 @@ Recreating it now...</source>
     </message>
     <message>
         <location line="+1"/>
-        <source>Failed to verify VoteRewards database.</source>
+        <source>Failed to verify SmartRewards database.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -6383,12 +6383,12 @@ Recreating it now...</source>
     </message>
     <message>
         <location line="+1"/>
-        <source>VoteRewards database exceeds current chain height.</source>
+        <source>SmartRewards database exceeds current chain height.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>VoteRewards database is incomplete.</source>
+        <source>SmartRewards database is incomplete.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

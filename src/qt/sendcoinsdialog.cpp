@@ -521,7 +521,23 @@ void SendCoinsDialog::updateInstantSend()
     CoinControlDialog::coinControl->fUseInstantSend = ui->checkUseInstantSend->isChecked();
     coinControlUpdateLabels();
 }
-
+/*
+void SendCoinsDialog::updatetimelock()
+     timelockWidget = new QComboBox(this);
+     if (platformStyle->getUseExtraSpacing()) {
+         dateWidget->setFixedWidth(21);
+     } else {
+         dateWidget->setFixedWidth(20);
+     }
+     dateWidget->addItem(tr("Set Delay"), None);
+     dateWidget->addItem(tr("Delay 1 Week"), 1Week);
+     dateWidget->addItem(tr("Delay 1 Month"), 1Month);
+     dateWidget->addItem(tr("Delay 3 Months"), 3Months);
+     dateWidget->addItem(tr("Delay 6 Months"), 6Months);
+     dateWidget->addItem(tr("Delay 1 year"), 1Year);
+     dateWidget->addItem(tr("Custom..."), Custom);
+//     hlayout->addWidget(timelockWidget);
+*/
 void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn &sendCoinsReturn, const QString &msgArg)
 {
     QPair<QString, CClientUIInterface::MessageBoxFlags> msgParams;

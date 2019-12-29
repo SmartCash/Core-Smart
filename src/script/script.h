@@ -640,11 +640,10 @@ public:
     bool IsPayToScriptHashLocked() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
-    
+
     bool IsZerocoinMint() const;
     bool IsZerocoinSpend() const;
     bool IsVoteKeyData() const;
-    bool IsVoteProofData() const;
     // Called by IsStandardTx.
     bool HasCanonicalPushes() const;
 

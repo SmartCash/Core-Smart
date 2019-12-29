@@ -87,19 +87,14 @@ void QSmartRewardEntry::setEligible(CAmount nEligible, CAmount nEstimated)
     ui->lblEstimated->setText(strEstimated + " SMART");
 }
 
-void QSmartRewardEntry::setVoted(bool fState)
+void QSmartRewardEntry::setActivated(bool fState)
 {
-    fVoted = fState;
+    fActivated = fState;
 }
 
 void QSmartRewardEntry::setIsSmartNode(bool fState)
 {
     fIsSmartNode = fState;
-}
-
-void QSmartRewardEntry::setVoteProofConfirmations(int nConfirmations)
-{
-    nVoteProofConfirmations = nConfirmations;
 }
 
 QString QSmartRewardEntry::Address() const
@@ -114,12 +109,6 @@ QSmartRewardEntry::State QSmartRewardEntry::CurrentState()
     if( fIsSmartNode ) return IsASmartNode;
 
     if( !disqualifyingTx.IsNull() ) return OutgoingTransaction;
-
-    if( !fVoted ) return VotingRequired;
-
-    if( nVoteProofConfirmations == -1 ) return VoteProofRequired;
-
-    if( nVoteProofConfirmations < Params().GetConsensus().nRewardsConfirmationsRequired ) return VoteProofConfirmationsRequired;
 
     if( nEligible ) return IsEligible;
 

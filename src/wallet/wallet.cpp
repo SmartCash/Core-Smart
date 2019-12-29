@@ -461,28 +461,6 @@ bool CWallet::UpdateVotingKeyRegistration(const CKeyID &keyId) {
     return CWalletDB(strWalletFile).UpdateVotingKeyRegistration(keyId, mapVotingKeyRegistrations[keyId]);
 }
 
-bool CWallet::LoadVotedMap(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoted) {
-    AssertLockHeld(cs_wallet);
-    this->mapVoted[keyId] = mapVoted;
-    return true;
-}
-
-bool CWallet::UpdateVotedMap(const CKeyID &keyId) {
-    AssertLockHeld(cs_wallet);
-    return CWalletDB(strWalletFile).UpdateVotedMap(keyId, mapVoted[keyId]);
-}
-
-bool CWallet::LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoteProofs) {
-    AssertLockHeld(cs_wallet);
-    this->mapVoteProofs[keyId] = mapVoteProofs;
-    return true;
-}
-
-bool CWallet::UpdateVoteProofs(const CKeyID &keyId) {
-    AssertLockHeld(cs_wallet);
-    return CWalletDB(strWalletFile).UpdateVoteProofs(keyId, mapVoteProofs[keyId]);
-}
-
 bool CWallet::LoadCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret) {
     return CCryptoKeyStore::AddCryptedVotingKey(vchPubKey, vchCryptedSecret);
 }
@@ -2990,10 +2968,6 @@ bool CWallet::GetProposalFeeTX(CWalletTx& tx, const CSmartAddress& fromAddress, 
     CRecipient dataRecipient = {scriptData, 0, false};
     vector< CRecipient > vecSend;
     vecSend.push_back(dataRecipient);
-
-    CScript hiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
-    CRecipient hiveRecipient = {hiveScript, nAmount, false};
-    vecSend.push_back(hiveRecipient);
 
     CCoinControl coinControl;
 

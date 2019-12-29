@@ -326,8 +326,8 @@ void BitcoinGUI::createActions()
     smartnodeAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
     tabGroup->addAction(smartnodeAction);
 
-    smartrewardsAction = new QAction(platformStyle->SingleColorIcon(":/icons/smartrewards"), tr("&VoteRewards"), this);
-    smartrewardsAction->setStatusTip(tr("Show eligible addresses for VoteRewards"));
+    smartrewardsAction = new QAction(platformStyle->SingleColorIcon(":/icons/smartrewards"), tr("&SmartRewards"), this);
+    smartrewardsAction->setStatusTip(tr("Show eligible addresses for SmartRewards"));
     smartrewardsAction->setToolTip(smartrewardsAction->statusTip());
     smartrewardsAction->setCheckable(true);
     smartrewardsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));

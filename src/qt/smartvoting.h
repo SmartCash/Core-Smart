@@ -60,8 +60,6 @@ private:
     std::vector<SmartProposalWidget*> vecProposalWidgets;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
 
-    int nVoteProofRequired;
-    
 public Q_SLOTS:
     void updateUI();
     void updateProposalUI();
@@ -74,6 +72,5 @@ public Q_SLOTS:
     void scrollChanged(int value);
     void balanceChanged(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                         const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
-    void voteDone(QString &address, int nProposalId, bool successful);
 };
 #endif // BITCOIN_QT_SMARTVOTING_H
