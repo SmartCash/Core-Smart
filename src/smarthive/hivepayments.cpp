@@ -82,7 +82,7 @@ void SmartHivePayments::Init()
         29, // Split 29% of the block reward as followed.
         nPayoutInterval_1_3, // Trigger the payouts every n blocks
         {
-            new CSmartHiveClassic(SmartHive::Outreach, 0.0075),
+            new CSmartHiveClassic(SmartHive::Outreach, 0.0725),
             new CSmartHiveClassic(SmartHive::Support, 0.0725),
             new CSmartHiveClassic(SmartHive::Development, 0.0725),
             new CSmartHiveClassic(SmartHive::SmartHub, 0.0725),
