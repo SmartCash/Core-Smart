@@ -448,13 +448,13 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             }else if( !field.disqualifyingTx.IsNull() ){
                 entry->setDisqualifyingTx(field.disqualifyingTx);
                 entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
-            }else if( !field.fVoted ){
-                entry->setInfoText("Voting required. Go to the \"SmartVote\" tab and vote for a proposal with this address.", COLOR_NEGATIVE);
+//            }else if( !field.fVoted ){
+//                entry->setInfoText("An ActivateReward required. Go to the \"SmartVote\" tab and vote for a proposal with this address.", COLOR_NEGATIVE);
             }else if( field.fVoted && field.nVoteProofConfirmations == -1){
-                entry->setInfoText("VoteProof required. Click the button at the bottom to send the VoteProof for this address.", COLOR_WARNING);
+                entry->setInfoText("ActivateRewards required. Click the button at the bottom to ActivateRewards for this address.", COLOR_WARNING);
             }else if( field.fVoted &&
                       nConfirmationsRequired > 0){
-                entry->setInfoText(QString("%1 block confirmation required for the VoteProof transaction to become processed.").arg(nConfirmationsRequired), COLOR_WARNING);
+                entry->setInfoText(QString("%1 block confirmation required for ActivateRewards transaction to become processed.").arg(nConfirmationsRequired), COLOR_WARNING);
             }else if( field.fVoted &&
                       nConfirmationsRequired <= 0 &&
                       field.eligible ){
@@ -527,10 +527,10 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     }
 
     if( nAvailableForProof ){
-        ui->btnSendProofs->setText( QString(tr("Send VoteProofs [%1]")).arg(nAvailableForProof) );
+        ui->btnSendProofs->setText( QString(tr("Send ActivateRewards [%1]")).arg(nAvailableForProof) );
         ui->btnSendProofs->setEnabled(true);
     }else{
-        ui->btnSendProofs->setText( tr("No address ready for a VoteProof") );
+        ui->btnSendProofs->setText( tr("No addresses need to ActivateRewards") );
         ui->btnSendProofs->setEnabled(false);
     }
 

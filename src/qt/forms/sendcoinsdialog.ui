@@ -738,6 +738,7 @@
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
+ <string>Set Delay</string>
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
