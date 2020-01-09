@@ -90,7 +90,7 @@ SAPI::EndpointGroup addressEndpoints = {
             "unspent/amount", HTTPRequest::POST, UniValue::VOBJ, address_utxos_amount,
             {
                 SAPI::BodyParameter(SAPI::Keys::address,    new SAPI::Validation::SmartCashAddress()),
-                SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::AmountRange(1,MAX_MONEY)),
+                SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::AmountRange(.001,MAX_MONEY)),
                 SAPI::BodyParameter(SAPI::Keys::random,     new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true)
             }

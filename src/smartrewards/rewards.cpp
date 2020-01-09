@@ -231,12 +231,12 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             entry->second->balanceEligible = entry->second->balance;
 /* CalculateWeightedBalance.
            entry->second->weightedBalance = entry->second->balance;
-           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 32) ) ){
-               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 32);}
-           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 16)) ){
-               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 16);}
-           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 8) ) ){
-               entry->second->weightedBalance += cache.GetRounds()->at(pRound->number - 8);}
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 32)->entry->second->balance ){
+               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 32)->entry->second->balance;}
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 16)->entry->second->balance ){
+               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 16)->entry->second->balance;}
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 8)->entry->second->balance ){
+               entry->second->weightedBalance += cache.GetRounds()->at(pRound->number - 8)->entry->second->balance;}
 */
         }else{
             entry->second->balanceEligible = 0;
