@@ -228,20 +228,16 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         entry->second->balanceAtStart = entry->second->balance;
 
         if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) ){
-            entry->second->balanceEligible = entry->second->balance;.
-/* remove 2 lines above.
-       entry->second->balanceEligible = 0;
-       if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id){
-           if( entry->second->balance >= -3RewardsCycleBalance ) ){
-               entry->second->balanceEligible ++ 2*entry->second->balance;
-           else if( entry->second->balance >= -2RewardsCycleBalance) ){
-               entry->second->balanceEligible ++ 2*entry->second->balance;
-           else if( entry->second->balance >= -1RewardsCycleMBalance ) ){
-               entry->second->balanceEligible ++ 1*entry->second->balance;
-           else
-               entry->second->balanceEligible ++ entry->second->balance;
-       }
-And remove 2 lines below*/
+            entry->second->balanceEligible = entry->second->balance;
+/* CalculateWeightedBalance.
+           entry->second->weightedBalance = entry->second->balance;
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 32) ) ){
+               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 32);}
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 16)) ){
+               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 16);}
+           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 8) ) ){
+               entry->second->weightedBalance += cache.GetRounds()->at(pRound->number - 8);}
+*/
         }else{
             entry->second->balanceEligible = 0;
         }
@@ -253,6 +249,7 @@ And remove 2 lines below*/
         entry->second->smartnodePaymentTx.SetNull();
         entry->second->fSmartnodePaymentTx = false;
         // Reset the vote proof tx with every cycle to force a new vote for eligibility
+//Need to disable.
 //        entry->second->voteProof.SetNull();
 //        entry->second->fVoteProven = false;
 
