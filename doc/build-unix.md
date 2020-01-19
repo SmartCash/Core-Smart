@@ -87,6 +87,19 @@ You can add the repository and install using the following commands:
     sudo apt-get update
     sudo apt-get install libdb4.8-dev libdb4.8++-dev
 
+On Ubuntu 19 and above install manually and manually fix db name.
+
+    wget http://download.oracle.com/berkeley-db/db-4.8.30.zip
+    unzip db-4.8.30.zip
+    sudo nano db-4.8.30.NC/dbinc/atomic.h
+        Line 147, replace __atomic_compare_exchange((p), (o), (n)) with __atomic_compare_exchange_db((p), (o), (n))
+        Line 179, replace static inline int __atomic_compare_exchange( with static inline int __atomic_compare_exchange_db(
+    control x y
+    cd db-4.8.30/build_unix/
+    ../dist/configure --prefix=/usr/local --enable-cxx
+    make -j4
+    sudo make install
+
 Ubuntu and Debian have their own libdb-dev and libdb++-dev packages, but these will install
 BerkeleyDB 5.1 or later, which break binary wallet compatibility with the distributed executables which
 are based on BerkeleyDB 4.8. If you do not care about wallet compatibility,
