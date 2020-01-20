@@ -620,7 +620,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
 
                 CSmartRewardEntry *proofEntry = nullptr;
                 unsigned char cAddressType = 0;
-                uint32_t nProofRound;
+                int32_t nProofRound = -1;
                 uint160 addressHash;
                 uint256 nProposalHash; // Placeholder only for now
                 CSmartAddress proofAddress;
@@ -675,7 +675,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
 
                     if( !proofEntry->fVoteProven ){
 
-                        if( nProofRound == nCurrentRound ){
+                        if( nProofRound > 0 && (uint32_t)nProofRound == nCurrentRound ){
                             proofEntry->voteProof = tx.GetHash();
                             proofEntry->fVoteProven = true;
                         }
