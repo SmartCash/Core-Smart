@@ -286,13 +286,13 @@ public:
         consensus.nRewardsPayoutStartDelay = 20;
 
         //! 1.2 Parameter
-        consensus.nRewardsBlocksPerRound_1_2 = 500;
+        consensus.nRewardsBlocksPerRound_1_2 = 50;
         consensus.nRewardsPayouts_1_2_BlockInterval = 2;
         consensus.nRewardsPayouts_1_2_BlockPayees = 1000;
 
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 50;
-        consensus.nRewardsFirst_1_3_Round = 13;
+        consensus.nRewardsFirst_1_3_Round = 3;
         consensus.nRewardsPayouts_1_3_BlockStretch = 45;
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
