@@ -291,9 +291,9 @@ public:
         consensus.nRewardsPayouts_1_2_BlockPayees = 1000;
 
         //! 1.3 Parameter
-        consensus.nRewardsBlocksPerRound_1_3 = 1500;
+        consensus.nRewardsBlocksPerRound_1_3 = 50;
         consensus.nRewardsFirst_1_3_Round = 13;
-        consensus.nRewardsPayouts_1_3_BlockStretch = 1000;
+        consensus.nRewardsPayouts_1_3_BlockStretch = 45;
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
         consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
