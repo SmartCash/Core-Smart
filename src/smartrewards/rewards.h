@@ -177,6 +177,7 @@ public:
     bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress &id, CSmartRewardEntry *&entry, bool fCreate);
+    CAmount GetAddressBalanceAtRound(const CSmartAddress& address, int16_t round);
 
     void EvaluateRound(CSmartRewardRound &next);
     bool StartFirstRound(const CSmartRewardRound &next, const CSmartRewardEntryList &entries);

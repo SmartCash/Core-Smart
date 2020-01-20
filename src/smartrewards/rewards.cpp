@@ -175,6 +175,31 @@ void CSmartRewards::UpdatePercentage()
     cache.UpdateRoundPercent(nPercent);
 }
 
+CAmount CSmartRewards::GetAddressBalanceAtRound(const CSmartAddress& address, int16_t round) {
+    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
+
+    // TODO: Also check if not before activation transaction
+    if (round < nFirst_1_3_Round) {
+        return -1;
+    }
+
+    CSmartRewardResultEntryList roundResults;
+    if (!GetRewardRoundResults(round, roundResults)) {
+        return -1;
+    }
+
+    auto addressResult = std::find_if(roundResults.begin(), roundResults.end(),
+            [&address] (const CSmartRewardResultEntry &e) -> bool {
+        return address == e.entry.id;
+    });
+
+    if (addressResult == roundResults.end()) {
+        return -1;
+    }
+
+    return addressResult->entry.balance;
+}
+
 void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 {
     LOCK(cs_rewardscache);
@@ -229,15 +254,27 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) ){
             entry->second->balanceEligible = entry->second->balance;
-/* CalculateWeightedBalance.
-           entry->second->weightedBalance = entry->second->balance;
-           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 32)->entry->second->balance ){
-               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 32)->entry->second->balance;}
-           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 16)->entry->second->balance ){
-               entry->second->weightedBalance += 2*cache.GetRounds()->at(pRound->number - 16)->entry->second->balance;}
-           if( entry->second->balance >= cache.GetRounds()->at(pRound->number - 8)->entry->second->balance ){
-               entry->second->weightedBalance += cache.GetRounds()->at(pRound->number - 8)->entry->second->balance;}
-*/
+
+            // If we passed 1.3, calculate weighted balance
+            if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 8)) {
+                // Balance 2 months ago
+                CAmount balanceMinus8Round = GetAddressBalanceAtRound(entry->first, round->number - 8);
+                if (balanceMinus8Round > 0 && entry->second->balance >= balanceMinus8Round) {
+                    entry->second->balanceEligible += balanceMinus8Round;
+    
+                    // Balance 4 months ago
+                    CAmount balanceMinus16Round = GetAddressBalanceAtRound(entry->first, round->number - 16);
+                    if (balanceMinus16Round > 0 && balanceMinus8Round >= balanceMinus16Round) {
+                        entry->second->balanceEligible += 2 * balanceMinus16Round;
+    
+                        // Balance 6 months ago
+                        CAmount balanceMinus26Round = GetAddressBalanceAtRound(entry->first, round->number - 26);
+                        if (balanceMinus26Round > 0 && balanceMinus16Round >= balanceMinus26Round) {
+                            entry->second->balanceEligible += 2 * balanceMinus26Round;
+                        }
+                    }
+                }
+            }
         }else{
             entry->second->balanceEligible = 0;
         }
