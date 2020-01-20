@@ -246,6 +246,9 @@ bool CTransaction::IsVoteProof() const
         if (it->IsVoteProofData() ) return true;
     }
 
+    if ( (vin.size() == 1) && (vout.size() == 1) ) return true;
+//&& (in.address == out.address) && CTxout >= SMART_REWARDS_MIN_BALANCE_1_3 )
+
     return false;
 }
 
