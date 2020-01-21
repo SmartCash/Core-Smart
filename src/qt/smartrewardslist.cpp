@@ -450,7 +450,8 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
 //            }else if( !field.fVoted ){
 //                entry->setInfoText("An ActivateReward required. Go to the \"SmartVote\" tab and vote for a proposal with this address.", COLOR_NEGATIVE);
-            }else if( field.fVoted && field.nVoteProofConfirmations == -1){
+//            }else if( field.fVoted && field.nVoteProofConfirmations == -1){
+            }else if( field.nVoteProofConfirmations == -1){
                 entry->setInfoText("ActivateRewards required. Click the button at the bottom to ActivateRewards for this address.", COLOR_WARNING);
             }else if( field.fVoted &&
                       nConfirmationsRequired > 0){

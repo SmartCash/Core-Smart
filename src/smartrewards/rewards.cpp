@@ -547,9 +547,9 @@ void CSmartRewards::ProcessInput(const CTransaction &tx, const CTxOut &in, CSmar
 
     rEntry->balance -= in.nValue;
 
-    // If its a voteproof transaction not instantly make the
-    // balance ineligible. First check if the change is sent back
-    // to the address or not to avoid exploiting fund sending
+    // If its a voteproof transaction don't instantly make the
+    // balance eligible. First check if the change is sent back
+    // to the original address to avoid exploiting fund sending
     // with voteproof transactions
     if( nCurrentRound >= nFirst_1_3_Round && *voteProofCheck == nullptr && !rEntry->fDisqualifyingTx ){
 
@@ -597,8 +597,8 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
 
             unsigned char cProofOption = 0;
 
-            if( !out.IsVoteProofData() &&
-                !(*voteProofCheck == rEntry->id) ){
+//            if( !out.IsVoteProofData() &&
+            if( !(*voteProofCheck == rEntry->id) ){
 
                 CSmartRewardEntry *vkEntry = nullptr;
 
@@ -615,8 +615,8 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
                 vkEntry->disqualifyingTx = tx.GetHash();
                 vkEntry->fDisqualifyingTx = true;
 
-            }else if( !out.IsVoteProofData() &&
-                      (*voteProofCheck == rEntry->id) ){
+//            }else if( !out.IsVoteProofData() &&
+             }else if( (*voteProofCheck == rEntry->id) ){
 
                 CSmartRewardEntry *proofEntry = nullptr;
                 unsigned char cAddressType = 0;
