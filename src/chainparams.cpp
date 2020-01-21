@@ -140,8 +140,8 @@ public:
 
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 10996;  // 1 week
-        consensus.nRewardsFirst_1_3_Round = 31;
-        consensus.nRewardsPayouts_1_3_BlockStretch = 10990; // 1 week
+        consensus.nRewardsFirst_1_3_Round = 32; // Round 32 on 2/23 starts on block 1476600
+        consensus.nRewardsPayouts_1_3_BlockStretch = 10000;
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
@@ -293,8 +293,8 @@ public:
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 50;
         consensus.nRewardsFirst_1_3_Round = 3;
-        consensus.nRewardsPayouts_1_3_BlockStretch = 45;
-        consensus.nRewardsPayouts_1_3_BlockPayees = 10;
+        consensus.nRewardsPayouts_1_3_BlockStretch = 25;
+        consensus.nRewardsPayouts_1_3_BlockPayees = 100;
 
         consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
 
