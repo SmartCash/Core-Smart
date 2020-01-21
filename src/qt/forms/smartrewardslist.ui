@@ -473,7 +473,7 @@
           <item>
            <widget class="QPushButton" name="btnSendProofs">
             <property name="text">
-             <string>Send VoteProofs [0]</string>
+             <string>Activate Rewards [0]</string>
             </property>
            </widget>
           </item>

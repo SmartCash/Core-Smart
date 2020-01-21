@@ -103,10 +103,10 @@ static const QString strRegistrationDescription = (
 );
 static const QString strRegistrationFeeDescription = "Register fee";
 
-static const QString strVoteProofTitle = "Send VoteProofs";
+static const QString strVoteProofTitle = "Activate Rewards";
 static const QString strVoteProofDescription = (
-"Use this form to send VoteProof transactions to make your addresses eligible for SmartRewards "
-"after you cast a vote with them. A small fee of 0.001 SMART will be taken from outputs you choose.\n\n"
+"Use this form to send an ActivateReward transaction to make your addresses eligible for SmartRewards. "
+"A small fee of 0.001 SMART will be taken from outputs you choose.\n\n"
 "You can either manually select an input for each address or automatically select the smallest input for each address by clicking the checkbox below."
 );
 
