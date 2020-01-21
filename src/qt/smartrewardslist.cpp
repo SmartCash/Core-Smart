@@ -303,7 +303,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                                 }
                             }
 
-                            if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
+                            if( //pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
                                 pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
                                 reward->balanceEligible && reward->disqualifyingTx.IsNull() && reward->smartnodePaymentTx.IsNull() ){
                                 ++nAvailableForProof;
