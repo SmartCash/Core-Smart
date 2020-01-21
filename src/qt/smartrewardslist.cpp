@@ -350,7 +350,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
                     LOCK2(cs_main, pwalletMain->cs_wallet);
 
-                    rewardField.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
+//                    rewardField.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
 
                     if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
 
@@ -379,7 +379,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         }
                     }
 
-                    if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
+                    if( //pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
                         pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
                         reward->balanceEligible && reward->disqualifyingTx.IsNull() && reward->smartnodePaymentTx.IsNull() ){
                         ++nAvailableForProof;
@@ -453,10 +453,10 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 //            }else if( field.fVoted && field.nVoteProofConfirmations == -1){
             }else if( field.nVoteProofConfirmations == -1){
                 entry->setInfoText("ActivateRewards required. Click the button at the bottom to ActivateRewards for this address.", COLOR_WARNING);
-            }else if( field.fVoted &&
+            }else if( // field.fVoted &&
                       nConfirmationsRequired > 0){
                 entry->setInfoText(QString("%1 block confirmation required for ActivateRewards transaction to become processed.").arg(nConfirmationsRequired), COLOR_WARNING);
-            }else if( field.fVoted &&
+            }else if( // field.fVoted &&
                       nConfirmationsRequired <= 0 &&
                       field.eligible ){
                 entry->setEligible(field.eligible, field.reward);
