@@ -290,7 +290,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 //        entry->second->voteProof.SetNull();
 //        entry->second->fVoteProven = false;
 
-        if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
+//        if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
+        if( entry->second->balanceEligible ){
             ++next.eligibleEntries;
             next.eligibleSmart += entry->second->balanceEligible;
         }
@@ -615,7 +616,7 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
                 vkEntry->disqualifyingTx = tx.GetHash();
                 vkEntry->fDisqualifyingTx = true;
 
-//            }else if( !out.IsVoteProofData() &&
+//             }else if( !out.IsVoteProofData() &&
              }else if( (*voteProofCheck == rEntry->id) ){
 
                 CSmartRewardEntry *proofEntry = nullptr;
