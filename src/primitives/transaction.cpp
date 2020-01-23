@@ -3,8 +3,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "script/standard.h"
 #include "primitives/transaction.h"
 
+#include "pubkey.h"
 #include "hash.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
@@ -246,8 +248,18 @@ bool CTransaction::IsVoteProof() const
         if (it->IsVoteProofData() ) return true;
     }
 
-    if ( (vin.size() == 1) && (vout.size() == 1) ) return true;
-//&& (in.address == out.address) && CTxout >= SMART_REWARDS_MIN_BALANCE_1_3 )
+    // Activation transaction is a Tx back to the issuing address, it should only have one input and one output
+    if ( (vin.size() == 1) && (vout.size() == 1) ) {
+      std::vector<CTxDestination> txInDestination, txOutDestination;
+      txnouttype txInType, txOutType;
+      int txInRequiredRet, txOutRequiredRet;
+
+      // Check destinations of in/out scripts are the same
+      if (!ExtractDestinations(vin.front().prevPubKey, txInType, txInDestination, txInRequiredRet)) return false;
+      if (!ExtractDestinations(vout.front().scriptPubKey, txOutType, txOutDestination, txOutRequiredRet)) return false;
+      if (txInDestination.size() != 1 || txOutDestination.size() != 1) return false;
+      if (txInDestination.front() == txOutDestination.front()) return true;
+    }
 
     return false;
 }
