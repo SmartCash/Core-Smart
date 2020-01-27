@@ -239,9 +239,31 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
             if( cache.GetCurrentRound()->number < nFirst_1_3_Round ){
                 nReward = entry->second->balanceEligible > 0 && !entry->second->fDisqualifyingTx ? CAmount(entry->second->balanceEligible * round->percent) : 0;
-            }else{
-                nReward = entry->second->IsEligible() ? CAmount(entry->second->balanceEligible * round->percent) : 0;
-            }
+            // If we pass 1.3 start round, calculate the weighted balance.
+            }else if ( entry->second->IsEligible() ){
+                // Balance 2 months ago
+                if ( cache.GetCurrentRound()->number > (nFirst_1_3_Round + 8)) {
+                    CAmount balanceMinus8Round = GetAddressBalanceAtRound(entry->first, round->number - 8);
+                    if ( entry->second->balance >= balanceMinus8Round > 0 ) {
+                       entry->second->balanceEligible += balanceMinus8Round;
+                       // Balance 4 months ago
+                       if (cache.GetCurrentRound()->number > (nFirst_1_3_Round+16)){
+                           CAmount balanceMinus16Round = GetAddressBalanceAtRound(entry->first, round->number - 16);
+                           if ( balanceMinus8Round >= balanceMinus16Round > 0 ) {
+                                entry->second->balanceEligible += 2 * balanceMinus16Round;
+                                // Balance 6 months ago
+                                if (cache.GetCurrentRound()->number > (nFirst_1_3_Round+26)){
+                                    CAmount balanceMinus26Round = GetAddressBalanceAtRound(entry->first, round->number - 26);
+                                    if (balanceMinus16Round >= balanceMinus26Round > 0 ) {
+                                        entry->second->balanceEligible += 2 * balanceMinus26Round;
+				    }
+                                }
+                           }
+                       }
+                   }
+               }
+               nReward = CAmount(entry->second->balanceEligible * round->percent);
+            }else{  nReward = 0 }
 
             pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
 
@@ -253,28 +275,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         entry->second->balanceAtStart = entry->second->balance;
 
         if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) ){
-            entry->second->balanceEligible = entry->second->balance;
-
-            // If we passed 1.3, calculate weighted balance
-            if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 8)) {
-                // Balance 2 months ago
-                CAmount balanceMinus8Round = GetAddressBalanceAtRound(entry->first, round->number - 8);
-                if (balanceMinus8Round > 0 && entry->second->balance >= balanceMinus8Round) {
-                    entry->second->balanceEligible += balanceMinus8Round;
-    
-                    // Balance 4 months ago
-                    CAmount balanceMinus16Round = GetAddressBalanceAtRound(entry->first, round->number - 16);
-                    if (balanceMinus16Round > 0 && balanceMinus8Round >= balanceMinus16Round) {
-                        entry->second->balanceEligible += 2 * balanceMinus16Round;
-    
-                        // Balance 6 months ago
-                        CAmount balanceMinus26Round = GetAddressBalanceAtRound(entry->first, round->number - 26);
-                        if (balanceMinus26Round > 0 && balanceMinus16Round >= balanceMinus26Round) {
-                            entry->second->balanceEligible += 2 * balanceMinus26Round;
-                        }
-                    }
-                }
-            }
+           if( cache.GetCurrentRound()->number < nFirst_1_3_Round ){
+               entry->second->balanceEligible = entry->second->balance;
+           }
         }else{
             entry->second->balanceEligible = 0;
         }
@@ -286,7 +289,6 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         entry->second->smartnodePaymentTx.SetNull();
         entry->second->fSmartnodePaymentTx = false;
         // Reset the vote proof tx with every cycle to force a new vote for eligibility
-//Need to disable.
 //        entry->second->voteProof.SetNull();
 //        entry->second->fVoteProven = false;
 
