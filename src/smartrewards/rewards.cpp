@@ -244,17 +244,17 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                 // Balance 2 months ago
                 if ( cache.GetCurrentRound()->number > (nFirst_1_3_Round + 8)) {
                     CAmount balanceMinus8Round = GetAddressBalanceAtRound(entry->first, round->number - 8);
-                    if ( entry->second->balance >= balanceMinus8Round > 0 ) {
+                    if ( entry->second->balance > balanceMinus8Round && balanceMinus8Round > nMinBalance ) {
                        entry->second->balanceEligible += balanceMinus8Round;
                        // Balance 4 months ago
                        if (cache.GetCurrentRound()->number > (nFirst_1_3_Round+16)){
                            CAmount balanceMinus16Round = GetAddressBalanceAtRound(entry->first, round->number - 16);
-                           if ( balanceMinus8Round >= balanceMinus16Round > 0 ) {
+                           if ( balanceMinus8Round > balanceMinus16Round && balanceMinus16Round > nMinBalance ) {
                                 entry->second->balanceEligible += 2 * balanceMinus16Round;
                                 // Balance 6 months ago
                                 if (cache.GetCurrentRound()->number > (nFirst_1_3_Round+26)){
                                     CAmount balanceMinus26Round = GetAddressBalanceAtRound(entry->first, round->number - 26);
-                                    if (balanceMinus16Round >= balanceMinus26Round > 0 ) {
+                                    if (balanceMinus16Round > balanceMinus26Round && balanceMinus26Round > nMinBalance ) {
                                         entry->second->balanceEligible += 2 * balanceMinus26Round;
 				    }
                                 }
@@ -263,7 +263,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                    }
                }
                nReward = CAmount(entry->second->balanceEligible * round->percent);
-            }else{  nReward = 0 }
+            }else{  nReward = 0; }
 
             pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
 
