@@ -272,6 +272,11 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             }
         }
 
+        if( entry->second->balanceEligible ){
+            ++next.eligibleEntries;
+            next.eligibleSmart += entry->second->balanceEligible;
+        }
+
         entry->second->balanceAtStart = entry->second->balance;
 
         if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) ){
@@ -293,10 +298,6 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 //        entry->second->fVoteProven = false;
 
 //        if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
-        if( entry->second->balanceEligible ){
-            ++next.eligibleEntries;
-            next.eligibleSmart += entry->second->balanceEligible;
-        }
 
         ++entry;
     }
@@ -594,106 +595,26 @@ void CSmartRewards::ProcessOutput(const CTransaction &tx, const CTxOut &out, CSm
         return;
     }else{
 
-        GetRewardEntry(id,rEntry, true);
+        if (GetRewardEntry(id, rEntry, true) && tx.IsVoteProof()) {
+            // Store the proof flag is not already done for this entry
+            if (!rEntry->fVoteProven) {
+                rEntry->voteProof = tx.GetHash();
+                rEntry->fVoteProven = true;
+            }
 
-        if( voteProofCheck ){
+            if (rEntry->balanceEligible) {
+                rEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
 
-            unsigned char cProofOption = 0;
-
-//            if( !out.IsVoteProofData() &&
-            if( !(*voteProofCheck == rEntry->id) ){
-
-                CSmartRewardEntry *vkEntry = nullptr;
-
-                GetRewardEntry(*voteProofCheck,vkEntry, true);
-
-                if( vkEntry->IsEligible() ){
-                    result.disqualifiedEntries++;
-                    result.disqualifiedSmart += vkEntry->balanceEligible;
-                }
-
-                // Finally invalidate the balance since the change was not sent
-                // back to the sender! We don't want to allow
-                // a exploit to send around funds withouht breaking smartrewards.
-                vkEntry->disqualifyingTx = tx.GetHash();
-                vkEntry->fDisqualifyingTx = true;
-
-//             }else if( !out.IsVoteProofData() &&
-             }else if( (*voteProofCheck == rEntry->id) ){
-
-                CSmartRewardEntry *proofEntry = nullptr;
-                unsigned char cAddressType = 0;
-                int32_t nProofRound = -1;
-                uint160 addressHash;
-                uint256 nProposalHash; // Placeholder only for now
-                CSmartAddress proofAddress;
-
-                BOOST_FOREACH(const CTxOut &outData, tx.vout) {
-
-                    if( outData.IsVoteProofData() ){
-
-                        std::vector<unsigned char> scriptData;
-                        scriptData.insert(scriptData.end(), outData.scriptPubKey.begin() + 3, outData.scriptPubKey.end());
-                        CDataStream ss(scriptData, SER_NETWORK, 0);
-
-                        ss >> cProofOption;
-                        ss >> nProofRound;
-                        ss >> nProposalHash;
-
-                        if( cProofOption == 0x01 &&
-                            voteProofCheck->ToString(false) != Params().GetConsensus().strRewardsGlobalVoteProofAddress){
-                            proofAddress = *voteProofCheck;
-                            proofEntry = rEntry;
-                        }else if( cProofOption == 0x02 &&
-                                  voteProofCheck->ToString(false) == Params().GetConsensus().strRewardsGlobalVoteProofAddress ){
-
-                            ss >> cAddressType;
-                            ss >> addressHash;
-
-                            if( cAddressType == 0x01 ){
-                                proofAddress = CSmartAddress(CKeyID(addressHash));
-                            }else if( cAddressType == 0x02){
-                                proofAddress = CSmartAddress(CScriptID(addressHash));
-                            }else{
-                                proofAddress = CSmartAddress(); // Invalid address type
-                            }
-
-                            GetRewardEntry(proofAddress, proofEntry, true);
-
-                        }else{
-                            proofAddress = CSmartAddress(); // Invalid option
-                        }
-                    }
-                }
-
-                if( proofAddress.IsValid() && proofEntry != nullptr && !SmartHive::IsHive(*voteProofCheck) ){
-
-                    if( cProofOption == 0x01 && proofEntry->balanceEligible ){
-                        proofEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
-
-                        if( proofEntry->balanceEligible < 0 ){
-                            proofEntry->balanceEligible = 0;
-                        }
-                    }
-
-                    if( !proofEntry->fVoteProven ){
-
-                        if( nProofRound > 0 && (uint32_t)nProofRound == nCurrentRound ){
-                            proofEntry->voteProof = tx.GetHash();
-                            proofEntry->fVoteProven = true;
-                        }
-
-                        // If the entry is eligible now after the vote proof update the results
-                        if( proofEntry->IsEligible() ){
-                            result.qualifiedEntries++;
-                            result.qualifiedSmart += proofEntry->balanceEligible;
-                        }
-
-                    }
+                if (rEntry->balanceEligible < 0) {
+                    rEntry->balanceEligible = 0;
                 }
             }
 
-            delete voteProofCheck;
+            // If the entry is eligible now after the vote proof update the results
+            if (rEntry->IsEligible()) {
+                result.qualifiedEntries++;
+                result.qualifiedSmart += rEntry->balanceEligible;
+            }
         }
 
         rEntry->balance += out.nValue;
