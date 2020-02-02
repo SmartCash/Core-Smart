@@ -237,16 +237,7 @@ bool CTransaction::IsVoteKeyRegistration() const
 
 bool CTransaction::IsVoteProof() const
 {
-    // Vote proof transactions must contain only 1 input
-    // which is from the address to register and maximum 2 outputs
-    // 1. OP_RETURN with the VoteProofData
-    // 2. change (optional)
-    if( vin.size() > 1 || vout.size() > 2 ) return false;
-
-    for (std::vector<CTxOut>::const_iterator it(vout.begin()); it != vout.end(); ++it)
-    {
-        if (it->IsVoteProofData() ) return true;
-    }
+    if (IsCoinBase()) return false;
 
     // Activation transaction is a Tx back to the issuing address, it should only have one input and one output
     if ( (vin.size() == 1) && (vout.size() == 1) ) {
@@ -254,11 +245,27 @@ bool CTransaction::IsVoteProof() const
       txnouttype txInType, txOutType;
       int txInRequiredRet, txOutRequiredRet;
 
-      // Check destinations of in/out scripts are the same
-      if (!ExtractDestinations(vin.front().prevPubKey, txInType, txInDestination, txInRequiredRet)) return false;
-      if (!ExtractDestinations(vout.front().scriptPubKey, txOutType, txOutDestination, txOutRequiredRet)) return false;
-      if (txInDestination.size() != 1 || txOutDestination.size() != 1) return false;
-      if (txInDestination.front() == txOutDestination.front()) return true;
+      // Activation transaction should be P2PKH, get the hashed pubkey from output script
+      const CScript &outScript = vout.front().scriptPubKey;
+      if (!outScript.IsPayToPublicKeyHash()) return false;
+      uint160 hashBytes = uint160(std::vector<unsigned char>(outScript.begin() + 3, outScript.begin() + 23));
+
+      // Get pubkey from input script signature by deconding ScriptSig
+      const CScript &scriptSig = vin.front().scriptSig;
+      CScript::const_iterator pc = scriptSig.begin();
+      opcodetype opcode;
+      vector<unsigned char> vch;
+
+      // First Op should be the signature
+      scriptSig.GetOp(pc, opcode, vch);
+      if ((opcode < 0) || (opcode > OP_PUSHDATA4) || (vch.size() < 4)) return false;
+
+      // Second Op should be the public key
+      scriptSig.GetOp(pc, opcode, vch);
+      uint160 hashedKey = Hash160(vch);
+
+      // If hashed pubkey matches output hash, then the Tx destination matches the source
+      if (hashBytes == hashedKey) return true;
     }
 
     return false;
