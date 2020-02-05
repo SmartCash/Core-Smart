@@ -235,9 +235,14 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
     while(entry != cache.GetEntries()->end() ) {
 
-        if( cache.GetCurrentRound()->number ){
-
+        // Only compute rewards if not an Hive address and balance is over the minimum
+        if( cache.GetCurrentRound()->number &&
+                entry->second->balance >= nMinBalance &&
+                !SmartHive::IsHive(entry->second->id) ){
+            nReward = 0;
+            // If prior to 1.3, just use the balance as eligible
             if( cache.GetCurrentRound()->number < nFirst_1_3_Round ){
+                entry->second->balanceEligible = entry->second->balance;
                 nReward = entry->second->balanceEligible > 0 && !entry->second->fDisqualifyingTx ? CAmount(entry->second->balanceEligible * round->percent) : 0;
             // If we pass 1.3 start round, calculate the weighted balance.
             }else if ( entry->second->IsEligible() ){
@@ -263,29 +268,17 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                    }
                }
                nReward = CAmount(entry->second->balanceEligible * round->percent);
-            }else{  nReward = 0; }
+            }
 
-            pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
-
-            if( nReward ){
+            if( nReward > 0 ){
+                pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
                 pResult->payouts.push_back(pResult->results.back());
+                ++next.eligibleEntries;
+                next.eligibleSmart += entry->second->balanceEligible;
             }
         }
 
-        if( entry->second->balanceEligible ){
-            ++next.eligibleEntries;
-            next.eligibleSmart += entry->second->balanceEligible;
-        }
-
         entry->second->balanceAtStart = entry->second->balance;
-
-        if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) ){
-           if( cache.GetCurrentRound()->number < nFirst_1_3_Round ){
-               entry->second->balanceEligible = entry->second->balance;
-           }
-        }else{
-            entry->second->balanceEligible = 0;
-        }
 
         // Reset outgoing transaction with every cycle.
         entry->second->disqualifyingTx.SetNull();
