@@ -239,10 +239,10 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         if( cache.GetCurrentRound()->number &&
                 entry->second->balance >= nMinBalance &&
                 !SmartHive::IsHive(entry->second->id) ){
-            nReward = 0;
+            entry->second->balanceEligible = entry->second->balance;
+
             // If prior to 1.3, just use the balance as eligible
             if( cache.GetCurrentRound()->number < nFirst_1_3_Round ){
-                entry->second->balanceEligible = entry->second->balance;
                 nReward = entry->second->balanceEligible > 0 && !entry->second->fDisqualifyingTx ? CAmount(entry->second->balanceEligible * round->percent) : 0;
             // If we pass 1.3 start round, calculate the weighted balance.
             }else if ( entry->second->IsEligible() ){
@@ -261,16 +261,19 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                                     CAmount balanceMinus26Round = GetAddressBalanceAtRound(entry->first, round->number - 26);
                                     if (balanceMinus16Round > balanceMinus26Round && balanceMinus26Round > nMinBalance ) {
                                         entry->second->balanceEligible += 2 * balanceMinus26Round;
-				    }
+                                    }
                                 }
                            }
                        }
                    }
                }
                nReward = CAmount(entry->second->balanceEligible * round->percent);
+            } else {
+                nReward = 0;
+                entry->second->balanceEligible = 0;
             }
 
-            if( nReward > 0 ){
+            if( entry->second->balanceEligible > 0 ){
                 pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
                 pResult->payouts.push_back(pResult->results.back());
                 ++next.eligibleEntries;
