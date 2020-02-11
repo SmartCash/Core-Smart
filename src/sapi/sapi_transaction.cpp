@@ -14,6 +14,7 @@ extern void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool 
 
 static bool transaction_send(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool transaction_check(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool transaction_create(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup transactionEndpoints = {
     "transaction",
@@ -30,6 +31,14 @@ SAPI::EndpointGroup transactionEndpoints = {
                 SAPI::BodyParameter(SAPI::Keys::rawtx, new SAPI::Validation::HexString()),
                 SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::overridefees, new SAPI::Validation::Bool(), true)
+            }
+        },
+        {
+            "create", HTTPRequest::POST, UniValue::VOBJ, transaction_create,
+            {
+                SAPI::BodyParameter(SAPI::Keys::inputs, new SAPI::Validation::Transactions()),
+                SAPI::BodyParameter(SAPI::Keys::outputs, new SAPI::Validation::Outputs()),
+                SAPI::BodyParameter(SAPI::Keys::locktime, new SAPI::Validation::UInt(), true),
             }
         }
     }
@@ -196,3 +205,73 @@ static bool transaction_send(HTTPRequest* req, const std::map<std::string, std::
     return true;
 }
 
+static bool transaction_create(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    UniValue inputs = bodyParameter[SAPI::Keys::inputs].get_array();
+    UniValue sendTo = bodyParameter[SAPI::Keys::outputs].get_obj();
+    CMutableTransaction rawTx;
+
+    if (bodyParameter.exists(SAPI::Keys::locktime)) {
+        rawTx.nLockTime = bodyParameter[SAPI::Keys::locktime].get_int64();
+    }
+
+    for (unsigned int idx = 0; idx < inputs.size(); idx++) {
+        const UniValue& input = inputs[idx];
+        const UniValue& o = input.get_obj();
+
+        uint256 txid = ParseHashO(o, "txid");
+
+        const UniValue& vout_v = find_value(o, "vout");
+        if (!vout_v.isNum())
+            return SAPI::Error(req, SAPI::TxMissingVout, "Invalid parameter, missing vout key");
+        int nOutput = vout_v.get_int();
+        if (nOutput < 0)
+            return SAPI::Error(req, SAPI::TxInvalidParameter, "Invalid parameter, vout must be positive");
+
+        uint32_t nSequence = (rawTx.nLockTime ? std::numeric_limits<uint32_t>::max() - 1 : std::numeric_limits<uint32_t>::max());
+
+        // set the sequence number if passed in the parameters object
+        const UniValue& sequenceObj = find_value(o, "sequence");
+        if (sequenceObj.isNum()) {
+            int64_t seqNr64 = sequenceObj.get_int64();
+            if (seqNr64 < 0 || seqNr64 > std::numeric_limits<uint32_t>::max())
+                return SAPI::Error(req, SAPI::TxInvalidParameter, "Invalid parameter, sequence number is out of range");
+            else
+                nSequence = (uint32_t)seqNr64;
+        }
+
+        CTxIn in(COutPoint(txid, nOutput), CScript(), nSequence);
+        rawTx.vin.push_back(in);
+    }
+
+    set<CBitcoinAddress> setAddress;
+    vector<string> addrList = sendTo.getKeys();
+    BOOST_FOREACH(const string& name_, addrList) {
+        if (name_ == "data") {
+            std::vector<unsigned char> data = ParseHexV(sendTo[name_].getValStr(),"Data");
+
+            CTxOut out(0, CScript() << OP_RETURN << data);
+            rawTx.vout.push_back(out);
+        } else {
+            CBitcoinAddress address(name_);
+            if (!address.IsValid())
+                return SAPI::Error(req, SAPI::TxInvalidParameter, string("Invalid SmartCash address: ") + name_);
+
+            if (setAddress.count(address))
+                return SAPI::Error(req, SAPI::TxInvalidParameter, string("Invalid parameter, duplicated address: ") + name_);
+            setAddress.insert(address);
+
+            CScript scriptPubKey = GetScriptForDestination(address.Get());
+            CAmount nAmount = AmountFromValue(sendTo[name_]);
+
+            CTxOut out(nAmount, scriptPubKey);
+            rawTx.vout.push_back(out);
+        }
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("hex", EncodeHexTx(rawTx));
+    SAPI::WriteReply(req, result);
+
+    return true;
+}

@@ -230,6 +230,75 @@ SAPI::Result SAPI::Validation::AmountRange::Validate(const string &parameter, co
     return SAPI::Result(code, message);
 }
 
+SAPI::Result SAPI::Validation::Array::Validate(const std::string &parameter, const UniValue &value) const
+{
+    SAPI::Codes code = SAPI::Valid;
+    return SAPI::Result(code, ResultMessage(code));
+}
+
+SAPI::Result SAPI::Validation::Object::Validate(const std::string &parameter, const UniValue &value) const
+{
+    SAPI::Codes code = SAPI::Valid;
+    return SAPI::Result(code, ResultMessage(code));
+}
+
+SAPI::Result SAPI::Validation::Outputs::Validate(const std::string &parameter, const UniValue &value) const
+{
+    SAPI::Codes code = SAPI::Valid;
+    SAPI::Result result = Object::Validate(parameter, value);
+    if( result != SAPI::Valid ) return result;
+
+    const UniValue &object = value.get_obj();
+    vector<string> outputList = object.getKeys();
+    BOOST_FOREACH(const string& name_, outputList) {
+        if( name_ == "data" ) {
+            result = HexString().Validate(parameter, object[name_]);
+            if( result != SAPI::Valid ) return result;
+        } else {
+            result = SmartCashAddress().Validate(parameter, UniValue(name_));
+            if( result != SAPI::Valid ) return result;
+            result = Amount().Validate(parameter, object[name_]);
+            if( result != SAPI::Valid ) return result;
+        }
+    }
+
+    return SAPI::Result(code, ResultMessage(code));
+}
+
+SAPI::Result SAPI::Validation::Transaction::Validate(const std::string &parameter, const UniValue &value) const
+{
+    SAPI::Codes code = SAPI::Valid;
+    SAPI::Result result = Object::Validate(parameter, value);
+    if( result != SAPI::Valid ) return result;
+
+    const UniValue &object = value.get_obj();
+    if( !object.exists("txid") ){
+        code = SAPI::TxMissingTxId;
+        return SAPI::Result(code, ResultMessage(code));
+    }
+    if( !object.exists("vout") ){
+        code = SAPI::TxMissingVout;
+        return SAPI::Result(code, ResultMessage(code));
+    }
+
+    return SAPI::Result(code, ResultMessage(code));
+}
+
+SAPI::Result SAPI::Validation::Transactions::Validate(const std::string &parameter, const UniValue &value) const
+{
+    SAPI::Codes code = SAPI::Valid;
+    SAPI::Result result = Array::Validate(parameter, value);
+    if( result != SAPI::Valid ) return result;
+
+    const UniValue &array = value.get_array();
+    for (unsigned int i = 0; i < array.size(); i++) {
+        result = Transaction().Validate(parameter, array[i]);
+        if( result != SAPI::Valid ) return result;
+    }
+
+    return SAPI::Result(code, ResultMessage(code));
+}
+
 std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
 {
     switch(value){
@@ -255,7 +324,7 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
     case DoubleOutOfRange:
         return "Double value out of the valid range: %8.8f - %8.8f";
     case InvalidSmartCashAddress:
-        return "Invalid SmartCash";
+        return "Invalid SmartCash address";
     case EmptyString:
         return "String is empty";
     case InvalidHexString:
@@ -293,7 +362,7 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "No deposits available";
     case NoUtxosAvailble:
         return "No unspent outpouts available";
-        /* transaction errors */ 
+        /* transaction errors */
     case TxDecodeFailed:
         return "Transaction decode failed";
     case TxNotSpecified:
@@ -310,6 +379,10 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Failed to relay transaction";
     case TxNotFound:
         return "Transaction not found";
+    case TxMissingTxId:
+        return "Missing 'txid' field in transaction";
+    case TxMissingVout:
+        return "Missing 'vout' field in transaction";
         /* smartreward errors */
     case RewardsDatabaseBusy:
         return "SmartRewards database busy";
