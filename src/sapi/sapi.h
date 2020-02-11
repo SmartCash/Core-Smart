@@ -73,6 +73,9 @@ enum Codes{
     TxAlreadyInBlockchain,
     TxCantRelay,
     TxNotFound,
+    TxMissingTxId,
+    TxMissingVout,
+    TxInvalidParameter,
     /* smartreward errors */
     RewardsDatabaseBusy = 6000,
     NoActiveRewardRound,
@@ -96,6 +99,9 @@ namespace Keys{
     const std::string maxInputs = "maxInputs";
     const std::string height = "height";
     const std::string hash = "hash";
+    const std::string inputs = "inputs";
+    const std::string outputs = "outputs";
+    const std::string locktime = "locktime";
 }
 
 namespace Validation{
@@ -186,6 +192,36 @@ namespace Validation{
         CAmount max;
     public:
         AmountRange( CAmount min, CAmount max ) : Amount(), min(min), max(max) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class Array : public Base{
+    public:
+        Array() : Base(UniValue::VARR) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const override;
+    };
+
+    class Object : public Base{
+    public:
+        Object() : Base(UniValue::VOBJ) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const override;
+    };
+
+    class Outputs : public Object{
+    public:
+        Outputs() : Object() {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class Transaction : public Object{
+    public:
+        Transaction() : Object() {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class Transactions : public Array{
+    public:
+        Transactions() : Array() {}
         SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
     };
 
