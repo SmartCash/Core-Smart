@@ -272,10 +272,11 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                 nReward = 0;
                 entry->second->balanceEligible = 0;
             }
-
-            if( entry->second->balanceEligible > 0 ){
+            if( nReward > 0 ){
                 pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
                 pResult->payouts.push_back(pResult->results.back());
+            }    
+            if( entry->second->balanceEligible > 0 ){
                 ++next.eligibleEntries;
                 next.eligibleSmart += entry->second->balanceEligible;
             }
