@@ -253,7 +253,6 @@ libbitcoin_server_a_SOURCES = \
   sapi/sapi_validation.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
-  script/standard.cpp \
   sendalert.cpp \
   smarthive/hive.cpp \
   smarthive/hivepayments.cpp \
@@ -359,8 +358,6 @@ libsmartcash_consensus_a_SOURCES = \
   script/script.h \
   script/script_error.cpp \
   script/script_error.h \
-  script/standard.cpp \
-  script/standard.h \
   smartnode/flat-database.h \
   smartnode/spork.h \
   smartvoting/votekeys.h \
