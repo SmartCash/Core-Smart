@@ -3,7 +3,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "script/standard.h"
 #include "primitives/transaction.h"
 
 #include "pubkey.h"
@@ -241,10 +240,6 @@ bool CTransaction::IsVoteProof() const
 
     // Activation transaction is a Tx back to the issuing address, it should only have one input and one output
     if ( (vin.size() == 1) && (vout.size() == 1) ) {
-      std::vector<CTxDestination> txInDestination, txOutDestination;
-      txnouttype txInType, txOutType;
-      int txInRequiredRet, txOutRequiredRet;
-
       // Activation transaction should be P2PKH, get the hashed pubkey from output script
       const CScript &outScript = vout.front().scriptPubKey;
       if (!outScript.IsPayToPublicKeyHash()) return false;
