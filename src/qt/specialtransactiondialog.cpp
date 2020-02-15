@@ -653,7 +653,7 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
               strError);
     }
 */
-    std::vector<unsigned char> vecData = {
+/*    std::vector<unsigned char> vecData = {
         OP_RETURN_VOTE_PROOF_FLAG,
         0x01 // Proof option 1
     };
@@ -664,8 +664,8 @@ bool SpecialTransactionDialog::SendVoteProof(const QString &address, const COutP
     proofData << pwalletMain->mapVoted[voteAddressKeyID][nCurrentRound];
 
     vecData.insert(vecData.end(), proofData.begin(), proofData.end());
-
-    CScript proofScript = CScript() << OP_RETURN << vecData;
+*/
+    CScript proofScript = CScript();  // << OP_RETURN << vecData;
 
     // **
     // Create the transaction

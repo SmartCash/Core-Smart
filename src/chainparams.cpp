@@ -139,7 +139,7 @@ public:
         consensus.nRewardsPayouts_1_2_BlockPayees = 1000;
 
         //! 1.3 Parameter
-        consensus.nRewardsBlocksPerRound_1_3 = 10996;  // 1 week
+        consensus.nRewardsBlocksPerRound_1_3 = 11000;  // 1 week
         consensus.nRewardsFirst_1_3_Round = 33; // Round 33 on 3/23 starts on block 1524100
         consensus.nRewardsPayouts_1_3_BlockStretch = 10000;
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
@@ -292,7 +292,7 @@ public:
 
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 50;
-        consensus.nRewardsFirst_1_3_Round = 2; // block 101 start 1_2_8 151 start 1_3
+        consensus.nRewardsFirst_1_3_Round = 5; // block 200 start 1_2_8 400 start 1_3
         consensus.nRewardsPayouts_1_3_BlockStretch = 35;
         consensus.nRewardsPayouts_1_3_BlockPayees = 100;
 

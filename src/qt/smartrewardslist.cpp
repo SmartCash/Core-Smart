@@ -271,12 +271,12 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         change.reward = currentRound.percent * change.eligible;
 
                         if( reward->id.GetKeyID(keyId) ){
-
+/*
                             LOCK2(cs_main, pwalletMain->cs_wallet);
 
                             change.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
 
-                            if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
+                              if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
 
                                 uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
 
@@ -302,9 +302,10 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                                     }
                                 }
                             }
-
+*/
                             if( //pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
-                                pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
+                                //pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
+                                reward->voteProof.IsNull() &&
                                 reward->balanceEligible && reward->disqualifyingTx.IsNull() && reward->smartnodePaymentTx.IsNull() ){
                                 ++nAvailableForProof;
                             }
@@ -360,7 +361,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         uint256 nBlockHash;
 
                         if( !reward->voteProof.IsNull() ){
-                            rewardField.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
+/*                            rewardField.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
                         }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
                             rewardField.nVoteProofConfirmations = -1;
                         }else if(nBlockHash == uint256()) {
@@ -376,7 +377,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                                     }
                                 }
                             }
-                        }
+*/                      }
                     }
 
                     if( //pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&

@@ -115,7 +115,7 @@ QSmartRewardEntry::State QSmartRewardEntry::CurrentState()
 
     if( !disqualifyingTx.IsNull() ) return OutgoingTransaction;
 
-    if( !fVoted ) return VotingRequired;
+//    if( !fVoted ) return VotingRequired;
 
     if( nVoteProofConfirmations == -1 ) return VoteProofRequired;
 
