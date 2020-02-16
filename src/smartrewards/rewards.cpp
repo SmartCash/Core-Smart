@@ -282,36 +282,42 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                         }
                     }
                 }
-            nReward = CAmount(entry->second->balanceEligible * round->percent);
             } else {
                 nReward = 0;
                 entry->second->balanceEligible = 0;
             }
-            if( nReward > 0 ){
-                pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
-                pResult->payouts.push_back(pResult->results.back());
-            }    
+
             if( entry->second->balanceEligible > 0 ){
                 ++next.eligibleEntries;
                 next.eligibleSmart += entry->second->balanceEligible;
             }
         }
+        ++entry;
+    }
+    UpdatePercentage();
+    auto entry2 = cache.GetEntries()->begin();
+    while(entry2 != cache.GetEntries()->end() ) {
+	nReward = CAmount(entry2->second->balanceEligible * round->percent);
+        if( nReward > 0 ){
+            pResult->results.push_back(new CSmartRewardResultEntry(entry2->second, nReward));
+            pResult->payouts.push_back(pResult->results.back());
+        }
 
-        entry->second->balanceAtStart = entry->second->balance;
+        entry2->second->balanceAtStart = entry2->second->balance;
 
         // Reset outgoing transaction with every cycle.
-        entry->second->disqualifyingTx.SetNull();
-        entry->second->fDisqualifyingTx = false;
+        entry2->second->disqualifyingTx.SetNull();
+        entry2->second->fDisqualifyingTx = false;
         // Reset SmartNode payment tx with every cycle in case a node was shut down during the cycle.
-        entry->second->smartnodePaymentTx.SetNull();
-        entry->second->fSmartnodePaymentTx = false;
+        entry2->second->smartnodePaymentTx.SetNull();
+        entry2->second->fSmartnodePaymentTx = false;
         // Reset the vote proof tx with every cycle to force a new vote for eligibility
 //        entry->second->voteProof.SetNull();
 //        entry->second->fVoteProven = false;
 
 //        if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
 
-        ++entry;
+        ++entry2;
     }
 
     if( pResult->payouts.size() ){

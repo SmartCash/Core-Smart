@@ -40,8 +40,8 @@ static const int HF_V1_2_8_NODES_PER_BLOCK      = 1;
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 
 /** Testnet payment start blocks*/
-static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 200;
-static const int TESTNET_V1_3_HEIGHT = 450;  //round start is 5 block 400-450 payments start at 460
+static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 201;
+static const int TESTNET_V1_3_HEIGHT = 451;  //round start is 5 block 400-450 payments start at 460
 
 /** Testnet payment intervals*/
 static const int TESTNET_V1_2_8_NODES_PER_BLOCK         = 1;
