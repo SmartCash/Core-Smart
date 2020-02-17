@@ -169,9 +169,11 @@ void CSmartRewards::UpdatePercentage()
     if (round < nFirst_1_3_Round) {
         if( (round->eligibleSmart - round->disqualifiedSmart) > 0 ){
             nPercent = double(round->rewards) / (round->eligibleSmart - round->disqualifiedSmart);
+	}
     }else{
         if( round->eligibleSmart > 0 ){
-        nPercent = nPercent = double(round->rewards) / round->eligibleSmart;
+            nPercent = nPercent = double(round->rewards) / round->eligibleSmart;
+	}
     }
 
     cache.UpdateRoundPercent(nPercent);
