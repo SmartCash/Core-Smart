@@ -293,7 +293,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& next)
             nReward = CAmount(entry2->second->balanceEligible * round->percent);
             
             //Try to write in the console the nReward
-            std::cout << std::string(nReward)  << std::endl;
+            std::cout << std::to_string(nReward)  << std::endl;
 
             if (nReward > 0) {
                 pResult->results.push_back(new CSmartRewardResultEntry(entry2->second, nReward));
