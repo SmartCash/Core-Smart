@@ -311,14 +311,13 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& next)
             //        if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
 
             ++entry2;
-            catch (const std::exception& ex)
-            {
-                // speciffic handling for all exceptions extending std::exception, except
-                // std::runtime_error which is handled explicitly
-                std::cerr << "Error occurred: " << ex.what() << std::endl;
 
-                LogPrint("rewards.cpp", "CSmartRewards::EvaluateRound -- " + ex.what());
-            }
+        } catch (const std::exception& ex) {
+            // speciffic handling for all exceptions extending std::exception, except
+            // std::runtime_error which is handled explicitly
+            std::cerr << "Error occurred: " << ex.what() << std::endl;
+
+            LogPrint("rewards.cpp", "CSmartRewards::EvaluateRound -- " + ex.what());
         }
 
         if (pResult->payouts.size()) {
