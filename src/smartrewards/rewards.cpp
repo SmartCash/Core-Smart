@@ -291,6 +291,10 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& next)
     while (entry2 != cache.GetEntries()->end()) {
         try {
             nReward = CAmount(entry2->second->balanceEligible * round->percent);
+            
+            //Try to write in the console the nReward
+            std::cout << std::string(nReward)  << std::endl;
+
             if (nReward > 0) {
                 pResult->results.push_back(new CSmartRewardResultEntry(entry2->second, nReward));
                 pResult->payouts.push_back(pResult->results.back());
@@ -317,7 +321,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& next)
             // std::runtime_error which is handled explicitly
             std::cerr << "Error occurred: " << ex.what() << std::endl;
 
-            LogPrint("rewards.cpp", "CSmartRewards::EvaluateRound -- " + ex.what());
+            //LogPrint("CSmartRewards::EvaluateRound -- %s", std::string(ex.what()));
         }
 
         if (pResult->payouts.size()) {
