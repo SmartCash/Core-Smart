@@ -637,12 +637,24 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
         LogPrint("smartrewards-tx", "CSmartRewards::ProcessOutput - Could't parse CSmartAddress: %s\n", out.ToString());
         return;
     } else {
-        if (GetRewardEntry(id, rEntry, true) && tx.IsVoteProof()) {
+        if (GetRewardEntry(id, rEntry, true) ) {
+//&& tx.IsVoteProof()) {
             // Store the proof flag is not already done for this entry
+//Checks
+        if (nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase()) {
+// if transaction in this round with nEntry->id =  nEntry->CSmartAddress && 1 in 1 out
+// if > minbalance
+//!SmartHive::IsHive(*voteProofCheck))
+//!Smartnode
+
             if (!rEntry->fVoteProven) {
-                rEntry->voteProof = tx.GetHash();
+//                rEntry->voteProof = tx.GetHash();
                 rEntry->fVoteProven = true;
             }
+       }
+/*
+
+//Can't compare eligible to outgoing.  Balanceatstart is what we want to use.
 
             if (rEntry->balanceEligible) {
                 rEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
@@ -657,9 +669,10 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
                 result.qualifiedEntries++;
                 result.qualifiedSmart += rEntry->balanceEligible;
             }
-        }
+*/
 
         rEntry->balance += out.nValue;
+        } 
 
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
         if (nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase()) {
@@ -772,7 +785,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
         return;
     } else {
         GetRewardEntry(id, rEntry, true);
-
+/*
         if (voteProofCheck) {
             unsigned char cProofOption = 0;
 
@@ -837,6 +850,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
                     }
                 }
 
+
                 if (proofAddress.IsValid() && proofEntry != nullptr && !SmartHive::IsHive(*voteProofCheck)) {
                     if (proofEntry->voteProof == tx.GetHash()) {
                         proofEntry->voteProof.SetNull();
@@ -853,7 +867,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
 
             delete voteProofCheck;
         }
-
+*/
         rEntry->balance -= out.nValue;
 
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
