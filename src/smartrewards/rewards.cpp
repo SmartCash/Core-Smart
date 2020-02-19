@@ -345,7 +345,12 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& next)
         //        entry->second->fVoteProven = false;
 
         //        if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
-
+        // Prior to first 1.3 round clear voteproven and set eligible to 0
+        if ( cache.GetCurrentRound()->number == (nFirst_1_3_Round) ){ 
+            entry2->second->balanceEligible = 0;
+            entry->second->voteProof.SetNull();
+            entry->second->fVoteProven = false;
+        }
         ++entry2;
     }
 
