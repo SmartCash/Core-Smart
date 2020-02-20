@@ -346,11 +346,14 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& next)
 
         //        if( next.number < nFirst_1_3_Round && entry->second->balanceEligible ){
         // Prior to first 1.3 round clear voteproven and set eligible to 0
-        if ( cache.GetCurrentRound()->number == (nFirst_1_3_Round) ){ 
-            entry2->second->balanceEligible = 0;
+        if ( cache.GetCurrentRound()->number == (nFirst_1_3_Round + 1 ) ){ 
+//            entry2->second->balanceEligible = 0;
             entry->second->voteProof.SetNull();
             entry->second->fVoteProven = false;
         }
+         if ( next.number == nFirst_1_3_Round ){
+             entry2->second->balanceEligible = 0;
+         }
         ++entry2;
     }
 
@@ -596,34 +599,38 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
     // balance ineligible. First check if the change is sent back
     // to the address or not to avoid exploiting fund sending
     // with voteproof transactions
-    if (nCurrentRound >= nFirst_1_3_Round && tx.IsVoteProof() && *voteProofCheck == nullptr) {
+/*    if (nCurrentRound >= nFirst_1_3_Round && tx.IsVoteProof() && *voteProofCheck == nullptr) {
         *voteProofCheck = new CSmartAddress(rEntry->id);
         nVoteProofIn += in.nValue;
     }
+*/
 
-    rEntry->balance -= in.nValue;
+      if ( nCurrentRound >= nFirst_1_3_Round ) {
+         if ( rEntry->id == new CSmartAddress(rEntry->id) && (rEntry->txinvalue + 200000 ) < tx.GetValueOut() ) {
+             if (rEntry->fVoteProven == false) { rEntry->fVoteProven = true; }
+//         balance += in.nValue
 
+/*    if ( rEntry->second->fVoteProven == true ) {
+    rEntry->balanceEligible -= rEntry->balance
+*/
     // If its a voteproof transaction don't instantly make the
     // balance eligible. First check if the change is sent back
     // to the original address to avoid exploiting fund sending
     // with voteproof transactions
-    if (nCurrentRound >= nFirst_1_3_Round && *voteProofCheck == nullptr && !rEntry->fDisqualifyingTx) {
-        if (rEntry->IsEligible()) {
+//    if (nCurrentRound >= nFirst_1_3_Round && rEntry->second->fVoteProven == true && !rEntry->fDisqualifyingTx) {
+// *voteProofCheck == nullptr && !rEntry->fDisqualifyingTx) {
+
+         } else if (rEntry->fVoteProven == true) {
+             rEntry->fVoteProven = false;
+
+         } else if (!rEntry->fDisqualifyingTx) {
+            rEntry->disqualifyingTx = tx.GetHash();
+            rEntry->fDisqualifyingTx = true;
+
+         } else if (rEntry->balanceEligible) {
             result.disqualifiedEntries++;
             result.disqualifiedSmart += rEntry->balanceEligible;
-        }
-
-        rEntry->disqualifyingTx = tx.GetHash();
-        rEntry->fDisqualifyingTx = true;
-
-    } else if (nCurrentRound < nFirst_1_3_Round && !rEntry->fDisqualifyingTx) {
-        rEntry->disqualifyingTx = tx.GetHash();
-        rEntry->fDisqualifyingTx = true;
-
-        if (rEntry->balanceEligible) {
-            result.disqualifiedEntries++;
-            result.disqualifiedSmart += rEntry->balanceEligible;
-        }
+         }
     }
 
     if (rEntry->balance < 0) {
@@ -646,39 +653,71 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
 //&& tx.IsVoteProof()) {
             // Store the proof flag is not already done for this entry
 //Checks
-        if (nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase()) {
+            if (nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase()) {
 // if transaction in this round with nEntry->id =  nEntry->CSmartAddress && 1 in 1 out
 // if > minbalance
 //!SmartHive::IsHive(*voteProofCheck))
 //!Smartnode
 
-            if (!rEntry->fVoteProven) {
-//                rEntry->voteProof = tx.GetHash();
-                rEntry->fVoteProven = true;
+//if ( GetAddressBalanceAtRound(rEntry->first, round->number - 1) - nVoteProofIn < tx.GetValueOut() ){
+// This checks for an out value at least .002 less than balance.
+                if ( (rEntry->balance - 200001) < tx.GetValueOut() ){
+                    if (!rEntry->fVoteProven) {
+//                  rEntry->voteProof = tx.GetHash();
+                    rEntry->fVoteProven = true;
+                    rEntry->balance += out.nValue;
+		    }
+                } else if (rEntry->fVoteProven) { 
+                    rEntry->fVoteProven = false;
+                }
+            } else {
+                rEntry->balanceEligible = 0;
+                ++result.disqualifiedEntries;
+                result.disqualifiedSmart += rEntry->balanceEligible;
+                rEntry->disqualifyingTx = tx.GetHash();
+                rEntry->fDisqualifyingTx = true;
             }
-       }
-/*
+        }
+
 
 //Can't compare eligible to outgoing.  Balanceatstart is what we want to use.
 
-            if (rEntry->balanceEligible) {
+/*            if (rEntry->balanceEligible) {
                 rEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
 
                 if (rEntry->balanceEligible < 0) {
                     rEntry->balanceEligible = 0;
                 }
             }
-
-            // If the entry is eligible now after the vote proof update the results
-            if (rEntry->IsEligible()) {
-                result.qualifiedEntries++;
-                result.qualifiedSmart += rEntry->balanceEligible;
-            }
 */
+//Calculate balanceEligible if we received an activate transaction.
+        if (rEntry->fVoteProven == true && cache.GetCurrentRound()->number &&
+            rEntry->second->balance >= nMinBalance &&
+            !SmartHive::IsHive(rEntry->second->id)) {
+            // If prior to 1.3, just use the balance as eligible
+            if (cache.GetCurrentRound()->number < nFirst_1_3_Round) {
+                rEntry->second->balanceEligible = rEntry->second->balance;
 
-        rEntry->balance += out.nValue;
-        } 
+                // If we pass 1.3 start round, calculate the weighted balance.
+            } else if (cache.GetCurrentRound()->number >= nFirst_1_3_Round && entry->second->IsEligible()) {
+                rEntry->second->balanceEligible = rEntry->second->balance;
+                // Balance 2 months ago
+                if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 8) && GetAddressBalanceAtRound(entry->first, round->number - 1) > 0) {
+                    rEntry->second->balanceEligible += GetAddressBalanceAtRound(rEntry->first, round->number - 8);
+                    // Balance 4 months ago
+                    if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 16)) {
+                        rEntry->second->balanceEligible += 2 * GetAddressBalanceAtRound(rEntry->first, round->number - 16);
+                        // Balance 6 months ago
+                        if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 26)) {
+                            rEntry->second->balanceEligible += 2 * GetAddressBalanceAtRound(rEntry->first, round->number - 26);
+                        }
+                    }
+                }
 
+            }
+            result.qualifiedEntries++;
+            result.qualifiedSmart += rEntry->balanceEligible;
+        }
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
         if (nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase()) {
             int nInterval = SmartNodePayments::PayoutInterval(nHeight);
