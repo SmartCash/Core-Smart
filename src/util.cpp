@@ -607,6 +607,7 @@ void ReadConfigFile(map<string, string>& mapSettingsRet,
 {
     boost::filesystem::ifstream streamConfig(GetConfigFile());
     boost::filesystem::path pathConfigFile = GetConfigFile();
+    std::cout << pathConfigFile.string() << std::endl;
 
     if (!streamConfig.good()){
         // No smartcash.conf file is, create it with some comments and return!
