@@ -606,7 +606,11 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
 */
 
       if ( nCurrentRound >= nFirst_1_3_Round ) {
-         if ( rEntry->id == new CSmartAddress(rEntry->id) && (rEntry->txinvalue + 200000 ) < tx.GetValueOut() ) {
+//!!!!!!!!!!!!!!!!!!!!!
+// Need this to work.
+//!!!!!!!!!!!!!!!!!!!!!
+//         if ( (ExtractDestination(out.scriptPubKey, id) == new CSmartAddress(rEntry->id)) {
+         if ( (in.nValue + 200000 ) < tx.GetValueOut() ) {
              if (rEntry->fVoteProven == false) { rEntry->fVoteProven = true; }
 //         balance += in.nValue
 
@@ -661,11 +665,15 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
 
 //if ( GetAddressBalanceAtRound(rEntry->first, round->number - 1) - nVoteProofIn < tx.GetValueOut() ){
 // This checks for an out value at least .002 less than balance.
+//!!!!!!!!!!!!!!!!!!!!!
+// Need this to work.
+//!!!!!!!!!!!!!!!!!!!!!
+//         if ( (ExtractDestination(in.scriptPubKey, id) == ExtractDestination(out.scriptPubKey, id)) {
                 if ( (rEntry->balance - 200001) < tx.GetValueOut() ){
                     if (!rEntry->fVoteProven) {
 //                  rEntry->voteProof = tx.GetHash();
                     rEntry->fVoteProven = true;
-                    rEntry->balance += out.nValue;
+//                    rEntry->balance += out.nValue;
 		    }
                 } else if (rEntry->fVoteProven) { 
                     rEntry->fVoteProven = false;
@@ -690,26 +698,27 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
                 }
             }
 */
-//Calculate balanceEligible if we received an activate transaction.
-        if (rEntry->fVoteProven == true && cache.GetCurrentRound()->number &&
-            rEntry->second->balance >= nMinBalance &&
-            !SmartHive::IsHive(rEntry->second->id)) {
-            // If prior to 1.3, just use the balance as eligible
-            if (cache.GetCurrentRound()->number < nFirst_1_3_Round) {
-                rEntry->second->balanceEligible = rEntry->second->balance;
 
+             // If prior to 1.3, just use the balance as eligible
+        if (nCurrentRound < nFirst_1_3_Round && !rEntry->fDisqualifyingTx ) {
+             rEntry->balanceEligible = rEntry->balance;
+        }
+
+//Calculate balanceEligible if we received an activate transaction.
+        if (rEntry->fVoteProven == true && nCurrentRound &&
+            !SmartHive::IsHive(rEntry->id) && !rEntry->fDisqualifyingTx ) {
                 // If we pass 1.3 start round, calculate the weighted balance.
-            } else if (cache.GetCurrentRound()->number >= nFirst_1_3_Round && entry->second->IsEligible()) {
-                rEntry->second->balanceEligible = rEntry->second->balance;
+            if (nCurrentRound >= nFirst_1_3_Round && rEntry->IsEligible()) {
+                 rEntry->balanceEligible = rEntry->balance;
                 // Balance 2 months ago
-                if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 8) && GetAddressBalanceAtRound(entry->first, round->number - 1) > 0) {
-                    rEntry->second->balanceEligible += GetAddressBalanceAtRound(rEntry->first, round->number - 8);
+                if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 8) && GetAddressBalanceAtRound(rEntry->id, nCurrentRound - 1) > 0) {
+                    rEntry->balanceEligible += GetAddressBalanceAtRound(rEntry->id, nCurrentRound - 8);
                     // Balance 4 months ago
                     if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 16)) {
-                        rEntry->second->balanceEligible += 2 * GetAddressBalanceAtRound(rEntry->first, round->number - 16);
+                        rEntry->balanceEligible += 2 * GetAddressBalanceAtRound(rEntry->id, nCurrentRound - 16);
                         // Balance 6 months ago
                         if (cache.GetCurrentRound()->number > (nFirst_1_3_Round + 26)) {
-                            rEntry->second->balanceEligible += 2 * GetAddressBalanceAtRound(rEntry->first, round->number - 26);
+                            rEntry->balanceEligible += 2 * GetAddressBalanceAtRound(rEntry->id, nCurrentRound - 26);
                         }
                     }
                 }
