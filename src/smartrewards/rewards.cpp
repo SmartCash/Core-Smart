@@ -610,7 +610,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
 // Need this to work.
 //!!!!!!!!!!!!!!!!!!!!!
 //         if ( (ExtractDestination(out.scriptPubKey, id) == new CSmartAddress(rEntry->id)) {
-         if ( (in.nValue + 200000 ) < tx.GetValueOut() ) {
+         if ( tx.IsVoteProof() && (in.nValue + 200000 ) < tx.GetValueOut() ) {
              if (rEntry->fVoteProven == false) { rEntry->fVoteProven = true; }
 //         balance += in.nValue
 
@@ -669,7 +669,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
 // Need this to work.
 //!!!!!!!!!!!!!!!!!!!!!
 //         if ( (ExtractDestination(in.scriptPubKey, id) == ExtractDestination(out.scriptPubKey, id)) {
-                if ( (rEntry->balance - 200001) < tx.GetValueOut() ){
+                if ( tx.IsVoteProof() && (rEntry->balance - 200001) < tx.GetValueOut() ){
                     if (!rEntry->fVoteProven) {
 //                  rEntry->voteProof = tx.GetHash();
                     rEntry->fVoteProven = true;
@@ -903,23 +903,23 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
                     }
                 }
 
-
-                if (proofAddress.IsValid() && proofEntry != nullptr && !SmartHive::IsHive(*voteProofCheck)) {
-                    if (proofEntry->voteProof == tx.GetHash()) {
-                        proofEntry->voteProof.SetNull();
-
-                        --result.qualifiedEntries;
-                        result.qualifiedSmart -= proofEntry->balanceEligible;
-
-                        if (cProofOption == 0x01) {
-                            proofEntry->balanceEligible += nVoteProofIn - tx.GetValueOut();
-                        }
+*/      if ( !tx.IsVoteProof() && rEntry->fVoteProven && !SmartHive::IsHive(rEntry->id) ){
+//          if (proofAddress.IsValid() && proofEntry != nullptr && !SmartHive::IsHive(*voteProofCheck)) {
+//            if (proofEntry->voteProof == tx.GetHash()) {
+                rEntry->voteProof.SetNull();
+                rEntry->fVoteProven = false;
+                --result.qualifiedEntries;
+                result.qualifiedSmart -= rEntry->balanceEligible;
+        }
+/*                        if (cProofOption == 0x01) {
+              if ( tx.IsVoteProof() && !fVoteProven && !SmartHive::IsHive() ) {
+                   proofEntry->balanceEligible += nVoteProofIn - tx.GetValueOut();
+              }
                     }
                 }
             }
-
             delete voteProofCheck;
-        }
+    }
 */
         rEntry->balance -= out.nValue;
 
