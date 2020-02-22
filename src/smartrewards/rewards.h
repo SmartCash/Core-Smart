@@ -188,12 +188,15 @@ public:
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryList& payouts);
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList& payouts);
 
-    void SaveToCacheEachRewardEntry(CSmartRewardEntryMap &smartRewardEntriesFromDB);
+    void SaveToCacheEachRewardEntry(CSmartRewardEntryMap& smartRewardEntriesFromDB);
 
     bool Is_1_3(uint16_t currentRoundNumber);
 
-    CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry *smartRewardEntry, uint16_t currentRoundNumber);
+    void ProcessOutputFor1_2(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
+    void ProcessOutputFor1_3(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
+
+    CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* smartRewardEntry, uint16_t currentRoundNumber);
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
