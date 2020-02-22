@@ -162,11 +162,11 @@ public:
     bool Update(CBlockIndex* pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult& result);
     bool UpdateRound(const CSmartRewardRound& round);
 
-    void ProcessInput(const CTransaction& tx, const CTxOut& in, CSmartAddress** voteProofCheck, CAmount& nVoteProofIn, uint32_t nCurrentRound, CSmartRewardsUpdateResult& result);
-    void ProcessOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint32_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
+    void ProcessInput(const CTransaction& tx, const CTxOut& in, CSmartAddress** voteProofCheck, CAmount& nVoteProofIn, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
+    void ProcessOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
-    void UndoInput(const CTransaction& tx, const CTxOut& in, uint32_t nCurrentRound, CSmartRewardsUpdateResult& result);
-    void UndoOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount& nVoteProofIn, uint32_t nCurrentRound, CSmartRewardsUpdateResult& result);
+    void UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
+    void UndoOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount& nVoteProofIn, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
 
     bool ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, int nCurrentRound);
     void UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult& result);
@@ -176,7 +176,6 @@ public:
 
     bool GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& entry, bool fCreate);
     CAmount GetAddressBalanceAtRound(const CSmartAddress& address, int16_t round);
-    //    CAmount GetAddressRewardAtRound(const CSmartAddress& address, int16_t round);
 
     void EvaluateRound(CSmartRewardRound& next);
     bool StartFirstRound(const CSmartRewardRound& next, const CSmartRewardEntryList& entries);
@@ -193,10 +192,8 @@ public:
 
     bool Is_1_3(uint16_t currentRoundNumber);
 
-    CAmount CalculateEligibleBalanceFor1_3(CSmartAddress address, CSmartRewardEntry *smartRewardEntry, uint16_t currentRoundNumber);
+    CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry *smartRewardEntry, uint16_t currentRoundNumber);
 
-    void ResetValuesForTheCycle1_3(CSmartRewardEntry *smartRewardEntryAfterPercentageCalculation, uint16_t currentRoundNumber);
-    
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
