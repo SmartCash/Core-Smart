@@ -536,8 +536,12 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
         return;
     }
 
+    rEntry->balance -= in.nValue;
+
     if (Is_1_3(nCurrentRound)) {
         if (tx.IsVoteProof()) {
+            *voteProofCheck = new CSmartAddress(rEntry->id);
+            nVoteProofIn += in.nValue;
             //When it is a vote proof transaction, then we should not disqualify the address
             rEntry->fVoteProven = true;
             rEntry->voteProof == tx.GetHash();
@@ -584,19 +588,9 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
         return;
     } else {
         if (GetRewardEntry(id, rEntry, true)) {
-            if (Is_1_3(nCurrentRound)) {
-                if (rEntry->fVoteProven && !rEntry->fSmartnodePaymentTx && rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
-                    result.qualifiedEntries++;
-                    result.qualifiedSmart += rEntry->balanceEligible;
-                }
-            } else {
-                if (rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
-                    result.qualifiedEntries++;
-                    result.qualifiedSmart += rEntry->balanceEligible;
-                }
-            }
             // If prior to 1.3, just use the balance as eligible
             rEntry->balance += out.nValue;
+            rEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
 
             // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
             if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
@@ -622,6 +616,19 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
                             rEntry->fSmartnodePaymentTx = true;
                         }
                     }
+                }
+            }
+
+            //After we make sure it is not a node we can now add it as a qualified entry
+            if (Is_1_3(nCurrentRound)) {
+                if (rEntry->fVoteProven && !rEntry->fSmartnodePaymentTx && rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
+                    result.qualifiedEntries++;
+                    result.qualifiedSmart += rEntry->balanceEligible;
+                }
+            } else {
+                if (rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
+                    result.qualifiedEntries++;
+                    result.qualifiedSmart += rEntry->balanceEligible;
                 }
             }
         }
