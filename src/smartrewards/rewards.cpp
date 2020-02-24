@@ -536,7 +536,6 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
         return;
     }
 
-    rEntry->balance -= in.nValue;
 
     if (Is_1_3(nCurrentRound)) {
         if (tx.IsVoteProof()) {
@@ -556,8 +555,6 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
                 result.disqualifiedEntries++;
                 result.disqualifiedSmart += rEntry->balanceEligible;
             }
-            //Subtract the amount from the entry based in the input.
-            rEntry->balance -= in.nValue;
         }
     } else {
         if (!tx.IsVoteProof()) {
@@ -570,6 +567,13 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
                 result.disqualifiedSmart += rEntry->balanceEligible;
             }
         }
+    }
+    //We can only subtract the balance if is not a vote proof transaction.
+    //Vote proof transactions send for itself.
+    //Same rule for 1.2 and 1.3
+    if (!tx.IsVoteProof()) {
+        //Subtract the amount from the entry based in the input.
+        rEntry->balance -= in.nValue;
     }
 
     if (rEntry->balance < 0) {
@@ -588,9 +592,12 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
         return;
     } else {
         if (GetRewardEntry(id, rEntry, true)) {
-            // If prior to 1.3, just use the balance as eligible
-            rEntry->balance += out.nValue;
-            rEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
+            //We only add balance if is not the vote proof transaction. Vote proof transaction is just to activate the address
+            if (!tx.IsVoteProof()) {
+                // If prior to 1.3, just use the balance as eligible
+                rEntry->balance += out.nValue;
+                rEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
+            }
 
             // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
             if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
