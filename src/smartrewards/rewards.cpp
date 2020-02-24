@@ -154,12 +154,13 @@ void CSmartRewards::UpdatePercentage()
     const CSmartRewardRound* currentRound = cache.GetCurrentRound();
 
     double nPercent = 0.0;
-    if (Is_1_3(currentRound->number)) {
+    /*    if (Is_1_3(currentRound->number)) {
         if (currentRound->eligibleSmart > 0)
             nPercent = double(currentRound->rewards) / currentRound->eligibleSmart;
     } else {
-        if ((currentRound->eligibleSmart - currentRound->disqualifiedSmart) > 0)
-            nPercent = double(currentRound->rewards) / (currentRound->eligibleSmart - currentRound->disqualifiedSmart);
+*/
+    if ((currentRound->eligibleSmart - currentRound->disqualifiedSmart) > 0) {
+        nPercent = double(currentRound->rewards) / (currentRound->eligibleSmart - currentRound->disqualifiedSmart);
     }
 
     cache.UpdateRoundPercent(nPercent);
@@ -180,10 +181,11 @@ CAmount CSmartRewards::GetAddressBalanceAtRound(const CSmartAddress& address, in
     if (addressResult == roundResults.end()) {
         return 0;
     }
-
+    if (addressResult->entry.balance < 0)
+        addressResult->entry.balance = 0;
     return addressResult->entry.balance;
 }
-
+/*
 void CSmartRewards::SaveToCacheEachRewardEntry(CSmartRewardEntryMap& smartRewardEntriesFromDB)
 {
     for (auto itDb = smartRewardEntriesFromDB.begin(); itDb != smartRewardEntriesFromDB.end(); ++itDb) {
@@ -195,7 +197,7 @@ void CSmartRewards::SaveToCacheEachRewardEntry(CSmartRewardEntryMap& smartReward
             delete itDb->second;
         }
     }
-}
+}*/
 bool CSmartRewards::Is_1_3(uint16_t currentRoundNumber)
 {
     return currentRoundNumber >= Params().GetConsensus().nRewardsFirst_1_3_Round;
@@ -239,7 +241,17 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
     CSmartRewardEntryMap smartRewardEntriesFromDB;
     pdb->ReadRewardEntries(smartRewardEntriesFromDB);
 
-    SaveToCacheEachRewardEntry(smartRewardEntriesFromDB);
+    //    SaveToCacheEachRewardEntry(smartRewardEntriesFromDB);
+
+    for (auto itDb = smartRewardEntriesFromDB.begin(); itDb != smartRewardEntriesFromDB.end(); ++itDb) {
+        auto itCache = cache.GetEntries()->find(itDb->first);
+
+        if (itCache == cache.GetEntries()->end()) {
+            cache.AddEntry(itDb->second);
+        } else {
+            delete itDb->second;
+        }
+    }
 
     auto smartRewardEntry = cache.GetEntries()->begin();
     while (smartRewardEntry != cache.GetEntries()->end()) {
@@ -317,7 +329,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
         }
     }
 
-    // Calculate the current rewards percentage
+    // Calculate the current cycle rewards to pay.
     int64_t nTime = GetTime();
     int64_t nStartHeight = nextRewardRound.startBlockHeight;
     double dBlockReward = nextRewardRound.number < nFirst_1_3_Round ? 0.15 : 0.60;
@@ -524,24 +536,36 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
         return;
     }
 
-    if (Is_1_3(nCurrentRound) && tx.IsVoteProof() && (in.nValue + 200000) < tx.GetValueOut()) {
-        if (rEntry->fVoteProven == false) {
+    if (Is_1_3(nCurrentRound)) {
+        if (tx.IsVoteProof()) {
+            //When it is a vote proof transaction, then we should not disqualify the address
             rEntry->fVoteProven = true;
+            rEntry->voteProof == tx.GetHash();
+        } else {
+            //Let's disqualify the address
+            if (!rEntry->fDisqualifyingTx) {
+                rEntry->disqualifyingTx = tx.GetHash();
+                rEntry->fDisqualifyingTx = true;
+            }
+            //We mis disqualify the balance as well
+            if (rEntry->balanceEligible) {
+                result.disqualifiedEntries++;
+                result.disqualifiedSmart += rEntry->balanceEligible;
+            }
+            //Subtract the amount from the entry based in the input.
+            rEntry->balance -= in.nValue;
         }
-
-    } else if (rEntry->fVoteProven == true) {
-        rEntry->fVoteProven = false;
-
-    } else if (!rEntry->fDisqualifyingTx) {
-        rEntry->disqualifyingTx = tx.GetHash();
-        rEntry->fDisqualifyingTx = true;
-
-    } else if (rEntry->balanceEligible) {
-        result.disqualifiedEntries++;
-        result.disqualifiedSmart += rEntry->balanceEligible;
-
     } else {
-        rEntry->balance -= in.nValue;
+        if (!tx.IsVoteProof()) {
+            if (!rEntry->fDisqualifyingTx) {
+                rEntry->disqualifyingTx = tx.GetHash();
+                rEntry->fDisqualifyingTx = true;
+            }
+            if (rEntry->balanceEligible) {
+                result.disqualifiedEntries++;
+                result.disqualifiedSmart += rEntry->balanceEligible;
+            }
+        }
     }
 
     if (rEntry->balance < 0) {
@@ -552,7 +576,6 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
 
 void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result)
 {
-    //    uint32_t nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
     CSmartRewardEntry* rEntry = nullptr;
     CSmartAddress id;
 
@@ -562,92 +585,45 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
     } else {
         if (GetRewardEntry(id, rEntry, true)) {
             if (Is_1_3(nCurrentRound)) {
-                //Process 1.3.0
-                ProcessOutputFor1_3(rEntry, tx, out, voteProofCheck, nVoteProofIn, nCurrentRound, nHeight, result);
-            } else {
-                //Process 1.2.8
-                ProcessOutputFor1_2(rEntry, tx, out, voteProofCheck, nVoteProofIn, nCurrentRound, nHeight, result);
-            }
-        }
-    }
-}
-
-void CSmartRewards::ProcessOutputFor1_3(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result)
-{
-    if (!Is_1_3(nCurrentRound)) {
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessOutputFor1_3 - Should not be HERE because it is 1.2.8: %s\n", "");
-        return;
-    } else {
-        int MIN_FEE = 200000;
-        //Lets start putting the logic for 1.3
-        if (tx.IsCoinBase()) {
-            if (tx.IsVoteProof() && (smartRewardEntry->balance - MIN_FEE) < tx.GetValueOut() && !smartRewardEntry->fVoteProven) {
-                smartRewardEntry->voteProof = tx.GetHash();
-                smartRewardEntry->fVoteProven = true;
-                smartRewardEntry->balance += out.nValue;
-            } else if (smartRewardEntry->fVoteProven) {
-                smartRewardEntry->fVoteProven = false;
-            }
-
-            //Calculate balanceEligible if we received an activate transaction.
-            if (smartRewardEntry->fVoteProven == true && nCurrentRound && !SmartHive::IsHive(smartRewardEntry->id) && !smartRewardEntry->fDisqualifyingTx) {
-                if (smartRewardEntry->IsEligible()) {
-                    smartRewardEntry->balanceEligible = CalculateWeightedBalance(smartRewardEntry->id, smartRewardEntry, nCurrentRound);
+                if (rEntry->fVoteProven && !rEntry->fSmartnodePaymentTx && rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
+                    result.qualifiedEntries++;
+                    result.qualifiedSmart += rEntry->balanceEligible;
                 }
-                result.qualifiedEntries++;
-                result.qualifiedSmart += smartRewardEntry->balanceEligible;
+            } else {
+                if (rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
+                    result.qualifiedEntries++;
+                    result.qualifiedSmart += rEntry->balanceEligible;
+                }
             }
+            // If prior to 1.3, just use the balance as eligible
+            rEntry->balance += out.nValue;
 
             // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
-            int nInterval = SmartNodePayments::PayoutInterval(nHeight);
-            int nPayoutsPerBlock = SmartNodePayments::PayoutsPerBlock(nHeight);
-            // Just to avoid potential zero divisions
-            nPayoutsPerBlock = std::max(1, nPayoutsPerBlock);
+            if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
+                int nInterval = SmartNodePayments::PayoutInterval(nHeight);
+                int nPayoutsPerBlock = SmartNodePayments::PayoutsPerBlock(nHeight);
+                // Just to avoid potential zero divisions
+                nPayoutsPerBlock = std::max(1, nPayoutsPerBlock);
 
-            CAmount nNodeReward = SmartNodePayments::Payment(nHeight) / nPayoutsPerBlock;
+                CAmount nNodeReward = SmartNodePayments::Payment(nHeight) / nPayoutsPerBlock;
 
-            // If we have an interval check if this is a node payout block
-            if (nInterval && !(nHeight % nInterval)) {
-                // If the amount matches and the entry is not yet marked as node do it
-                if (abs(out.nValue - nNodeReward) < 2) {
-                    if (!smartRewardEntry->fSmartnodePaymentTx) {
-                        // If it is currently eligible adjust the round's results
-                        if (smartRewardEntry->IsEligible()) {
-                            ++result.disqualifiedEntries;
-                            result.disqualifiedSmart += smartRewardEntry->balanceEligible;
+                // If we have an interval check if this is a node payout block
+                if (nInterval && !(nHeight % nInterval)) {
+                    // If the amount matches and the entry is not yet marked as node do it
+                    if (abs(out.nValue - nNodeReward) < 2) {
+                        if (!rEntry->fSmartnodePaymentTx) {
+                            // If it is currently eligible adjust the round's results
+                            if (rEntry->IsEligible()) {
+                                ++result.disqualifiedEntries;
+                                result.disqualifiedSmart += rEntry->balanceEligible;
+                            }
+
+                            rEntry->smartnodePaymentTx = tx.GetHash();
+                            rEntry->fSmartnodePaymentTx = true;
                         }
-
-                        smartRewardEntry->smartnodePaymentTx = tx.GetHash();
-                        smartRewardEntry->fSmartnodePaymentTx = true;
                     }
                 }
             }
-
-        } else {
-            smartRewardEntry->balanceEligible = 0;
-            ++result.disqualifiedEntries;
-            result.disqualifiedSmart += smartRewardEntry->balanceEligible;
-            smartRewardEntry->disqualifyingTx = tx.GetHash();
-            smartRewardEntry->fDisqualifyingTx = true;
-        }
-    }
-}
-
-void CSmartRewards::ProcessOutputFor1_2(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result)
-{
-    if (Is_1_3(nCurrentRound)) {
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessOutputFor1_2 - Should not be HERE because it is 1.3: %s\n", "");
-        return;
-    } else {
-        // If prior to 1.3, just use the balance as eligible
-        if (tx.IsCoinBase()) {
-            smartRewardEntry->balance += out.nValue;
-        }
-        if (!smartRewardEntry->fDisqualifyingTx) {
-            smartRewardEntry->balanceEligible = smartRewardEntry->balance;
-            //This was being ignored before because of 1.3 rules
-            result.qualifiedEntries++;
-            result.qualifiedSmart += smartRewardEntry->balanceEligible;
         }
     }
 }
@@ -734,94 +710,49 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
         return;
     } else {
         GetRewardEntry(id, rEntry, true);
-        /*
-        if (voteProofCheck) {
-            unsigned char cProofOption = 0;
-
-            if (!out.IsVoteProofData() &&
-                !(*voteProofCheck == rEntry->id)) {
-                CSmartRewardEntry* vkEntry = nullptr;
-
-                GetRewardEntry(*voteProofCheck, vkEntry, true);
-
-                if (vkEntry->disqualifyingTx == tx.GetHash()) {
-                    vkEntry->disqualifyingTx.SetNull();
-                    vkEntry->fDisqualifyingTx = false;
-
-
-                    if (vkEntry->IsEligible()) {
-                        --result.disqualifiedEntries;
-                        result.disqualifiedSmart -= vkEntry->balanceEligible;
-                    }
+        if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
+            // If it's a voteproof set voteproven and undisqualify transactions
+            if (tx.IsVoteProof()) {
+                if (!rEntry->fVoteProven) {
+                    rEntry->voteProof = tx.GetHash();
+                    rEntry->fVoteProven = true;
                 }
-
-            } else if (!out.IsVoteProofData() &&
-                       (*voteProofCheck == rEntry->id)) {
-                CSmartRewardEntry* proofEntry = nullptr;
-                unsigned char cAddressType = 0;
-                uint32_t nProofRound;
-                uint160 addressHash;
-                uint256 nProposalHash; // Placeholder only for now
-                CSmartAddress proofAddress;
-
-                BOOST_FOREACH (const CTxOut& outData, tx.vout) {
-                    if (outData.IsVoteProofData()) {
-                        std::vector<unsigned char> scriptData;
-                        scriptData.insert(scriptData.end(), outData.scriptPubKey.begin() + 3, outData.scriptPubKey.end());
-                        CDataStream ss(scriptData, SER_NETWORK, 0);
-
-                        ss >> cProofOption;
-                        ss >> nProofRound;
-                        ss >> nProposalHash;
-
-                        if (cProofOption == 0x01 &&
-                            voteProofCheck->ToString(false) != Params().GetConsensus().strRewardsGlobalVoteProofAddress) {
-                            proofAddress = *voteProofCheck;
-                            proofEntry = rEntry;
-                        } else if (cProofOption == 0x02 &&
-                                   voteProofCheck->ToString(false) == Params().GetConsensus().strRewardsGlobalVoteProofAddress) {
-                            ss >> cAddressType;
-                            ss >> addressHash;
-
-                            if (cAddressType == 0x01) {
-                                proofAddress = CSmartAddress(CKeyID(addressHash));
-                            } else if (cAddressType == 0x02) {
-                                proofAddress = CSmartAddress(CScriptID(addressHash));
-                            } else {
-                                proofAddress = CSmartAddress(); // Invalid address type
-                            }
-
-                            GetRewardEntry(proofAddress, proofEntry, true);
-
-                        } else {
-                            proofAddress = CSmartAddress(); // Invalid option
-                        }
-                    }
+                if (rEntry->disqualifyingTx == tx.GetHash()) {
+                    rEntry->disqualifyingTx.SetNull();
+                    rEntry->fDisqualifyingTx = false;
                 }
-
-*/
-        if (!tx.IsVoteProof() && rEntry->fVoteProven && !SmartHive::IsHive(rEntry->id)) {
-            //          if (proofAddress.IsValid() && proofEntry != nullptr && !SmartHive::IsHive(*voteProofCheck)) {
-            //            if (proofEntry->voteProof == tx.GetHash()) {
-            rEntry->voteProof.SetNull();
-            rEntry->fVoteProven = false;
-            --result.qualifiedEntries;
-            result.qualifiedSmart -= rEntry->balanceEligible;
-        }
-        /*                        if (cProofOption == 0x01) {
-              if ( tx.IsVoteProof() && !fVoteProven && !SmartHive::IsHive() ) {
-                   proofEntry->balanceEligible += nVoteProofIn - tx.GetValueOut();
-              }
+                if (rEntry->IsEligible()) {
+                    --result.disqualifiedEntries;
+                    result.disqualifiedSmart -= rEntry->balanceEligible;
+                    rEntry->balance += nVoteProofIn - tx.GetValueOut();
+                    //                         rEntry->balance -= tx.GetValueOut();
+                    if (rEntry->balance < 0) {
+                        rEntry->balance = 0;
                     }
+                    rEntry->balanceEligible = CalculateWeightedBalance(rEntry->id, rEntry, nCurrentRound);
+                }
+                // If it isn't a voteproof transaction disqualify it.
+            } else if (rEntry->fVoteProven && !SmartHive::IsHive(rEntry->id)) {
+                rEntry->voteProof.SetNull();
+                rEntry->fVoteProven = false;
+                --result.qualifiedEntries;
+                result.qualifiedSmart -= rEntry->balanceEligible;
+            }
+            if (rEntry->smartnodePaymentTx == tx.GetHash()) {
+                rEntry->smartnodePaymentTx.SetNull();
+                rEntry->fSmartnodePaymentTx = false;
+                // If it is eligible now adjust the round's results
+                if (rEntry->IsEligible()) {
+                    --result.disqualifiedEntries;
+                    result.disqualifiedSmart -= rEntry->balanceEligible;
                 }
             }
-            delete voteProofCheck;
-    }
-*/
+        }
+
         rEntry->balance -= out.nValue;
 
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
-        if (nCurrentRound >= nFirst_1_3_Round && tx.IsCoinBase()) {
+        if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
             if (rEntry->smartnodePaymentTx == tx.GetHash()) {
                 rEntry->smartnodePaymentTx.SetNull();
                 rEntry->fSmartnodePaymentTx = false;
@@ -831,6 +762,10 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, CSmart
                     --result.disqualifiedEntries;
                     result.disqualifiedSmart -= rEntry->balanceEligible;
                 }
+            }
+            if (rEntry->balance < 0) {
+                LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Negative amount?! - %s", rEntry->ToString());
+                rEntry->balance = 0;
             }
         }
     }
@@ -880,7 +815,7 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
             return;
         }
 
-        nVoteProofIn = rOut.nValue;
+        nVoteProofIn = 0; //rOut.nValue;
         voteProofCheck = new CSmartAddress(id);
     }
 
