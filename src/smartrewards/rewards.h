@@ -197,6 +197,8 @@ public:
     void ProcessOutputFor1_3(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, CSmartAddress* voteProofCheck, CAmount nVoteProofIn, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
     CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* smartRewardEntry, uint16_t currentRoundNumber);
+
+    void ExportToCsv();
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
