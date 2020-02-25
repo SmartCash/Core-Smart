@@ -292,7 +292,7 @@ public:
 
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 50;
-        consensus.nRewardsFirst_1_3_Round = 5; // block 200 start 1_2_8 400 start 1_3
+        consensus.nRewardsFirst_1_3_Round = 5; // block 201 start 1_2_8 401 start 1_3
         consensus.nRewardsPayouts_1_3_BlockStretch = 35;
         consensus.nRewardsPayouts_1_3_BlockPayees = 100;
 

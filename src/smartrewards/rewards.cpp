@@ -258,12 +258,13 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
         // Only compute rewards if not an Hive address and balance is over the minimum
         if (currentRound->number && smartRewardEntry->second->balance >= nMinBalance && !SmartHive::IsHive(smartRewardEntry->second->id)) {
             // If prior to 1.3, just use the balance as eligible
-            if (currentRound->number < nFirst_1_3_Round) {
+            if (!Is_1_3(currentRound->number)) {
                 smartRewardEntry->second->balanceEligible = smartRewardEntry->second->balance;
                 // If we pass 1.3 start round, calculate the weighted balance.
             } else if (Is_1_3(currentRound->number) && smartRewardEntry->second->IsEligible()) {
                 smartRewardEntry->second->balanceEligible = CalculateWeightedBalance(smartRewardEntry->first, smartRewardEntry->second, currentRound->number);
-            } else if (smartRewardEntry->second->fDisqualifyingTx) {
+            }
+            if (smartRewardEntry->second->fDisqualifyingTx) {
                 nReward = 0;
                 smartRewardEntry->second->balanceEligible = 0;
             }
@@ -284,7 +285,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
             pCurrentSmartRewardResult->payouts.push_back(pCurrentSmartRewardResult->results.back());
         }
 
-        smartRewardEntry2->second->balanceAtStart = smartRewardEntry2->second->balance;
+//        smartRewardEntry2->second->balanceAtStart = smartRewardEntry2->second->balance;
 
         // Reset disqualifying and SmartNode transactions each cycle.
         smartRewardEntry2->second->disqualifyingTx.SetNull();
@@ -832,7 +833,7 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
     CSmartAddress* voteProofCheck = nullptr;
     CAmount nVoteProofIn = 0;
 
-    if (nCurrentRound >= nFirst_1_3_Round && tx.IsVoteProof()) {
+    if (Is_1_3(nCurrentRound) && tx.IsVoteProof()) {
         const Coin& coin = coins.AccessCoin(tx.vin[0].prevout);
         const CTxOut& rOut = coin.out;
 
@@ -843,7 +844,7 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
             return;
         }
 
-        nVoteProofIn = 0; //rOut.nValue;
+        nVoteProofIn = rOut.nValue;
         voteProofCheck = new CSmartAddress(id);
     }
 
