@@ -536,6 +536,17 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
         return;
     }
 
+    //We can only subtract the balance if is not a vote proof transaction.
+    //Vote proof transactions send for itself.
+    //Same rule for 1.2 and 1.3
+    if (!tx.IsVoteProof()) {
+        //Subtract the amount from the entry based in the input.
+        rEntry->balance -= in.nValue;
+    }
+    if (rEntry->balance < 0) {
+        LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Negative amount?! - %s", rEntry->ToString());
+        rEntry->balance = 0;
+    }
 
     if (Is_1_3(nCurrentRound)) {
         if (tx.IsVoteProof()) {
@@ -551,9 +562,9 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
                 rEntry->fDisqualifyingTx = true;
             }
             //We mis disqualify the balance as well
-            if (rEntry->balanceEligible) {
+            if (rEntry->balance) {
                 result.disqualifiedEntries++;
-                result.disqualifiedSmart += rEntry->balanceEligible;
+                result.disqualifiedSmart += rEntry->balance;
             }
         }
     } else {
@@ -562,23 +573,11 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, CSmar
                 rEntry->disqualifyingTx = tx.GetHash();
                 rEntry->fDisqualifyingTx = true;
             }
-            if (rEntry->balanceEligible) {
+            if (rEntry->balance) {
                 result.disqualifiedEntries++;
-                result.disqualifiedSmart += rEntry->balanceEligible;
+                result.disqualifiedSmart += rEntry->balance;
             }
         }
-    }
-    //We can only subtract the balance if is not a vote proof transaction.
-    //Vote proof transactions send for itself.
-    //Same rule for 1.2 and 1.3
-    if (!tx.IsVoteProof()) {
-        //Subtract the amount from the entry based in the input.
-        rEntry->balance -= in.nValue;
-    }
-
-    if (rEntry->balance < 0) {
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Negative amount?! - %s", rEntry->ToString());
-        rEntry->balance = 0;
     }
 }
 
@@ -596,7 +595,6 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
             if (!tx.IsVoteProof()) {
                 // If prior to 1.3, just use the balance as eligible
                 rEntry->balance += out.nValue;
-                rEntry->balanceEligible -= nVoteProofIn - tx.GetValueOut();
             }
 
             // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
@@ -614,9 +612,9 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
                     if (abs(out.nValue - nNodeReward) < 2) {
                         if (!rEntry->fSmartnodePaymentTx) {
                             // If it is currently eligible adjust the round's results
-                            if (rEntry->IsEligible()) {
+                            if (rEntry->fVoteProven && !rEntry->fSmartnodePaymentTx && rEntry->balance > 0 && !rEntry->fDisqualifyingTx) {
                                 ++result.disqualifiedEntries;
-                                result.disqualifiedSmart += rEntry->balanceEligible;
+                                result.disqualifiedSmart += rEntry->balance;
                             }
 
                             rEntry->smartnodePaymentTx = tx.GetHash();
@@ -628,14 +626,14 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, CSm
 
             //After we make sure it is not a node we can now add it as a qualified entry
             if (Is_1_3(nCurrentRound)) {
-                if (rEntry->fVoteProven && !rEntry->fSmartnodePaymentTx && rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
+                if (rEntry->fVoteProven && !rEntry->fSmartnodePaymentTx && rEntry->balance > 0 && !rEntry->fDisqualifyingTx) {
                     result.qualifiedEntries++;
-                    result.qualifiedSmart += rEntry->balanceEligible;
+                    result.qualifiedSmart += rEntry->balance;
                 }
             } else {
-                if (rEntry->balanceEligible > 0 && !rEntry->fDisqualifyingTx) {
+                if (rEntry->balance > 0 && !rEntry->fDisqualifyingTx) {
                     result.qualifiedEntries++;
-                    result.qualifiedSmart += rEntry->balanceEligible;
+                    result.qualifiedSmart += rEntry->balance;
                 }
             }
         }
