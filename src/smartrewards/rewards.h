@@ -171,8 +171,8 @@ public:
     bool ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, int nCurrentRound);
     void UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult& result);
 
-    bool CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
-    bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
+    bool CommitBlock(CBlockIndex* pIndex, CSmartRewardsUpdateResult& result);
+    bool CommitUndoBlock(CBlockIndex* pIndex, CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& entry, bool fCreate);
     CAmount GetAddressBalanceAtRound(const CSmartAddress& address, int16_t round);
@@ -199,6 +199,9 @@ public:
     CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* smartRewardEntry, uint16_t currentRoundNumber);
 
     void ExportToCsv();
+
+    void GetEligiblesEntries(CSmartRewardsUpdateResult& result, uint16_t currentRoundNumber);
+
 };
 
 /** Global variable that points to the active rewards object (protected by cs_main) */
