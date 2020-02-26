@@ -178,7 +178,7 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
             .arg(BitcoinUnits::formatHtmlWithUnit(model->getOptionsModel()->getDisplayUnit(), nTotalAmount)));
 
         SendConfirmationDialog confirmationDialog(tr("Confirm send %1").arg(strType),
-            questionString, SEND_CONFIRM_DELAY, this);
+            questionString, SEND_CONFIRM_DELAY, QMessageBox::Question, this);
         confirmationDialog.exec();
         QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
 

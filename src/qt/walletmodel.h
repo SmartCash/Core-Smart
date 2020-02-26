@@ -42,7 +42,7 @@ class SendCoinsRecipient
 public:
     explicit SendCoinsRecipient() : amount(0), fSubtractFeeFromAmount(false), nVersion(SendCoinsRecipient::CURRENT_VERSION) { }
     explicit SendCoinsRecipient(const QString &addr, const QString &label, const CAmount& amount, const QString &message):
-        address(addr), label(label), amount(amount), message(message), fSubtractFeeFromAmount(false), nVersion(SendCoinsRecipient::CURRENT_VERSION) {}
+        address(addr), label(label), amount(amount), nLockTime(0), message(message), fSubtractFeeFromAmount(false), nVersion(SendCoinsRecipient::CURRENT_VERSION) {}
 
     // If from an unauthenticated payment request, this is used for storing
     // the addresses, e.g. address-A<br />address-B<br />address-C.
@@ -57,6 +57,7 @@ public:
     bool fUseInstantSend;
     bool fUseNewAddressFormat;
     CAmount amount;
+    int64_t nLockTime;
     // If from a payment request, this is used for storing the memo
     QString message;
 

@@ -253,7 +253,16 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             setAddress.insert(rcp.address);
             ++nAddresses;
 
-            CScript scriptPubKey = GetScriptForDestination(CBitcoinAddress(rcp.address.toStdString()).Get());
+            CScript scriptPubKey;
+            if (rcp.nLockTime > 0)
+            {
+                scriptPubKey = GetLockedScriptForDestination(CBitcoinAddress(rcp.address.toStdString()).Get(),
+                    rcp.nLockTime);
+            }
+            else
+            {
+                scriptPubKey = GetScriptForDestination(CBitcoinAddress(rcp.address.toStdString()).Get());
+            }
             CRecipient recipient = {scriptPubKey, rcp.amount, rcp.fSubtractFeeFromAmount};
             vecSend.push_back(recipient);
 

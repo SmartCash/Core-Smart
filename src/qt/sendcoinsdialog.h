@@ -64,6 +64,8 @@ private:
     bool fNewRecipientAllowed;
     bool fFeeMinimized;
     const PlatformStyle *platformStyle;
+    std::vector<std::pair<QString, int>> timeLockItems;
+    int64_t nLockTime;
 
     // Process WalletModel::SendCoinsReturn and generate a pair consisting
     // of a message and message flags for use in Q_EMIT message().
@@ -92,6 +94,9 @@ private Q_SLOTS:
     void coinControlClipboardPriority();
     void coinControlClipboardLowOutput();
     void coinControlClipboardChange();
+    void timelockComboChanged(int);
+    void timeLockCustomBlocksChanged(int);
+    void timeLockCustomDateChanged(const QDateTime&);
     void setMinimumFee();
     void updateFeeSectionControls();
     void updateMinFeeLabel();
@@ -110,7 +115,8 @@ class SendConfirmationDialog : public QMessageBox
     Q_OBJECT
 
 public:
-    SendConfirmationDialog(const QString &title, const QString &text, int secDelay = 0, QWidget *parent = 0);
+    SendConfirmationDialog(const QString &title, const QString &text, int secDelay = 0,
+        QMessageBox::Icon icon = QMessageBox::Question, QWidget *parent = 0);
     int exec();
 
 private Q_SLOTS:

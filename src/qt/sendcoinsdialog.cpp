@@ -15,6 +15,7 @@
 #include "sendcoinsentry.h"
 #include "walletmodel.h"
 
+#include "validation.h"
 #include "base58.h"
 #include "coincontrol.h"
 #include "validation.h" // mempool and minRelayTxFee
@@ -22,6 +23,7 @@
 #include "util.h"
 #include "txmempool.h"
 #include "wallet/wallet.h"
+#include "chainparams.h"
 
 #include <QMessageBox>
 #include <QScrollBar>
@@ -29,7 +31,10 @@
 #include <QTextDocument>
 #include <QTimer>
 
-#define SEND_CONFIRM_DELAY   3
+#define SEND_CONFIRM_DELAY             3
+#define SEND_CONFIRM_DELAY_LOCKTIME   10
+#define ONE_MONTH                     (30.5 * 24 * 60 * 60)
+#define ONE_YEAR                      (365 * 24 * 60 * 60)
 
 SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent) :
     QDialog(parent),
@@ -38,17 +43,16 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
     model(0),
     fNewRecipientAllowed(true),
     fFeeMinimized(true),
-    platformStyle(platformStyle)
+    platformStyle(platformStyle),
+    nLockTime(0)
 {
     ui->setupUi(this);
 
     if (!platformStyle->getImagesOnButtons()) {
         ui->addButton->setIcon(QIcon());
-        ui->clearButton->setIcon(QIcon());
         ui->sendButton->setIcon(QIcon());
     } else {
         ui->addButton->setIcon(platformStyle->SingleColorIcon(":/icons/add"));
-        ui->clearButton->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
         ui->sendButton->setIcon(platformStyle->SingleColorIcon(":/icons/send"));
     }
 
@@ -57,7 +61,30 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
     addEntry();
 
     connect(ui->addButton, SIGNAL(clicked()), this, SLOT(addEntry()));
-    connect(ui->clearButton, SIGNAL(clicked()), this, SLOT(clear()));
+
+    // Timelock
+    const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
+    ui->timelockCombo->setVisible(true);
+    timeLockItems.emplace_back("Set LockTime", 0);
+    timeLockItems.emplace_back("1 month", (int)(ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("2 months", (int)(2 * ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("3 months", (int)(3 * ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("6 months", (int)(6 * ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("1 year", (int)(ONE_YEAR / nAvgBlockTime));
+    timeLockItems.emplace_back("Custom (until block)", -1);
+    timeLockItems.emplace_back("Custom (until date)", -1);
+    for (const auto &i : timeLockItems) {
+        ui->timelockCombo->addItem(i.first);
+    }
+
+    ui->timeLockCustomBlocks->setVisible(false);
+    ui->timeLockCustomBlocks->setRange(1, 1000000);
+    ui->timeLockCustomDate->setVisible(false);
+    ui->timeLockCustomDate->setMinimumDateTime(QDateTime::currentDateTime());
+    connect(ui->timeLockCustomBlocks, SIGNAL(valueChanged(int)), this, SLOT(timeLockCustomBlocksChanged(int)));
+    connect(ui->timeLockCustomDate, SIGNAL(dateTimeChanged(const QDateTime&)), this,
+        SLOT(timeLockCustomDateChanged(const QDateTime&)));
+    connect(ui->timelockCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(timelockComboChanged(int)));
 
     // Coin Control
     connect(ui->pushButtonCoinControl, SIGNAL(clicked()), this, SLOT(coinControlButtonClicked()));
@@ -222,6 +249,7 @@ void SendCoinsDialog::on_sendButton_clicked()
             if(entry->validate())
             {
                 recipients.append(entry->getValue());
+                recipients.last().nLockTime = nLockTime;
             }
             else
             {
@@ -306,7 +334,30 @@ void SendCoinsDialog::on_sendButton_clicked()
         formatted.append(recipientElement);
     }
 
-    QString questionString = tr("Are you sure you want to send?");
+    QString questionString;
+
+    if (nLockTime > 0) {
+        // Figure out unlocking date and time
+        QDateTime unlockDateTime;
+        if (nLockTime < LOCKTIME_THRESHOLD)
+        {
+            const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
+            unlockDateTime = QDateTime::currentDateTime().addSecs(nLockTime * nAvgBlockTime);
+        }
+        else
+        {
+            unlockDateTime.setMSecsSinceEpoch(nLockTime * 1000);
+        }
+
+        questionString.append("<span style='color:#aa0000;'>");
+        questionString.append(tr("This is not a normal transaction. "));
+        questionString.append(tr("Do not use this to deposit funds to an exchange."));
+        questionString.append(tr("Funds sent will not be spendable until approximatively "));
+        questionString.append(unlockDateTime.toString("MMMM d yy hh:mm:ss"));
+        questionString.append("</span></br><hr />");
+    }
+
+    questionString.append(tr("Are you sure you want to send?"));
     questionString.append("<br /><br />%1");
 
     if(txFee > 0)
@@ -336,7 +387,10 @@ void SendCoinsDialog::on_sendButton_clicked()
         .arg(alternativeUnits.join(" " + tr("or") + "<br />")));
 
     SendConfirmationDialog confirmationDialog(tr("Confirm send coins"),
-        questionString.arg(formatted.join("<br />")), SEND_CONFIRM_DELAY, this);
+        questionString.arg(formatted.join("<br />")),
+        nLockTime > 0 ? SEND_CONFIRM_DELAY_LOCKTIME : SEND_CONFIRM_DELAY,
+        nLockTime > 0 ? QMessageBox::Warning : QMessageBox::Question,
+        this);
     confirmationDialog.exec();
     QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
 
@@ -356,6 +410,9 @@ void SendCoinsDialog::on_sendButton_clicked()
         accept();
         CoinControlDialog::coinControl->UnSelectAll();
         coinControlUpdateLabels();
+        ui->timelockCombo->setCurrentIndex(0);
+        ui->timeLockCustomBlocks->setVisible(false);
+        ui->timeLockCustomDate->setVisible(false);
     }
     fNewRecipientAllowed = true;
 }
@@ -435,8 +492,8 @@ QWidget *SendCoinsDialog::setupTabChain(QWidget *prev)
     }
     QWidget::setTabOrder(prev, ui->sendButton);
     QWidget::setTabOrder(ui->sendButton, ui->addButton);
-    QWidget::setTabOrder(ui->addButton, ui->clearButton);
-    return ui->clearButton;
+    QWidget::setTabOrder(ui->addButton, ui->timelockCombo);
+    return ui->timelockCombo;
 }
 
 void SendCoinsDialog::setAddress(const QString &address)
@@ -880,9 +937,40 @@ void SendCoinsDialog::coinControlUpdateLabels()
     }
 }
 
+void SendCoinsDialog::timelockComboChanged(int index)
+{
+    if (timeLockItems[index].first == "Custom (until block)") {
+        ui->timeLockCustomDate->setVisible(false);
+        ui->timeLockCustomBlocks->setVisible(true);
+        nLockTime = ui->timeLockCustomBlocks->value();
+    }
+    else if (timeLockItems[index].first == "Custom (until date)")
+    {
+        ui->timeLockCustomDate->setVisible(true);
+        ui->timeLockCustomBlocks->setVisible(false);
+        nLockTime = ui->timeLockCustomDate->dateTime().toMSecsSinceEpoch() / 1000;
+    }
+    else
+    {
+        ui->timeLockCustomDate->setVisible(false);
+        ui->timeLockCustomBlocks->setVisible(false);
+        nLockTime = timeLockItems[index].second > 0 ? chainActive.Height() + timeLockItems[index].second : 0;
+    }
+}
+
+void SendCoinsDialog::timeLockCustomBlocksChanged(int i)
+{
+    nLockTime = i;
+}
+
+void SendCoinsDialog::timeLockCustomDateChanged(const QDateTime &dt)
+{
+    nLockTime = dt.toMSecsSinceEpoch() / 1000;
+}
+
 SendConfirmationDialog::SendConfirmationDialog(const QString &title, const QString &text, int secDelay,
-    QWidget *parent) :
-    QMessageBox(QMessageBox::Question, title, text, QMessageBox::Yes | QMessageBox::Cancel, parent), secDelay(secDelay)
+      QMessageBox::Icon icon, QWidget *parent) :
+    QMessageBox(icon, title, text, QMessageBox::Yes | QMessageBox::Cancel, parent), secDelay(secDelay)
 {
     setDefaultButton(QMessageBox::Cancel);
     yesButton = button(QMessageBox::Yes);

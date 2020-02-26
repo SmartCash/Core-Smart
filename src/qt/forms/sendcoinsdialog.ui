@@ -324,7 +324,7 @@
                   <enum>Qt::ActionsContextMenu</enum>
                  </property>
                  <property name="text">
-                  <string notr="true">0.00 BTC</string>
+                  <string notr="true">0.00 SMART</string>
                  </property>
                  <property name="textInteractionFlags">
                   <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -684,7 +684,7 @@
         <bool>true</bool>
        </property>
       </widget>
-     </item> 
+     </item>
      <item>
       <widget class="QPushButton" name="addButton">
        <property name="toolTip">
@@ -703,7 +703,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="clearButton">
+      <widget class="QComboBox" name="timelockCombo">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -713,11 +713,22 @@
        <property name="toolTip">
         <string>Lock a transaction to be spent at future time.</string>
        </property>
-       <property name="text">
-        <string>&amp;TimeLock</string>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="timeLockCustomBlocks">
+       <property name="suffix">
+        <string> blocks</string>
        </property>
-       <property name="autoDefault">
-        <bool>false</bool>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDateTimeEdit" name="timeLockCustomDate">
+       <property name="calendarPopup">
+        <bool>true</bool>
+       </property>
+       <property name="displayFormat">
+        <string>MMMM d yy hh:mm:ss</string>
        </property>
       </widget>
      </item>
