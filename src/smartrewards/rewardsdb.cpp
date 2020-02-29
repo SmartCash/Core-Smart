@@ -371,25 +371,25 @@ void CSmartRewardEntry::SetNull()
     fDisqualifyingTx = false;
     smartnodePaymentTx.SetNull();
     fSmartnodePaymentTx = false;
-    voteProof.SetNull();
-    fVoteProven = false;
+    activationTx.SetNull();
+    fActivated = false;
 }
 
 string CSmartRewardEntry::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceEligible=%d, isSmartNode=%b, voteProven=%b)\n",
+    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceEligible=%d, isSmartNode=%b, activated=%b)\n",
         GetAddress(),
         balance,
         balanceEligible,
         fSmartnodePaymentTx,
-        fVoteProven);
+        fActivated);
     return s.str();
 }
 
 bool CSmartRewardEntry::IsEligible()
 {
-    return fVoteProven && !fSmartnodePaymentTx && balanceEligible > 0 && !fDisqualifyingTx;
+    return fActivated && !fSmartnodePaymentTx && balanceEligible > 0 && !fDisqualifyingTx;
 }
 
 string CSmartRewardBlock::ToString() const

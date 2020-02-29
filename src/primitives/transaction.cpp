@@ -234,7 +234,7 @@ bool CTransaction::IsVoteKeyRegistration() const
     return false;
 }
 
-bool CTransaction::IsVoteProof() const
+bool CTransaction::IsActivationTx() const
 {
     if (IsCoinBase()) return false;
 

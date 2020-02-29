@@ -2398,9 +2398,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
-        CSmartAddress *voteProofCheck = nullptr;
-        CAmount nVoteProofIn = 0;
-
         int nCurrentRewardsRound = prewards->GetCurrentRound()->number;
         bool fProcessRewards = !fIsVerifyDB && prewards->ProcessTransaction(pindex, tx, nCurrentRewardsRound);
 
@@ -2439,7 +2436,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 const CTxOut &prevout = coin.out;
 
                 if( fProcessRewards && !input.scriptSig.IsZerocoinSpend() ){
-                    prewards->ProcessInput(tx, prevout, &voteProofCheck, nVoteProofIn, nCurrentRewardsRound, smartRewardsResult);
+                    prewards->ProcessInput(tx, prevout, nCurrentRewardsRound, smartRewardsResult);
                 }
 
                 if (fAddressIndex || fSpentIndex || fDepositIndex)
@@ -2530,7 +2527,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             const CTxOut &out = tx.vout[k];
 
             if( fProcessRewards && !out.scriptPubKey.IsZerocoinMint() ){
-                prewards->ProcessOutput(tx, out, voteProofCheck, nVoteProofIn, nCurrentRewardsRound, pindex->nHeight, smartRewardsResult);
+                prewards->ProcessOutput(tx, out, nCurrentRewardsRound, pindex->nHeight, smartRewardsResult);
             }
 
             if (fAddressIndex || fDepositIndex) {

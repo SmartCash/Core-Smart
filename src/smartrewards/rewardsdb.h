@@ -183,6 +183,7 @@ public:
     int GetPayeeCount() const { return nPayeeCount; }
     int GetRewardBlocks() const { return nRewardBlocks; }
     int GetLastRoundBlock() const { return nLastRoundBlock; }
+    bool Is_1_3() const { return number >= Params().GetConsensus().nRewardsFirst_1_3_Round; }
 
     std::string ToString() const;
 };
@@ -202,8 +203,8 @@ public:
         READWRITE(balanceEligible);
         READWRITE(disqualifyingTx);
         READWRITE(fDisqualifyingTx);
-        READWRITE(voteProof);
-        READWRITE(fVoteProven);
+        READWRITE(activationTx);
+        READWRITE(fActivated);
         READWRITE(smartnodePaymentTx);
         READWRITE(fSmartnodePaymentTx);
     }
@@ -214,20 +215,20 @@ public:
     CAmount balanceEligible;
     uint256 disqualifyingTx;
     bool fDisqualifyingTx;
-    uint256 voteProof;
-    bool fVoteProven;
+    uint256 activationTx;
+    bool fActivated;
     uint256 smartnodePaymentTx;
     bool fSmartnodePaymentTx;
 
     CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceAtStart(0), balanceEligible(0),
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
-                          voteProof(uint256()), fVoteProven(false),
+                          activationTx(uint256()), fActivated(false),
                           smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceAtStart(0), balanceEligible(0),
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
-                          voteProof(uint256()), fVoteProven(false),
+                          activationTx(uint256()), fActivated(false),
                           smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
