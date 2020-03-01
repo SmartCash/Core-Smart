@@ -262,7 +262,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
         obj.pushKV("balance", format(entry->balance));
         obj.pushKV("balance_eligible", format(entry->balanceEligible));
         obj.pushKV("is_smartnode", !entry->smartnodePaymentTx.IsNull());
-        obj.pushKV("voted", !entry->voteProof.IsNull());
+        obj.pushKV("activated", entry->fActivated);
         obj.pushKV("eligible", current->number < nFirst_1_3_Round ? entry->balanceEligible > 0 : entry->IsEligible());
 
         return obj;

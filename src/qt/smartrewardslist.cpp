@@ -46,13 +46,12 @@ struct QSmartRewardField
     CAmount reward;
     uint256 disqualifyingTx;
     bool fIsSmartNode;
-    bool fVoted;
-    int nVoteProofConfirmations;
+    bool fActivated;
 
     QSmartRewardField() : label(QString()), address(QString()),
                           balance(0), eligible(0),reward(0),
                           disqualifyingTx(),
-                          fIsSmartNode(false), fVoted(false), nVoteProofConfirmations(-1){}
+                          fIsSmartNode(false), fActivated(false){}
 };
 
 struct SortSmartRewardWidgets
@@ -129,9 +128,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 {
     LogPrintf("SmartrewardsList::updateOverviewUI %d\n", tip->nHeight);
 
-    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
-
-    if( currentRound.number < nFirst_1_3_Round ){
+    if( !currentRound.Is_1_3() ){
         ui->btnSendProofs->hide();
     }else{
         ui->btnSendProofs->show();
@@ -218,7 +215,6 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     ui->nextRoundLabel->setText(roundEndText);
 
-    CKeyID keyId;
     int nAvailableForProof = 0;
     std::map<QString, std::vector<COutput> > mapCoins;
     model->listCoins(mapCoins);
@@ -261,8 +257,9 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         change.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
                         change.balanceAtStart = reward->balanceAtStart;
                         change.disqualifyingTx = reward->disqualifyingTx;
+                        change.fActivated = reward->fActivated;
 
-                        if( currentRound.number < nFirst_1_3_Round ){
+                        if( !currentRound.Is_1_3() ){
                             change.eligible = reward->balanceEligible && reward->disqualifyingTx.IsNull() ? reward->balanceEligible : 0;
                         }else{
                             change.eligible = reward->IsEligible() ? reward->balanceEligible : 0;
@@ -270,46 +267,8 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
                         change.reward = currentRound.percent * change.eligible;
 
-                        if( reward->id.GetKeyID(keyId) ){
-/*
-                            LOCK2(cs_main, pwalletMain->cs_wallet);
-
-                            change.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
-
-                              if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
-
-                                uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
-
-                                CTransaction tx;
-                                uint256 nBlockHash;
-
-                                if( !reward->voteProof.IsNull() ){
-                                    change.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
-                                }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
-                                    change.nVoteProofConfirmations = -1;
-                                }else if(nBlockHash == uint256()) {
-                                    change.nVoteProofConfirmations = 0;
-                                }else{
-
-                                    if (nBlockHash != uint256()) {
-                                        BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
-                                        if (mi != mapBlockIndex.end() && (*mi).second) {
-                                            CBlockIndex* pindex = (*mi).second;
-                                            if (chainActive.Contains(pindex)) {
-                                                change.nVoteProofConfirmations = chainActive.Height() - pindex->nHeight + 1;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-*/
-                            if( //pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
-                                //pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
-                                reward->voteProof.IsNull() &&
-                                reward->balanceEligible && reward->disqualifyingTx.IsNull() && reward->smartnodePaymentTx.IsNull() ){
-                                ++nAvailableForProof;
-                            }
-
+                        if( currentRound.Is_1_3() && !change.fActivated ){
+                            ++nAvailableForProof;
                         }
                     }
 
@@ -338,8 +297,9 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 rewardField.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
                 rewardField.balanceAtStart = reward->balanceAtStart;
                 rewardField.disqualifyingTx = reward->disqualifyingTx;
+                rewardField.fActivated = reward->fActivated;
 
-                if( currentRound.number < nFirst_1_3_Round ){
+                if( !currentRound.Is_1_3() ){
                     rewardField.eligible = reward->balanceEligible && reward->disqualifyingTx.IsNull() ? reward->balanceEligible : 0;
                 }else{
                     rewardField.eligible = reward->IsEligible() ? reward->balanceEligible : 0;
@@ -347,45 +307,8 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
                 rewardField.reward = currentRound.percent * rewardField.eligible;
 
-                if( reward->id.GetKeyID(keyId) ){
-
-                    LOCK2(cs_main, pwalletMain->cs_wallet);
-
-//                    rewardField.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
-
-                    if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
-
-                        uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
-
-                        CTransaction tx;
-                        uint256 nBlockHash;
-
-                        if( !reward->voteProof.IsNull() ){
-/*                            rewardField.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
-                        }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
-                            rewardField.nVoteProofConfirmations = -1;
-                        }else if(nBlockHash == uint256()) {
-                            rewardField.nVoteProofConfirmations = 0;
-                        }else{
-
-                            if (nBlockHash != uint256()) {
-                                BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
-                                if (mi != mapBlockIndex.end() && (*mi).second) {
-                                    CBlockIndex* pindex = (*mi).second;
-                                    if (chainActive.Contains(pindex)) {
-                                        rewardField.nVoteProofConfirmations = chainActive.Height() - pindex->nHeight + 1;
-                                    }
-                                }
-                            }
-*/                      }
-                    }
-
-                    if( //pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
-                        pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
-                        reward->balanceEligible && reward->disqualifyingTx.IsNull() && reward->smartnodePaymentTx.IsNull() ){
-                        ++nAvailableForProof;
-                    }
-
+                if( currentRound.Is_1_3() && !rewardField.fActivated ){
+                    ++nAvailableForProof;
                 }
             }
 
@@ -433,37 +356,25 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
         entry->setBalance(field.balance);
         entry->setIsSmartNode(field.fIsSmartNode);
-        entry->setVoted(field.fVoted);
-        entry->setVoteProofConfirmations(field.nVoteProofConfirmations);
+        entry->setActivated(field.fActivated);
 
-        if( currentRound.number >= nFirst_1_3_Round ){
+        if( currentRound.Is_1_3() ){
 
             entry->setMinBalance(SMART_REWARDS_MIN_BALANCE_1_3);
-
-            int nConfirmationsRequired = Params().GetConsensus().nRewardsConfirmationsRequired - field.nVoteProofConfirmations;
 
             if( field.fIsSmartNode ){
                 entry->setInfoText("Address belongs to a SmartNode.", COLOR_NEGATIVE);
             }else if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE_1_3 ){
-                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
+                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART. It can be activated now but it will not receive any rewards until it becomes eligible").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
             }else if( !field.disqualifyingTx.IsNull() ){
                 entry->setDisqualifyingTx(field.disqualifyingTx);
-                entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
-//            }else if( !field.fVoted ){
-//                entry->setInfoText("An ActivateReward required. Go to the \"SmartVote\" tab and vote for a proposal with this address.", COLOR_NEGATIVE);
-//            }else if( field.fVoted && field.nVoteProofConfirmations == -1){
-            }else if( field.nVoteProofConfirmations == -1){
-                entry->setInfoText("ActivateRewards required. Click the button at the bottom to ActivateRewards for this address.", COLOR_WARNING);
-            }else if( // field.fVoted &&
-                      nConfirmationsRequired > 0){
-                entry->setInfoText(QString("%1 block confirmation required for ActivateRewards transaction to become processed.").arg(nConfirmationsRequired), COLOR_WARNING);
-            }else if( // field.fVoted &&
-                      nConfirmationsRequired <= 0 &&
-                      field.eligible ){
+                entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1. It can be activated now but it will not receive any rewards until it becomes eligible").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
+            }else if( field.fActivated && !field.eligible ){
+                entry->setInfoText(QString("Adress is activated but not yet eligible"), COLOR_WARNING);
+            }else if( field.fActivated ){
                 entry->setEligible(field.eligible, field.reward);
                 ++nEligibleAddresses;
             }
-
         }else{
 
             entry->setMinBalance(SMART_REWARDS_MIN_BALANCE_1_2);
@@ -502,24 +413,17 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     std::sort(vecEntries.begin(), vecEntries.end(), SortSmartRewardWidgets());
 
-    for( size_t i=0; i<vecEntries.size(); i++ ){
+    for (const auto &entry : vecEntries) {
+        ui->smartRewardsList->layout()->addWidget(entry);
 
-        ui->smartRewardsList->layout()->addWidget(vecEntries[i]);
-
-        if( i < vecEntries.size() - 1 ){
-
-            // Add a horizontal line
+        // Add a horizontal line unless it's the last entry
+        if( entry != vecEntries.back() ){
             QHBoxLayout* hBox = new QHBoxLayout();
-            QSpacerItem* spacerLeft = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
-            QSpacerItem* spacerRight = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
             QWidget* lineContainer = new QWidget();
-            lineContainer->setStyleSheet("background-color: rgb(247, 245, 248);");
             QFrame* line = new QFrame(lineContainer);
             line->setFrameShape(QFrame::HLine);
             line->setFrameShadow(QFrame::Plain);
-            hBox->addSpacerItem(spacerLeft);
             hBox->addWidget(line);
-            hBox->addSpacerItem(spacerRight);
             hBox->setSpacing(0);
             hBox->setContentsMargins(0, 0, 0, 0);
             lineContainer->setLayout(hBox);
@@ -603,7 +507,7 @@ void SmartrewardsList::setState(SmartrewardsList::SmartRewardsListState state)
 
 void SmartrewardsList::on_btnSendProofs_clicked()
 {
-    SpecialTransactionDialog dlg(VOTE_PROOF_TRANSACTIONS, platformStyle);
+    SpecialTransactionDialog dlg(ACTIVATION_TRANSACTIONS, platformStyle);
     dlg.setModel(model);
     dlg.exec();
     updateUI();
