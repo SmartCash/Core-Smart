@@ -80,11 +80,9 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
     ui->timeLockCustomBlocks->setRange(1, 1000000);
     ui->timeLockCustomDate->setVisible(false);
     ui->timeLockCustomDate->setMinimumDateTime(QDateTime::currentDateTime());
-    connect(ui->timeLockCustomBlocks, QOverload<int>::of(&QSpinBox::valueChanged), [=](int i){ nLockTime = i; });
-    connect(ui->timeLockCustomDate, QOverload<const QDateTime &>::of(&QDateTimeEdit::dateTimeChanged),
-        [=](const QDateTime &dt){
-          nLockTime = dt.toSecsSinceEpoch();
-    });
+    connect(ui->timeLockCustomBlocks, SIGNAL(valueChanged(int)), this, SLOT(timeLockCustomBlocksChanged(int)));
+    connect(ui->timeLockCustomDate, SIGNAL(dateTimeChanged(const QDateTime&)), this,
+        SLOT(timeLockCustomDateChanged(const QDateTime&)));
     connect(ui->timelockCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(timelockComboChanged(int)));
 
     // Coin Control
@@ -347,7 +345,7 @@ void SendCoinsDialog::on_sendButton_clicked()
         }
         else
         {
-            unlockDateTime.setSecsSinceEpoch(nLockTime);
+            unlockDateTime.setMSecsSinceEpoch(nLockTime * 1000);
         }
 
         questionString.append("<span style='color:#aa0000;'>");
@@ -949,7 +947,7 @@ void SendCoinsDialog::timelockComboChanged(int index)
     {
         ui->timeLockCustomDate->setVisible(true);
         ui->timeLockCustomBlocks->setVisible(false);
-        nLockTime = ui->timeLockCustomDate->dateTime().toSecsSinceEpoch();
+        nLockTime = ui->timeLockCustomDate->dateTime().toMSecsSinceEpoch() / 1000;
     }
     else
     {
@@ -957,6 +955,16 @@ void SendCoinsDialog::timelockComboChanged(int index)
         ui->timeLockCustomBlocks->setVisible(false);
         nLockTime = timeLockItems[index].second;
     }
+}
+
+void SendCoinsDialog::timeLockCustomBlocksChanged(int i)
+{
+    nLockTime = i;
+}
+
+void SendCoinsDialog::timeLockCustomDateChanged(const QDateTime &dt)
+{
+    nLockTime = dt.toMSecsSinceEpoch() / 1000;
 }
 
 SendConfirmationDialog::SendConfirmationDialog(const QString &title, const QString &text, int secDelay,

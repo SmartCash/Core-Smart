@@ -95,6 +95,8 @@ private Q_SLOTS:
     void coinControlClipboardLowOutput();
     void coinControlClipboardChange();
     void timelockComboChanged(int);
+    void timeLockCustomBlocksChanged(int);
+    void timeLockCustomDateChanged(const QDateTime&);
     void setMinimumFee();
     void updateFeeSectionControls();
     void updateMinFeeLabel();
