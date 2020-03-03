@@ -161,7 +161,7 @@ void SmartVotingPage::updateUI()
 void SmartVotingPage::proposalsUpdated(const string &strErr)
 {
     if( strErr != ""){
-        QMessageBox::warning(this, "Error", QString("Could not update proposal list\n\n%1").arg(QString::fromStdString(strErr)));
+//        QMessageBox::warning(this, "Error", QString("Could not update proposal list\n\n%1").arg(QString::fromStdString(strErr)));
         return;
     }
 

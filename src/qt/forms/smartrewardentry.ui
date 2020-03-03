@@ -190,8 +190,11 @@
            <bold>true</bold>
           </font>
          </property>
+         <property name="styleSheet">
+         <string notr="true">color: rgb(173, 47, 19);</string>
+         </property>
          <property name="text">
-          <string>Activation required. Click button below to activate this address for rewards</string>
+          <string>ActivateRewards required. Click button below to activate this address for rewards</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>

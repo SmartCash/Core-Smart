@@ -266,10 +266,9 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         }
 
                         change.reward = currentRound.percent * change.eligible;
-
-                        if( currentRound.Is_1_3() && !change.fActivated ){
-                            ++nAvailableForProof;
-                        }
+                    }
+                    if( currentRound.Is_1_3() && !change.fActivated ){
+                        ++nAvailableForProof;
                     }
 
                     if( change.balance || change.eligible ) rewardList.push_back(change);
@@ -306,10 +305,9 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 }
 
                 rewardField.reward = currentRound.percent * rewardField.eligible;
-
-                if( currentRound.Is_1_3() && !rewardField.fActivated ){
-                    ++nAvailableForProof;
-                }
+            }
+            if( currentRound.Is_1_3() && !rewardField.fActivated ){
+                ++nAvailableForProof;
             }
 
             if( rewardField.balance || rewardField.eligible ) rewardList.push_back(rewardField);
@@ -370,7 +368,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 entry->setDisqualifyingTx(field.disqualifyingTx);
                 entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1. It can be activated now but it will not receive any rewards until it becomes eligible").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
             }else if( field.fActivated && !field.eligible ){
-                entry->setInfoText(QString("Adress is activated but not yet eligible"), COLOR_WARNING);
+                entry->setInfoText(QString("Address is activated but not yet eligible"), COLOR_WARNING);
             }else if( field.fActivated ){
                 entry->setEligible(field.eligible, field.reward);
                 ++nEligibleAddresses;
@@ -433,6 +431,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     }
 
     if( nAvailableForProof ){
+//    if( !fActivated ){
         ui->btnSendProofs->setText( QString(tr("Send ActivateRewards [%1]")).arg(nAvailableForProof) );
         ui->btnSendProofs->setEnabled(true);
     }else{
