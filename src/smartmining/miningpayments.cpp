@@ -339,7 +339,9 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
     CAmount expectedCoinbase = nFees + nodeReward + hiveReward + smartReward + miningReward;
 
     if( pindex->nHeight > 1 && coinbase > expectedCoinbase ){
-         LogPrintf("SmartMining::Validate - Coinbase too high Expected: %d.%08d! %s\n", expectedCoinbase / COIN, expectedCoinbase % COIN, block.vtx[0].ToString());
+         LogPrintf("SmartMining::Validate - Coinbase %d.%08d!\n", coinbase / COIN, coinbase % COIN);
+         LogPrintf("SmartMining::Validate - Expected Coinbase %d.%08d!\n", expectedCoinbase / COIN, expectedCoinbase % COIN);
+         LogPrintf("SmartMining::Validate - Coinbase higher than Expected: %d.%08d! %s\n", expectedCoinbase / COIN, expectedCoinbase % COIN, block.vtx[0].ToString());
         return state.DoS(100, false, REJECT_INVALID,
                      "CTransaction::CheckTransaction() : Coinbase value too high");
     }

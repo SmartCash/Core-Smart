@@ -266,9 +266,10 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                         }
 
                         change.reward = currentRound.percent * change.eligible;
-                    }
-                    if( currentRound.Is_1_3() && !change.fActivated ){
-                        ++nAvailableForProof;
+
+                        if( currentRound.Is_1_3() && !change.fActivated ){
+                            ++nAvailableForProof;
+                        }
                     }
 
                     if( change.balance || change.eligible ) rewardList.push_back(change);
@@ -305,9 +306,10 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 }
 
                 rewardField.reward = currentRound.percent * rewardField.eligible;
-            }
-            if( currentRound.Is_1_3() && !rewardField.fActivated ){
-                ++nAvailableForProof;
+
+                if( currentRound.Is_1_3() && !rewardField.fActivated ){
+                    ++nAvailableForProof;
+                }
             }
 
             if( rewardField.balance || rewardField.eligible ) rewardList.push_back(rewardField);

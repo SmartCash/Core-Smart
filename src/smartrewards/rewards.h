@@ -192,9 +192,9 @@ public:
 
     bool Is_1_3(uint16_t currentRoundNumber);
 
-    void ProcessOutputFor1_2(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
+//    void ProcessOutputFor1_2(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
-    void ProcessOutputFor1_3(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
+//    void ProcessOutputFor1_3(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
     CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* smartRewardEntry, uint16_t currentRoundNumber);
 

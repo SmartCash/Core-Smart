@@ -264,15 +264,17 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound& nextRewardRound)
 
     auto smartRewardEntry = cache.GetEntries()->begin();
     while (smartRewardEntry != cache.GetEntries()->end()) {
-LogPrintf("Testing1 %s\n", smartRewardEntry->second->ToString());
-             smartRewardEntry->second->balanceEligible = 0;
+//LogPrintf("Testing1 %s\n", smartRewardEntry->second->ToString());
+//        if (Is_1_3(currentRound->number)) {
+        smartRewardEntry->second->balanceEligible = 0; //}
         // If we are in a 1.3 round, eligble, we have a minbalance, calculate the weighted balance.
-        if (Is_1_3(currentRound->number) && smartRewardEntry->second->balance >= nMinBalance && smartRewardEntry->second->fActivated) {
+        if (Is_1_3(currentRound->number) && smartRewardEntry->second->balance >= nMinBalance && smartRewardEntry->second->fActivated && !SmartHive::IsHive(smartRewardEntry->second->id)) {
             smartRewardEntry->second->balanceEligible = CalculateWeightedBalance(smartRewardEntry->first, smartRewardEntry->second, currentRound->number);
         }
         // If we are in a 1.2 round, we have a minimum balance, and no disqualifying transactions or smarthive.
-        if (currentRound->number && !Is_1_3(currentRound->number) && (smartRewardEntry->second->balance >= nMinBalance) && !smartRewardEntry->second->fDisqualifyingTx) {
-            smartRewardEntry->second->balanceEligible = smartRewardEntry->second->balance;
+        if (currentRound->number && !Is_1_3(currentRound->number) && (smartRewardEntry->second->balance >= nMinBalance) && !smartRewardEntry->second->fDisqualifyingTx && !SmartHive::IsHive(smartRewardEntry->second->id)) {
+//            smartRewardEntry->second->balanceEligible = smartRewardEntry->second->balance;
+            smartRewardEntry->second->balanceEligible = GetAddressBalanceAtRound(smartRewardEntry->second->id, currentRound->number - 1);
         }
 /*        // Otherwise addreses don't qualify and set to 0
         } else {
@@ -289,30 +291,34 @@ LogPrintf("Testing1 %s\n", smartRewardEntry->second->ToString());
                 smartRewardEntry->second->balanceEligible = CalculateWeightedBalance(smartRewardEntry->first, smartRewardEntry->second, currentRound->number);
             }
         }*/
-        if (smartRewardEntry->second->balanceEligible > 0 && ((currentRound->number == (nFirst_1_3_Round -1) && smartRewardEntry->second->fActivated) || currentRound->number != (nFirst_1_3_Round -1)) ) {
+        if (smartRewardEntry->second->balanceEligible > 0 && !SmartHive::IsHive(smartRewardEntry->second->id) && ((currentRound->number == (nFirst_1_3_Round -1) && smartRewardEntry->second->fActivated) || currentRound->number != (nFirst_1_3_Round -1) ) ) {
             ++nextRewardRound.eligibleEntries;
-            nextRewardRound.eligibleSmart += smartRewardEntry->second->balanceEligible;
+            if (Is_1_3(currentRound->number)){
+                nextRewardRound.eligibleSmart += smartRewardEntry->second->balanceEligible;
+            } else {
+                nextRewardRound.eligibleSmart += smartRewardEntry->second->balance;
+            }
         }
 
         ++smartRewardEntry;
     }
-
+//    if (Is_1_3(currentRound->number)) { UpdatePercentage(); }
     UpdatePercentage();
 
     auto smartRewardEntry2 = cache.GetEntries()->begin();
     while (smartRewardEntry2 != cache.GetEntries()->end()) {
 
-LogPrintf("Testing2 %s\n", smartRewardEntry2->second->ToString());
+//LogPrintf("Testing2 %s\n", smartRewardEntry2->second->ToString());
 //LogPrintf("Testing Eligible %d\n", smartRewardEntry2->second->balanceEligible);
 
-LogPrintf("Testing percent %d\n", currentRound->percent);
+//LogPrintf("Testing percent %d\n", currentRound->percent);
 //        int64_t nReward = 0;
         CAmount nReward;
-        if (smartRewardEntry2->second->balanceEligible > 0) {
+        if (smartRewardEntry2->second->balanceEligible > 1) {
              nReward = CAmount(smartRewardEntry2->second->balanceEligible * currentRound->percent);
              pCurrentSmartRewardResult->results.push_back(new CSmartRewardResultEntry(smartRewardEntry2->second, nReward));
              pCurrentSmartRewardResult->payouts.push_back(pCurrentSmartRewardResult->results.back());
-LogPrintf("Testing3 Reward %d\n", nReward);
+//LogPrintf("Testing3 Reward %d\n", nReward);
         }
 //        if (nReward){
 //             pCurrentSmartRewardResult->payouts.push_back(pCurrentSmartRewardResult->results.back());
