@@ -131,7 +131,7 @@ public:
         /* SmartReward params */
 
         consensus.nRewardsConfirmationsRequired = 1;
-        consensus.nRewardsPayoutStartDelay = 200;
+        consensus.nRewardsPayoutStartDelay = 20;
 
         //! 1.2 Parameter
         consensus.nRewardsBlocksPerRound_1_2 = 47500;
@@ -142,7 +142,7 @@ public:
         consensus.nRewardsBlocksPerRound_1_3 = 11000;  // 1 week
         consensus.nRewardsFirst_1_3_Round = 33; // Round 33 on 3/23 starts on block 1524100
         consensus.nRewardsPayouts_1_3_BlockStretch = 10000;
-        consensus.nRewardsPayouts_1_3_BlockPayees = 10;
+        consensus.nRewardsPayouts_1_3_BlockPayees = 100;
 
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
 
