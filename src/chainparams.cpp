@@ -131,7 +131,7 @@ public:
         /* SmartReward params */
 
         consensus.nRewardsConfirmationsRequired = 1;
-        consensus.nRewardsPayoutStartDelay = 20;
+        consensus.nRewardsPayoutStartDelay = 200;
 
         //! 1.2 Parameter
         consensus.nRewardsBlocksPerRound_1_2 = 47500;

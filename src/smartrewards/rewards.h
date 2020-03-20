@@ -188,17 +188,17 @@ public:
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryList& payouts);
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList& payouts);
 
-    void SaveToCacheEachRewardEntry(CSmartRewardEntryMap& smartRewardEntriesFromDB);
+//    void SaveToCacheEachRewardEntry(CSmartRewardEntryMap& smartRewardEntriesFromDB);
 
-    bool Is_1_3(uint16_t currentRoundNumber);
+    bool Is_1_3(uint16_t round);
 
 //    void ProcessOutputFor1_2(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
 //    void ProcessOutputFor1_3(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
-    CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* smartRewardEntry, uint16_t currentRoundNumber);
+    CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* entry, uint16_t round);
 
-    void ExportToCsv();
+//    void ExportToCsv();
 
 //    void GetEligibleEntries(CSmartRewardsUpdateResult& result, uint16_t currentRoundNumber);
 
