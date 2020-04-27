@@ -351,7 +351,7 @@ void AddressTableModel::updateEntry(const QString &address,
     priv->updateEntry(address, label, isMine, purpose, status);
 }
 
-QString AddressTableModel::addRow(const QString &type, const QString &label, const QString &address)
+QString AddressTableModel::addRow(const QString &type, const QString &label, const QString &address, int64_t lockTime)
 {
     std::string strLabel = label.toStdString();
     std::string strAddress = address.toStdString();
@@ -394,7 +394,21 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
                 return QString();
             }
         }
-        strAddress = CBitcoinAddress(newKey.GetID()).ToString(type == ReceiveNew);
+
+        CKeyID keyID = newKey.GetID();
+        if(lockTime > 0 )
+        {
+            CScript redeemScript = GetLockedScriptForDestination(keyID, lockTime);
+            strAddress = CBitcoinAddress(CScriptID(redeemScript)).ToString(type == ReceiveNew);
+            {
+                LOCK(wallet->cs_wallet);
+                wallet->AddCScript(redeemScript);
+            }
+        }
+        else
+        {
+            strAddress = CBitcoinAddress(keyID).ToString(type == ReceiveNew);
+        }
     }
     else
     {

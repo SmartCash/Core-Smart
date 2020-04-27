@@ -7,16 +7,22 @@
 
 #include "addresstablemodel.h"
 #include "guiutil.h"
+#include "validation.h"
+#include "chainparams.h"
 
 #include <QDataWidgetMapper>
 #include <QMessageBox>
+
+#define ONE_MONTH                     (30.5 * 24 * 60 * 60)
+#define ONE_YEAR                      (365 * 24 * 60 * 60)
 
 EditAddressDialog::EditAddressDialog(Mode mode, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::EditAddressDialog),
     mapper(0),
     mode(mode),
-    model(0)
+    model(0),
+    nLockTime(0)
 {
     ui->setupUi(this);
 
@@ -42,6 +48,30 @@ EditAddressDialog::EditAddressDialog(Mode mode, QWidget *parent) :
 
     mapper = new QDataWidgetMapper(this);
     mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
+
+    // Timelock
+    const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
+    ui->timelockCombo->setVisible(true);
+    timeLockItems.emplace_back("Set LockTime", 0);
+    timeLockItems.emplace_back("1 month", (int)(ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("2 months", (int)(2 * ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("3 months", (int)(3 * ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("6 months", (int)(6 * ONE_MONTH / nAvgBlockTime));
+    timeLockItems.emplace_back("1 year", (int)(ONE_YEAR / nAvgBlockTime));
+    timeLockItems.emplace_back("Custom (until block)", -1);
+    timeLockItems.emplace_back("Custom (until date)", -1);
+    for (const auto &i : timeLockItems) {
+        ui->timelockCombo->addItem(i.first);
+    }
+
+    ui->timeLockCustomBlocks->setVisible(false);
+    ui->timeLockCustomBlocks->setRange(1, 1000000);
+    ui->timeLockCustomDate->setVisible(false);
+    ui->timeLockCustomDate->setMinimumDateTime(QDateTime::currentDateTime());
+    connect(ui->timeLockCustomBlocks, SIGNAL(valueChanged(int)), this, SLOT(timeLockCustomBlocksChanged(int)));
+    connect(ui->timeLockCustomDate, SIGNAL(dateTimeChanged(const QDateTime&)), this,
+        SLOT(timeLockCustomDateChanged(const QDateTime&)));
+    connect(ui->timelockCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(timelockComboChanged(int)));
 }
 
 EditAddressDialog::~EditAddressDialog()
@@ -77,7 +107,8 @@ bool EditAddressDialog::saveCurrentRow()
         address = model->addRow(
                 mode == NewSendingAddress ? AddressTableModel::Send : AddressTableModel::Receive,
                 ui->labelEdit->text(),
-                ui->addressEdit->text());
+                ui->addressEdit->text(),
+                nLockTime);
         break;
     case EditReceivingAddress:
     case EditSendingAddress:
@@ -142,3 +173,35 @@ void EditAddressDialog::setAddress(const QString &address)
     this->address = address;
     ui->addressEdit->setText(address);
 }
+
+void EditAddressDialog::timelockComboChanged(int index)
+{
+    if (timeLockItems[index].first == "Custom (until block)") {
+        ui->timeLockCustomDate->setVisible(false);
+        ui->timeLockCustomBlocks->setVisible(true);
+        nLockTime = ui->timeLockCustomBlocks->value();
+    }
+    else if (timeLockItems[index].first == "Custom (until date)")
+    {
+        ui->timeLockCustomDate->setVisible(true);
+        ui->timeLockCustomBlocks->setVisible(false);
+        nLockTime = ui->timeLockCustomDate->dateTime().toMSecsSinceEpoch() / 1000;
+    }
+    else
+    {
+        ui->timeLockCustomDate->setVisible(false);
+        ui->timeLockCustomBlocks->setVisible(false);
+        nLockTime = timeLockItems[index].second > 0 ? chainActive.Height() + timeLockItems[index].second : 0;
+    }
+}
+
+void EditAddressDialog::timeLockCustomBlocksChanged(int i)
+{
+    nLockTime = i;
+}
+
+void EditAddressDialog::timeLockCustomDateChanged(const QDateTime &dt)
+{
+    nLockTime = dt.toMSecsSinceEpoch() / 1000;
+}
+
