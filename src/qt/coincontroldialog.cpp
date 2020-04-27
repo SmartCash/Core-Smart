@@ -745,6 +745,7 @@ void CoinControlDialog::updateView()
         int nInputSum = 0;
         BOOST_FOREACH(const COutput& out, coins.second) {
             int nInputSize = 0;
+            int64_t nLockTime = -1;
             nSum += out.tx->vout[out.i].nValue;
             nChildren++;
 
@@ -765,10 +766,29 @@ void CoinControlDialog::updateView()
                 if (!treeMode || (!(sAddress == sWalletAddress)))
                     itemOutput->setText(COLUMN_ADDRESS, sAddress);
 
-                CPubKey pubkey;
-                CKeyID *keyid = boost::get<CKeyID>(&outputAddress);
-                if (keyid && model->getPubKey(*keyid, pubkey) && !pubkey.IsCompressed())
-                    nInputSize = 29; // 29 = 180 - 151 (public key is 180 bytes, priority free area is 151 bytes)
+                // Check if output is locked P2PKH, if so then get lock time
+                if(out.tx->vout[out.i].scriptPubKey.IsPayToScriptHash())
+                {
+                    const CScriptID& hash = boost::get<CScriptID>(outputAddress);
+                    CScript redeemScript;
+                    if(pwalletMain->GetCScript(hash, redeemScript))
+                    {
+                        if (redeemScript.IsPayToPublicKeyHashLocked())
+                        {
+                            int nLockTimeLength = redeemScript[0];
+                            std::vector<unsigned char> lockTimeVch(redeemScript.begin() + 1,
+                                    redeemScript.begin() + 1 + nLockTimeLength);
+                            nLockTime = CScriptNum(lockTimeVch, false).getint();
+                        }
+                    }
+                }
+                else
+                {
+                    CPubKey pubkey;
+                    CKeyID *keyid = boost::get<CKeyID>(&outputAddress);
+                    if (keyid && model->getPubKey(*keyid, pubkey) && !pubkey.IsCompressed())
+                        nInputSize = 29; // 29 = 180 - 151 (public key is 180 bytes, priority free area is 151 bytes)
+                }
             }
 
             // label
@@ -812,9 +832,13 @@ void CoinControlDialog::updateView()
             // vout index
             itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(out.i));
 
-            bool fOutputLocked = out.nLockTime && (
-                                   ( out.nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < (int)out.nLockTime ) ||
-                                   ( out.nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < out.nLockTime ) );
+            if( nLockTime <= 0 ){
+              nLockTime = out.nLockTime;
+            }
+
+            bool fOutputLocked = nLockTime && (
+                ( nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime ) ||
+                ( nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < nLockTime ) );
 
             itemOutput->setData(COLUMN_LOCKED, Qt::UserRole, QVariant(fOutputLocked));
 
@@ -824,14 +848,14 @@ void CoinControlDialog::updateView()
 
                 model->lockCoin(outpt);
 
-                if( out.nLockTime < LOCKTIME_THRESHOLD ){
-                    itemOutput->setText(COLUMN_ADDRESS, QString("Output locked until block %1").arg(out.nLockTime));
+                if( nLockTime < LOCKTIME_THRESHOLD ){
+                    itemOutput->setText(COLUMN_ADDRESS, QString("Output locked until block %1").arg(nLockTime));
                 }else{
                     QDateTime timestamp;
-                    timestamp.setTime_t(out.nLockTime);
+                    timestamp.setTime_t(nLockTime);
                     itemOutput->setText(COLUMN_ADDRESS, QString("Output locked until %1").arg(timestamp.toString(Qt::SystemLocaleShortDate)));
                 }
-            }else if( out.nLockTime ){
+            }else if( nLockTime ){
                 model->unlockCoin(outpt);
             }
 

@@ -718,7 +718,7 @@
      <item>
       <widget class="QSpinBox" name="timeLockCustomBlocks">
        <property name="suffix">
-        <string> blocks</string>
+        <string> block height</string>
        </property>
       </widget>
      </item>
