@@ -145,6 +145,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressmempool", 0},
     { "getaddresses", 0},
     { "getaddresses", 1},
+    { "getnewaddress", 1},
     { "getrandomkeypair", 0},
     { "dumpprivkey", 1},
     { "dumpwallet", 1}
