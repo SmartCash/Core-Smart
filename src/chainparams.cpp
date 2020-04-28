@@ -286,15 +286,15 @@ public:
         consensus.nRewardsPayoutStartDelay = 10;
 
         //! 1.2 Parameter
-        consensus.nRewardsBlocksPerRound_1_2 = 50;
+        consensus.nRewardsBlocksPerRound_1_2 = 100;
         consensus.nRewardsPayouts_1_2_BlockInterval = 2;
         consensus.nRewardsPayouts_1_2_BlockPayees = 1000;
 
         //! 1.3 Parameter
-        consensus.nRewardsBlocksPerRound_1_3 = 50;
-        consensus.nRewardsFirst_1_3_Round = 5; // block 201 start 1_2_8 401 start 1_3
-        consensus.nRewardsPayouts_1_3_BlockStretch = 35;
-        consensus.nRewardsPayouts_1_3_BlockPayees = 100;
+        consensus.nRewardsBlocksPerRound_1_3 = 100;
+        consensus.nRewardsFirst_1_3_Round = 10; // block 201 start 1_2_8 401 start 1_3
+        consensus.nRewardsPayouts_1_3_BlockStretch = 80;
+        consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
         consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
 
