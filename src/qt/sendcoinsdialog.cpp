@@ -15,6 +15,7 @@
 #include "sendcoinsentry.h"
 #include "walletmodel.h"
 
+#include "validation.h"
 #include "base58.h"
 #include "coincontrol.h"
 #include "validation.h" // mempool and minRelayTxFee
@@ -70,8 +71,8 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
     timeLockItems.emplace_back("3 months", (int)(3 * ONE_MONTH / nAvgBlockTime));
     timeLockItems.emplace_back("6 months", (int)(6 * ONE_MONTH / nAvgBlockTime));
     timeLockItems.emplace_back("1 year", (int)(ONE_YEAR / nAvgBlockTime));
-    timeLockItems.emplace_back("Custom (blocks)", -1);
-    timeLockItems.emplace_back("Custom (date)", -1);
+    timeLockItems.emplace_back("Custom (until block)", -1);
+    timeLockItems.emplace_back("Custom (until date)", -1);
     for (const auto &i : timeLockItems) {
         ui->timelockCombo->addItem(i.first);
     }
@@ -938,12 +939,12 @@ void SendCoinsDialog::coinControlUpdateLabels()
 
 void SendCoinsDialog::timelockComboChanged(int index)
 {
-    if (timeLockItems[index].first == "Custom (blocks)") {
+    if (timeLockItems[index].first == "Custom (until block)") {
         ui->timeLockCustomDate->setVisible(false);
         ui->timeLockCustomBlocks->setVisible(true);
         nLockTime = ui->timeLockCustomBlocks->value();
     }
-    else if (timeLockItems[index].first == "Custom (date)")
+    else if (timeLockItems[index].first == "Custom (until date)")
     {
         ui->timeLockCustomDate->setVisible(true);
         ui->timeLockCustomBlocks->setVisible(false);
@@ -953,7 +954,7 @@ void SendCoinsDialog::timelockComboChanged(int index)
     {
         ui->timeLockCustomDate->setVisible(false);
         ui->timeLockCustomBlocks->setVisible(false);
-        nLockTime = timeLockItems[index].second;
+        nLockTime = timeLockItems[index].second > 0 ? chainActive.Height() + timeLockItems[index].second : 0;
     }
 }
 
