@@ -51,7 +51,6 @@ EditAddressDialog::EditAddressDialog(Mode mode, QWidget *parent) :
 
     // Timelock
     const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
-    ui->timelockCombo->setVisible(true);
     timeLockItems.emplace_back("Set LockTime", 0);
     timeLockItems.emplace_back("1 month", (int)(ONE_MONTH / nAvgBlockTime));
     timeLockItems.emplace_back("2 months", (int)(2 * ONE_MONTH / nAvgBlockTime));
@@ -72,6 +71,13 @@ EditAddressDialog::EditAddressDialog(Mode mode, QWidget *parent) :
     connect(ui->timeLockCustomDate, SIGNAL(dateTimeChanged(const QDateTime&)), this,
         SLOT(timeLockCustomDateChanged(const QDateTime&)));
     connect(ui->timelockCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(timelockComboChanged(int)));
+
+    // Make Timelock feature visible only if supermajority enforced BIP65
+    if(!IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
+          Params().GetConsensus()))
+    {
+        ui->timelockCombo->setVisible(false);
+    }
 }
 
 EditAddressDialog::~EditAddressDialog()
