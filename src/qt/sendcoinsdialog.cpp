@@ -64,7 +64,6 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
 
     // Timelock
     const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
-    ui->timelockCombo->setVisible(true);
     timeLockItems.emplace_back("Set LockTime", 0);
     timeLockItems.emplace_back("1 month", (int)(ONE_MONTH / nAvgBlockTime));
     timeLockItems.emplace_back("2 months", (int)(2 * ONE_MONTH / nAvgBlockTime));
@@ -75,6 +74,13 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
     timeLockItems.emplace_back("Custom (until date)", -1);
     for (const auto &i : timeLockItems) {
         ui->timelockCombo->addItem(i.first);
+    }
+
+    // Make Timelock feature visible only if supermajority enforced BIP65
+    if(!IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
+          Params().GetConsensus()))
+    {
+        ui->timelockCombo->setVisible(false);
     }
 
     ui->timeLockCustomBlocks->setVisible(false);
