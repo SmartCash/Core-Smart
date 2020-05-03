@@ -170,34 +170,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QComboBox" name="timelockCombo">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string>Lock a transaction to be spent at future time.</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSpinBox" name="timeLockCustomBlocks">
-            <property name="suffix">
-             <string> block height</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QDateTimeEdit" name="timeLockCustomDate">
-            <property name="calendarPopup">
-             <bool>true</bool>
-            </property>
-            <property name="displayFormat">
-             <string>MMMM d yy hh:mm:ss</string>
-            </property>
-           </widget>
+           <widget class="TimeLockSettingsWidget" name="timeLockSettings" native="true" />
           </item>
           <item>
            <widget class="QCheckBox" name="checkUseInstantSend">

@@ -59,8 +59,6 @@ private:
     WalletModel *model;
     QMenu *contextMenu;
     const PlatformStyle *platformStyle;
-    std::vector<std::pair<QString, int>> timeLockItems;
-    int64_t nLockTime;
 
     void copyColumnToClipboard(int column);
     virtual void resizeEvent(QResizeEvent *event);
@@ -76,9 +74,6 @@ private Q_SLOTS:
     void copyLabel();
     void copyMessage();
     void copyAmount();
-    void timelockComboChanged(int);
-    void timeLockCustomBlocksChanged(int);
-    void timeLockCustomDateChanged(const QDateTime&);
 };
 
 #endif // BITCOIN_QT_RECEIVECOINSDIALOG_H

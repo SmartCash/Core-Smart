@@ -23,16 +23,12 @@
 #include <QScrollBar>
 #include <QTextDocument>
 
-#define ONE_MONTH                     (30.5 * 24 * 60 * 60)
-#define ONE_YEAR                      (365 * 24 * 60 * 60)
-
 ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ReceiveCoinsDialog),
     columnResizingFixer(0),
     model(0),
-    platformStyle(platformStyle),
-    nLockTime(0)
+    platformStyle(platformStyle)
 {
     ui->setupUi(this);
 
@@ -66,36 +62,6 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *platformStyle, QWidg
     connect(copyAmountAction, SIGNAL(triggered()), this, SLOT(copyAmount()));
 
     connect(ui->clearButton, SIGNAL(clicked()), this, SLOT(clear()));
-
-    // Timelock
-    const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
-    timeLockItems.emplace_back("Set LockTime", 0);
-    timeLockItems.emplace_back("1 month", (int)(ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("2 months", (int)(2 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("3 months", (int)(3 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("6 months", (int)(6 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("1 year", (int)(ONE_YEAR / nAvgBlockTime));
-    timeLockItems.emplace_back("Custom (until block)", -1);
-    timeLockItems.emplace_back("Custom (until date)", -1);
-    for (const auto &i : timeLockItems) {
-        ui->timelockCombo->addItem(i.first);
-    }
-
-    // Make Timelock feature visible only if supermajority enforced BIP65
-    if(!IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
-          Params().GetConsensus()))
-    {
-        ui->timelockCombo->setVisible(false);
-    }
-
-    ui->timeLockCustomBlocks->setVisible(false);
-    ui->timeLockCustomBlocks->setRange(1, 1000000);
-    ui->timeLockCustomDate->setVisible(false);
-    ui->timeLockCustomDate->setMinimumDateTime(QDateTime::currentDateTime());
-    connect(ui->timeLockCustomBlocks, SIGNAL(valueChanged(int)), this, SLOT(timeLockCustomBlocksChanged(int)));
-    connect(ui->timeLockCustomDate, SIGNAL(dateTimeChanged(const QDateTime&)), this,
-        SLOT(timeLockCustomDateChanged(const QDateTime&)));
-    connect(ui->timelockCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(timelockComboChanged(int)));
 }
 
 void ReceiveCoinsDialog::setModel(WalletModel *model)
@@ -190,7 +156,7 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
         }else{
           receive = AddressTableModel::Receive;
         }
-        address = model->getAddressTableModel()->addRow(receive, label, "", nLockTime);
+        address = model->getAddressTableModel()->addRow(receive, label, "", ui->timeLockSettings->getLockTime());
     }
     SendCoinsRecipient info(address, label,
         ui->reqAmount->value(), ui->reqMessage->text());
@@ -314,33 +280,3 @@ void ReceiveCoinsDialog::copyAmount()
     copyColumnToClipboard(RecentRequestsTableModel::Amount);
 }
 
-void ReceiveCoinsDialog::timelockComboChanged(int index)
-{
-    if (timeLockItems[index].first == "Custom (until block)") {
-        ui->timeLockCustomDate->setVisible(false);
-        ui->timeLockCustomBlocks->setVisible(true);
-        nLockTime = ui->timeLockCustomBlocks->value();
-    }
-    else if (timeLockItems[index].first == "Custom (until date)")
-    {
-        ui->timeLockCustomDate->setVisible(true);
-        ui->timeLockCustomBlocks->setVisible(false);
-        nLockTime = ui->timeLockCustomDate->dateTime().toMSecsSinceEpoch() / 1000;
-    }
-    else
-    {
-        ui->timeLockCustomDate->setVisible(false);
-        ui->timeLockCustomBlocks->setVisible(false);
-        nLockTime = timeLockItems[index].second > 0 ? chainActive.Height() + timeLockItems[index].second : 0;
-    }
-}
-
-void ReceiveCoinsDialog::timeLockCustomBlocksChanged(int i)
-{
-    nLockTime = i;
-}
-
-void ReceiveCoinsDialog::timeLockCustomDateChanged(const QDateTime &dt)
-{
-    nLockTime = dt.toMSecsSinceEpoch() / 1000;
-}
