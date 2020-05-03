@@ -388,10 +388,12 @@ LogPrintf("Testing1.3 loop Reward %d\n", nReward);
                 ++next.eligibleEntries;
                 next.eligibleSmart += entry->second->balanceEligible;
             }
-            // Reset activations before 1.3 round starts.
-            if( next.number == (nFirst_1_3_Round -1) ){
+            // Reset activations and reset eligible before 1.3 round starts.
+            if( next.number == (nFirst_1_3_Round) ){
                 entry->second->activationTx.SetNull();
                 entry->second->fActivated = false;
+                next.eligibleEntries = 0;
+                next.eligibleSmart = 0;
             }
             ++entry;
         }
