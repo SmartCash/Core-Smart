@@ -33,8 +33,6 @@
 
 #define SEND_CONFIRM_DELAY             3
 #define SEND_CONFIRM_DELAY_LOCKTIME   10
-#define ONE_MONTH                     (30.5 * 24 * 60 * 60)
-#define ONE_YEAR                      (365 * 24 * 60 * 60)
 
 SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent) :
     QDialog(parent),
@@ -43,8 +41,7 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
     model(0),
     fNewRecipientAllowed(true),
     fFeeMinimized(true),
-    platformStyle(platformStyle),
-    nLockTime(0)
+    platformStyle(platformStyle)
 {
     ui->setupUi(this);
 
@@ -61,36 +58,6 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *pa
     addEntry();
 
     connect(ui->addButton, SIGNAL(clicked()), this, SLOT(addEntry()));
-
-    // Timelock
-    const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
-    timeLockItems.emplace_back("Set LockTime", 0);
-    timeLockItems.emplace_back("1 month", (int)(ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("2 months", (int)(2 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("3 months", (int)(3 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("6 months", (int)(6 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("1 year", (int)(ONE_YEAR / nAvgBlockTime));
-    timeLockItems.emplace_back("Custom (until block)", -1);
-    timeLockItems.emplace_back("Custom (until date)", -1);
-    for (const auto &i : timeLockItems) {
-        ui->timelockCombo->addItem(i.first);
-    }
-
-    // Make Timelock feature visible only if supermajority enforced BIP65
-    if(!IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
-          Params().GetConsensus()))
-    {
-        ui->timelockCombo->setVisible(false);
-    }
-
-    ui->timeLockCustomBlocks->setVisible(false);
-    ui->timeLockCustomBlocks->setRange(1, 1000000);
-    ui->timeLockCustomDate->setVisible(false);
-    ui->timeLockCustomDate->setMinimumDateTime(QDateTime::currentDateTime());
-    connect(ui->timeLockCustomBlocks, SIGNAL(valueChanged(int)), this, SLOT(timeLockCustomBlocksChanged(int)));
-    connect(ui->timeLockCustomDate, SIGNAL(dateTimeChanged(const QDateTime&)), this,
-        SLOT(timeLockCustomDateChanged(const QDateTime&)));
-    connect(ui->timelockCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(timelockComboChanged(int)));
 
     // Coin Control
     connect(ui->pushButtonCoinControl, SIGNAL(clicked()), this, SLOT(coinControlButtonClicked()));
@@ -246,6 +213,7 @@ void SendCoinsDialog::on_sendButton_clicked()
 
     QList<SendCoinsRecipient> recipients;
     bool valid = true;
+    int64_t nLockTime = ui->timeLockSettings->getLockTime();
 
     for(int i = 0; i < ui->entries->count(); ++i)
     {
@@ -416,9 +384,7 @@ void SendCoinsDialog::on_sendButton_clicked()
         accept();
         CoinControlDialog::coinControl->UnSelectAll();
         coinControlUpdateLabels();
-        ui->timelockCombo->setCurrentIndex(0);
-        ui->timeLockCustomBlocks->setVisible(false);
-        ui->timeLockCustomDate->setVisible(false);
+        ui->timeLockSettings->reset();
     }
     fNewRecipientAllowed = true;
 }
@@ -498,8 +464,8 @@ QWidget *SendCoinsDialog::setupTabChain(QWidget *prev)
     }
     QWidget::setTabOrder(prev, ui->sendButton);
     QWidget::setTabOrder(ui->sendButton, ui->addButton);
-    QWidget::setTabOrder(ui->addButton, ui->timelockCombo);
-    return ui->timelockCombo;
+    QWidget::setTabOrder(ui->addButton, ui->timeLockSettings);
+    return ui->timeLockSettings;
 }
 
 void SendCoinsDialog::setAddress(const QString &address)
@@ -941,37 +907,6 @@ void SendCoinsDialog::coinControlUpdateLabels()
         ui->widgetCoinControl->hide();
         ui->labelCoinControlInsuffFunds->hide();
     }
-}
-
-void SendCoinsDialog::timelockComboChanged(int index)
-{
-    if (timeLockItems[index].first == "Custom (until block)") {
-        ui->timeLockCustomDate->setVisible(false);
-        ui->timeLockCustomBlocks->setVisible(true);
-        nLockTime = ui->timeLockCustomBlocks->value();
-    }
-    else if (timeLockItems[index].first == "Custom (until date)")
-    {
-        ui->timeLockCustomDate->setVisible(true);
-        ui->timeLockCustomBlocks->setVisible(false);
-        nLockTime = ui->timeLockCustomDate->dateTime().toMSecsSinceEpoch() / 1000;
-    }
-    else
-    {
-        ui->timeLockCustomDate->setVisible(false);
-        ui->timeLockCustomBlocks->setVisible(false);
-        nLockTime = timeLockItems[index].second > 0 ? chainActive.Height() + timeLockItems[index].second : 0;
-    }
-}
-
-void SendCoinsDialog::timeLockCustomBlocksChanged(int i)
-{
-    nLockTime = i;
-}
-
-void SendCoinsDialog::timeLockCustomDateChanged(const QDateTime &dt)
-{
-    nLockTime = dt.toMSecsSinceEpoch() / 1000;
 }
 
 SendConfirmationDialog::SendConfirmationDialog(const QString &title, const QString &text, int secDelay,

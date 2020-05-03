@@ -180,6 +180,7 @@ QT_MOC_CPP = \
   qt/moc_smartproposaltab.cpp \
   qt/moc_splashscreen.cpp \
   qt/moc_specialtransactiondialog.cpp \
+  qt/moc_timelocksettingswidget.cpp \
   qt/moc_trafficgraphwidget.cpp \
   qt/moc_transactiondesc.cpp \
   qt/moc_transactiondescdialog.cpp \
@@ -269,6 +270,7 @@ BITCOIN_QT_H = \
   qt/smartproposaltab.h \
   qt/splashscreen.h \
   qt/specialtransactiondialog.h \
+  qt/timelocksettingswidget.h \
   qt/trafficgraphdata.h \
   qt/trafficgraphwidget.h \
   qt/transactiondesc.h \
@@ -405,6 +407,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/smartvotingmanager.cpp \
   qt/smartproposaltab.cpp \
   qt/specialtransactiondialog.cpp \
+  qt/timelocksettingswidget.cpp \
   qt/transactiondesc.cpp \
   qt/transactiondescdialog.cpp \
   qt/transactionfilterproxy.cpp \
