@@ -42,9 +42,6 @@ public:
 
 public Q_SLOTS:
     void accept();
-    void timelockComboChanged(int);
-    void timeLockCustomBlocksChanged(int);
-    void timeLockCustomDateChanged(const QDateTime&);
 
 private:
     bool saveCurrentRow();
@@ -55,8 +52,6 @@ private:
     AddressTableModel *model;
 
     QString address;
-    std::vector<std::pair<QString, int>> timeLockItems;
-    int64_t nLockTime;
 };
 
 #endif // BITCOIN_QT_EDITADDRESSDIALOG_H
