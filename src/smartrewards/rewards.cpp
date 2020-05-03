@@ -314,6 +314,7 @@ LogPrintf("Testing1.3 loop balanceEligible %d\n", entry->second->balanceEligible
 LogPrintf("Testing1.3 loop Reward %d\n", nReward);
             }
         // Calculate rewards for next cycle
+        next.rewards = 0;
         nStartHeight = next.startBlockHeight;
         while( nStartHeight <= next.endBlockHeight) next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * dBlockReward;
         // Reset outgoing transaction with every cycle.
