@@ -88,6 +88,16 @@ bool CBasicKeyStore::GetCScript(const CScriptID &hash, CScript& redeemScriptOut)
     return false;
 }
 
+std::set<CScriptID> CBasicKeyStore::GetCScripts() const
+{
+    LOCK(cs_KeyStore);
+    std::set<CScriptID> setScripts;
+    for (const auto& mi : mapScripts) {
+        setScripts.insert(mi.first);
+    }
+    return setScripts;
+}
+
 static bool ExtractPubKey(const CScript &dest, CPubKey& pubKeyOut)
 {
     //TODO: Use Solver to extract this?
