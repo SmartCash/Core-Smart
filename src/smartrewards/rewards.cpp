@@ -279,8 +279,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         while( nStartHeight <= next.startBlockHeight) next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * dBlockReward;
         auto entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
-            if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
-                entry->second->balanceEligible = CalculateWeightedBalance(entry->first, entry->second, round->number);
+            if( entry->second->balanceAtStart >= nMinBalance && !SmartHive::IsHive(entry->second->id) && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
+                entry->second->balanceEligible = CalculateWeightedBalance(entry->first, entry->second, next.number);
                 next.eligibleSmart += entry->second->balanceEligible;
                 ++next.eligibleEntries;
             } else {
@@ -298,17 +298,19 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 LogPrintf("Testing1.3 loop next rewards %d\n", next.rewards);
 LogPrintf("Testing1.3 loop next.eligibleSmart %d\n", next.eligibleSmart);
 LogPrintf("Testing1.3 loop next.eligibleEntries %d\n", next.eligibleEntries);
-LogPrintf("Testing1.3 loop round rewards %d\n", round->rewards);
-LogPrintf("Testing1.3 loop round.eligibleSmart %d\n", cache.GetCurrentRound()->eligibleSmart);
-LogPrintf("Testing1.3 loop round.eligibleEntries %d\n", round->eligibleEntries);
-LogPrintf("Testing1.3 loop round %d\n", cache.GetCurrentRound()->number);
-LogPrintf("Testing1.3 loop Percent %d\n", rpercent);
+//LogPrintf("Testing1.3 loop round rewards %d\n", round->rewards);
+//LogPrintf("Testing1.3 loop round.eligibleSmart %d\n", cache.GetCurrentRound()->eligibleSmart);
+//LogPrintf("Testing1.3 loop round.eligibleEntries %d\n", round->eligibleEntries);
+//LogPrintf("Testing1.3 loop round %d\n", cache.GetCurrentRound()->number);
+//LogPrintf("Testing1.3 loop Percent %d\n", rpercent);
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
             nReward = entry->second->IsEligible() ? CAmount(entry->second->balanceEligible * rpercent) : 0;
 //            nReward = entry->second->balanceEligible > 0 ? CAmount(entry->second->balanceEligible * round->percent) : 0;
             pResult->results.push_back(new CSmartRewardResultEntry(entry->second, nReward));
+if ( entry->second->IsEligible() ){
 LogPrintf("Testing1.3 loop balanceEligible %d\n", entry->second->balanceEligible);
+}
             if( nReward ){
                 pResult->payouts.push_back(pResult->results.back());
 LogPrintf("Testing1.3 loop Reward %d\n", nReward);

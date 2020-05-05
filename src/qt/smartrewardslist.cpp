@@ -126,7 +126,6 @@ void SmartrewardsList::setClientModel(ClientModel *model)
 
 void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip)
 {
-    LogPrintf("SmartrewardsList::updateOverviewUI %d\n", tip->nHeight);
 
     if( !currentRound.Is_1_3() ){
         ui->btnSendProofs->hide();
