@@ -822,13 +822,12 @@ if (result.disqualifiedSmart > 0 ) { LogPrintf("ProcessInputA %d\n", result.disq
     }
         rEntry->balance -= in.nValue;
 
-    if(  nCurrentRound >= nFirst_1_3_Round /*Is_1_3(nCurrentRound)*/ && !rEntry->fActivated && !rEntry->fDisqualifyingTx ){
-
+//    if(  nCurrentRound >= nFirst_1_3_Round /*Is_1_3(nCurrentRound)*/ && !rEntry->fActivated && !rEntry->fDisqualifyingTx ){
+    if(  nCurrentRound >= nFirst_1_3_Round && !tx.IsActivationTx() && !rEntry->fDisqualifyingTx ){
         if( rEntry->IsEligible() ){
             result.disqualifiedEntries++;
             result.disqualifiedSmart += rEntry->balanceEligible;
         }
-
         rEntry->disqualifyingTx = tx.GetHash();
         rEntry->fDisqualifyingTx = true;
     }
