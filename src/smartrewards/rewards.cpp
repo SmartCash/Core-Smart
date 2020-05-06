@@ -280,7 +280,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         auto entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
             if( entry->second->balanceAtStart >= nMinBalance && !SmartHive::IsHive(entry->second->id) && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
-                entry->second->balanceEligible = CalculateWeightedBalance(entry->first, entry->second, next.number);
+                entry->second->balanceEligible = CalculateWeightedBalance(entry->first, entry->second, round->number);
                 next.eligibleSmart += entry->second->balanceEligible;
                 ++next.eligibleEntries;
             } else {
