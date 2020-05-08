@@ -175,7 +175,6 @@ public:
     bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& entry, bool fCreate);
-    CAmount GetAddressBalanceAtRound(const CSmartAddress& address, int16_t round);
 
     void EvaluateRound(CSmartRewardRound& next);
     bool StartFirstRound(const CSmartRewardRound& next, const CSmartRewardEntryList& entries);
@@ -195,8 +194,6 @@ public:
 //    void ProcessOutputFor1_2(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
 //    void ProcessOutputFor1_3(CSmartRewardEntry* smartRewardEntry, const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
-
-    CAmount CalculateWeightedBalance(CSmartAddress address, CSmartRewardEntry* entry, uint16_t round);
 
 //    void ExportToCsv();
 
