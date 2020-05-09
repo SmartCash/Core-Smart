@@ -140,7 +140,7 @@ public:
 
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 11000;  // 1 week
-        consensus.nRewardsFirst_1_3_Round = 33; // Round 33 on 3/23 starts on block 1524100
+        consensus.nRewardsFirst_1_3_Round = 36; // Round 36 on 6/25 starts on block 1666600
         consensus.nRewardsPayouts_1_3_BlockStretch = 10000;
         consensus.nRewardsPayouts_1_3_BlockPayees = 100;
 
