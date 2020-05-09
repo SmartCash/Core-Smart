@@ -373,17 +373,19 @@ void CSmartRewardEntry::SetNull()
     fSmartnodePaymentTx = false;
     activationTx.SetNull();
     fActivated = false;
+    bonusLevel = NoBonus;
 }
 
 string CSmartRewardEntry::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceEligible=%d, isSmartNode=%b, activated=%b)\n",
+    s << strprintf("CSmartRewardEntry(id=%s, balance=%d, balanceEligible=%d, isSmartNode=%b, activated=%b, bonus=%d)\n",
         GetAddress(),
         balance,
         balanceEligible,
         fSmartnodePaymentTx,
-        fActivated);
+        fActivated,
+        bonusLevel);
     return s.str();
 }
 
