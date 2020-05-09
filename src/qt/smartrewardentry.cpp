@@ -20,6 +20,7 @@ QSmartRewardEntry::QSmartRewardEntry(const QString& strLabel, const QString& str
 
     ui->lblLabel->setText(strLabel);
     ui->lblAddress->setText(strAddress);
+    ui->lblBonus->setVisible(false);
 
     QAction *copyAddressAction = new QAction(tr("Copy address"), this);
     QAction *copyLabelAction = new QAction(tr("Copy label"), this);
@@ -95,6 +96,28 @@ void QSmartRewardEntry::setActivated(bool fState)
 void QSmartRewardEntry::setIsSmartNode(bool fState)
 {
     fIsSmartNode = fState;
+}
+
+void QSmartRewardEntry::setBonusText(uint8_t bonusLevel)
+{
+    switch (bonusLevel) {
+        case CSmartRewardEntry::TwoMonthsBonus:
+            ui->lblBonus->setText("2 months bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::FourMonthsBonus:
+            ui->lblBonus->setText("4 months bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::SixMonthsBonus:
+            ui->lblBonus->setText("6 months bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        default:
+            ui->lblBonus->setText("");
+            ui->lblBonus->setVisible(false);
+            break;
+    }
 }
 
 QString QSmartRewardEntry::Address() const
