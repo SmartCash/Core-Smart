@@ -287,17 +287,22 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
                     // If we are at a "special round", add to the eligible balance with proper weight
                     CAmount toAdd = 0;
+                    CSmartRewardEntry::BonusLevel bonus = CSmartRewardEntry::NoBonus;
                     if (roundNumber == cache.GetCurrentRound()->number - 8) {
                         toAdd = addressResult->entry.balance;
+                        bonus = CSmartRewardEntry::TwoMonthsBonus;
                     } else if (roundNumber == cache.GetCurrentRound()->number - 16) {
                         toAdd = 2 * addressResult->entry.balance;
+                        bonus = CSmartRewardEntry::FourMonthsBonus;
                     } else if (roundNumber == cache.GetCurrentRound()->number - 26) {
                         toAdd = 2 * addressResult->entry.balance;
+                        bonus = CSmartRewardEntry::SixMonthsBonus;
                     }
 
                     if (toAdd > 0) {
                         auto &cacheEntry = cache.GetEntries()->at(*address);
                         cacheEntry->balanceEligible += toAdd;
+                        cacheEntry->bonusLevel = bonus;
                         next.eligibleSmart += toAdd;
                     }
 
