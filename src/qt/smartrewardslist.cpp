@@ -47,11 +47,13 @@ struct QSmartRewardField
     uint256 disqualifyingTx;
     bool fIsSmartNode;
     bool fActivated;
+    uint8_t bonusLevel;
 
     QSmartRewardField() : label(QString()), address(QString()),
                           balance(0), eligible(0),reward(0),
                           disqualifyingTx(),
-                          fIsSmartNode(false), fActivated(false){}
+                          fIsSmartNode(false), fActivated(false),
+                          bonusLevel(CSmartRewardEntry::NoBonus) {}
 };
 
 struct SortSmartRewardWidgets
@@ -297,6 +299,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 rewardField.balanceAtStart = reward->balanceAtStart;
                 rewardField.disqualifyingTx = reward->disqualifyingTx;
                 rewardField.fActivated = reward->fActivated;
+                rewardField.bonusLevel = reward->bonusLevel;
 
                 if( !currentRound.Is_1_3() ){
                     rewardField.eligible = reward->balanceEligible && reward->disqualifyingTx.IsNull() ? reward->balanceEligible : 0;
@@ -360,6 +363,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
         if( currentRound.Is_1_3() ){
 
             entry->setMinBalance(SMART_REWARDS_MIN_BALANCE_1_3);
+            entry->setBonusText(field.bonusLevel);
 
             if( field.fIsSmartNode ){
                 entry->setInfoText("Address belongs to a SmartNode.", COLOR_NEGATIVE);
