@@ -35,6 +35,7 @@ public:
     void setEligible(CAmount nEligible, CAmount nEstimated);
     void setIsSmartNode(bool fState);
     void setActivated(bool fState);
+    void setBonusText(uint8_t bonusLevel);
 
     QString Address() const;
     CAmount Balance() const { return nBalance; }

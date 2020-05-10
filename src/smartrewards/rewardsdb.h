@@ -207,7 +207,15 @@ public:
         READWRITE(fActivated);
         READWRITE(smartnodePaymentTx);
         READWRITE(fSmartnodePaymentTx);
+        READWRITE(bonusLevel);
     }
+
+    enum BonusLevel {
+      NoBonus = 0,
+      TwoMonthsBonus,
+      FourMonthsBonus,
+      SixMonthsBonus
+    };
 
     CSmartAddress id;
     CAmount balance;
@@ -219,17 +227,20 @@ public:
     bool fActivated;
     uint256 smartnodePaymentTx;
     bool fSmartnodePaymentTx;
+    uint8_t bonusLevel;
 
     CSmartRewardEntry() : id(CSmartAddress()),
                           balance(0), balanceAtStart(0), balanceEligible(0),
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
                           activationTx(uint256()), fActivated(false),
-                          smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false) {}
+                          smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false),
+                          bonusLevel(NoBonus) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceAtStart(0), balanceEligible(0),
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
                           activationTx(uint256()), fActivated(false),
-                          smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false) {}
+                          smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false),
+                          bonusLevel(NoBonus) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {

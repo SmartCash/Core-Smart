@@ -114,6 +114,19 @@
           </widget>
          </item>
          <item>
+          <widget class="QLabel" name="lblBonus">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: rgb(60, 179, 113);</string>
+            </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QLabel" name="lblEligible">
            <property name="text">
             <string>100 SMART</string>
