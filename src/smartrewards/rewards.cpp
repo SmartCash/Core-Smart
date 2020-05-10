@@ -166,7 +166,7 @@ void CSmartRewards::UpdatePercentage()
     }else{
         nPercent = 0;
     }
-LogPrintf("Round Percent Elig Disq %d,%d,%d,%d\n", round->number, nPercent * 100 , round->eligibleSmart, round->disqualifiedSmart);
+//LogPrintf("Round Percent Elig Disq %d,%d,%d,%d\n", round->number, nPercent * 100 , round->eligibleSmart, round->disqualifiedSmart);
 //LogPrintf("Round EligibleSmart %d\n", round->eligibleSmart);
 //LogPrintf("Round DisqualifiedSmart %d\n", round->disqualifiedSmart);
 
@@ -325,9 +325,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 //        round->percent = next.eligibleSmart > 0 ? ( next.rewards / next.eligibleSmart ) : 0;
 //        double rpercent = next.eligibleSmart > 0 ? ( cache.GetCurrentRound()->rewards / next.eligibleSmart ) : 0;
 //        double rpercent = next.eligibleSmart > 0 ? ( round->rewards / next.eligibleSmart ) : 0;
-LogPrintf("Testing1.3 loop next rewards %d\n", next.rewards);
-LogPrintf("Testing1.3 loop next.eligibleSmart %d\n", next.eligibleSmart);
-LogPrintf("Testing1.3 loop next.eligibleEntries %d\n", next.eligibleEntries);
+//LogPrintf("Testing1.3 loop next rewards %d\n", next.rewards);
+//LogPrintf("Testing1.3 loop next.eligibleSmart %d\n", next.eligibleSmart);
+//LogPrintf("Testing1.3 loop next.eligibleEntries %d\n", next.eligibleEntries);
 //LogPrintf("Testing1.3 loop round rewards %d\n", round->rewards);
 //LogPrintf("Testing1.3 loop round.eligibleSmart %d\n", cache.GetCurrentRound()->eligibleSmart);
 //LogPrintf("Testing1.3 loop round.eligibleEntries %d\n", round->eligibleEntries);
@@ -448,14 +448,14 @@ LogPrintf("Testing1.3 loop Reward %d\n", nReward);
         }
         cache.SetResult(pResult);
         cache.SetCurrentRound(next);
-LogPrintf("TestingPre1.3 loop next rewards %d\n", next.rewards);
+/*LogPrintf("TestingPre1.3 loop next rewards %d\n", next.rewards);
 LogPrintf("TestingPre1.3 loop next.eligibleSmart %d\n", next.eligibleSmart);
 LogPrintf("TestingPre1.3 loop next.eligibleEntries %d\n", next.eligibleEntries);
 LogPrintf("TestingPre1.3 loop round rewards %d\n", round->rewards);
 LogPrintf("TestingPre1.3 loop round.eligibleSmart %d\n", cache.GetCurrentRound()->eligibleSmart);
 LogPrintf("TestingPre1.3 loop round.eligibleEntries %d\n", round->eligibleEntries);
 LogPrintf("TestingPre1.3 loop round %d\n", cache.GetCurrentRound()->number);
-
+*/
     } else {
     // Setup for first round.
     // Calculate the current total smartrewards amount
@@ -982,7 +982,7 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t
         LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
-if (result.disqualifiedSmart > 0 ){LogPrintf("UndoInputA %d\n", result.disqualifiedSmart);}
+//if (result.disqualifiedSmart > 0 ){LogPrintf("UndoInputA %d\n", result.disqualifiedSmart);}
 // this should be correct but wasn't in previous
 /*    if (Is_1_3(nCurrentRound) && tx.IsActivationTx()) {
         rEntry->balance -= in.nValue;
@@ -1014,7 +1014,7 @@ if (result.disqualifiedSmart > 0 ){LogPrintf("UndoInputA %d\n", result.disqualif
             rEntry->balance = 0;
         }
     }
-if (result.disqualifiedSmart > 0 ){LogPrintf("UndoInputB %d\n", result.disqualifiedSmart);}
+//if (result.disqualifiedSmart > 0 ){LogPrintf("UndoInputB %d\n", result.disqualifiedSmart);}
 }
 
 void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result)
@@ -1026,7 +1026,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
         LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Process Outputs: Could't parse CSmartAddress: %s\n", out.ToString());
         return;
     } else {
-if (result.disqualifiedSmart > 0 ){LogPrintf("UndoOutputA %d\n", result.disqualifiedSmart);}
+//if (result.disqualifiedSmart > 0 ){LogPrintf("UndoOutputA %d\n", result.disqualifiedSmart);}
         GetRewardEntry(id, rEntry, true);
         if (!tx.IsActivationTx() && !rEntry->fActivated) {
             rEntry->activationTx.SetNull();
@@ -1084,7 +1084,7 @@ if (result.disqualifiedSmart > 0 ){LogPrintf("UndoOutputB %d\n", result.disquali
 
 void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult& result)
 {
-    LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - %s", tx.GetHash().ToString());
+//    LogPrint("smartrewards-tx", "CSmartRewards::UndoTransaction - %s", tx.GetHash().ToString());
 
 //    int nFirst_1_3_Round = chainparams.GetConsensus().nRewardsFirst_1_3_Round;
 
