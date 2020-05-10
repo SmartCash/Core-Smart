@@ -291,7 +291,6 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             }
         }
 
-
         double rpercent = next.eligibleSmart > 10000 ? ( (double)next.rewards / (double)next.eligibleSmart ) : 0;
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
