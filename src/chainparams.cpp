@@ -171,14 +171,11 @@ public:
 
         // Note that of those with the service bits flag, most only support a subset of possible options
         vSeeds.push_back(CDNSSeedData("seed.smrt.cash", "seed.smrt.cash", false));
-        vSeeds.push_back(CDNSSeedData("seed1.smrt.cash", "seed1.smrt.cash", false));
-        vSeeds.push_back(CDNSSeedData("seed2.smrt.cash", "seed2.smrt.cash", false));
+        vSeeds.push_back(CDNSSeedData("seed.smrt.run", "seed.smrt.run", false));
+        vSeeds.push_back(CDNSSeedData("seed.smrt.best", "seed.smrt.best", false));
+        vSeeds.push_back(CDNSSeedData("seed.smarts.cash", "seed.smarts.cash", false));
         vSeeds.push_back(CDNSSeedData("seed1.smartcash.org", "seed1.smartcash.org", false));
         vSeeds.push_back(CDNSSeedData("seed2.smartcash.org", "seed2.smartcash.org", false));
-        vSeeds.push_back(CDNSSeedData("seed.smartcash.cc", "seed.smartcash.cc", false));
-        vSeeds.push_back(CDNSSeedData("seed2.smartcash.cc", "seed2.smartcash.cc", false));
-        vSeeds.push_back(CDNSSeedData("seed3.smartcash.cc", "seed3.smartcash.cc", false));
-        vSeeds.push_back(CDNSSeedData("seed4.smartcash.cc", "seed4.smartcash.cc", false));
 
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,63); //S
@@ -324,8 +321,7 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.push_back(CDNSSeedData("testnet.smartcash.cc", "testnet.smartcash.cc", true));
-        vSeeds.push_back(CDNSSeedData("testnet.smrt.cash", "testnet.smrt.cash", true));
+        vSeeds.push_back(CDNSSeedData("testnet.smrt.run", "testnet.smrt.run", true));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,65); //T
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,21);
