@@ -16,7 +16,7 @@ static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 // Constants for vote proof transactions
 static const CAmount REWARDS_ACTIVATION_FEE = 0 * COIN;
-static const CAmount REWARDS_ACTIVATION_TX_FEE = 0.002 * COIN;
+static const CAmount REWARDS_ACTIVATION_TX_FEE = 0.001 * COIN;
 
 static const int WITNESS_SCALE_FACTOR = 4;
 
