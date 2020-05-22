@@ -928,6 +928,8 @@ if (result.disqualifiedSmart > 0 ) {LogPrintf("ProcessOutputA %d\n", result.disq
                         if (rEntry->IsEligible() ) {
                             ++result.disqualifiedEntries;
                             result.disqualifiedSmart += rEntry->balanceEligible;
+                            rEntry->activationTx.SetNull();
+                            rEntry->fActivated = false;
                         }
                         rEntry->smartnodePaymentTx = tx.GetHash();
                         rEntry->fSmartnodePaymentTx = true;
@@ -992,6 +994,7 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t
     if ( nCurrentRound >= nFirst_1_3_Round/* Is_1_3(nCurrentRound) && !tx.IsActivationTx()*/ && rEntry->disqualifyingTx == tx.GetHash()) {
         rEntry->disqualifyingTx.SetNull();
         rEntry->fDisqualifyingTx = false;
+
 //        rEntry->activationTx = tx.GetHash();
 //        rEntry->fActivated = true;
 
@@ -1066,7 +1069,8 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
             if (rEntry->smartnodePaymentTx == tx.GetHash()) {
                 rEntry->smartnodePaymentTx.SetNull();
                 rEntry->fSmartnodePaymentTx = false;
-
+//                             rEntry->activationTx.SetNull();
+//                             rEntry->fActivated = true;
                 // If it is eligible now adjust the round's results
                 if (rEntry->IsEligible()) {
                     --result.disqualifiedEntries;
