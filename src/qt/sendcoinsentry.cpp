@@ -42,12 +42,15 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *platformStyle, QWidget *pare
     // just a label for displaying bitcoin address(es)
     ui->payTo_is->setFont(GUIUtil::fixedPitchFont());
 
+    ui->horizontalLayoutAmount->insertStretch(-1, 3);
+
     // Connect signals
     connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
     connect(ui->checkboxSubtractFeeFromAmount, SIGNAL(toggled(bool)), this, SIGNAL(subtractFeeFromAmountChanged()));
     connect(ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
+    connect(ui->useAvailableBalanceButton, SIGNAL(clicked()), this, SLOT(useAvailableBalanceButtonClicked()));
 }
 
 SendCoinsEntry::~SendCoinsEntry()
@@ -264,3 +267,15 @@ bool SendCoinsEntry::updateLabel(const QString &address)
 
     return false;
 }
+
+void SendCoinsEntry::useAvailableBalanceButtonClicked()
+{
+    CAmount amount = model->getBalance();
+    if (amount > 0) {
+        ui->payAmount->setValue(amount);
+        ui->checkboxSubtractFeeFromAmount->setCheckState(Qt::Checked);
+    } else {
+        ui->payAmount->setValue(0);
+    }
+}
+
