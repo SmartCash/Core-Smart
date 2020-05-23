@@ -40,6 +40,7 @@
 #include <QTreeWidgetItem>
 
 #define SEND_CONFIRM_DELAY 5
+#define MAX_ACTIVATION_TRANSACTIONS 10
 
 bool Error(std::string where, std::string message, QString &strError)
 {
@@ -139,6 +140,12 @@ void SpecialTransactionDialog::setModel(WalletModel *model)
 void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
 {
     if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::AcceptRole){
+        if ((type == ACTIVATION_TRANSACTIONS) && (mapOutputs.size() > MAX_ACTIVATION_TRANSACTIONS)) {
+            QMessageBox::warning(this, windowTitle(),
+                tr("No more than %1 activation transactions can be sent at once.").arg(MAX_ACTIVATION_TRANSACTIONS),
+                QMessageBox::Ok, QMessageBox::Ok);
+            return;
+        }
 
         int nCount = mapOutputs.size();
         CAmount nTotalAmount = nCount * GetRequiredTotal();
@@ -362,7 +369,6 @@ void SpecialTransactionDialog::selectSmallestOutput(QTreeWidgetItem* topLevel)
         COutPoint outpt(uint256S(smallestItem->text(COLUMN_TXHASH).toStdString()), smallestItem->text(COLUMN_VOUT_INDEX).toUInt());
         mapOutputs.insert(std::make_pair(sAddress, outpt));
     }
-
 }
 
 void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
@@ -396,7 +402,6 @@ void SpecialTransactionDialog::SendTransactions(std::vector<QString> &vecErrors)
             continue;
         }
     }
-
 }
 
 bool SpecialTransactionDialog::SendRegistration(const QString &address, const COutPoint &out, QString &strError)
