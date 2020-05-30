@@ -102,15 +102,15 @@ void QSmartRewardEntry::setBonusText(uint8_t bonusLevel)
 {
     switch (bonusLevel) {
         case CSmartRewardEntry::TwoMonthsBonus:
-            ui->lblBonus->setText("2 months bonus");
+            ui->lblBonus->setText("2 months 2x bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::FourMonthsBonus:
-            ui->lblBonus->setText("4 months bonus");
+            ui->lblBonus->setText("4 months 4x bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::SixMonthsBonus:
-            ui->lblBonus->setText("6 months bonus");
+            ui->lblBonus->setText("6 months 6x bonus");
             ui->lblBonus->setVisible(true);
             break;
         default:

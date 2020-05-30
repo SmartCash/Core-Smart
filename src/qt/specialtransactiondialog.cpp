@@ -142,7 +142,7 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
     if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::AcceptRole){
         if ((type == ACTIVATION_TRANSACTIONS) && (mapOutputs.size() > MAX_ACTIVATION_TRANSACTIONS)) {
             QMessageBox::warning(this, windowTitle(),
-                tr("No more than %1 activation transactions can be sent at once.").arg(MAX_ACTIVATION_TRANSACTIONS),
+                tr("Only %1 activation transactions can be sent at once.").arg(MAX_ACTIVATION_TRANSACTIONS),
                 QMessageBox::Ok, QMessageBox::Ok);
             return;
         }

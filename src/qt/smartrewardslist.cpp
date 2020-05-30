@@ -136,7 +136,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     }
 
     QString percentText;
-    percentText.sprintf("%.2f%%", currentRound.percent * 100);
+    percentText.sprintf("%.2f%%", currentRound.percent * 100 * 52);
     ui->percentLabel->setText(percentText);
 
     ui->roundLabel->setText(QString::number(currentRound.number));
@@ -165,17 +165,17 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             uint64_t minutes = (minutesLeft % 1440) % 60;
 
             if( days ){
-                roundEndText += QString("%1day%2").arg(days).arg(days > 1 ? "s":"");
+                roundEndText += QString("%1 day%2").arg(days).arg(days > 1 ? "s":"");
             }
 
             if( hours ){
                 if( days ) roundEndText += ", ";
-                roundEndText += QString("%1hour%2").arg(hours).arg(hours > 1 ? "s":"");
+                roundEndText += QString("%1 hour%2").arg(hours).arg(hours > 1 ? "s":"");
             }
 
             if( !days && minutes ){
                 if( hours ) roundEndText += ", ";
-                roundEndText += QString("%1minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
+                roundEndText += QString("%1 minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
             }
 
             roundEndText += " )";
@@ -368,7 +368,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             if( field.fIsSmartNode ){
                 entry->setInfoText("Address belongs to a SmartNode.", COLOR_NEGATIVE);
             }else if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE_1_3 ){
-                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART. It can be activated now but it will not receive rewards until it has enough funds.").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
+                entry->setInfoText(QString("Qualified balance is only %1 SMART at the round's startblock. Minimum required: %2 SMART. It can be activated now but it will not receive rewards until it has enough funds.").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
             }else if( !field.disqualifyingTx.IsNull() ){
                 entry->setDisqualifyingTx(field.disqualifyingTx);
                 entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1. It can be activated now but it will not receive any rewards until it becomes eligible").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
@@ -445,7 +445,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     ui->lblActiveAddresses->setText(QString::number(vecEntries.size()));
     ui->lblEligibleAddresses->setText(QString::number(nEligibleAddresses));
-    QString strEstimated = QString::fromStdString(strprintf("%d", rewardSum/COIN));
+    QString strEstimated = QString::fromStdString(strprintf("%d", (rewardSum + 50000000)/COIN));
     AddThousandsSpaces(strEstimated);
     ui->lblTotalRewards->setText(strEstimated + " SMART");
 }
