@@ -105,7 +105,7 @@ static const QString strRegistrationFeeDescription = "Register fee";
 static const QString strActivationTxTitle = "Activate Rewards";
 static const QString strActivationTxDescription = (
 "Use this form to send an ActivateReward transaction to make your addresses eligible for SmartRewards. "
-"A small fee of 0.002 SMART will be taken from outputs you choose.\n\n"
+"A small fee of 0.001 SMART will be taken from outputs you choose.\n\n"
 "You can either manually select an input for each address or automatically select the smallest input for each address by clicking the checkbox below."
 );
 

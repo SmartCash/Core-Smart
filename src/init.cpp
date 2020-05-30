@@ -830,7 +830,7 @@ void InitParameterInteraction()
             LogPrintf("%s: parameter interaction: -whitebind set -> setting -listen=1\n", __func__);
     }
 
-    if (GetBoolArg("-smartnode", false)) {
+    if (GetBoolArg("-smartnode", true)) {
         // smartnodes must accept connections from outside
         if (SoftSetBoolArg("-listen", true) && SoftSetBoolArg("-sapi", true))
             LogPrintf("%s: parameter interaction: -smartnode=1 -> setting -listen=1 and -sapi=1\n", __func__);
