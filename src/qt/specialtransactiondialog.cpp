@@ -14,6 +14,7 @@
 #include "txmempool.h"
 #include "walletmodel.h"
 #include "sendcoinsdialog.h"
+#include "guiconstants.h"
 
 #include "coincontrol.h"
 #include "consensus/validation.h"
@@ -114,6 +115,10 @@ SpecialTransactionDialog::SpecialTransactionDialog(const SpecialTransactionType 
 
     ui->treeWidget->setColumnHidden(COLUMN_TXHASH, true);         // store transaction hash in this column, but don't show it
     ui->treeWidget->setColumnHidden(COLUMN_VOUT_INDEX, true);     // store vout index in this column, but don't show it
+
+    ui->legendLabel->setText(QString("<font color=\"%1\">Green</font> addresses are already activated. "
+        "<font color=\"%2\">Yellow</font> addresses are SmartNode inputs and do not qualify for SmartRewards.")
+        .arg(COLOR_GREEN.name()).arg(COLOR_YELLOW.name()));
 
     UpdateElements();
 
@@ -820,7 +825,7 @@ void SpecialTransactionDialog::updateView()
     model->listCoins(mapCoins, false);
 
     BOOST_FOREACH(const PAIRTYPE(QString, std::vector<COutput>)& coins, mapCoins) {
-
+        QBrush lineBrush;
         QString sWalletAddress = coins.first;
         QString sWalletLabel = model->getAddressTableModel()->labelForAddress(sWalletAddress);
 
@@ -844,14 +849,26 @@ void SpecialTransactionDialog::updateView()
             CKeyID keyId;
             CSmartAddress voteAddress(sWalletAddress.toStdString());
             int nCurrentRound = 0;
+            CSmartRewardEntry *reward = nullptr;
 
             {
                 LOCK(cs_rewardscache);
                 nCurrentRound = prewards->GetCurrentRound()->number;
+                prewards->GetRewardEntry(voteAddress, reward, false);
             }
 
             if( !voteAddress.GetKeyID(keyId) ){
                 continue;
+            }
+
+            if (reward) {
+                if (reward->fActivated) {
+                    // Address is already activated
+                    lineBrush.setColor(COLOR_GREEN);
+                } else if (!reward->smartnodePaymentTx.IsNull()) {
+                    // Address is linked to a SmartNode
+                    lineBrush.setColor(COLOR_YELLOW);
+                }
             }
         }
 
@@ -876,9 +893,11 @@ void SpecialTransactionDialog::updateView()
         itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
 
         // label
+        itemWalletAddress->setForeground(COLUMN_LABEL, lineBrush);
         itemWalletAddress->setText(COLUMN_LABEL, sWalletLabel);
 
         // address
+        itemWalletAddress->setForeground(COLUMN_ADDRESS, lineBrush);
         itemWalletAddress->setText(COLUMN_ADDRESS, sWalletAddress);
 
         CAmount nSum = 0;
@@ -916,13 +935,12 @@ void SpecialTransactionDialog::updateView()
            {
                itemOutput->setDisabled(true);
            }
-
         }
 
         itemWalletAddress->setText(COLUMN_CHECKBOX, "(" + QString::number(nChildren) + ")");
+        itemWalletAddress->setForeground(COLUMN_AMOUNT, lineBrush);
         itemWalletAddress->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, nSum));
         itemWalletAddress->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)nSum));
-
     }
 
     for (int i = 0; i < ui->treeWidget->topLevelItemCount(); i++)
@@ -936,5 +954,4 @@ void SpecialTransactionDialog::updateView()
     UpdateElements();
 
     connect(ui->treeWidget, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(viewItemChanged(QTreeWidgetItem*, int)));
-
 }
