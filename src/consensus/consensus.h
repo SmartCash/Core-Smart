@@ -49,6 +49,9 @@ static const int TESTNET_V1_2_8_NODES_BLOCK_INTERVAL    = 2;
 static const int TESTNET_V1_3_NODES_PER_BLOCK           = 1;
 static const int TESTNET_V1_3_NODES_BLOCK_INTERVAL      = 2;
 
+/** Minimum number of active SmartNodes required to make SmartNode payments */
+static const int MIN_ACTIVE_SMARTNODES = 3;
+
 inline unsigned int MaxBlockSigOps()
 {
     return MAX_BLOCK_SERIALIZED_SIZE / 50;
