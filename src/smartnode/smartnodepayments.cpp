@@ -231,6 +231,8 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 {
     vxoutSmartNodes.clear();
 
+    if( mnodeman.size() < MIN_ACTIVE_SMARTNODES ) return;
+
     if( MainNet() ){
 
         if( nHeight < HF_V1_1_SMARTNODE_HEIGHT ){
