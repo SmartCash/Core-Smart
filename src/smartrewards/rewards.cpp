@@ -476,6 +476,7 @@ bool CSmartRewards::GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& 
     }
 
     delete entry;
+    entry = nullptr;
 
     return false;
 }
