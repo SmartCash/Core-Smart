@@ -847,17 +847,17 @@ void SpecialTransactionDialog::updateView()
 
         if( type == ACTIVATION_TRANSACTIONS ){
             CKeyID keyId;
-            CSmartAddress voteAddress(sWalletAddress.toStdString());
+            CSmartAddress address(CSmartAddress::Legacy(sWalletAddress.toStdString()));
             int nCurrentRound = 0;
             CSmartRewardEntry *reward = nullptr;
 
             {
                 LOCK(cs_rewardscache);
                 nCurrentRound = prewards->GetCurrentRound()->number;
-                prewards->GetRewardEntry(voteAddress, reward, false);
+                prewards->GetRewardEntry(address, reward, false);
             }
 
-            if( !voteAddress.GetKeyID(keyId) ){
+            if( !address.GetKeyID(keyId) ){
                 continue;
             }
 
