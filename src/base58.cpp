@@ -220,7 +220,7 @@ bool CBase58Data::SetString(const char* psz, unsigned int nVersionBytes)
       vchData.resize(vchTempNew.size() - nVersionBytes);
       if (!vchData.empty())
           memcpy(&vchData[0], &vchTempNew[nVersionBytes], vchData.size());
-      memory_cleanse(&vchTemp[0], vchTempNew.size());
+      memory_cleanse(&vchTempNew[0], vchTempNew.size());
     }
 
 
