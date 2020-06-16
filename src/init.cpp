@@ -613,7 +613,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-sapithreads=<n>",_("Set the number of threads for SAPI requests (default: 4)"));
     strUsage += HelpMessageOpt("-sapiworkqueue=<n>",_("Set the queue for SAPI requests (default: 16)"));
     strUsage += HelpMessageOpt("-sapiservertimeout=<n>",_("Set the seconds before SAPI timeout (default: 30)"));
-    strUsage += HelpMessageOpt("-sapiwhitelist:<ip>",_("Whitelist ip for SAPI"));
+    strUsage += HelpMessageOpt("-sapiwhitelist=<ip>",_("Whitelist ip for SAPI"));
     return strUsage;
 }
 
