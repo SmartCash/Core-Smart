@@ -56,10 +56,7 @@ namespace SmartHive{
         Development,
         Outreach,
         Support,
-        ProjectTreasury,
-        WebMobileSmartCard,
-        Exchanges,
-        Merchants
+        SmartHub,
     };
 
     const CScript* ScriptPtr(SmartHive::Payee payee);

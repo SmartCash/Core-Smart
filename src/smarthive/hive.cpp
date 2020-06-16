@@ -25,13 +25,10 @@ void SmartHive::Init()
         { SmartHive::Web_Legacy,                new CSmartAddress("Sgq5c4Rznibagv1aopAfPA81jac392scvm") },
         { SmartHive::Quality_Legacy,            new CSmartAddress("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8") },
 
-        { SmartHive::ProjectTreasury,           new CSmartAddress("TBD") },
         { SmartHive::Support,                   new CSmartAddress("TBD") },
         { SmartHive::Development,               new CSmartAddress("TBD") },
         { SmartHive::Outreach,                  new CSmartAddress("TBD") },
-        { SmartHive::WebMobileSmartCard,        new CSmartAddress("TBD") },
-        { SmartHive::Exchanges,                 new CSmartAddress("TBD") },
-        { SmartHive::Merchants,                 new CSmartAddress("TBD") }
+        { SmartHive::SmartHub,        new CSmartAddress("TBD") },
     };
 
     addressesTestnet = {
@@ -44,13 +41,10 @@ void SmartHive::Init()
         { SmartHive::Web_Legacy,                new CSmartAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB") },
         { SmartHive::Quality_Legacy,            new CSmartAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f") },
 
-        { SmartHive::ProjectTreasury,           new CSmartAddress("6HaFiyiFN3SvcXQkE9TrkVvRX2bC4fxhi4") },
         { SmartHive::Support,                   new CSmartAddress("6Tr3PdsFSm3DfN2b8vQ4Eqo7LzvZ238yXt") },
         { SmartHive::Development,               new CSmartAddress("6VE4Qzox3pEXtPLYhroepY9oiMS8YAgmJ9") },
         { SmartHive::Outreach,                  new CSmartAddress("6WNuCbGoM9ZeMYdW7uXwxNV7u4mgmBKmVY") },
-        { SmartHive::WebMobileSmartCard,        new CSmartAddress("6bF1bs7A9eth2zuZqNQmCGB2jeap7fZnUE") },
-        { SmartHive::Exchanges,                 new CSmartAddress("6dBFiy4HLZF81Df2FwwcjYjXWWoP3Vqm2b") },
-        { SmartHive::Merchants,                 new CSmartAddress("6HKbGxK7RSoyrpoJj7CCLJ1s56E9B7QNJn") }
+        { SmartHive::SmartHub,        new CSmartAddress("6bF1bs7A9eth2zuZqNQmCGB2jeap7fZnUE") },
     };
 
     scriptsMainnet = {
@@ -63,13 +57,10 @@ void SmartHive::Init()
         { SmartHive::Web_Legacy,                new CScript(std::move(addressesMainnet.at(SmartHive::Web_Legacy)->GetScript())) }, // New hive 2
         { SmartHive::Quality_Legacy,            new CScript(std::move(addressesMainnet.at(SmartHive::Quality_Legacy)->GetScript())) }, // New hive 3
 
-        { SmartHive::ProjectTreasury,           new CScript(std::move(addressesMainnet.at(SmartHive::ProjectTreasury)->GetScript())) }, // SmartHive treasury multisig
         { SmartHive::Support,                   new CScript(std::move(addressesMainnet.at(SmartHive::Support)->GetScript())) }, // Support hive multisig
         { SmartHive::Development,               new CScript(std::move(addressesMainnet.at(SmartHive::Development)->GetScript())) }, // Development hive multisig
         { SmartHive::Outreach,                  new CScript(std::move(addressesMainnet.at(SmartHive::Outreach)->GetScript())) }, // Outreach hive multisig
-        { SmartHive::WebMobileSmartCard,        new CScript(std::move(addressesMainnet.at(SmartHive::WebMobileSmartCard)->GetScript())) }, // Outreach hive multisig
-        { SmartHive::Exchanges,                 new CScript(std::move(addressesMainnet.at(SmartHive::Exchanges)->GetScript())) }, // Exchange funds multisig
-        { SmartHive::Merchants,                 new CScript(std::move(addressesMainnet.at(SmartHive::Merchants)->GetScript())) }, // Merchant funds multisig
+        { SmartHive::SmartHub,        new CScript(std::move(addressesMainnet.at(SmartHive::SmartHub)->GetScript())) }, // Outreach hive multisig
     };
 
     scriptsTestnet = {
@@ -82,13 +73,10 @@ void SmartHive::Init()
         { SmartHive::Web_Legacy,                new CScript(std::move(addressesTestnet.at(SmartHive::Web_Legacy)->GetScript())) }, // New hive 2
         { SmartHive::Quality_Legacy,            new CScript(std::move(addressesTestnet.at(SmartHive::Quality_Legacy)->GetScript())) }, // New hive 3
 
-        { SmartHive::ProjectTreasury,           new CScript(std::move(addressesTestnet.at(SmartHive::ProjectTreasury)->GetScript())) }, // SmartHive treasury multisig
         { SmartHive::Support,                   new CScript(std::move(addressesTestnet.at(SmartHive::Support)->GetScript())) }, // Support hive multisig
         { SmartHive::Development,               new CScript(std::move(addressesTestnet.at(SmartHive::Development)->GetScript())) }, // Development hive multisig
         { SmartHive::Outreach,                  new CScript(std::move(addressesTestnet.at(SmartHive::Outreach)->GetScript())) }, // Outreach hive multisig
-        { SmartHive::WebMobileSmartCard,        new CScript(std::move(addressesTestnet.at(SmartHive::WebMobileSmartCard)->GetScript())) }, // Outreach hive multisig
-        { SmartHive::Exchanges,                 new CScript(std::move(addressesTestnet.at(SmartHive::Exchanges)->GetScript())) }, // Exchange funds multisig
-        { SmartHive::Merchants,                 new CScript(std::move(addressesTestnet.at(SmartHive::Merchants)->GetScript())) }, // Merchant funds multisig
+        { SmartHive::SmartHub,        new CScript(std::move(addressesTestnet.at(SmartHive::SmartHub)->GetScript())) }, // Outreach hive multisig
     };
 
     init = true;
