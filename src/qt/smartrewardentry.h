@@ -25,27 +25,24 @@ public:
         LowBalance,
         IsASmartNode,
         OutgoingTransaction,
-        VotingRequired,
-        VoteProofRequired,
-        VoteProofConfirmationsRequired,
         IsEligible
     };
 
+    void setMinBalance(CAmount nMinBalance);
     void setDisqualifyingTx(const uint256& txHash);
     void setBalance(CAmount nBalance);
     void setInfoText(const QString& strText, const QColor& color);
     void setEligible(CAmount nEligible, CAmount nEstimated);
     void setIsSmartNode(bool fState);
-    void setVoted(bool fState);
-    void setVoteProofConfirmations(int nConfirmations);
+    void setActivated(bool fState);
+    void setBonusText(uint8_t bonusLevel);
 
     QString Address() const;
     CAmount Balance() const { return nBalance; }
     CAmount BalanceAtStart() const { return nBalanceAtStart; }
     CAmount Eligible() const { return nEligible; }
     bool IsSmartNode() const { return fIsSmartNode; }
-    bool Voted() const { return fVoted; }
-    int VoteProofConfirmations() const { return nVoteProofConfirmations; }
+    bool Activated() const { return fActivated; }
     State CurrentState();
 
     std::string ToString();
@@ -58,12 +55,12 @@ private:
 
     QMenu* contextMenu;
 
+    CAmount nMinBalance;
     CAmount nBalanceAtStart;
     CAmount nBalance;
     CAmount nEligible;
     bool fIsSmartNode;
-    bool fVoted;
-    int nVoteProofConfirmations;
+    bool fActivated;
     uint256 disqualifyingTx;
 
 private Q_SLOTS:

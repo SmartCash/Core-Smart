@@ -108,6 +108,11 @@ void OptionsModel::Init(bool resetSettings)
         settings.setValue("bSpendZeroConfChange", true);
     if (!SoftSetBoolArg("-spendzeroconfchange", settings.value("bSpendZeroConfChange").toBool()))
         addOverriddenOption("-spendzeroconfchange");
+
+    if (!settings.contains("bUseNewAddressFormat"))
+        settings.setValue("bUseNewAddressFormat", false);
+    if (!SoftSetBoolArg("-usenewaddressformat", settings.value("bUseNewAddressFormat").toBool()))
+        addOverriddenOption("-usenewaddressformat");
 #endif
 
     // Network
@@ -231,6 +236,8 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
 #ifdef ENABLE_WALLET
         case SpendZeroConfChange:
             return settings.value("bSpendZeroConfChange");
+        case UseNewAddressFormat:
+            return settings.value("bUseNewAddressFormat");
 #endif
         case DisplayUnit:
             return nDisplayUnit;
@@ -353,7 +360,13 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
                 settings.setValue("bSpendZeroConfChange", value);
                 setRestartRequired(true);
             }
-            break;
+        break;
+        case UseNewAddressFormat:
+            if (settings.value("bUseNewAddressFormat") != value) {
+                settings.setValue("bUseNewAddressFormat", value);
+                setRestartRequired(true);
+            }
+        break;
 #endif
         case DisplayUnit:
             setDisplayUnit(value);

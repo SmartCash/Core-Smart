@@ -46,13 +46,14 @@ struct QSmartRewardField
     CAmount reward;
     uint256 disqualifyingTx;
     bool fIsSmartNode;
-    bool fVoted;
-    int nVoteProofConfirmations;
+    bool fActivated;
+    uint8_t bonusLevel;
 
     QSmartRewardField() : label(QString()), address(QString()),
                           balance(0), eligible(0),reward(0),
                           disqualifyingTx(),
-                          fIsSmartNode(false), fVoted(false), nVoteProofConfirmations(-1){}
+                          fIsSmartNode(false), fActivated(false),
+                          bonusLevel(CSmartRewardEntry::NoBonus) {}
 };
 
 struct SortSmartRewardWidgets
@@ -128,26 +129,14 @@ void SmartrewardsList::setClientModel(ClientModel *model)
 void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, const CBlockIndex *tip)
 {
 
-    static int64_t lastUpdate = 0;
-    int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
-    int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
-
-    if( !lastUpdate || currentTime - lastUpdate  > 5 ){
-        lastUpdate = currentTime;
-    }else{
-        return;
-    }
-
-    if( currentRound.number < nFirst_1_3_Round ){
+    if( !currentRound.Is_1_3() ){
         ui->btnSendProofs->hide();
     }else{
         ui->btnSendProofs->show();
     }
 
-    ui->spinnerWidget->stop();
-
     QString percentText;
-    percentText.sprintf("%.2f%%", currentRound.percent * 100);
+    percentText.sprintf("%.2f%%", currentRound.percent * 100 * 52);
     ui->percentLabel->setText(percentText);
 
     ui->roundLabel->setText(QString::number(currentRound.number));
@@ -176,23 +165,25 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             uint64_t minutes = (minutesLeft % 1440) % 60;
 
             if( days ){
-                roundEndText += QString("%1day%2").arg(days).arg(days > 1 ? "s":"");
+                roundEndText += QString("%1 day%2").arg(days).arg(days > 1 ? "s":"");
             }
 
             if( hours ){
                 if( days ) roundEndText += ", ";
-                roundEndText += QString("%1hour%2").arg(hours).arg(hours > 1 ? "s":"");
+                roundEndText += QString("%1 hour%2").arg(hours).arg(hours > 1 ? "s":"");
             }
 
             if( !days && minutes ){
                 if( hours ) roundEndText += ", ";
-                roundEndText += QString("%1minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
+                roundEndText += QString("%1 minute%2").arg(minutes).arg(minutes > 1 ? "s":"");
             }
 
             roundEndText += " )";
         }
 
     }else{
+
+        int64_t currentTime = QDateTime::currentMSecsSinceEpoch() / 1000;
 
         roundEndText = roundEnd.toString(Qt::SystemLocaleShortDate);
 
@@ -225,7 +216,6 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     ui->nextRoundLabel->setText(roundEndText);
 
-    CKeyID keyId;
     int nAvailableForProof = 0;
     std::map<QString, std::vector<COutput> > mapCoins;
     model->listCoins(mapCoins);
@@ -257,65 +247,29 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                 if (!(sAddress == sWalletAddress)){ // change address
 
                     QSmartRewardField change;
-                    CSmartRewardEntry reward;
+                    CSmartRewardEntry *reward = nullptr;
 
                     change.address = sAddress;
                     change.label = tr("(change)");
                     change.balance = out.tx->vout[out.i].nValue;
 
-                    if( prewards->GetRewardEntry(CSmartAddress(sAddress.toStdString()),reward) ){
-                        change.balance = reward.balance;
-                        change.fIsSmartNode = !reward.smartnodePaymentTx.IsNull();
-                        change.balanceAtStart = reward.balanceAtStart;
-                        change.disqualifyingTx = reward.disqualifyingTx;
+                    if( prewards->GetRewardEntry(CSmartAddress::Legacy(sAddress.toStdString()), reward, false) ){
+                        change.balance = reward->balance;
+                        change.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
+                        change.balanceAtStart = reward->balanceAtStart;
+                        change.disqualifyingTx = reward->disqualifyingTx;
+                        change.fActivated = reward->fActivated;
 
-                        if( currentRound.number < nFirst_1_3_Round ){
-                            change.eligible = reward.balanceEligible && reward.disqualifyingTx.IsNull() ? reward.balanceEligible : 0;
+                        if( !currentRound.Is_1_3() ){
+                            change.eligible = reward->balanceEligible && reward->disqualifyingTx.IsNull() ? reward->balanceEligible : 0;
                         }else{
-                            change.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
+                            change.eligible = reward->IsEligible() ? reward->balanceEligible : 0;
                         }
 
                         change.reward = currentRound.percent * change.eligible;
 
-                        if( reward.id.GetKeyID(keyId) ){
-
-                            LOCK2(cs_main, pwalletMain->cs_wallet);
-
-                            change.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
-
-                            if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
-
-                                uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
-
-                                CTransaction tx;
-                                uint256 nBlockHash;
-
-                                if( !reward.voteProof.IsNull() ){
-                                    change.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
-                                }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
-                                    change.nVoteProofConfirmations = -1;
-                                }else if(nBlockHash == uint256()) {
-                                    change.nVoteProofConfirmations = 0;
-                                }else{
-
-                                    if (nBlockHash != uint256()) {
-                                        BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
-                                        if (mi != mapBlockIndex.end() && (*mi).second) {
-                                            CBlockIndex* pindex = (*mi).second;
-                                            if (chainActive.Contains(pindex)) {
-                                                change.nVoteProofConfirmations = chainActive.Height() - pindex->nHeight + 1;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
-                                pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
-                                reward.balanceEligible && reward.disqualifyingTx.IsNull() && reward.smartnodePaymentTx.IsNull() ){
-                                ++nAvailableForProof;
-                            }
-
+                        if( currentRound.Is_1_3() && !change.fActivated ){
+                            ++nAvailableForProof;
                         }
                     }
 
@@ -337,61 +291,26 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
         if( !rewardField.address.isEmpty() ){
 
-            CSmartRewardEntry reward;
+            CSmartRewardEntry *reward = nullptr;
 
-            if( prewards->GetRewardEntry(CSmartAddress(rewardField.address.toStdString()),reward) ){
-                rewardField.balance = reward.balance;
-                rewardField.fIsSmartNode = !reward.smartnodePaymentTx.IsNull();
-                rewardField.balanceAtStart = reward.balanceAtStart;
-                rewardField.disqualifyingTx = reward.disqualifyingTx;
+            if( prewards->GetRewardEntry(CSmartAddress::Legacy(rewardField.address.toStdString()), reward, false) ){
+                rewardField.balance = reward->balance;
+                rewardField.fIsSmartNode = !reward->smartnodePaymentTx.IsNull();
+                rewardField.balanceAtStart = reward->balanceAtStart;
+                rewardField.disqualifyingTx = reward->disqualifyingTx;
+                rewardField.fActivated = reward->fActivated;
+                rewardField.bonusLevel = reward->bonusLevel;
 
-                if( currentRound.number < nFirst_1_3_Round ){
-                    rewardField.eligible = reward.balanceEligible && reward.disqualifyingTx.IsNull() ? reward.balanceEligible : 0;
+                if( !currentRound.Is_1_3() ){
+                    rewardField.eligible = reward->balanceEligible && reward->disqualifyingTx.IsNull() ? reward->balanceEligible : 0;
                 }else{
-                    rewardField.eligible = reward.IsEligible() ? reward.balanceEligible : 0;
+                    rewardField.eligible = reward->IsEligible() ? reward->balanceEligible : 0;
                 }
 
                 rewardField.reward = currentRound.percent * rewardField.eligible;
 
-                if( reward.id.GetKeyID(keyId) ){
-
-                    LOCK2(cs_main, pwalletMain->cs_wallet);
-
-                    rewardField.fVoted = pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end();
-
-                    if( pwalletMain->mapVoteProofs[keyId].find(currentRound.number) != pwalletMain->mapVoteProofs[keyId].end() ){
-
-                        uint256 proofHash = pwalletMain->mapVoteProofs[keyId][currentRound.number];
-
-                        CTransaction tx;
-                        uint256 nBlockHash;
-
-                        if( !reward.voteProof.IsNull() ){
-                            rewardField.nVoteProofConfirmations = Params().GetConsensus().nRewardsConfirmationsRequired;
-                        }else if(!GetTransaction(proofHash, tx, Params().GetConsensus(), nBlockHash, true)){
-                            rewardField.nVoteProofConfirmations = -1;
-                        }else if(nBlockHash == uint256()) {
-                            rewardField.nVoteProofConfirmations = 0;
-                        }else{
-
-                            if (nBlockHash != uint256()) {
-                                BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
-                                if (mi != mapBlockIndex.end() && (*mi).second) {
-                                    CBlockIndex* pindex = (*mi).second;
-                                    if (chainActive.Contains(pindex)) {
-                                        rewardField.nVoteProofConfirmations = chainActive.Height() - pindex->nHeight + 1;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if( pwalletMain->mapVoted[keyId].find(currentRound.number) != pwalletMain->mapVoted[keyId].end() &&
-                        pwalletMain->mapVoteProofs[keyId].find(currentRound.number) == pwalletMain->mapVoteProofs[keyId].end() &&
-                        reward.balanceEligible && reward.disqualifyingTx.IsNull() && reward.smartnodePaymentTx.IsNull() ){
-                        ++nAvailableForProof;
-                    }
-
+                if( currentRound.Is_1_3() && !rewardField.fActivated ){
+                    ++nAvailableForProof;
                 }
             }
 
@@ -401,6 +320,24 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     int nEligibleAddresses = 0;
     CAmount rewardSum = 0;
+
+    auto entry = vecEntries.begin();
+
+    while( entry != vecEntries.end() ){
+
+        auto it = std::find_if(rewardList.begin(),
+                               rewardList.end(),
+                               [entry](QSmartRewardField& field) -> bool {
+            return (*entry)->Address() == field.address;
+        });
+
+        if( it == rewardList.end() ) {
+            delete *entry;
+            entry = vecEntries.erase(entry);
+        }else{
+            ++entry;
+        }
+    }
 
     BOOST_FOREACH(const QSmartRewardField& field, rewardList) {
 
@@ -421,42 +358,39 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
         entry->setBalance(field.balance);
         entry->setIsSmartNode(field.fIsSmartNode);
-        entry->setVoted(field.fVoted);
-        entry->setVoteProofConfirmations(field.nVoteProofConfirmations);
+        entry->setActivated(field.fActivated);
 
-        if( currentRound.number >= nFirst_1_3_Round ){
+        if( currentRound.Is_1_3() ){
 
-            int nConfirmationsRequired = Params().GetConsensus().nRewardsConfirmationsRequired - field.nVoteProofConfirmations;
+            entry->setMinBalance(SMART_REWARDS_MIN_BALANCE_1_3);
+            entry->setBonusText(field.bonusLevel);
 
             if( field.fIsSmartNode ){
                 entry->setInfoText("Address belongs to a SmartNode.", COLOR_NEGATIVE);
-            }else if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE ){
-                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE/COIN), COLOR_NEGATIVE);
+            }else if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE_1_3 ){
+                entry->setInfoText(QString("Qualified balance is only %1 SMART at the round's startblock. Minimum required: %2 SMART. It can be activated now but it will not receive rewards until it has enough funds.").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
             }else if( !field.disqualifyingTx.IsNull() ){
                 entry->setDisqualifyingTx(field.disqualifyingTx);
-                entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
-            }else if( !field.fVoted ){
-                entry->setInfoText("Voting required. Go to the \"SmartVote\" tab and vote for a proposal with this address.", COLOR_NEGATIVE);
-            }else if( field.fVoted && field.nVoteProofConfirmations == -1){
-                entry->setInfoText("VoteProof required. Click the button in the bottom bar to send the VoteProof for this address.", COLOR_WARNING);
-            }else if( field.fVoted &&
-                      nConfirmationsRequired > 0){
-                entry->setInfoText(QString("%1 more block confirmations required for the VoteProof transaction to become processed.").arg(nConfirmationsRequired), COLOR_WARNING);
-            }else if( field.fVoted &&
-                      nConfirmationsRequired <= 0 &&
-                      field.eligible ){
+                entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1. It can be activated now but it will not receive any rewards until it becomes eligible").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
+            }else if( field.fActivated && !field.eligible ){
+                entry->setInfoText(QString("Address is activated but is not eligible until the next round."), COLOR_WARNING);
+            }else if( field.fActivated ){
                 entry->setEligible(field.eligible, field.reward);
                 ++nEligibleAddresses;
             }
-
-        }else if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE ){
-            entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE/COIN), COLOR_NEGATIVE);
-        }else if( !field.disqualifyingTx.IsNull() ){
-            entry->setDisqualifyingTx(field.disqualifyingTx);
-            entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
         }else{
-            entry->setEligible(field.eligible, field.reward);
-            ++nEligibleAddresses;
+
+            entry->setMinBalance(SMART_REWARDS_MIN_BALANCE_1_2);
+
+            if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE_1_2 ){
+                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_2/COIN), COLOR_NEGATIVE);
+            }else if( !field.disqualifyingTx.IsNull() ){
+                entry->setDisqualifyingTx(field.disqualifyingTx);
+                entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
+            }else{
+                entry->setEligible(field.eligible, field.reward);
+                ++nEligibleAddresses;
+            }
         }
 
         rewardSum += field.reward;
@@ -482,24 +416,17 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
 
     std::sort(vecEntries.begin(), vecEntries.end(), SortSmartRewardWidgets());
 
-    for( size_t i=0; i<vecEntries.size(); i++ ){
+    for (const auto &entry : vecEntries) {
+        ui->smartRewardsList->layout()->addWidget(entry);
 
-        ui->smartRewardsList->layout()->addWidget(vecEntries[i]);
-
-        if( i < vecEntries.size() - 1 ){
-
-            // Add a horizontal line
+        // Add a horizontal line unless it's the last entry
+        if( entry != vecEntries.back() ){
             QHBoxLayout* hBox = new QHBoxLayout();
-            QSpacerItem* spacerLeft = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
-            QSpacerItem* spacerRight = new QSpacerItem(20, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
             QWidget* lineContainer = new QWidget();
-            lineContainer->setStyleSheet("background-color: rgb(247, 245, 248);");
             QFrame* line = new QFrame(lineContainer);
             line->setFrameShape(QFrame::HLine);
             line->setFrameShadow(QFrame::Plain);
-            hBox->addSpacerItem(spacerLeft);
             hBox->addWidget(line);
-            hBox->addSpacerItem(spacerRight);
             hBox->setSpacing(0);
             hBox->setContentsMargins(0, 0, 0, 0);
             lineContainer->setLayout(hBox);
@@ -509,16 +436,16 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     }
 
     if( nAvailableForProof ){
-        ui->btnSendProofs->setText( QString(tr("Send VoteProofs [%1]")).arg(nAvailableForProof) );
+        ui->btnSendProofs->setText( QString(tr("Send ActivateRewards [%1]")).arg(nAvailableForProof) );
         ui->btnSendProofs->setEnabled(true);
     }else{
-        ui->btnSendProofs->setText( tr("No address ready for a VoteProof") );
+        ui->btnSendProofs->setText( tr("No addresses need to ActivateRewards") );
         ui->btnSendProofs->setEnabled(false);
     }
 
     ui->lblActiveAddresses->setText(QString::number(vecEntries.size()));
     ui->lblEligibleAddresses->setText(QString::number(nEligibleAddresses));
-    QString strEstimated = QString::fromStdString(strprintf("%d", rewardSum/COIN));
+    QString strEstimated = QString::fromStdString(strprintf("%d", (rewardSum + 50000000)/COIN));
     AddThousandsSpaces(strEstimated);
     ui->lblTotalRewards->setText(strEstimated + " SMART");
 }
@@ -533,24 +460,19 @@ void SmartrewardsList::updateUI()
     CSmartRewardRound currentRound;
     CBlockIndex* tip = nullptr;
     {
-        LOCK(cs_rewardrounds);
-        currentRound = prewards->GetCurrentRound();
+        LOCK(cs_rewardscache);
+        currentRound = *prewards->GetCurrentRound();
         tip = chainActive.Tip();
     }
 
     switch(state){
     case STATE_INIT:
 
-        setState(STATE_PROCESSING);
-
-        break;
-    case STATE_PROCESSING:
-
         if( prewards->IsSynced() && !fReindex ){
+
+            ui->spinnerWidget->stop();
+
             setState(STATE_OVERVIEW);
-        }else{
-            double progress = prewards->GetProgress() * ui->loadingProgress->maximum();
-            ui->loadingProgress->setValue(progress);
         }
 
         break;
@@ -588,7 +510,7 @@ void SmartrewardsList::setState(SmartrewardsList::SmartRewardsListState state)
 
 void SmartrewardsList::on_btnSendProofs_clicked()
 {
-    SpecialTransactionDialog dlg(VOTE_PROOF_TRANSACTIONS, platformStyle);
+    SpecialTransactionDialog dlg(ACTIVATION_TRANSACTIONS, platformStyle);
     dlg.setModel(model);
     dlg.exec();
     updateUI();

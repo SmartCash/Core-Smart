@@ -467,10 +467,11 @@ public:
     int nDepth;
     bool fSpendable;
     bool fSolvable;
+    unsigned int nLockTime;
 
-    COutput(const CWalletTx *txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn)
+    COutput(const CWalletTx *txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn, unsigned int nLockTimeIn)
     {
-        tx = txIn; i = iIn; nDepth = nDepthIn; fSpendable = fSpendableIn; fSolvable = fSolvableIn;
+        tx = txIn; i = iIn; nDepth = nDepthIn; fSpendable = fSpendableIn; fSolvable = fSolvableIn; nLockTime = nLockTimeIn;
     }
 
     std::string ToString() const;
@@ -674,10 +675,6 @@ public:
     std::map<CKeyID, CVotingKeyMetadata> mapVotingKeyMetadata;
     std::map<CKeyID, uint256> mapVotingKeyRegistrations;
 
-    /* SmartRewards Vote proof */
-    std::map<CKeyID, std::map<int64_t, uint256>> mapVoted;
-    std::map<CKeyID, std::map<int64_t, uint256>> mapVoteProofs;
-
     typedef std::map<unsigned int, CMasterKey> MasterKeyMap;
     MasterKeyMap mapMasterKeys;
     unsigned int nMasterKeyMaxID;
@@ -839,14 +836,6 @@ public:
     bool LoadVotingKeyRegistration(const CKeyID &keyId, const uint256 &txhash);
     //! Update votekeys registrations
     bool UpdateVotingKeyRegistration(const CKeyID &keyId);
-    //! Load voted rounds per address (used by LoadWallet)
-    bool LoadVotedMap(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoted);
-    //! Update voted round per address
-    bool UpdateVotedMap(const CKeyID &keyId);
-    //! Load vote proofs per address (used by LoadWallet)
-    bool LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoteProofs);
-    //! Update vote proofs per address
-    bool UpdateVoteProofs(const CKeyID &keyId);
     //! Adds an encrypted key to the store, and saves it to disk.
     bool AddCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
     //! Adds an encrypted key to the store, without saving it to disk (used by LoadWallet)

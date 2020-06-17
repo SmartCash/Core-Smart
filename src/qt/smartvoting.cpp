@@ -20,6 +20,7 @@
 #include "castvotesdialog.h"
 #include "validation.h"
 #include "voteaddressesdialog.h"
+#include "specialtransactiondialog.h"
 
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 
@@ -160,7 +161,7 @@ void SmartVotingPage::updateUI()
 void SmartVotingPage::proposalsUpdated(const string &strErr)
 {
     if( strErr != ""){
-        QMessageBox::warning(this, "Error", QString("Could not update proposal list\n\n%1").arg(QString::fromStdString(strErr)));
+//        QMessageBox::warning(this, "Error", QString("Could not update proposal list\n\n%1").arg(QString::fromStdString(strErr)));
         return;
     }
 
@@ -195,12 +196,12 @@ void SmartVotingPage::castVotes(){
 
     CastVotesDialog dialog(platformStyle, votingManager, walletModel);
 
-    connect( &dialog, SIGNAL(votedForAddress(QString&, int, bool)), this, SLOT(voteDone(QString&, int, bool)));
     dialog.setVoting(mapVoteProposals);
 
     dialog.exec();
 
     refreshProposals(true);
+    uiInterface.NotifySmartRewardUpdate();
 }
 
 void SmartVotingPage::updateRefreshLock()
@@ -247,26 +248,3 @@ void SmartVotingPage::balanceChanged(const CAmount &balance, const CAmount &unco
     updateUI();
 }
 
-void SmartVotingPage::voteDone(QString &address, int nProposalId, bool successful)
-{
-    if( successful ){
-
-        LOCK(pwalletMain->cs_wallet);
-
-        CKeyID keyId;
-        std::string strProposal = strprintf("%d", nProposalId);
-        uint256 nProposalHash = Hash(strProposal.begin(), strProposal.end());
-
-        if(CSmartAddress(address.toStdString()).GetKeyID(keyId)){
-
-            int nCurrentRound = prewards->GetCurrentRound().number;
-
-            if( !pwalletMain->mapVoted[keyId].count(nCurrentRound) ){
-                pwalletMain->mapVoted[keyId].insert(std::make_pair(nCurrentRound, nProposalHash));
-                pwalletMain->UpdateVotedMap(keyId);
-            }
-
-        }
-    }
-
-}

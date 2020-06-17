@@ -59,7 +59,6 @@ class SmartrewardsList : public QWidget
 
     enum SmartRewardsListState{
         STATE_INIT,
-        STATE_PROCESSING,
         STATE_OVERVIEW
     };
 

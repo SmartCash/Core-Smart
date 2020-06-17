@@ -39,6 +39,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendtoaddress", 4 },
     { "sendtoaddress", 5 },
     { "sendtoaddress", 6 },
+    { "sendtoaddresslocked", 1 },
+    { "sendtoaddresslocked", 2 },
     { "instantsendtoaddress", 1 },
     { "instantsendtoaddress", 4 },
     { "settxfee", 0 },
@@ -143,6 +145,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressmempool", 0},
     { "getaddresses", 0},
     { "getaddresses", 1},
+    { "getnewaddress", 1},
     { "getrandomkeypair", 0},
     { "dumpprivkey", 1},
     { "dumpwallet", 1}

@@ -4427,7 +4427,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location line="+48"/>
-        <source>Initialize SmartRewards...</source>
+        <source>Initializing SmartRewards...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

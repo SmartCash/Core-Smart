@@ -31,7 +31,7 @@ namespace Ui {
 
 enum SpecialTransactionType {
     REGISTRATION_TRANSACTIONS,
-    VOTE_PROOF_TRANSACTIONS
+    ACTIVATION_TRANSACTIONS
 };
 
 #define ASYMP_UTF8 "\xE2\x89\x88"
@@ -71,7 +71,7 @@ private:
 
     void SendTransactions(std::vector<QString> &vecErrors);
     bool SendRegistration(const QString &address, const COutPoint &out, QString &strError);
-    bool SendVoteProof(const QString &address, const COutPoint &out, int nCurrentRound, QString &strError);
+    bool SendActivationTransaction(const QString &address, const COutPoint &out, int nCurrentRound, QString &strError);
 
     enum
     {
@@ -84,7 +84,6 @@ private:
     };
     friend class CCoinControlWidgetItem;
 
-    QString GetTypeString();
 private Q_SLOTS:
     void showMenu(const QPoint &);
     void copyAddress();
@@ -103,9 +102,11 @@ static const QString strRegistrationDescription = (
 );
 static const QString strRegistrationFeeDescription = "Register fee";
 
-static const QString strVoteProofTitle = "Send VoteProofs";
-static const QString strVoteProofDescription = (
-""
+static const QString strActivationTxTitle = "Activate Rewards";
+static const QString strActivationTxDescription = (
+"Use this form to send an ActivateReward transaction to make your addresses eligible for SmartRewards. "
+"A small fee of 0.001 SMART will be taken from outputs you choose.\n\n"
+"You can either manually select an input for each address or automatically select the smallest input for each address by clicking the checkbox below."
 );
 
 #endif // SMARTCASH_QT_SPECIALTRANSACTIONDIALOG_H

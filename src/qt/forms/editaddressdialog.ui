@@ -56,6 +56,9 @@
     </layout>
    </item>
    <item>
+    <widget class="TimeLockSettingsWidget" name="timeLockSettings" native="true" />
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

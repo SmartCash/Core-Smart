@@ -24,6 +24,11 @@
 #include <string>
 #include <vector>
 
+//! Default for -usenewaddressformat
+static const bool DEFAULT_USE_NEW_ADDRESS_FORMAT = false;
+
+extern bool fUseNewAddressFormat;
+
 /**
  * Encode a byte sequence as a base58-encoded string.
  * pbegin and pend cannot be NULL, unless both are.
@@ -88,7 +93,8 @@ protected:
 public:
     bool SetString(const char* psz, unsigned int nVersionBytes = 1);
     bool SetString(const std::string& str);
-    std::string ToString(bool newFormat=false) const;
+    std::string ToString() const;
+    std::string ToString(bool fNewFormat) const;
     int CompareTo(const CBase58Data& b58) const;
 
     bool operator==(const CBase58Data& b58) const { return CompareTo(b58) == 0; }
@@ -111,6 +117,7 @@ public:
     bool Set(const CTxDestination &dest);
     bool IsValid() const;
     bool IsValid(const CChainParams &params) const;
+    bool IsValid(const CChainParams::Base58Type& type) const;
 
     CBitcoinAddress() {}
     CBitcoinAddress(const CTxDestination &dest) { Set(dest); }

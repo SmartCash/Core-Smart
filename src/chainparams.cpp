@@ -139,10 +139,10 @@ public:
         consensus.nRewardsPayouts_1_2_BlockPayees = 1000;
 
         //! 1.3 Parameter
-        consensus.nRewardsBlocksPerRound_1_3 = 142500;
-        consensus.nRewardsFirst_1_3_Round = 29;
-        consensus.nRewardsPayouts_1_3_BlockStretch = 10990; // 1 week
-        consensus.nRewardsPayouts_1_3_BlockPayees = 10;
+        consensus.nRewardsBlocksPerRound_1_3 = 11000;  // 1 week
+        consensus.nRewardsFirst_1_3_Round = 36; // Round 36 on 6/25 starts on block 1666600
+        consensus.nRewardsPayouts_1_3_BlockStretch = 10000;
+        consensus.nRewardsPayouts_1_3_BlockPayees = 100;
 
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
 
@@ -171,14 +171,11 @@ public:
 
         // Note that of those with the service bits flag, most only support a subset of possible options
         vSeeds.push_back(CDNSSeedData("seed.smrt.cash", "seed.smrt.cash", false));
-        vSeeds.push_back(CDNSSeedData("seed1.smrt.cash", "seed1.smrt.cash", false));
-        vSeeds.push_back(CDNSSeedData("seed2.smrt.cash", "seed2.smrt.cash", false));
+        vSeeds.push_back(CDNSSeedData("seed.smrt.run", "seed.smrt.run", false));
+        vSeeds.push_back(CDNSSeedData("seed.smrt.best", "seed.smrt.best", false));
+        vSeeds.push_back(CDNSSeedData("seed.smarts.cash", "seed.smarts.cash", false));
         vSeeds.push_back(CDNSSeedData("seed1.smartcash.org", "seed1.smartcash.org", false));
         vSeeds.push_back(CDNSSeedData("seed2.smartcash.org", "seed2.smartcash.org", false));
-        vSeeds.push_back(CDNSSeedData("seed.smartcash.cc", "seed.smartcash.cc", false));
-        vSeeds.push_back(CDNSSeedData("seed2.smartcash.cc", "seed2.smartcash.cc", false));
-        vSeeds.push_back(CDNSSeedData("seed3.smartcash.cc", "seed3.smartcash.cc", false));
-        vSeeds.push_back(CDNSSeedData("seed4.smartcash.cc", "seed4.smartcash.cc", false));
 
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,63); //S
@@ -186,9 +183,15 @@ public:
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,191);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
+
+        base58Prefixes[PUBKEY_ADDRESS_V2] = std::vector<unsigned char>(1,125); //s
+        base58Prefixes[SCRIPT_ADDRESS_V2] = std::vector<unsigned char>(1,110);
+        base58Prefixes[SECRET_KEY_V2] =     std::vector<unsigned char>(1,237);
+        base58Prefixes[EXT_PUBLIC_KEY_V2] = boost::assign::list_of(0x04)(0x20)(0xBD)(0x3F).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[EXT_SECRET_KEY_V2] = boost::assign::list_of(0x04)(0x20)(0xB9)(0x03).convert_to_container<std::vector<unsigned char> >();
+
         base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,125);
         base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,82);
-        base58Prefixes[NEW_PUBKEY_ADDRESS] = std::vector<unsigned char>(1,125); //s
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;
@@ -209,12 +212,16 @@ public:
             ( 75000,  uint256S("0x000000000002ee203026137ebc460e1886e09b9fdb0e83697e5a74976088e75c"))
             ( 170000, uint256S("0x000000000000670ff41fbb4ad819b48bfe1c35623f13297d3fbf9bf02abcd87c"))
             ( 500000, uint256S("0x00000000000016a1fa8e650e5a82babefeb9225ffe78614bc4b23cf160d16eeb"))
+            ( 750000, uint256S("0x000000000000456bd57843a6650155f9c09b42c47e5a8d24418881a88ce8aa2e"))
             ( 1000000, uint256S("0x00000000000008e14776878dba228ac957a97205df4716ce1913ae4339e7aeb9"))
-            ( 1030000, uint256S("0x00000000000000d7e76cc6c30a2bece10f552123ad3c9a63beceb0d553a46f04")),
-            1557812640, // * UNIX timestamp of last checkpoint block
-            4095887,   // * total number of transactions between genesis and last checkpoint
+            ( 1030000, uint256S("0x00000000000000d7e76cc6c30a2bece10f552123ad3c9a63beceb0d553a46f04"))
+            ( 1250000, uint256S("0x00000000000036b03ca216e92c83c9d0d152c1fdfac74c1bfc0cfc1cfa00f451"))
+            ( 1500000, uint256S("0x0000000000001e396ce1ea9dfde2956fef0f606a5d6cbbcb1a5ba6e1081eadf5"))
+            ( 1599000, uint256S("0x00000000000024edb61519ed6ebdf085f5dd25a0963103dc108b68e5f88604f3")),
+            1589123846, // * UNIX timestamp of last checkpoint block
+            11577739,  // * total number of transactions between genesis and last checkpoint
                         //   (the tx=... number in the SetBestChain debug.log lines)
-            12000.0     // * estimated number of transactions per day after checkpoint
+            33000.0     // * estimated number of transactions per day after checkpoint
         };
     }
 };
@@ -277,17 +284,17 @@ public:
         /* SmartReward params */
 
         consensus.nRewardsConfirmationsRequired = 1;
-        consensus.nRewardsPayoutStartDelay = 20;
+        consensus.nRewardsPayoutStartDelay = 10;
 
         //! 1.2 Parameter
-        consensus.nRewardsBlocksPerRound_1_2 = 500;
+        consensus.nRewardsBlocksPerRound_1_2 = 100;
         consensus.nRewardsPayouts_1_2_BlockInterval = 2;
         consensus.nRewardsPayouts_1_2_BlockPayees = 1000;
 
         //! 1.3 Parameter
-        consensus.nRewardsBlocksPerRound_1_3 = 1500;
-        consensus.nRewardsFirst_1_3_Round = 5;
-        consensus.nRewardsPayouts_1_3_BlockStretch = 1000;
+        consensus.nRewardsBlocksPerRound_1_3 = 100;
+        consensus.nRewardsFirst_1_3_Round = 10; // block 201 start 1_2_8 401 start 1_3
+        consensus.nRewardsPayouts_1_3_BlockStretch = 80;
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
         consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
@@ -314,17 +321,22 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.push_back(CDNSSeedData("testnet.smartcash.cc", "testnet.smartcash.cc", true));
-        vSeeds.push_back(CDNSSeedData("testnet.smrt.cash", "testnet.smrt.cash", true));
+        vSeeds.push_back(CDNSSeedData("testnet.smrt.run", "testnet.smrt.run", true));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,65); //T
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,21);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,193);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x35)(0x83)(0x94).convert_to_container<std::vector<unsigned char> >();
+
+        base58Prefixes[PUBKEY_ADDRESS_V2] = std::vector<unsigned char>(1,127); //t
+        base58Prefixes[SCRIPT_ADDRESS_V2] = std::vector<unsigned char>(1,13); //6
+        base58Prefixes[SECRET_KEY_V2] = std::vector<unsigned char>(1,130); //u
+        base58Prefixes[EXT_PUBLIC_KEY_V2] = boost::assign::list_of(0x7F)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
+        base58Prefixes[EXT_SECRET_KEY_V2] = boost::assign::list_of(0x7F)(0x35)(0x87)(0xCF).convert_to_container<std::vector<unsigned char> >();
+
         base58Prefixes[VOTE_KEY_PUBLIC] = std::vector<unsigned char>(1,112);
         base58Prefixes[VOTE_KEY_SECRET] = std::vector<unsigned char>(3,160);
-        base58Prefixes[NEW_PUBKEY_ADDRESS] = std::vector<unsigned char>(1,127); //t
 
         // SmartCash BIP44 coin type is '224'
         nExtCoinType = 224;

@@ -37,6 +37,10 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_TX_STATUS_DANGER QColor(200, 100, 100)
 /* Transaction list -- TX status decoration - default color */
 #define COLOR_BLACK QColor(0, 0, 0)
+/* SmartRewards Tab -- Bonus text and activated addresses */
+#define COLOR_GREEN QColor(60, 179, 113)
+/* SmartRewards Tab -- SmartNode address */
+#define COLOR_YELLOW QColor(255, 199, 15)
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.

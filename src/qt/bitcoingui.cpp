@@ -4,6 +4,7 @@
 
 #include "bitcoingui.h"
 
+#include "addressconverter.h"
 #include "bitcoinunits.h"
 #include "clientmodel.h"
 #include "guiconstants.h"
@@ -117,6 +118,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *platformStyle, const NetworkStyle *n
     trayIconMenu(0),
     notificator(0),
     rpcConsole(0),
+    addressConverter(0),
     helpMessageDialog(0),
     modalOverlay(0),
     prevBlocks(0),
@@ -154,6 +156,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *platformStyle, const NetworkStyle *n
 #endif
 
     rpcConsole = new RPCConsole(platformStyle, 0);
+    addressConverter = new AddressConverter(0);
     helpMessageDialog = new HelpMessageDialog(this, HelpMessageDialog::cmdline);
 #ifdef ENABLE_WALLET
     if(enableWallet)
@@ -273,6 +276,7 @@ BitcoinGUI::~BitcoinGUI()
 #endif
 
     delete rpcConsole;
+    delete addressConverter;
 }
 
 void BitcoinGUI::createActions()
@@ -399,6 +403,9 @@ void BitcoinGUI::createActions()
     // initially disable the debug window menu item
     openRPCConsoleAction->setEnabled(false);
 
+    openAddressConverterAction = new QAction(tr("&Address converter"), this);
+    openAddressConverterAction->setStatusTip(tr("Open dialog to convert addresses from/to new address format"));
+
     usedSendingAddressesAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Sending addresses..."), this);
     usedSendingAddressesAction->setStatusTip(tr("Show the list of used sending addresses and labels"));
     usedReceivingAddressesAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Receiving addresses..."), this);
@@ -418,6 +425,7 @@ void BitcoinGUI::createActions()
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
     connect(showHelpMessageAction, SIGNAL(triggered()), this, SLOT(showHelpMessageClicked()));
     connect(openRPCConsoleAction, SIGNAL(triggered()), this, SLOT(showDebugWindow()));
+    connect(openAddressConverterAction, SIGNAL(triggered()), this, SLOT(showAddressConverter()));
 
     // Get restart command-line parameters and handle restart
     connect(rpcConsole, SIGNAL(handleRestart(QStringList)), this, SLOT(handleRestart(QStringList)));
@@ -489,6 +497,7 @@ void BitcoinGUI::createMenuBar()
     {
         help->addAction(openRPCConsoleAction);
     }
+    help->addAction(openAddressConverterAction);
     help->addAction(showHelpMessageAction);
     help->addSeparator();
     help->addAction(aboutAction);
@@ -710,6 +719,14 @@ void BitcoinGUI::showDebugWindow()
     rpcConsole->show();
     rpcConsole->raise();
     rpcConsole->activateWindow();
+}
+
+void BitcoinGUI::showAddressConverter()
+{
+    addressConverter->showNormal();
+    addressConverter->show();
+    addressConverter->raise();
+    addressConverter->activateWindow();
 }
 
 void BitcoinGUI::showPeers()
@@ -1083,6 +1100,7 @@ void BitcoinGUI::closeEvent(QCloseEvent *event)
         {
             // close rpcConsole in case it was open to make some space for the shutdown window
             rpcConsole->close();
+            addressConverter->close();
 
             QApplication::quit();
         }
@@ -1263,6 +1281,10 @@ void BitcoinGUI::detectShutdown()
     {
         if(rpcConsole)
             rpcConsole->hide();
+
+        if(addressConverter)
+            addressConverter->hide();
+
         qApp->quit();
     }
 }

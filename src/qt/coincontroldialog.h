@@ -85,6 +85,7 @@ private:
         COLUMN_PRIORITY,
         COLUMN_TXHASH,
         COLUMN_VOUT_INDEX,
+        COLUMN_LOCKED
     };
     friend class CCoinControlWidgetItem;
 

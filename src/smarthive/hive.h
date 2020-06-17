@@ -37,19 +37,26 @@ struct CSmartAddress : public CBitcoinAddress
     }
 
     CScript GetScript() const { return GetScriptForDestination(Get()); }
+
+    static CSmartAddress Legacy(const CSmartAddress &address);
+    static CSmartAddress Legacy(const std::string &strAddress);
 };
 
 namespace SmartHive{
 
     enum Payee{
+        Development_Legacy, //Deprecated with 1.3
+        Outreach_Legacy, //Deprecated with 1.3
+        Support_Legacy,  //Deprecated with 1.3
+        SmartRewards_Legacy, //Deprecated with 1.2
+        ProjectTreasury_Legacy, //Deprecated with 1.3
+        Outreach2_Legacy, //Deprecated with 1.3
+        Web_Legacy, //Deprecated with 1.3
+        Quality_Legacy, //Deprecated with 1.3
         Development,
         Outreach,
         Support,
-        SmartRewards, //Deprecated with 1.2
-        ProjectTreasury,
-        Outreach2,
-        Web,
-        Quality
+        SmartHub,
     };
 
     const CScript* ScriptPtr(SmartHive::Payee payee);

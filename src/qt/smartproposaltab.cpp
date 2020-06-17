@@ -350,7 +350,7 @@ void SmartProposalTabWidget::publish()
         questionString.append("<br /><br />Proposal fee: %1 SMART");
 
         SendConfirmationDialog confirmationDialog(tr("Confirm send proposal fee"),
-            questionString.arg(CAmountToDouble(SMARTVOTING_PROPOSAL_FEE)), 3, this);
+            questionString.arg(CAmountToDouble(SMARTVOTING_PROPOSAL_FEE)), 3, QMessageBox::Question, this);
         confirmationDialog.exec();
         QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
 

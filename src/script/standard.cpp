@@ -28,10 +28,11 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NONSTANDARD: return "nonstandard";
     case TX_PUBKEY: return "pubkey";
     case TX_PUBKEYHASH: return "pubkeyhash";
+    case TX_PUBKEYHASHLOCKED: return "pubkeyhashlocked";
     case TX_SCRIPTHASH: return "scripthash";
+    case TX_SCRIPTHASHLOCKED: return "scripthashlocked";
     case TX_MULTISIG: return "multisig";
     case TX_NULL_DATA: return "nulldata";
-    case TX_ZEROCOINMINT: return "zerocoinmint";
     }
     return NULL;
 }
@@ -57,6 +58,17 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
 
     vSolutionsRet.clear();
 
+    // Shortcut for pay-to-pubkey-hash-locked
+    if (scriptPubKey.IsPayToPublicKeyHashLocked())
+    {
+        int nOffset = scriptPubKey[0] + 6;
+
+        typeRet = TX_PUBKEYHASHLOCKED;
+        vector<unsigned char> hashBytes(scriptPubKey.begin() + nOffset, scriptPubKey.begin() + nOffset + 20);
+        vSolutionsRet.push_back(hashBytes);
+        return true;
+    }
+
     // Shortcut for pay-to-script-hash, which are more constrained than the other types:
     // it is always OP_HASH160 20 [20 byte hash] OP_EQUAL
     if (scriptPubKey.IsPayToScriptHash())
@@ -67,11 +79,13 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
         return true;
     }
 
-    if (scriptPubKey.IsZerocoinMint())
+    // Shortcut for pay-to-script-hash-locked
+    if (scriptPubKey.IsPayToScriptHashLocked())
     {
-        typeRet = TX_ZEROCOINMINT;
-        if(scriptPubKey.size() > 150) return false;
-        vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.end());
+        int nOffset = scriptPubKey[0] + 5;
+
+        typeRet = TX_SCRIPTHASHLOCKED;
+        vector<unsigned char> hashBytes(scriptPubKey.begin() + nOffset, scriptPubKey.begin() + nOffset + 20);
         vSolutionsRet.push_back(hashBytes);
         return true;
     }
@@ -187,12 +201,12 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = pubKey.GetID();
         return true;
     }
-    else if (whichType == TX_PUBKEYHASH)
+    else if (whichType == TX_PUBKEYHASH || whichType == TX_PUBKEYHASHLOCKED)
     {
         addressRet = CKeyID(uint160(vSolutions[0]));
         return true;
     }
-    else if (whichType == TX_SCRIPTHASH)
+    else if (whichType == TX_SCRIPTHASH || whichType == TX_SCRIPTHASHLOCKED)
     {
         addressRet = CScriptID(uint160(vSolutions[0]));
         return true;
@@ -269,11 +283,49 @@ public:
 };
 }
 
+
+namespace
+{
+class CLockedScriptVisitor : public boost::static_visitor<bool>
+{
+private:
+    CScript *script;
+    int nLockTime;
+public:
+    CLockedScriptVisitor(CScript *scriptin, int nLockTime) : script(scriptin), nLockTime(nLockTime) { }
+
+    bool operator()(const CNoDestination &dest) const {
+        script->clear();
+        return false;
+    }
+
+    bool operator()(const CKeyID &keyID) const {
+        script->clear();
+        *script << nLockTime << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_DUP << OP_HASH160 << ToByteVector(keyID) << OP_EQUALVERIFY << OP_CHECKSIG;
+        return true;
+    }
+
+    bool operator()(const CScriptID &scriptID) const {
+        script->clear();
+        *script << nLockTime << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_HASH160 << ToByteVector(scriptID) << OP_EQUAL;
+        return true;
+    }
+};
+}
+
 CScript GetScriptForDestination(const CTxDestination& dest)
 {
     CScript script;
 
     boost::apply_visitor(CScriptVisitor(&script), dest);
+    return script;
+}
+
+CScript GetLockedScriptForDestination(const CTxDestination& dest, int nLockTime)
+{
+    CScript script;
+
+    boost::apply_visitor(CLockedScriptVisitor(&script, nLockTime), dest);
     return script;
 }
 

@@ -16,7 +16,7 @@
 #include <QSslConfiguration>
 
 const QString urlHiveVotingPortal = "https://vote.smartcash.cc/api/v1/";
-const QString urlHiveVotingPortalTestnet = "https://votesmartcashtest.azurewebsites.net/api/v1/";
+const QString urlHiveVotingPortalTestnet = "https://testnet-vote.smrt.cash/api/v1/";
 
 SmartHiveRequest::SmartHiveRequest(QString endpoint):
     QNetworkRequest(),

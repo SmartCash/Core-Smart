@@ -49,9 +49,13 @@ public:
         SECRET_KEY,
         EXT_PUBLIC_KEY,
         EXT_SECRET_KEY,
+        PUBKEY_ADDRESS_V2,
+        SCRIPT_ADDRESS_V2,
+        SECRET_KEY_V2,
+        EXT_PUBLIC_KEY_V2,
+        EXT_SECRET_KEY_V2,
         VOTE_KEY_PUBLIC,
         VOTE_KEY_SECRET,
-        NEW_PUBKEY_ADDRESS,
         MAX_BASE58_TYPES
     };
 

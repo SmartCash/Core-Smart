@@ -32,7 +32,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -59,7 +59,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Initialize SmartRewards...</string>
+          <string>Initializing SmartRewards...</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -142,142 +142,6 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="loadingPage">
-      <layout class="QVBoxLayout" name="verticalLayout_7">
-       <item>
-        <spacer name="verticalSpacer_5">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>142</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="font">
-          <font>
-           <pointsize>29</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
-         <property name="text">
-          <string>Creating SmartRewards database...</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>30</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>80</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QProgressBar" name="loadingProgress">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QProgressBar {
-    border: 2px solid black;
-    border-radius: 5px;
-    text-align: center;
-    font-weight: bold;
-}
-
-QProgressBar::chunk {
-    background-color: #FEC60D;
-}</string>
-           </property>
-           <property name="maximum">
-            <number>100000</number>
-           </property>
-           <property name="value">
-            <number>21</number>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-           <property name="invertedAppearance">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>80</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <spacer name="verticalSpacer_6">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>142</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
      <widget class="QWidget" name="rewardsPage">
       <property name="minimumSize">
        <size>
@@ -325,7 +189,7 @@ QProgressBar::chunk {
                  </font>
                 </property>
                 <property name="text">
-                 <string>SmartRewards round</string>
+                 <string>SmartRewards Round</string>
                 </property>
                </widget>
               </item>
@@ -405,7 +269,7 @@ QProgressBar::chunk {
                </font>
               </property>
               <property name="text">
-               <string>Current reward</string>
+               <string>Current Reward Annualized</string>
               </property>
              </widget>
             </item>
@@ -609,7 +473,7 @@ QProgressBar::chunk {
           <item>
            <widget class="QPushButton" name="btnSendProofs">
             <property name="text">
-             <string>Send VoteProofs [0]</string>
+             <string>Activate Rewards [0]</string>
             </property>
            </widget>
           </item>

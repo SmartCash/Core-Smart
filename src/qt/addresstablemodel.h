@@ -26,8 +26,7 @@ public:
 
     enum ColumnIndex {
         Label = 0,   /**< User specified label */
-        AddressLegacy = 1,  /**< Bitcoin address */
-        Address = 2
+        Address = 1  /**< Bitcoin address */
     };
 
     enum RoleIndex {
@@ -64,7 +63,7 @@ public:
     /* Add an address to the model.
        Returns the added address on success, and an empty string otherwise.
      */
-    QString addRow(const QString &type, const QString &label, const QString &address);
+    QString addRow(const QString &type, const QString &label, const QString &address, int64_t lockTime = 0);
 
     /* Look up label for address in address book, if not found return empty string.
      */
@@ -90,7 +89,7 @@ private:
 public Q_SLOTS:
     /* Update address list from core.
      */
-    void updateEntry(const QString &address, const QString &addressNew, const QString &label, bool isMine, const QString &purpose, int status);
+    void updateEntry(const QString &address, const QString &label, bool isMine, const QString &purpose, int status);
 
     friend class AddressTablePriv;
 };

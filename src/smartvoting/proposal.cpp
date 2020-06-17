@@ -525,8 +525,6 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
     CScript findDataScript;
     findDataScript << OP_RETURN << ToByteVector(nExpectedHash);
 
-    CScript findHiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
-
     bool fFoundOpReturn = false;
     bool fFoundFee = false;
     for (const auto& output : txCollateral.vout) {
@@ -538,10 +536,6 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
             strError = strprintf("Invalid Script %s", txCollateral.ToString());
             LogPrintf ("CProposal::IsCollateralValid -- %s\n", strError);
             return false;
-        }
-        if(output.scriptPubKey == findHiveScript && output.nValue >= nMinFee) {
-            DBG( std::cout << "IsCollateralValid fFoundFee = true" << std::endl; );
-            fFoundFee = true;
         }
         if(output.scriptPubKey == findDataScript && output.nValue == 0) {
             DBG( std::cout << "IsCollateralValid fFoundOpReturn = true" << std::endl; );
