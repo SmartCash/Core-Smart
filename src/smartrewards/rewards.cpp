@@ -229,7 +229,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         }
 
         // Check back all the previous rounds for adding weighted balance if applicable
-        if (cache.GetCurrentRound()->number - 8 >= nFirst_1_3_Round && !eligibleAddresses.empty()) {
+        if (cache.GetCurrentRound()->number - 1 >= nFirst_1_3_Round && !eligibleAddresses.empty()) {
             int roundNumber = cache.GetCurrentRound()->number - 1;
             while (roundNumber >= nFirst_1_3_Round) {
                 CSmartRewardResultEntryList results;
@@ -261,15 +261,22 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                     // If we are at a "special round", add to the eligible balance with proper weight
                     CAmount toAdd = 0;
                     CSmartRewardEntry::BonusLevel bonus = CSmartRewardEntry::NoBonus;
-                    if (roundNumber == cache.GetCurrentRound()->number - 8) {
-                        toAdd = addressResult->entry.balance;
-                        bonus = CSmartRewardEntry::TwoMonthsBonus;
-                    } else if (roundNumber == cache.GetCurrentRound()->number - 16) {
-                        toAdd = 2 * addressResult->entry.balance;
-                        bonus = CSmartRewardEntry::FourMonthsBonus;
-                    } else if (roundNumber == cache.GetCurrentRound()->number - 26) {
-                        toAdd = 2 * addressResult->entry.balance;
-                        bonus = CSmartRewardEntry::SixMonthsBonus;
+                    if (roundNumber == cache.GetCurrentRound()->number && addressResult->entry.balance > 1000000 * COIN){
+                        toAdd += addressResult->entry.balance;
+                        bonus = CSmartRewardEntry::SuperBonus;
+                    }
+                    if (roundNumber == cache.GetCurrentRound()->number - 1) {
+                        toAdd = 0.2 * addressResult->entry.balance;
+                        bonus = CSmartRewardEntry::TwoWeekBonus;
+                        if (addressResult->entry.balance > 1000000 * COIN) bonus = CSmartRewardEntry::SuperTwoWeekBonus;
+                    } else if (roundNumber == cache.GetCurrentRound()->number - 2) {
+                        toAdd = 0.2 * addressResult->entry.balance;
+                        bonus = CSmartRewardEntry::ThreeWeekBonus;
+                        if (addressResult->entry.balance > 1000000 * COIN) bonus = CSmartRewardEntry::SuperThreeWeekBonus;
+                    } else if (roundNumber == cache.GetCurrentRound()->number - 3) {
+                        toAdd = 0.1 * addressResult->entry.balance;
+                        bonus = CSmartRewardEntry::FourWeekBonus;
+                        if (addressResult->entry.balance > 1000000 * COIN) bonus = CSmartRewardEntry::SuperFourWeekBonus;
                     }
 
                     if (toAdd > 0) {

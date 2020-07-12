@@ -212,9 +212,13 @@ public:
 
     enum BonusLevel {
       NoBonus = 0,
-      TwoMonthsBonus,
-      FourMonthsBonus,
-      SixMonthsBonus
+      SuperBonus,
+      TwoWeekBonus,
+      SuperTwoWeekBonus,
+      ThreeWeekBonus,
+      SuperThreeWeekBonus,
+      FourWeekBonus,
+      SuperFourWeekBonus
     };
 
     CSmartAddress id;
