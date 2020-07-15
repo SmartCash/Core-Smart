@@ -210,14 +210,18 @@ public:
         READWRITE(bonusLevel);
     }
 
+    // These defines must be kept in the following order:
+    //    0 -> Regular bonus levels -> 64 -> Super bonus levels
+    // Having super bonus start at 64 may help db backwards compatibility
+    // in case we want to add more levels in the future.
     enum BonusLevel {
       NoBonus = 0,
-      SuperBonus,
       TwoWeekBonus,
-      SuperTwoWeekBonus,
       ThreeWeekBonus,
-      SuperThreeWeekBonus,
       FourWeekBonus,
+      SuperBonus = 64,
+      SuperTwoWeekBonus,
+      SuperThreeWeekBonus,
       SuperFourWeekBonus
     };
 

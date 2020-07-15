@@ -18,7 +18,8 @@
 #include <boost/range/irange.hpp>
 #include <boost/thread.hpp>
 
-#define REWARDS_MAX_CACHE 400000000UL // 400MB
+#define REWARDS_MAX_CACHE        400000000UL // 400MB
+#define SUPERREWARDS_MIN_BALANCE (1000000 * COIN)
 
 CSmartRewards* prewards = NULL;
 
@@ -228,10 +229,10 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             ++entry;
         }
 
-        // Check back all the previous rounds for adding weighted balance if applicable
+        // Check back all the 4 previous rounds for adding weighted balance if applicable
         if (cache.GetCurrentRound()->number - 1 >= nFirst_1_3_Round && !eligibleAddresses.empty()) {
             int roundNumber = cache.GetCurrentRound()->number - 1;
-            while (roundNumber >= nFirst_1_3_Round) {
+            while ((roundNumber >= nFirst_1_3_Round) && (roundNumber >= cache.GetCurrentRound()->number - 4)) {
                 CSmartRewardResultEntryList results;
                 if (!GetRewardRoundResults(roundNumber, results)) {
                     break;
@@ -258,32 +259,25 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                         continue;
                     }
 
-                    // If we are at a "special round", add to the eligible balance with proper weight
-                    CAmount toAdd = 0;
-                    CSmartRewardEntry::BonusLevel bonus = CSmartRewardEntry::NoBonus;
-                    if (roundNumber == cache.GetCurrentRound()->number && addressResult->entry.balance > 1000000 * COIN){
-                        toAdd += addressResult->entry.balance;
-                        bonus = CSmartRewardEntry::SuperBonus;
-                    }
-                    if (roundNumber == cache.GetCurrentRound()->number - 1) {
-                        toAdd = 0.2 * addressResult->entry.balance;
-                        bonus = CSmartRewardEntry::TwoWeekBonus;
-                        if (addressResult->entry.balance > 1000000 * COIN) bonus = CSmartRewardEntry::SuperTwoWeekBonus;
+                    // Calculate bonus based on current round eligibility
+                    auto &cacheEntry = cache.GetEntries()->at(*address);
+                    if ((addressResult->entry.balance > SUPERREWARDS_MIN_BALANCE) &&
+                          (roundNumber == cache.GetCurrentRound()->number - 1)) {
+                        next.eligibleSmart += addressResult->entry.balance;
+                        cacheEntry->balanceEligible += addressResult->entry.balance;
+                        cacheEntry->bonusLevel = CSmartRewardEntry::SuperBonus;
                     } else if (roundNumber == cache.GetCurrentRound()->number - 2) {
-                        toAdd = 0.2 * addressResult->entry.balance;
-                        bonus = CSmartRewardEntry::ThreeWeekBonus;
-                        if (addressResult->entry.balance > 1000000 * COIN) bonus = CSmartRewardEntry::SuperThreeWeekBonus;
+                        next.eligibleSmart += 0.2 * addressResult->entry.balance;
+                        cacheEntry->balanceEligible += 0.2 * addressResult->entry.balance;
+                        cacheEntry->bonusLevel++;
                     } else if (roundNumber == cache.GetCurrentRound()->number - 3) {
-                        toAdd = 0.1 * addressResult->entry.balance;
-                        bonus = CSmartRewardEntry::FourWeekBonus;
-                        if (addressResult->entry.balance > 1000000 * COIN) bonus = CSmartRewardEntry::SuperFourWeekBonus;
-                    }
-
-                    if (toAdd > 0) {
-                        auto &cacheEntry = cache.GetEntries()->at(*address);
-                        cacheEntry->balanceEligible += toAdd;
-                        cacheEntry->bonusLevel = bonus;
-                        next.eligibleSmart += toAdd;
+                        next.eligibleSmart += 0.2 * addressResult->entry.balance;
+                        cacheEntry->balanceEligible += 0.2 * addressResult->entry.balance;
+                        cacheEntry->bonusLevel++;
+                    } else if (roundNumber == cache.GetCurrentRound()->number - 4) {
+                        next.eligibleSmart += 0.1 * addressResult->entry.balance;
+                        cacheEntry->balanceEligible += 0.1 * addressResult->entry.balance;
+                        cacheEntry->bonusLevel++;
                     }
 
                     address++;
