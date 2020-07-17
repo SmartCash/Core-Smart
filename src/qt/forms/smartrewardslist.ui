@@ -185,7 +185,7 @@
                <widget class="QLabel" name="label_17">
                 <property name="font">
                  <font>
-                  <pointsize>17</pointsize>
+                  <pointsize>14</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -203,7 +203,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>17</pointsize>
+                  <pointsize>14</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -227,11 +227,11 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>13</pointsize>
+                  <pointsize>12</pointsize>
                  </font>
                 </property>
                 <property name="text">
-                 <string>Round ends</string>
+                 <string>Round ends in</string>
                 </property>
                </widget>
               </item>
@@ -245,7 +245,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>13</pointsize>
+                  <pointsize>12</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -265,7 +265,8 @@
              <widget class="QLabel" name="label_21">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
+                <bold>true</bold>
                </font>
               </property>
               <property name="text">
@@ -279,7 +280,7 @@
              <widget class="QLabel" name="label_211">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -291,13 +292,13 @@
              <widget class="QLabel" name="percentLabel">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
@@ -309,7 +310,7 @@
              <widget class="QLabel" name="label_212">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -321,13 +322,13 @@
              <widget class="QLabel" name="percentLabelTwo">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
@@ -351,13 +352,13 @@
              <widget class="QLabel" name="percentLabelThree">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
@@ -369,7 +370,7 @@
              <widget class="QLabel" name="label_214">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -381,13 +382,13 @@
              <widget class="QLabel" name="percentLabelFour">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
@@ -401,7 +402,8 @@
              <widget class="QLabel" name="label_215">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
+                <bold>true</bold>
                </font>
               </property>
               <property name="text">
@@ -415,7 +417,7 @@
              <widget class="QLabel" name="label_216">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -427,13 +429,13 @@
              <widget class="QLabel" name="percentLabelSuper">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
@@ -445,7 +447,7 @@
              <widget class="QLabel" name="label_217">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -457,13 +459,13 @@
              <widget class="QLabel" name="percentLabelSuperTwo">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
@@ -475,7 +477,7 @@
              <widget class="QLabel" name="label_218">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -487,13 +489,13 @@
              <widget class="QLabel" name="percentLabelSuperThree">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
@@ -505,7 +507,7 @@
              <widget class="QLabel" name="label_219">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -517,13 +519,13 @@
              <widget class="QLabel" name="percentLabelSuperFour">
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
