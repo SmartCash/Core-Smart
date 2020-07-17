@@ -18,8 +18,8 @@
 #include <boost/range/irange.hpp>
 #include <boost/thread.hpp>
 
-#define REWARDS_MAX_CACHE        400000000UL // 400MB
-#define SUPERREWARDS_MIN_BALANCE (1000000 * COIN)
+#define REWARDS_MAX_CACHE        400000000UL     // 400MB
+#define SUPER_REWARDS_MIN_BALANCE_1_3 (999999 * COIN) // Reduce by 1 to allow for activation fee
 
 CSmartRewards* prewards = NULL;
 
@@ -261,7 +261,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
                     // Calculate bonus based on current round eligibility
                     auto &cacheEntry = cache.GetEntries()->at(*address);
-                    if ((addressResult->entry.balance > SUPERREWARDS_MIN_BALANCE) &&
+                    if ((addressResult->entry.balance > SUPER_REWARDS_MIN_BALANCE_1_3) &&
                           (roundNumber == cache.GetCurrentRound()->number - 1)) {
                         next.eligibleSmart += addressResult->entry.balance;
                         cacheEntry->balanceEligible += addressResult->entry.balance;

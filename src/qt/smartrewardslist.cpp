@@ -136,8 +136,29 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     }
 
     QString percentText;
+    QString percentTextTwo;
+    QString percentTextThree;
+    QString percentTextFour;
+    QString percentTextSuper;
+    QString percentTextSuperTwo;
+    QString percentTextSuperThree;
+    QString percentTextSuperFour;
     percentText.sprintf("%.2f%%", currentRound.percent * 100 * 52);
+    percentTextTwo.sprintf("%.2f%%", currentRound.percent * 120 * 52);
+    percentTextThree.sprintf("%.2f%%", currentRound.percent * 140 * 52);
+    percentTextFour.sprintf("%.2f%%", currentRound.percent * 150 * 52);
+    percentTextSuper.sprintf("%.2f%%", currentRound.percent * 200 * 52);
+    percentTextSuperTwo.sprintf("%.2f%%", currentRound.percent * 220 * 52);
+    percentTextSuperThree.sprintf("%.2f%%", currentRound.percent * 240 * 52);
+    percentTextSuperFour.sprintf("%.2f%%", currentRound.percent * 250 * 52);
     ui->percentLabel->setText(percentText);
+    ui->percentLabelTwo->setText(percentTextTwo);
+    ui->percentLabelThree->setText(percentTextThree);
+    ui->percentLabelFour->setText(percentTextFour);
+    ui->percentLabelSuper->setText(percentTextSuper);
+    ui->percentLabelSuperTwo->setText(percentTextSuperTwo);
+    ui->percentLabelSuperThree->setText(percentTextSuperThree);
+    ui->percentLabelSuperFour->setText(percentTextSuperFour);
 
     ui->roundLabel->setText(QString::number(currentRound.number));
 

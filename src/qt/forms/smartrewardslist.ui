@@ -259,17 +259,31 @@
             </item>
            </layout>
           </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_14">
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
             <item>
              <widget class="QLabel" name="label_21">
               <property name="font">
                <font>
-                <pointsize>17</pointsize>
+                <pointsize>13</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>Current Reward Annualized</string>
+               <string>Yearly Yield (Paid Weekly)</string>
+              </property>
+             </widget>
+            </item>
+           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_14">
+            <item>
+             <widget class="QLabel" name="label_211">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>SmartRewards</string>
               </property>
              </widget>
             </item>
@@ -277,7 +291,7 @@
              <widget class="QLabel" name="percentLabel">
               <property name="font">
                <font>
-                <pointsize>17</pointsize>
+                <pointsize>13</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
@@ -288,6 +302,234 @@
              </widget>
             </item>
            </layout>
+          </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_15">
+             <item>
+             <widget class="QLabel" name="label_212">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Holding 2 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelTwo">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+             <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_16">
+             <item>
+             <widget class="QLabel" name="label_213">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Holding 3 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelThree">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+             <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_17">
+             <item>
+             <widget class="QLabel" name="label_214">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Holding 4 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelFour">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>       
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QLabel" name="label_215">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Activate with 1 million Smart</string>
+              </property>
+             </widget>
+            </item>
+           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_18">
+            <item>
+             <widget class="QLabel" name="label_216">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>SuperRewards</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelSuper">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_19">
+            <item>
+             <widget class="QLabel" name="label_217">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Holding 2 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelSuperTwo">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_20">
+            <item>
+             <widget class="QLabel" name="label_218">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Holding 3 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelSuperThree">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_21">
+            <item>
+             <widget class="QLabel" name="label_219">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Holding 4 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelSuperFour">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.00%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          </layout>
           </item>
          </layout>
         </widget>

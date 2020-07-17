@@ -15,7 +15,7 @@ using namespace std;
 #define REWARDS_CACHE_ENTRIES_DEFAULT 50000
 
 static const CAmount SMART_REWARDS_MIN_BALANCE_1_2 = 1000 * COIN;
-static const CAmount SMART_REWARDS_MIN_BALANCE_1_3 = 999999900000; //10000 - fee of 0.001 in COIN
+static const CAmount SMART_REWARDS_MIN_BALANCE_1_3 = 999 * COIN; //Reduce by 1 to allow for activation fee
 
 // Seconds between current time and last blocktime which must be undershot for the rewards processing to assume its synced
 const int64_t nRewardsSyncDistance = 600;
