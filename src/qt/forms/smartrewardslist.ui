@@ -395,7 +395,7 @@
            </layout>
           </item>
          </layout>
-        </item>       
+        </item>
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_7">
             <item>
@@ -564,14 +564,33 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item row="0" column="7">
+          <item row="0" column="6">
+           <spacer name="horizontalSpacer_1">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="5">
            <widget class="QLabel" name="lblTotalRewards">
             <property name="text">
              <string>0</string>
             </property>
+            <property name="minimumSize">
+              <size>
+                <width>90</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>90</width>
+                <height>40</height>
+              </size>
+            </property>
            </widget>
           </item>
-          <item row="0" column="6">
+          <item row="0" column="4">
            <widget class="QLabel" name="label_9">
             <property name="font">
              <font>
@@ -582,9 +601,40 @@
             <property name="text">
              <string>Estimated SmartRewards</string>
             </property>
+            <property name="minimumSize">
+              <size>
+                <width>170</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>170</width>
+                <height>40</height>
+              </size>
+            </property>
            </widget>
           </item>
           <item row="0" column="3">
+           <widget class="QLabel" name="lblEligibleAddresses">
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="minimumSize">
+              <size>
+                <width>145</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>145</width>
+                <height>40</height>
+              </size>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
            <widget class="QLabel" name="label_6">
             <property name="font">
              <font>
@@ -595,12 +645,17 @@
             <property name="text">
              <string>Eligible addresses</string>
             </property>
-           </widget>
-          </item>
-          <item row="0" column="4">
-           <widget class="QLabel" name="lblEligibleAddresses">
-            <property name="text">
-             <string>0</string>
+            <property name="minimumSize">
+              <size>
+                <width>120</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>120</width>
+                <height>40</height>
+              </size>
             </property>
            </widget>
           </item>
@@ -608,6 +663,18 @@
            <widget class="QLabel" name="lblActiveAddresses">
             <property name="text">
              <string>0</string>
+            </property>
+            <property name="minimumSize">
+              <size>
+                <width>240</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>240</width>
+                <height>40</height>
+              </size>
             </property>
            </widget>
           </item>
@@ -619,36 +686,22 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="minimumSize">
+              <size>
+                <width>120</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>120</width>
+                <height>40</height>
+              </size>
+            </property>
             <property name="text">
              <string>Active addresses</string>
             </property>
            </widget>
-          </item>
-          <item row="0" column="2">
-           <spacer name="horizontalSpacer_4">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="5">
-           <spacer name="horizontalSpacer_7">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
           </item>
          </layout>
         </widget>

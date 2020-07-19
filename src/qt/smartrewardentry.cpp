@@ -102,37 +102,55 @@ void QSmartRewardEntry::setBonusText(uint8_t bonusLevel)
 {
     switch (bonusLevel) {
         case CSmartRewardEntry::SuperBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
             ui->lblBonus->setText("SuperRewards bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::TwoWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
             ui->lblBonus->setText("2 week bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::SuperTwoWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
             ui->lblBonus->setText("SuperRewards with 2 week bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::ThreeWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
             ui->lblBonus->setText("3 week bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::SuperThreeWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
             ui->lblBonus->setText("SuperRewards with 3 week bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::FourWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
             ui->lblBonus->setText("4 week bonus");
             ui->lblBonus->setVisible(true);
             break;
         case CSmartRewardEntry::SuperFourWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
             ui->lblBonus->setText("SuperRewards with 4 week bonus");
             ui->lblBonus->setVisible(true);
             break;
         default:
-            ui->lblBonus->setText("");
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
+            ui->lblBonus->setText(" ");
             ui->lblBonus->setVisible(false);
             break;
+    }
+
+    if (bonusLevel >= CSmartRewardEntry::SuperBonus) {
+      ui->lblBonusIcon->setPixmap(QPixmap(":/icons/superrewardsactivated"));
+      ui->lblBonusIcon->setVisible(true);
+    } else if (bonusLevel >= CSmartRewardEntry::NoBonus) {
+      ui->lblBonusIcon->setPixmap(QPixmap(":/icons/smartrewardsactivated"));
+      ui->lblBonusIcon->setVisible(true);
+    } else {
+      ui->lblBonusIcon->setVisible(false);
     }
 }
 

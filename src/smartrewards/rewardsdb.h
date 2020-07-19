@@ -215,7 +215,8 @@ public:
     // Having super bonus start at 64 may help db backwards compatibility
     // in case we want to add more levels in the future.
     enum BonusLevel {
-      NoBonus = 0,
+      NotEligible = 0,
+      NoBonus,
       TwoWeekBonus,
       ThreeWeekBonus,
       FourWeekBonus,
@@ -242,13 +243,13 @@ public:
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
                           activationTx(uint256()), fActivated(false),
                           smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false),
-                          bonusLevel(NoBonus) {}
+                          bonusLevel(NotEligible) {}
     CSmartRewardEntry(const CSmartAddress &address) : id(address),
                           balance(0), balanceAtStart(0), balanceEligible(0),
                           disqualifyingTx(uint256()), fDisqualifyingTx(false),
                           activationTx(uint256()), fActivated(false),
                           smartnodePaymentTx(uint256()), fSmartnodePaymentTx(false),
-                          bonusLevel(NoBonus) {}
+                          bonusLevel(NotEligible) {}
 
     friend bool operator==(const CSmartRewardEntry& a, const CSmartRewardEntry& b)
     {
