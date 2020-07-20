@@ -261,11 +261,14 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
                     // Calculate bonus based on current round eligibility
                     auto &cacheEntry = cache.GetEntries()->at(*address);
-                    if ((addressResult->entry.balance > SUPER_REWARDS_MIN_BALANCE_1_3) &&
-                          (roundNumber == cache.GetCurrentRound()->number - 1)) {
-                        next.eligibleSmart += addressResult->entry.balance;
-                        cacheEntry->balanceEligible += addressResult->entry.balance;
-                        cacheEntry->bonusLevel = CSmartRewardEntry::SuperBonus;
+                    if (roundNumber == cache.GetCurrentRound()->number - 1) {
+                        if (addressResult->entry.balance > SUPER_REWARDS_MIN_BALANCE_1_3) {
+                            next.eligibleSmart += addressResult->entry.balance;
+                            cacheEntry->balanceEligible += addressResult->entry.balance;
+                            cacheEntry->bonusLevel = CSmartRewardEntry::SuperBonus;
+                        } else {
+                            cacheEntry->bonusLevel = CSmartRewardEntry::NoBonus;
+                        }
                     } else if (roundNumber == cache.GetCurrentRound()->number - 2) {
                         next.eligibleSmart += 0.2 * addressResult->entry.balance;
                         cacheEntry->balanceEligible += 0.2 * addressResult->entry.balance;

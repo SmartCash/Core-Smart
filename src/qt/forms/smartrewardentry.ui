@@ -31,22 +31,16 @@
      </item>
      <item>
       <widget class="QLabel" name="lblAddress">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
        <property name="minimumSize">
         <size>
          <width>320</width>
-         <height>0</height>
+         <height>40</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>320</width>
-         <height>16777215</height>
+         <height>40</height>
         </size>
        </property>
        <property name="font">
@@ -57,9 +51,6 @@
        </property>
        <property name="text">
         <string>TCJDy8ZoSw7BF8jCyHDhN3QRkBwTXsPbCu</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
        </property>
        <property name="wordWrap">
         <bool>true</bool>
@@ -85,7 +76,7 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>40</width>
+       <width>25</width>
        <height>20</height>
       </size>
      </property>
@@ -111,10 +102,28 @@
            <property name="text">
             <string>Eligible Amount</string>
            </property>
+           <property name="minimumSize">
+            <size>
+             <width>240</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>320</width>
+             <height>16777215</height>
+            </size>
+           </property>
           </widget>
          </item>
          <item>
           <widget class="QLabel" name="lblBonus">
+            <property name="minimumSize">
+             <size>
+              <width>240</width>
+              <height>40</height>
+             </size>
+            </property>
             <property name="font">
              <font>
               <weight>75</weight>
@@ -123,6 +132,9 @@
             </property>
             <property name="styleSheet">
              <string notr="true">color: rgb(60, 179, 113);</string>
+            </property>
+            <property name="text">
+              <string> </string>
             </property>
           </widget>
          </item>
@@ -145,7 +157,7 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>40</width>
+           <width>35</width>
            <height>20</height>
           </size>
          </property>
@@ -154,7 +166,7 @@
        <item>
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
-          <widget class="QLabel" name="label_2">
+          <widget class="QLabel" name="lblEstimatedRewards">
            <property name="font">
             <font>
              <weight>75</weight>
@@ -165,6 +177,9 @@
             <string>Estimated SmartReward</string>
            </property>
           </widget>
+         </item>
+         <item>
+           <widget class="QLabel" name="lblBonusIcon"/>
          </item>
          <item>
           <widget class="QLabel" name="lblEstimated">
@@ -185,7 +200,7 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>40</width>
+           <width>60</width>
            <height>20</height>
           </size>
          </property>

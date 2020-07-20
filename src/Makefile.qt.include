@@ -335,6 +335,8 @@ RES_ICONS = \
   qt/res/icons/smartnodes.png \
   qt/res/icons/smarthive.png \
   qt/res/icons/smartrewards.png \
+  qt/res/icons/smartrewardsactivated.png \
+  qt/res/icons/superrewardsactivated.png \
   qt/res/icons/synced.png \
   qt/res/icons/transaction0.png \
   qt/res/icons/transaction2.png \
