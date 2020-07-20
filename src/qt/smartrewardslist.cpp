@@ -389,7 +389,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             if( field.fIsSmartNode ){
                 entry->setInfoText("Address belongs to a SmartNode.", COLOR_NEGATIVE);
             }else if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE_1_3 ){
-                entry->setInfoText(QString("Qualified balance is only %1 SMART at the round's startblock. Minimum required: %2 SMART. It can be activated now but it will not receive rewards until it has enough funds.").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
+                entry->setInfoText(QString("Qualified balance is only %1 SMART at the round's startblock. Minimum required: %2 SMART. It can be activated now but it will not receive rewards until it has enough funds.").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(1 + SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
             }else if( !field.disqualifyingTx.IsNull() ){
                 entry->setDisqualifyingTx(field.disqualifyingTx);
                 entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1. It can be activated now but it will not receive any rewards until it becomes eligible").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
@@ -404,7 +404,7 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
             entry->setMinBalance(SMART_REWARDS_MIN_BALANCE_1_2);
 
             if( field.balanceAtStart < SMART_REWARDS_MIN_BALANCE_1_2 ){
-                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(1+SMART_REWARDS_MIN_BALANCE_1_2/COIN), COLOR_NEGATIVE);
+                entry->setInfoText(QString("Address only held %1 SMART at the round's startblock. Minimum required: %2 SMART").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(SMART_REWARDS_MIN_BALANCE_1_2/COIN), COLOR_NEGATIVE);
             }else if( !field.disqualifyingTx.IsNull() ){
                 entry->setDisqualifyingTx(field.disqualifyingTx);
                 entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
