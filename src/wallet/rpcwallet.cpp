@@ -647,8 +647,8 @@ UniValue sendtoaddresslocked(const UniValue& params, bool fHelp)
     // Locktime
     unsigned int nLockTime = params[2].get_int();
 
-    if( nLockTime >= LOCKTIME_THRESHOLD ){
-        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("blockheight needs to be < %d", LOCKTIME_THRESHOLD));
+    if( nLockTime >= LOCKTIME_THRESHOLD && nLocktime < 1595404442 ){
+        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("blockheight needs to be < %d or Unix time is invalid", LOCKTIME_THRESHOLD));
     }
 
     // Wallet comments
