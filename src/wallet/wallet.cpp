@@ -64,6 +64,12 @@ const uint256 CMerkleTx::ABANDON_HASH(uint256S("00000000000000000000000000000000
  * @{
  */
 
+enum LockTimeFormat {
+  UNSET = 0,
+  BLOCKTIME,
+  TIMESTAMP
+};
+
 struct CompareValueOnly {
     bool operator()(const pair <CAmount, pair<const CWalletTx *, unsigned int>> &t1,
                     const pair <CAmount, pair<const CWalletTx *, unsigned int>> &t2) const {
@@ -3043,38 +3049,6 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
     wtxNew.BindWallet(this);
     CMutableTransaction txNew;
 
-    // Discourage fee sniping.
-    //
-    // For a large miner the value of the transactions in the best block and
-    // the mempool can exceed the cost of deliberately attempting to mine two
-    // blocks to orphan the current best block. By setting nLockTime such that
-    // only the next block can include the transaction, we discourage this
-    // practice as the height restricted and limited blocksize gives miners
-    // considering fee sniping fewer options for pulling off this attack.
-    //
-    // A simple way to think about this is from the wallet's point of view we
-    // always want the blockchain to move forward. By setting nLockTime this
-    // way we're basically making the statement that we only want this
-    // transaction to appear in the next block; we don't want to potentially
-    // encourage reorgs by allowing transactions to appear at lower heights
-    // than the next block in forks of the best chain.
-    //
-    // Of course, the subsidy is high enough, and transaction volume low
-    // enough, that fee sniping isn't a problem yet, but by implementing a fix
-    // now we ensure code won't be written that makes assumptions about
-    // nLockTime that preclude a fix later.
-    txNew.nLockTime = chainActive.Height();
-
-    // Secondly occasionally randomly pick a nLockTime even further back, so
-    // that transactions that are delayed after signing for whatever reason,
-    // e.g. high-latency mix networks and some CoinJoin implementations, have
-    // better privacy.
-    if (GetRandInt(10) == 0)
-        txNew.nLockTime = std::max(0, (int) txNew.nLockTime - GetRandInt(100));
-
-    assert(txNew.nLockTime <= (unsigned int) chainActive.Height());
-    assert(txNew.nLockTime < LOCKTIME_THRESHOLD);
-
     {
         LOCK2(cs_main, cs_wallet);
         {
@@ -3145,6 +3119,7 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                     return false;
                 }
 
+                enum LockTimeFormat lockTimeFmt = UNSET;
                 BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
                 {
                     CAmount nCredit = pcoin.first->vout[pcoin.second].nValue;
@@ -3157,6 +3132,72 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                     if (age != 0)
                         age += 1;
                     dPriority += (double) nCredit * age;
+
+                    // Figure out if the input is a CLTV script and the lockTime format it uses
+                    const CScript &script = pcoin.first->vout[pcoin.second].scriptPubKey;
+                    if(script.IsPayToPublicKeyHashLocked())
+                    {
+                        int nLockTimeLength = script[0];
+                        std::vector<unsigned char> lockTimeVch(script.begin() + 1, script.begin() + 1 + nLockTimeLength);
+                        if (CScriptNum(lockTimeVch, false).getint() > LOCKTIME_THRESHOLD) {
+                          if (lockTimeFmt == BLOCKTIME) {
+                            strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
+                            return false;
+                          } else {
+                            lockTimeFmt = TIMESTAMP;
+                          }
+                        } else {
+                          if (lockTimeFmt == BLOCKTIME) {
+                            strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
+                            return false;
+                          } else {
+                            lockTimeFmt = BLOCKTIME;
+                          }
+                        }
+                    }
+                }
+
+                if (lockTimeFmt == TIMESTAMP) {
+                    txNew.nLockTime = GetTime();
+
+                    // Randomize until 3h back
+                    if (GetRandInt(10) == 0)
+                        txNew.nLockTime = std::max(0, (int) txNew.nLockTime - GetRandInt(3 * 3600));
+
+                    assert(txNew.nLockTime <= (unsigned int)GetTime());
+                    assert(txNew.nLockTime > LOCKTIME_THRESHOLD);
+                } else {
+                    // Discourage fee sniping.
+                    //
+                    // For a large miner the value of the transactions in the best block and
+                    // the mempool can exceed the cost of deliberately attempting to mine two
+                    // blocks to orphan the current best block. By setting nLockTime such that
+                    // only the next block can include the transaction, we discourage this
+                    // practice as the height restricted and limited blocksize gives miners
+                    // considering fee sniping fewer options for pulling off this attack.
+                    //
+                    // A simple way to think about this is from the wallet's point of view we
+                    // always want the blockchain to move forward. By setting nLockTime this
+                    // way we're basically making the statement that we only want this
+                    // transaction to appear in the next block; we don't want to potentially
+                    // encourage reorgs by allowing transactions to appear at lower heights
+                    // than the next block in forks of the best chain.
+                    //
+                    // Of course, the subsidy is high enough, and transaction volume low
+                    // enough, that fee sniping isn't a problem yet, but by implementing a fix
+                    // now we ensure code won't be written that makes assumptions about
+                    // nLockTime that preclude a fix later.
+                    txNew.nLockTime = chainActive.Height();
+
+                    // Secondly occasionally randomly pick a nLockTime even further back, so
+                    // that transactions that are delayed after signing for whatever reason,
+                    // e.g. high-latency mix networks and some CoinJoin implementations, have
+                    // better privacy.
+                    if (GetRandInt(10) == 0)
+                        txNew.nLockTime = std::max(0, (int) txNew.nLockTime - GetRandInt(100));
+
+                    assert(txNew.nLockTime <= (unsigned int) chainActive.Height());
+                    assert(txNew.nLockTime < LOCKTIME_THRESHOLD);
                 }
 
                 const CAmount nChange = nValueIn - nValueToSelect;
