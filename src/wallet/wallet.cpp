@@ -3158,7 +3158,8 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                 }
 
                 if (lockTimeFmt == TIMESTAMP) {
-                    txNew.nLockTime = GetTime();
+                    // Use one second less than median time of past block as required by BIP113
+                    txNew.nLockTime = chainActive.Tip()->GetMedianTimePast() - 1;
 
                     // Randomize until 3h back
                     if (GetRandInt(10) == 0)
