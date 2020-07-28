@@ -3134,26 +3134,37 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                     dPriority += (double) nCredit * age;
 
                     // Figure out if the input is a CLTV script and the lockTime format it uses
-                    const CScript &script = pcoin.first->vout[pcoin.second].scriptPubKey;
-                    if(script.IsPayToPublicKeyHashLocked())
-                    {
-                        int nLockTimeLength = script[0];
-                        std::vector<unsigned char> lockTimeVch(script.begin() + 1, script.begin() + 1 + nLockTimeLength);
-                        if (CScriptNum(lockTimeVch, false).getint() > LOCKTIME_THRESHOLD) {
-                          if (lockTimeFmt == BLOCKTIME) {
-                            strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
-                            return false;
-                          } else {
-                            lockTimeFmt = TIMESTAMP;
-                          }
-                        } else {
-                          if (lockTimeFmt == BLOCKTIME) {
-                            strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
-                            return false;
-                          } else {
-                            lockTimeFmt = BLOCKTIME;
-                          }
-                        }
+                    const CTxOut &txout = pcoin.first->vout[pcoin.second];
+                    int lockTime = txout.GetLockTime();
+                    if (!lockTime && txout.scriptPubKey.IsPayToScriptHash()) {
+                       // Need to parse redeem script
+                       CTxDestination outputAddress;
+                       if (ExtractDestination(txout.scriptPubKey, outputAddress)) {
+                          const CScriptID& hash = boost::get<CScriptID>(outputAddress);
+                           CScript redeemScript;
+                           if (pwalletMain->GetCScript(hash, redeemScript)) {
+                                int nLockTimeLength = redeemScript[0];
+                                std::vector<unsigned char> lockTimeVch(redeemScript.begin() + 1,
+                                        redeemScript.begin() + 1 + nLockTimeLength);
+                                lockTime = CScriptNum(lockTimeVch, false).getint();
+                           }
+                       }
+                    }
+
+                    if (lockTime > LOCKTIME_THRESHOLD) {
+                      if (lockTimeFmt == BLOCKTIME) {
+                        strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
+                        return false;
+                      } else {
+                        lockTimeFmt = TIMESTAMP;
+                      }
+                    } else if (lockTime > 0) {
+                      if (lockTimeFmt == TIMESTAMP) {
+                        strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
+                        return false;
+                      } else {
+                        lockTimeFmt = BLOCKTIME;
+                      }
                     }
                 }
 
