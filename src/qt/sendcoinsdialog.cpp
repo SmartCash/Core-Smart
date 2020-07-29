@@ -223,6 +223,9 @@ void SendCoinsDialog::on_sendButton_clicked()
             if(entry->validate())
             {
                 recipients.append(entry->getValue());
+                if ( ui->timeLockSettings->getLockTime() && recipients.last().nLockTime)
+                   {   return;
+                   }
                 recipients.last().nLockTime = nLockTime;
             }
             else
