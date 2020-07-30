@@ -140,9 +140,9 @@ public:
 
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 11000;  // 1 week
-        consensus.nRewardsFirst_1_3_Round = 36; // Round 36 on 6/25 starts on block 1666600
+        consensus.nRewardsFirst_1_3_Round = 38; // Round 38 on 8/21 starts on block 1761600
         consensus.nRewardsPayouts_1_3_BlockStretch = 10000;
-        consensus.nRewardsPayouts_1_3_BlockPayees = 100;
+        consensus.nRewardsPayouts_1_3_BlockPayees = 500;
 
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
 
@@ -217,11 +217,12 @@ public:
             ( 1030000, uint256S("0x00000000000000d7e76cc6c30a2bece10f552123ad3c9a63beceb0d553a46f04"))
             ( 1250000, uint256S("0x00000000000036b03ca216e92c83c9d0d152c1fdfac74c1bfc0cfc1cfa00f451"))
             ( 1500000, uint256S("0x0000000000001e396ce1ea9dfde2956fef0f606a5d6cbbcb1a5ba6e1081eadf5"))
-            ( 1599000, uint256S("0x00000000000024edb61519ed6ebdf085f5dd25a0963103dc108b68e5f88604f3")),
-            1589123846, // * UNIX timestamp of last checkpoint block
-            11577739,  // * total number of transactions between genesis and last checkpoint
+            ( 1599000, uint256S("0x00000000000024edb61519ed6ebdf085f5dd25a0963103dc108b68e5f88604f3"))
+            ( 1725000, uint256S("0x0000000000002916acfe2598244cb207cd094e83c170cb5627868c522f3a0d03")),
+            1596068477, // * UNIX timestamp of last checkpoint block
+            12760325,  // * total number of transactions between genesis and last checkpoint
                         //   (the tx=... number in the SetBestChain debug.log lines)
-            33000.0     // * estimated number of transactions per day after checkpoint
+            2000.0     // * estimated number of transactions per day after checkpoint
         };
     }
 };

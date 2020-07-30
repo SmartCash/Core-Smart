@@ -224,7 +224,9 @@ void SendCoinsDialog::on_sendButton_clicked()
             {
                 recipients.append(entry->getValue());
                 if ( ui->timeLockSettings->getLockTime() && recipients.last().nLockTime)
-                   {   return;
+                   {
+                       ui->labelCoinControlChangeLabel->setText(tr("Warning: Cannot use timelocked sending to a timelocked address."));
+                       return;
                    }
                 recipients.last().nLockTime = nLockTime;
             }

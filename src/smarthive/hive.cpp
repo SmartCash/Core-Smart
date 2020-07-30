@@ -25,10 +25,10 @@ void SmartHive::Init()
         { SmartHive::Web_Legacy,                new CSmartAddress("Sgq5c4Rznibagv1aopAfPA81jac392scvm") },
         { SmartHive::Quality_Legacy,            new CSmartAddress("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8") },
 
-        { SmartHive::Support,                   new CSmartAddress("TBD") },
-        { SmartHive::Development,               new CSmartAddress("TBD") },
-        { SmartHive::Outreach,                  new CSmartAddress("TBD") },
-        { SmartHive::SmartHub,        new CSmartAddress("TBD") },
+        { SmartHive::Support,                   new CSmartAddress("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x") },
+        { SmartHive::Development,               new CSmartAddress("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF") },
+        { SmartHive::Outreach,                  new CSmartAddress("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M") },
+        { SmartHive::SmartHub,                  new CSmartAddress("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay") },
     };
 
     addressesTestnet = {
@@ -44,7 +44,7 @@ void SmartHive::Init()
         { SmartHive::Support,                   new CSmartAddress("6Tr3PdsFSm3DfN2b8vQ4Eqo7LzvZ238yXt") },
         { SmartHive::Development,               new CSmartAddress("6VE4Qzox3pEXtPLYhroepY9oiMS8YAgmJ9") },
         { SmartHive::Outreach,                  new CSmartAddress("6WNuCbGoM9ZeMYdW7uXwxNV7u4mgmBKmVY") },
-        { SmartHive::SmartHub,        new CSmartAddress("6bF1bs7A9eth2zuZqNQmCGB2jeap7fZnUE") },
+        { SmartHive::SmartHub,                  new CSmartAddress("6bF1bs7A9eth2zuZqNQmCGB2jeap7fZnUE") },
     };
 
     scriptsMainnet = {
@@ -60,7 +60,7 @@ void SmartHive::Init()
         { SmartHive::Support,                   new CScript(std::move(addressesMainnet.at(SmartHive::Support)->GetScript())) }, // Support hive multisig
         { SmartHive::Development,               new CScript(std::move(addressesMainnet.at(SmartHive::Development)->GetScript())) }, // Development hive multisig
         { SmartHive::Outreach,                  new CScript(std::move(addressesMainnet.at(SmartHive::Outreach)->GetScript())) }, // Outreach hive multisig
-        { SmartHive::SmartHub,        new CScript(std::move(addressesMainnet.at(SmartHive::SmartHub)->GetScript())) }, // Outreach hive multisig
+        { SmartHive::SmartHub,                  new CScript(std::move(addressesMainnet.at(SmartHive::SmartHub)->GetScript())) }, // Outreach hive multisig
     };
 
     scriptsTestnet = {
@@ -76,7 +76,7 @@ void SmartHive::Init()
         { SmartHive::Support,                   new CScript(std::move(addressesTestnet.at(SmartHive::Support)->GetScript())) }, // Support hive multisig
         { SmartHive::Development,               new CScript(std::move(addressesTestnet.at(SmartHive::Development)->GetScript())) }, // Development hive multisig
         { SmartHive::Outreach,                  new CScript(std::move(addressesTestnet.at(SmartHive::Outreach)->GetScript())) }, // Outreach hive multisig
-        { SmartHive::SmartHub,        new CScript(std::move(addressesTestnet.at(SmartHive::SmartHub)->GetScript())) }, // Outreach hive multisig
+        { SmartHive::SmartHub,                  new CScript(std::move(addressesTestnet.at(SmartHive::SmartHub)->GetScript())) }, // Outreach hive multisig
     };
 
     init = true;

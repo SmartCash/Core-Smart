@@ -12,7 +12,7 @@
 static const int PROTOCOL_BASE_VERSION = 90000;
 static const int PROTOCOL_MAX_VERSION = 90000 + 0xFF;
 
-static const int PROTOCOL_VERSION = 90031; //90030 for mainnet
+static const int PROTOCOL_VERSION = 90030; //90030 for mainnet
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 90013;
@@ -21,7 +21,7 @@ static const int INIT_PROTO_VERSION = 90013;
 static const int GETHEADERS_VERSION = 90020;
 
 //! disconnect from peers older than this proto version
-static const int MIN_PEER_PROTO_VERSION = 90031;  //90028 for mainnet
+static const int MIN_PEER_PROTO_VERSION = 90028;  //90028 for mainnet
 
 //! first version with multi node payments
 static const int MIN_MULTIPAYMENT_PROTO_VERSION = 90026;
