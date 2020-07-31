@@ -26,7 +26,7 @@ void SmartHive::Init()
         { SmartHive::Quality_Legacy,            new CSmartAddress("Sc61Gc2wivtuGd6recqVDqv4R38TcHqFS8") },
 
         { SmartHive::Support,                   new CSmartAddress("SW2FbVaBhU1Www855V37auQzGQd8fuLR9x") },
-        { SmartHive::Development,               new CSmartAddress("SPusYr5tUdUyRXevJg7pnCc9Sm4HEzaYZF") },
+        { SmartHive::Development,               new CSmartAddress("SQhZX34cLW86HxkUsQ8NvvHuWLHvf7HEMx") },
         { SmartHive::Outreach,                  new CSmartAddress("Siim7T5zMH3he8xxtQzhmHs4CQSuMrCV1M") },
         { SmartHive::SmartHub,                  new CSmartAddress("SNxFyszmGEAa2n2kQbzw7gguHa5a4FC7Ay") },
     };
@@ -41,10 +41,10 @@ void SmartHive::Init()
         { SmartHive::Web_Legacy,                new CSmartAddress("TBWBQ1rCXm16huegLWvSz5TCs5KzfoYaNB") },
         { SmartHive::Quality_Legacy,            new CSmartAddress("TVuTV7d5vBKyfg5j45RnnYgdo9G3ET2t2f") },
 
-        { SmartHive::Support,                   new CSmartAddress("6Tr3PdsFSm3DfN2b8vQ4Eqo7LzvZ238yXt") },
-        { SmartHive::Development,               new CSmartAddress("6VE4Qzox3pEXtPLYhroepY9oiMS8YAgmJ9") },
-        { SmartHive::Outreach,                  new CSmartAddress("6WNuCbGoM9ZeMYdW7uXwxNV7u4mgmBKmVY") },
-        { SmartHive::SmartHub,                  new CSmartAddress("6bF1bs7A9eth2zuZqNQmCGB2jeap7fZnUE") },
+        { SmartHive::Support,                   new CSmartAddress("TJyhE2G1whcwu9a9j6MB7iGsjr6QHUkXyj") },
+        { SmartHive::Development,               new CSmartAddress("TBpuM5oquHaigX2VvSSHYZ8A9bpwoJ1rGW") },
+        { SmartHive::Outreach,                  new CSmartAddress("TL9xoJS7xN97o3ENWU4AYh7opjCnWcbnab") },
+        { SmartHive::SmartHub,                  new CSmartAddress("THwN7SWCZaqyNhNaqRuVtcn5pRNKr3aujN") },
     };
 
     scriptsMainnet = {
