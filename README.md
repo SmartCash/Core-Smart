@@ -1,4 +1,4 @@
-Use 1.2.x branch for current release.   Master and development branches are untested and not compatible with current network.
+Use 1.3.x branch for current release.   Master and development branches are untested and not compatible with current network.
 ------------------------------------------------------------------------------------
 
 SmartCash Core
@@ -7,7 +7,7 @@ SmartCash Core
 https://SmartCash.CC
 
  Copyright (c) 2009 - 2016 Bitcoin Developers
- Copyright (c) 2017 - 2019 SmartCash Developers
+ Copyright (c) 2017 - 2020 SmartCash Developers
 
 What is SmartCash?
 ----------------
