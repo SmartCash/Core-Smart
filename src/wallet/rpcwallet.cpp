@@ -110,8 +110,8 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
 
-    bool fBIP65Enabled = IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
-        Params().GetConsensus());
+//    bool fBIP65Enabled = IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
+//        Params().GetConsensus());
 
     if (fHelp || params.size() > 2)
     {
@@ -121,30 +121,24 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
             "If 'account' is specified (DEPRECATED), it is added to the address book \n"
             "so payments received with the address will be credited to 'account'.\n"
             "\nArguments:\n"
-            "1. \"account\"        (string, optional) DEPRECATED. The account name for the address to be linked to. If not provided, the default account \"\" is used. It can also be set to the empty string \"\" to represent the default account. The account does not need to exist, it will be created if there is no account by the given name.\n";
-
-        if (fBIP65Enabled)
-        {
-            errorMsg +=
-                "2. locktime           (numeric, optional, default=0) Locktime. Non-0 value locks the address to be spendable until after a locking period. If locktime is less than 500000000, then it is processed as the block height at which the address becomes spendable. If locktime is greater than 500000000 then it is processed as a UNIX timestamp after which the coins attached to the address can be spent."
-                "\nResult:\n"
-                "{\n"
-                "  \"address\":\"address\",    (string) The new SmartCash address\n"
-                "  \"redeemScript\":\"hex\",  (string) The hex encoded redeem script if locktime was set\n"
-                "}\n";
-        }
-        else
-        {
-            errorMsg +=
-                "\nResult:\n"
-                "{\n"
-                "  \"address\":\"address\",    (string) The new SmartCash address\n"
-                "}\n";
-        }
-
+            "1. \"account\"        (string, optional) DEPRECATED. The account name for the address to be linked to. If not provided, the default account \"\" is used. It can also be set to the empty string \"\" to represent the default account. The account does not need to exist, it will be created if there is no account by the given name.\n"
+            "2. \"JSON format or Locktime\"    (numeric, optional, default=0) 1 will specify JSON format. Value > 1 locks the address to be spendable until after a locking period. If locktime is greater than 500000000 then it is processed as a UNIX timestamp after which the coins attached to the address can be spent.\n"
+                  "\nResult:\n"
+                  "address\n"
+                  "JSON format\n"
+                  "{\n"
+                  "  \"address\":\"address\",    (string) The new SmartCash address\n"
+                  "}\n"
+                  "With Locktime\n"
+                  "{\n"
+                  "  \"address\":\"address\",    (string) The new SmartCash address\n"
+                  "  \"redeemScript\":\"hex\",  (string) The hex encoded redeem script if locktime was set\n"
+                  "}\n";
         errorMsg +=
             "\nExamples:\n"
             + HelpExampleCli("getnewaddress", "")
+            + "getnewaddress \"\" 1       (JSON output)\n"
+            + "getnewaddress \"\" 1750000       (locked until block 1750000)\n"
             + HelpExampleRpc("getnewaddress", "");
 
         throw runtime_error(errorMsg);
@@ -158,7 +152,7 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
         strAccount = AccountFromValue(params[0]);
 
     int nLockTime = 0;
-    if (fBIP65Enabled && (params.size() > 1))
+    if ((params.size() > 1))
         nLockTime = params[1].get_int();
 
     if (!pwalletMain->IsLocked(true))
@@ -171,19 +165,22 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
     CKeyID keyID = newKey.GetID();
     UniValue obj(UniValue::VOBJ);
 
-    if (nLockTime > 0) {
+    if (nLockTime > 1) {
         CScript redeemScript = GetLockedScriptForDestination(keyID, nLockTime);
         CScriptID scriptHash(redeemScript);
         pwalletMain->AddCScript(redeemScript);
         pwalletMain->SetAddressBook(scriptHash, strAccount, "receive");
         obj.push_back(Pair("address", CBitcoinAddress(scriptHash).ToString()));
         obj.push_back(Pair("redeemScript", HexStr(redeemScript.begin(), redeemScript.end())));
-    } else {
+        return obj;
+    } else if (nLockTime == 1) {
         pwalletMain->SetAddressBook(keyID, strAccount, "receive");
         obj.push_back(Pair("address", CBitcoinAddress(keyID).ToString()));
+        return obj;
+    } else {
+        pwalletMain->SetAddressBook(keyID, strAccount, "receive");
+        return CBitcoinAddress(keyID).ToString();
     }
-
-    return obj;
 }
 
 UniValue getaddress(const UniValue& params, bool fHelp)
