@@ -174,8 +174,9 @@ public:
         vSeeds.push_back(CDNSSeedData("seed.smrt.run", "seed.smrt.run", false));
         vSeeds.push_back(CDNSSeedData("seed.smrt.best", "seed.smrt.best", false));
         vSeeds.push_back(CDNSSeedData("seed.smarts.cash", "seed.smarts.cash", false));
-        vSeeds.push_back(CDNSSeedData("seed1.smarts.cash", "seed.smarts.cash", false));
-        vSeeds.push_back(CDNSSeedData("seed2.smarts.cash", "seed.smarts.cash", false));
+        vSeeds.push_back(CDNSSeedData("seed.smarts.cash", "seed.smarts.cash", false));
+        vSeeds.push_back(CDNSSeedData("seed1.smarts.cash", "seed1.smarts.cash", false));
+        vSeeds.push_back(CDNSSeedData("seed2.smarts.cash", "seed2.smarts.cash", false));
         vSeeds.push_back(CDNSSeedData("seed1.smartcash.org", "seed1.smartcash.org", false));
         vSeeds.push_back(CDNSSeedData("seed2.smartcash.org", "seed2.smartcash.org", false));
 
