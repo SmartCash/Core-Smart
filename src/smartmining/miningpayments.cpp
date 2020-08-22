@@ -230,8 +230,8 @@ CAmount GetMiningReward(CBlockIndex * pindex, CAmount blockReward)
 
 void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward, CTxOut &outSignature, const CSmartAddress &signingAddress)
 {
-    coinbaseTx.vout[0].nValue = GetMiningReward(pindexPrev, blockReward);
-
+//    coinbaseTx.vout[0].nValue = GetMiningReward(pindexPrev+1, blockReward);
+    coinbaseTx.vout[0].nValue = nHeight >= HF_V1_3_HEIGHT ? blockReward / 100 : blockReward / 20;
     if( pwalletMain ){
 
         CSmartAddress validAddress;
