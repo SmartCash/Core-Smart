@@ -153,7 +153,7 @@ CBlockTemplate* BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, co
     CAmount blockReward = GetBlockValue(nHeight, 0, pindexPrev->GetBlockTime());
 
     // Add the SmartMining payout for the current block.
-    SmartMining::FillPayment(coinbaseTx, nHeight, pindexPrev, 4/*blockReward*/, pblock->outSignature, signingAddress);
+    SmartMining::FillPayment(coinbaseTx, nHeight, pindexPrev, blockReward, pblock->outSignature, signingAddress);
 
     // Add the SmartHive payout for the current block.
     SmartHivePayments::FillPayments(coinbaseTx,nHeight, pindexPrev->GetBlockTime(), blockReward, pblock->voutSmartHives);
