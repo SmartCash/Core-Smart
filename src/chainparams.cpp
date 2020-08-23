@@ -104,10 +104,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1510704000; // November 15th, 2017.
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000020d8ea371e16d853f4");
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000004b8dcb2b97403a5bdc");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x000000000000001c172f518793c3b9e83f202284615592f87fe3506ce964dcd4"); // 782700
+        consensus.defaultAssumeValid = uint256S("0x000000000000029c03b91dea261d213bdece8428a4cf73cffd11b6c237e41379"); // 1763000
 
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT; // not true, but it's ok as long as it's less then nSmartnodePaymentsIncreaseBlock
@@ -221,9 +221,10 @@ public:
             ( 1250000, uint256S("0x00000000000036b03ca216e92c83c9d0d152c1fdfac74c1bfc0cfc1cfa00f451"))
             ( 1500000, uint256S("0x0000000000001e396ce1ea9dfde2956fef0f606a5d6cbbcb1a5ba6e1081eadf5"))
             ( 1599000, uint256S("0x00000000000024edb61519ed6ebdf085f5dd25a0963103dc108b68e5f88604f3"))
-            ( 1725000, uint256S("0x0000000000002916acfe2598244cb207cd094e83c170cb5627868c522f3a0d03")),
-            1596068477, // * UNIX timestamp of last checkpoint block
-            12760325,  // * total number of transactions between genesis and last checkpoint
+            ( 1725000, uint256S("0x0000000000002916acfe2598244cb207cd094e83c170cb5627868c522f3a0d03"))
+            ( 1763000, uint256S("0x000000000000029c03b91dea261d213bdece8428a4cf73cffd11b6c237e41379")),
+            1598177270, // * UNIX timestamp of last checkpoint block
+            13477920,  // * total number of transactions between genesis and last checkpoint
                         //   (the tx=... number in the SetBestChain debug.log lines)
             2000.0     // * estimated number of transactions per day after checkpoint
         };
