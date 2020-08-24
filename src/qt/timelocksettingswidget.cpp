@@ -47,7 +47,7 @@ TimeLockSettingsWidget::TimeLockSettingsWidget(QWidget *parent) :
 
     timeLockCustomBlocks = new QSpinBox();
     timeLockCustomBlocks->setVisible(false);
-    timeLockCustomBlocks->setRange(1, 1000000);
+    timeLockCustomBlocks->setRange(1, 10000000);
     timeLockCustomBlocks->setValue(chainActive.Height());
 
     timeLockCustomDate = new QDateTimeEdit();
