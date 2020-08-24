@@ -405,7 +405,7 @@ UniValue smartmining(const UniValue& params, bool fHelp)
         }
 
         throw runtime_error(
-            "smartmining blocks <blockCount>\n"
+            "smartmining count <blockCount>\n"
             "<blockCount> is the number of past blocks to check.\n");
     }
 
