@@ -274,6 +274,11 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         return DuplicateAddress;
     }
 
+    if(total <= CTransaction::nMinTxFee)
+    {
+        return AmountSmallerThanFees;
+    }
+
     CAmount nBalance = getBalance(coinControl);
 
     if(total > nBalance)
