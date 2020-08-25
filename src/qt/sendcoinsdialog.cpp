@@ -613,6 +613,10 @@ void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn 
         msgParams.first = tr("Payment request expired.");
         msgParams.second = CClientUIInterface::MSG_ERROR;
         break;
+    case WalletModel::AmountSmallerThanFees:
+        msgParams.first = tr("The amount to pay is smaller than the minimum transaction fee.");
+        msgParams.second = CClientUIInterface::MSG_ERROR;
+        break;
     // included to prevent a compiler warning.
     case WalletModel::OK:
     default:
