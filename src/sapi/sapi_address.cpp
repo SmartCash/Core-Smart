@@ -51,6 +51,7 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
 static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup addressEndpoints = {
     "address",
@@ -93,6 +94,12 @@ SAPI::EndpointGroup addressEndpoints = {
                 SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::AmountRange(1,MAX_MONEY)),
                 SAPI::BodyParameter(SAPI::Keys::random,     new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true)
+            }
+        },
+        {
+            "transactions/{address}", HTTPRequest::GET, UniValue::VNULL, address_transactions,
+            {
+                // No body parameter
             }
         }
     }
@@ -173,6 +180,66 @@ static bool GetAddressesBalances(HTTPRequest* req,
 
     if( !vecBalances.size() ){
         return SAPI::Error(req, HTTPStatus::INTERNAL_SERVER_ERROR, "Balance check failed unexpected.");
+    }
+
+    return true;
+}
+
+static bool GetAddressesTransactions(HTTPRequest* req,
+                                 std::vector<std::string> vecAddr,
+                                 std::vector<std::vector<std::tuple<uint256, int, CAmount>>> &vecAddressTxs)
+{
+    SAPI::Codes code = SAPI::Valid;
+    std::vector<SAPI::Result> errors;
+
+    vecAddressTxs.clear();
+
+    for( auto addrStr : vecAddr ){
+
+        CBitcoinAddress address(addrStr);
+        uint160 hashBytes;
+        int type = 0;
+
+        if (!address.GetIndexKey(hashBytes, type)) {
+            code = SAPI::InvalidSmartCashAddress;
+            std::string message = "Invalid address: " + addrStr;
+            errors.push_back(SAPI::Result(code, message));
+            continue;
+        }
+
+        std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
+
+        if (!GetAddressIndex(hashBytes, type, addressIndex)) {
+            code = SAPI::AddressNotFound;
+            std::string message = "No information available for " + addrStr;
+            errors.push_back(SAPI::Result(code, message));
+            continue;
+        }
+
+        std::vector<std::tuple<uint256, int, CAmount>> transactions;
+        for (auto it=addressIndex.begin(); it!=addressIndex.end(); it++) {
+            // If we have multiple entries for the same tx, add up all amounts
+            auto found = std::find_if(transactions.begin(), transactions.end(),
+                [&it] (const std::tuple<uint256, int, CAmount> &t) {
+                    return std::get<0>(t) == it->first.txhash;
+            });
+
+            if (found == transactions.end()) {
+                transactions.emplace_back(it->first.txhash, it->first.blockHeight, it->second);
+            } else {
+                std::get<2>(*found) += it->second;
+            }
+        }
+
+        vecAddressTxs.push_back(transactions);
+    }
+
+    if( errors.size() ){
+        return Error(req, HTTPStatus::BAD_REQUEST, errors);
+    }
+
+    if( !vecAddressTxs.size() ){
+        return SAPI::Error(req, HTTPStatus::INTERNAL_SERVER_ERROR, "Transactions check failed unexpected.");
     }
 
     return true;
@@ -648,6 +715,45 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     LogPrint("sapi-benchmark", " Evaluate inputs: %.2fms\n", (nTime2 - nTime3) * 0.001);
     LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime3 - nTime4) * 0.001);
     LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime3 - nTime0) * 0.001);
+
+    return true;
+}
+
+static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+
+    if ( !mapPathParams.count("address") )
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/transactions/<smartcash_address>");
+
+    std::string addrStr = mapPathParams.at("address");
+    std::vector<std::vector<std::tuple<uint256, int, CAmount>>> vecResult;
+    if( !GetAddressesTransactions(req, {addrStr}, vecResult) )
+        return false;
+
+    UniValue response(UniValue::VARR);
+    for (const auto &txEntry : vecResult.front()) {
+      CBlock block;
+      CBlockIndex* pBlockindex = chainActive[std::get<1>(txEntry)];
+      if(!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus()))
+          return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+
+      int confirmations = -1;
+      // Only report confirmations if the block is on the main chain
+      if (chainActive.Contains(pBlockindex))
+          confirmations = chainActive.Height() - pBlockindex->nHeight + 1;
+
+      UniValue txValue(UniValue::VOBJ);
+      txValue.pushKV("txid", std::get<0>(txEntry).GetHex());
+      txValue.pushKV("address", addrStr);
+      txValue.pushKV("confirmations", confirmations);
+      txValue.pushKV("amount", UniValueFromAmount(abs(std::get<2>(txEntry))));
+      txValue.pushKV("direction", std::get<2>(txEntry) > 0 ? "Received" : "Sent");
+      txValue.pushKV("time", block.GetBlockTime());
+
+      response.push_back(txValue);
+    }
+
+    SAPI::WriteReply(req, response);
 
     return true;
 }
