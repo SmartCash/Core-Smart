@@ -321,7 +321,8 @@ void SendCoinsDialog::on_sendButton_clicked()
         if (nLockTime < LOCKTIME_THRESHOLD)
         {
             const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
-            unlockDateTime = QDateTime::currentDateTime().addSecs(nLockTime * nAvgBlockTime);
+            const int nSecsFromNow = nLockTime - chainActive.Height();
+            unlockDateTime = QDateTime::currentDateTime().addSecs(nSecsFromNow * nAvgBlockTime);
         }
         else
         {
