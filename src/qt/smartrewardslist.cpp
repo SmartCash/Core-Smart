@@ -395,8 +395,12 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
                      entry->setInfoText(QString("Qualified balance is only %1 SMART at the round's startblock. Minimum required: %2 SMART. It can be activated now but it will not receive rewards until it has enough funds.").arg(BitcoinUnits::format(BitcoinUnit::SMART, field.balanceAtStart)).arg(1 + SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_NEGATIVE);
                  }
             }else if( !field.disqualifyingTx.IsNull() ){
-                entry->setDisqualifyingTx(field.disqualifyingTx);
-                entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1. It can be activated now but it will not receive any rewards until it becomes eligible").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
+                 if( field.fActivated ){
+                     entry->setInfoText(QString("Address is activated but is not eligible until the balance at start of a round is above %1 SMART.").arg(1 + SMART_REWARDS_MIN_BALANCE_1_3/COIN), COLOR_WARNING);
+                 } else {
+                     entry->setDisqualifyingTx(field.disqualifyingTx);
+                     entry->setInfoText(QString("Address disqualified due to an outgoing transaction with the hash %1. It can be activated now but it will not receive any rewards until it becomes eligible").arg(QString::fromStdString(field.disqualifyingTx.ToString())), COLOR_NEGATIVE);
+                 }
             }else if( field.fActivated && !field.eligible ){
                 entry->setInfoText(QString("Address is activated but is not eligible until the next round."), COLOR_WARNING);
             }else if( field.fActivated ){
