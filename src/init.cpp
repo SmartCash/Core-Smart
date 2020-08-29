@@ -2075,6 +2075,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if(fSmartNode) {
         LogPrintf("SMARTNODE:\n");
 
+        if (!GetBoolArg("-sapi", false) || (GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT) != GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT))) {
+            return InitError(_("Smartnodes are not allowed to disable SAPI or use a port different than 8080."));
+        }
+
         std::string strSmartNodePrivKey = GetArg("-smartnodeprivkey", "");
         if(!strSmartNodePrivKey.empty()) {
             if(!CMessageSigner::GetKeysFromSecret(strSmartNodePrivKey, activeSmartnode.keySmartnode, activeSmartnode.pubKeySmartnode))
