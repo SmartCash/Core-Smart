@@ -97,9 +97,11 @@ SAPI::EndpointGroup addressEndpoints = {
             }
         },
         {
-            "transactions/{address}", HTTPRequest::GET, UniValue::VNULL, address_transactions,
+            "transactions/{address}", HTTPRequest::POST, UniValue::VOBJ, address_transactions,
             {
-                // No body parameter
+                SAPI::BodyParameter(SAPI::Keys::pageNumber,  new SAPI::Validation::IntRange(1,INT_MAX)),
+                SAPI::BodyParameter(SAPI::Keys::pageSize,    new SAPI::Validation::IntRange(1,100)),
+                SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true)
             }
         }
     }
@@ -185,61 +187,50 @@ static bool GetAddressesBalances(HTTPRequest* req,
     return true;
 }
 
-static bool GetAddressesTransactions(HTTPRequest* req,
-                                 std::vector<std::string> vecAddr,
-                                 std::vector<std::vector<std::tuple<uint256, int, CAmount>>> &vecAddressTxs)
+static bool GetAddressesTransactions(HTTPRequest* req, std::string addrStr,
+    std::vector<std::tuple<uint256, int, CAmount>> &addressTxs, int64_t pageNum, int64_t pageSize,
+    bool ascending, int64_t &totalNumTxs)
 {
-    SAPI::Codes code = SAPI::Valid;
-    std::vector<SAPI::Result> errors;
+    addressTxs.clear();
 
-    vecAddressTxs.clear();
+    CBitcoinAddress address(addrStr);
+    uint160 hashBytes;
+    int type = 0;
 
-    for( auto addrStr : vecAddr ){
+    if (!address.GetIndexKey(hashBytes, type)) {
+        return SAPI::Error(req, SAPI::InvalidSmartCashAddress, "Invalid address: " + addrStr);
+    }
 
-        CBitcoinAddress address(addrStr);
-        uint160 hashBytes;
-        int type = 0;
+    std::vector<std::pair<CAddressIndexKey, CAmount>> addressIndex;
 
-        if (!address.GetIndexKey(hashBytes, type)) {
-            code = SAPI::InvalidSmartCashAddress;
-            std::string message = "Invalid address: " + addrStr;
-            errors.push_back(SAPI::Result(code, message));
-            continue;
-        }
+    if (!GetAddressIndex(hashBytes, type, addressIndex)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "No information available for " + addrStr);
+    }
 
-        std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
+    if (!ascending) {
+        // Reverse index from newest to oldest transactions
+        std::reverse(addressIndex.begin(), addressIndex.end());
+    }
 
-        if (!GetAddressIndex(hashBytes, type, addressIndex)) {
-            code = SAPI::AddressNotFound;
-            std::string message = "No information available for " + addrStr;
-            errors.push_back(SAPI::Result(code, message));
-            continue;
-        }
+    totalNumTxs = 0;
+    int nIndexOffset = static_cast<int>((pageNum - 1) * pageSize);
+    auto tx = addressIndex.begin();
+    while (tx != addressIndex.end()) {
+        // If we have multiple entries for the same tx, add up all amounts
+        auto found = std::find_if(addressTxs.begin(), addressTxs.end(),
+            [&tx] (const std::tuple<uint256, int, CAmount> &t) {
+                return std::get<0>(t) == tx->first.txhash;
+        });
 
-        std::vector<std::tuple<uint256, int, CAmount>> transactions;
-        for (auto it=addressIndex.begin(); it!=addressIndex.end(); it++) {
-            // If we have multiple entries for the same tx, add up all amounts
-            auto found = std::find_if(transactions.begin(), transactions.end(),
-                [&it] (const std::tuple<uint256, int, CAmount> &t) {
-                    return std::get<0>(t) == it->first.txhash;
-            });
-
-            if (found == transactions.end()) {
-                transactions.emplace_back(it->first.txhash, it->first.blockHeight, it->second);
-            } else {
-                std::get<2>(*found) += it->second;
+        if (found == addressTxs.end()) {
+            if (tx > (addressIndex.begin() + nIndexOffset) && static_cast<int64_t>(addressTxs.size()) < pageSize) {
+                addressTxs.emplace_back(tx->first.txhash, tx->first.blockHeight, tx->second);
             }
+            totalNumTxs++;
+        } else {
+            std::get<2>(*found) += tx->second;
         }
-
-        vecAddressTxs.push_back(transactions);
-    }
-
-    if( errors.size() ){
-        return Error(req, HTTPStatus::BAD_REQUEST, errors);
-    }
-
-    if( !vecAddressTxs.size() ){
-        return SAPI::Error(req, HTTPStatus::INTERNAL_SERVER_ERROR, "Transactions check failed unexpected.");
+        tx++;
     }
 
     return true;
@@ -721,17 +712,27 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
 static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
+    int64_t nPageNumber = bodyParameter[SAPI::Keys::pageNumber].get_int64();
+    int64_t nPageSize = bodyParameter[SAPI::Keys::pageSize].get_int64();
+    bool fAsc = bodyParameter.exists(SAPI::Keys::ascending) ? bodyParameter[SAPI::Keys::ascending].get_bool() : false;
 
     if ( !mapPathParams.count("address") )
         return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/transactions/<smartcash_address>");
 
     std::string addrStr = mapPathParams.at("address");
-    std::vector<std::vector<std::tuple<uint256, int, CAmount>>> vecResult;
-    if( !GetAddressesTransactions(req, {addrStr}, vecResult) )
+    std::vector<std::tuple<uint256, int, CAmount>> vecResult;
+    int64_t totalNumTxs;
+    if( !GetAddressesTransactions(req, addrStr, vecResult, nPageNumber, nPageSize, fAsc, totalNumTxs) )
         return false;
 
-    UniValue response(UniValue::VARR);
-    for (const auto &txEntry : vecResult.front()) {
+    int nPages = totalNumTxs / nPageSize;
+    if (totalNumTxs % nPageSize ) nPages++;
+
+    if (nPageNumber > nPages)
+        return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
+
+    UniValue transactions(UniValue::VARR);
+    for (const auto &txEntry : vecResult) {
       CBlock block;
       CBlockIndex* pBlockindex = chainActive[std::get<1>(txEntry)];
       if(!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus()))
@@ -750,8 +751,15 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
       txValue.pushKV("direction", std::get<2>(txEntry) > 0 ? "Received" : "Sent");
       txValue.pushKV("time", block.GetBlockTime());
 
-      response.push_back(txValue);
+      transactions.push_back(txValue);
     }
+
+    UniValue response(UniValue::VOBJ);
+    response.pushKV("count", totalNumTxs);
+    response.pushKV("pages", nPages);
+    response.pushKV("page", nPageNumber);
+
+    response.pushKV("data", transactions);
 
     SAPI::WriteReply(req, response);
 
