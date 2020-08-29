@@ -21,6 +21,13 @@ extern CSAPIStatistics sapiStatistics;
 
 extern UniValue UniValueFromAmount(int64_t nAmount);
 
+static const int DEFAULT_SAPI_THREADS=4;
+static const int DEFAULT_SAPI_WORKQUEUE=16;
+static const int DEFAULT_SAPI_SERVER_TIMEOUT=30;
+static const int DEFAULT_SAPI_SERVER_PORT=8080;
+
+static const int DEFAULT_SAPI_JSON_INDENT=2;
+
 namespace SAPI{
 
 extern std::string versionSubPath;
