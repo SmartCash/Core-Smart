@@ -74,7 +74,7 @@
 #include "smarthive/hivepayments.h"
 
 #include "sapi/sapi.h"
-
+#include "sapi/sapi.cpp"
 #include <stdint.h>
 #include <stdio.h>
 #include <memory>
