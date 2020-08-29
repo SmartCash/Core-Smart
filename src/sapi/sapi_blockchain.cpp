@@ -42,48 +42,55 @@ SAPI::EndpointGroup blockchainEndpoints = {
     }
 };
 
-static UniValue GetBlockInfo(CBlockIndex *blockindex, const CBlock &block)
+static bool GetBlockInfo(HTTPRequest* req, CBlockIndex *blockindex, const CBlock &block, UniValue &blockObj)
 {
-    UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("hash", blockindex->GetBlockHash().GetHex()));
+    blockObj.push_back(Pair("hash", blockindex->GetBlockHash().GetHex()));
     int confirmations = -1;
     // Only report confirmations if the block is on the main chain
     if (chainActive.Contains(blockindex))
         confirmations = chainActive.Height() - blockindex->nHeight + 1;
-    result.push_back(Pair("confirmations", confirmations));
-    result.push_back(Pair("strippedsize", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS)));
-    result.push_back(Pair("size", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION)));
-    result.push_back(Pair("weight", (int)::GetBlockWeight(block)));
-    result.push_back(Pair("height", blockindex->nHeight));
-    result.push_back(Pair("version", block.nVersion));
-    result.push_back(Pair("versionHex", strprintf("%08x", block.nVersion)));
-    result.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
+    blockObj.push_back(Pair("confirmations", confirmations));
+    blockObj.push_back(Pair("strippedsize", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS)));
+    blockObj.push_back(Pair("size", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION)));
+    blockObj.push_back(Pair("weight", (int)::GetBlockWeight(block)));
+    blockObj.push_back(Pair("height", blockindex->nHeight));
+    blockObj.push_back(Pair("version", block.nVersion));
+    blockObj.push_back(Pair("versionHex", strprintf("%08x", block.nVersion)));
+    blockObj.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
+
     UniValue txs(UniValue::VARR);
     BOOST_FOREACH(const CTransaction&tx, block.vtx)
     {
-            txs.push_back(tx.GetHash().GetHex());
+        UniValue txObj(UniValue::VOBJ);
+        if (!GetTransactionInfo(req, tx.GetHash(), tx, txObj, false))
+            return false;
+
+        txs.push_back(txObj);
     }
-    result.push_back(Pair("tx", txs));
-    result.push_back(Pair("time", block.GetBlockTime()));
-    result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
-    result.push_back(Pair("nonce", (uint64_t)block.nNonce));
-    result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
-    result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
-    result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
+
+    blockObj.push_back(Pair("tx", txs));
+    blockObj.push_back(Pair("time", block.GetBlockTime()));
+    blockObj.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
+    blockObj.push_back(Pair("nonce", (uint64_t)block.nNonce));
+    blockObj.push_back(Pair("bits", strprintf("%08x", block.nBits)));
+    blockObj.push_back(Pair("difficulty", GetDifficulty(blockindex)));
+    blockObj.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
 
     if (blockindex->pprev)
-        result.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
+        blockObj.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
     CBlockIndex *pnext = chainActive.Next(blockindex);
     if (pnext)
-        result.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
+        blockObj.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
 
-    return result;
+    return true;
 }
 
-static bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransaction &tx, UniValue &txObj)
+bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransaction &tx, UniValue &txObj, bool showHex)
 {
-    string strHex = EncodeHexTx(tx, SERIALIZE_TRANSACTION_NO_WITNESS);
-    txObj.pushKV("hex", strHex);
+    if (showHex) {
+      string strHex = EncodeHexTx(tx, SERIALIZE_TRANSACTION_NO_WITNESS);
+      txObj.pushKV("hex", strHex);
+    }
 
     uint256 txid = tx.GetHash();
     txObj.pushKV("txid", txid.GetHex());
@@ -138,7 +145,7 @@ static bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransacti
             if (chainActive.Contains(pindex)) {
                 txObj.pushKV("height", pindex->nHeight);
                 txObj.pushKV("confirmations", 1 + chainActive.Height() - pindex->nHeight);
-                txObj.pushKV("blockTime", pindex->GetBlockTime());
+                txObj.pushKV("time", pindex->GetBlockTime());
             } else {
                 txObj.pushKV("height", -1);
                 txObj.pushKV("confirmations", 0);
@@ -219,7 +226,9 @@ static bool blockchain_block(HTTPRequest* req, const std::map<std::string, std::
     if(!ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))
         return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk");
 
-    UniValue result = GetBlockInfo(blockindex, block);
+    UniValue result(UniValue::VOBJ);
+    if (!GetBlockInfo(req, blockindex, block, result))
+        return false;
 
     SAPI::WriteReply(req, result);
 
@@ -296,7 +305,7 @@ static bool blockchain_block_transactions(HTTPRequest* req, const std::map<std::
     while(tx != block.vtx.end() && static_cast<int64_t>(txs.size()) < nPageSize )
     {
         UniValue txObj(UniValue::VOBJ);
-        if (!GetTransactionInfo(req, nHash, *tx, txObj)) {
+        if (!GetTransactionInfo(req, nHash, *tx, txObj, false)) {
             return false;
         }
         txs.push_back(txObj);
@@ -361,7 +370,10 @@ bool blockchain_blocks_latest(HTTPRequest* req, const std::map<std::string, std:
         if(!ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))
             return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
 
-        UniValue blockInfo = GetBlockInfo(blockindex, block);
+        UniValue blockInfo(UniValue::VOBJ);
+        if (!GetBlockInfo(req, blockindex, block, blockInfo))
+            return false;
+
         response.push_back(blockInfo);
     }
 
@@ -421,7 +433,10 @@ bool blockchain_blocks_range(HTTPRequest* req, const std::map<std::string, std::
         if(!ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))
             return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
 
-        UniValue blockInfo = GetBlockInfo(blockindex, block);
+        UniValue blockInfo(UniValue::VOBJ);
+        if (!GetBlockInfo(req, blockindex, block, blockInfo))
+            return false;
+
         response.push_back(blockInfo);
     }
 
@@ -463,7 +478,7 @@ bool blockchain_transactions_latest(HTTPRequest* req, const std::map<std::string
         auto tx = block.vtx.begin();
         while (tx != block.vtx.end() && numTxs) {
             UniValue txObj(UniValue::VOBJ);
-            if (!GetTransactionInfo(req, blockindex->GetBlockHash(), *tx, txObj)) {
+            if (!GetTransactionInfo(req, blockindex->GetBlockHash(), *tx, txObj, false)) {
                 return false;
             }
             response.push_back(txObj);

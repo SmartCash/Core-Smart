@@ -744,12 +744,19 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
           confirmations = chainActive.Height() - pBlockindex->nHeight + 1;
 
       UniValue txValue(UniValue::VOBJ);
-      txValue.pushKV("txid", std::get<0>(txEntry).GetHex());
       txValue.pushKV("address", addrStr);
-      txValue.pushKV("confirmations", confirmations);
       txValue.pushKV("amount", UniValueFromAmount(abs(std::get<2>(txEntry))));
       txValue.pushKV("direction", std::get<2>(txEntry) > 0 ? "Received" : "Sent");
-      txValue.pushKV("time", block.GetBlockTime());
+
+      // Find TX inside the block
+      auto tx = std::find_if(block.vtx.begin(), block.vtx.end(), [&txEntry] (const CTransaction &t) {
+          return std::get<0>(txEntry) == t.GetHash();
+      });
+
+      if (tx != block.vtx.end()) {
+        if (!GetTransactionInfo(req, block.GetHash(), *tx, txValue, false))
+            return false;
+      }
 
       transactions.push_back(txValue);
     }

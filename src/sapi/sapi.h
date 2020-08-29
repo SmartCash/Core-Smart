@@ -6,6 +6,7 @@
 #define SMARTCASH_SAPI_H
 
 #include "httpserver.h"
+#include "validation.h"
 #include "rpc/protocol.h"
 #include "rpc/server.h"
 #include <string>
@@ -20,6 +21,7 @@ class CSAPIStatistics;
 extern CSAPIStatistics sapiStatistics;
 
 extern UniValue UniValueFromAmount(int64_t nAmount);
+extern bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransaction &tx, UniValue &txObj, bool showHex);
 
 static const int DEFAULT_SAPI_THREADS=4;
 static const int DEFAULT_SAPI_WORKQUEUE=16;
