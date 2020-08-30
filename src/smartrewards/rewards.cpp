@@ -969,6 +969,11 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
         // Evaluate the round and update the next rounds parameter.
         EvaluateRound(next);
+    } else if ((TestNet() || round->number >= nRewardsFirstAutomatedRound - 1)
+            && pIndex->nHeight == (round->startBlockHeight + 10)) {
+        // Evaluate all entries at the beginning of the round to provide estimation
+        CSmartRewardRound current(*cache.GetCurrentRound());
+        EvaluateRound(current);
     }
 
     UpdatePercentage();
