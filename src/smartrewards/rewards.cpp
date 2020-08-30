@@ -296,6 +296,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         }
 
         double rpercent = next.eligibleSmart > 10000 ? ( (double)next.rewards / (double)next.eligibleSmart ) : 0;
+        //  If we are just calculating for rewards estimates don't fill results.
+        if(cache.GetCurrentBlock()->nHeight == round->startBlockHeight + 2){ return;}
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
             nReward = entry->second->IsEligible() ? CAmount(entry->second->balanceEligible * rpercent) : 0;
@@ -320,7 +322,6 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             // Reset the vote proof tx 2 cycles before the first 1.3 round.
             ++entry;
         }
-
         if( pResult->payouts.size() ){
             uint256 blockHash;
             if(!GetBlockHash(blockHash, pResult->round.startBlockHeight)) {
@@ -969,8 +970,8 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
         // Evaluate the round and update the next rounds parameter.
         EvaluateRound(next);
-    } else if ((TestNet() || round->number >= nRewardsFirstAutomatedRound - 1)
-            && pIndex->nHeight == (round->startBlockHeight + 10)) {
+    } else if (round->number >= Params().GetConsensus().nRewardsFirst_1_3_Round
+            && cache.GetCurrentBlock()->nHeight == (round->startBlockHeight + 2)) {
         // Evaluate all entries at the beginning of the round to provide estimation
         CSmartRewardRound current(*cache.GetCurrentRound());
         EvaluateRound(current);
