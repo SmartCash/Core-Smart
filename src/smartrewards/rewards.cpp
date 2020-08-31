@@ -297,7 +297,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         double rpercent = next.eligibleSmart > 10000 ? ( (double)next.rewards / (double)next.eligibleSmart ) : 0;
         //  If we are just calculating for rewards estimates don't fill results.
-        if(cache.GetCurrentBlock()->nHeight == round->startBlockHeight + 2){ return;}
+        if(cache.GetCurrentBlock()->nHeight == round->startBlockHeight + 1){ return;}
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
             nReward = entry->second->IsEligible() ? CAmount(entry->second->balanceEligible * rpercent) : 0;
@@ -971,7 +971,7 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
         // Evaluate the round and update the next rounds parameter.
         EvaluateRound(next);
     } else if (round->number >= Params().GetConsensus().nRewardsFirst_1_3_Round
-            && cache.GetCurrentBlock()->nHeight == (round->startBlockHeight + 2)) {
+            && cache.GetCurrentBlock()->nHeight == (round->startBlockHeight + 1)) {
         // Evaluate all entries at the beginning of the round to provide estimation
         CSmartRewardRound current(*cache.GetCurrentRound());
         EvaluateRound(current);
