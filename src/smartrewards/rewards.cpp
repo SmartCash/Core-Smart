@@ -154,13 +154,16 @@ void CSmartRewards::UpdatePercentage()
 
     const CSmartRewardRound *round = cache.GetCurrentRound();
 
-    double nPercent = 0.0;
-    if ( (round->eligibleSmart - round->disqualifiedSmart) > 0 ) {
+//    double nPercent = 0.0;
+
+    double nPercent = (round->eligibleSmart - round->disqualifiedSmart)  > 10000 ? ( double(round->rewards) / (round->eligibleSmart - round->disqualifiedSmart)  ) : 0;
+
+/*    if ( (round->eligibleSmart - round->disqualifiedSmart) > 0 ) {
         nPercent = double(round->rewards) / (round->eligibleSmart - round->disqualifiedSmart);
     }else{
         nPercent = 0;
     }
-
+*/
     cache.UpdateRoundPercent(nPercent);
 }
 
@@ -297,7 +300,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         double rpercent = next.eligibleSmart > 10000 ? ( (double)next.rewards / (double)next.eligibleSmart ) : 0;
         //  If we are just calculating for rewards estimates don't fill results.
-        if(cache.GetCurrentBlock()->nHeight == round->startBlockHeight + 1){ return;}
+ //       if(cache.GetCurrentBlock()->nHeight == round->startBlockHeight + 1){ return;}
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
             nReward = entry->second->IsEligible() ? CAmount(entry->second->balanceEligible * rpercent) : 0;
@@ -423,6 +426,104 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         cache.SetResult(pResult);
         cache.SetCurrentRound(next);
+
+
+
+//    if( cache.GetCurrentRound()->number >= nFirst_1_3_Round ) {
+        next.eligibleSmart = 0;
+        next.eligibleEntries = 0;
+
+//        int64_t nTime = GetTime();
+ //       int64_t nStartHeight = next.startBlockHeight - (next.endBlockHeight - next.startBlockHeight);
+ //       double dBlockReward = 0.60;
+ //       next.rewards = 0;
+
+//        while( nStartHeight <= next.startBlockHeight) next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * dBlockReward;
+        std::list<CSmartAddress> eligibleAddresses;
+        auto entry = cache.GetEntries()->begin();
+        while(entry != cache.GetEntries()->end() ) {
+// using current balance since this is balanceatstart later
+            if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
+                entry->second->balanceEligible = entry->second->balance;
+                next.eligibleSmart += entry->second->balanceEligible;
+                ++next.eligibleEntries;
+                eligibleAddresses.push_back(entry->first);
+            } else {
+                entry->second->balanceEligible = 0;
+            }
+//            entry->second->balanceAtStart = entry->second->balance;
+            ++entry;
+        }
+
+        // Check back all the 4 previous rounds for adding weighted balance if applicable
+        if (cache.GetCurrentRound()->number - 1 >= nFirst_1_3_Round && !eligibleAddresses.empty()) {
+            int roundNumber = cache.GetCurrentRound()->number - 1;
+            while ((roundNumber >= nFirst_1_3_Round) && (roundNumber >= cache.GetCurrentRound()->number - 4)) {
+                CSmartRewardResultEntryList results;
+                if (!GetRewardRoundResults(roundNumber, results)) {
+                    break;
+                }
+
+                // Iterate over all still eligible addresses
+                auto address = eligibleAddresses.begin();
+                while (address != eligibleAddresses.end()) {
+                    // Look for address in the round results
+                    auto addressResult = std::find_if(results.begin(), results.end(),
+                        [&address](const CSmartRewardResultEntry& e) -> bool {
+                            return *address == e.entry.id;
+                    });
+
+                    // If address was not in last round result => remove from list
+                    if (addressResult == results.end()) {
+                        address = eligibleAddresses.erase(address);
+                        continue;
+                    }
+
+                    // If the address balance was not eligible => remove from list
+                    if (!addressResult->entry.balanceEligible) {
+                        address = eligibleAddresses.erase(address);
+                        continue;
+                    }
+
+                    // Calculate bonus based on current round eligibility
+                    auto &cacheEntry = cache.GetEntries()->at(*address);
+                    if (roundNumber == cache.GetCurrentRound()->number - 1) {
+                        if (addressResult->entry.balance > SUPER_REWARDS_MIN_BALANCE_1_3) {
+                            next.eligibleSmart += addressResult->entry.balance;
+                            cacheEntry->balanceEligible += addressResult->entry.balance;
+                            cacheEntry->bonusLevel = CSmartRewardEntry::SuperBonus;
+                        } else {
+                            cacheEntry->bonusLevel = CSmartRewardEntry::NoBonus;
+                        }
+                    } else if (roundNumber == cache.GetCurrentRound()->number - 2) {
+                        next.eligibleSmart += 0.2 * addressResult->entry.balance;
+                        cacheEntry->balanceEligible += 0.2 * addressResult->entry.balance;
+                        cacheEntry->bonusLevel++;
+                    } else if (roundNumber == cache.GetCurrentRound()->number - 3) {
+                        next.eligibleSmart += 0.2 * addressResult->entry.balance;
+                        cacheEntry->balanceEligible += 0.2 * addressResult->entry.balance;
+                        cacheEntry->bonusLevel++;
+                    } else if (roundNumber == cache.GetCurrentRound()->number - 4) {
+                        next.eligibleSmart += 0.1 * addressResult->entry.balance;
+                        cacheEntry->balanceEligible += 0.1 * addressResult->entry.balance;
+                        cacheEntry->bonusLevel++;
+                    }
+
+                    address++;
+                }
+
+                // If there are no more eligible addresses to check, exit the loop
+                if (eligibleAddresses.empty()) {
+                    break;
+                }
+
+                roundNumber--;
+            }
+        }
+//This should get updated
+//        double rpercent = next.eligibleSmart > 10000 ? ( (double)next.rewards / (double)next.eligibleSmart ) : 0;
+
+
     }
 }
 
@@ -970,12 +1071,12 @@ bool CSmartRewards::CommitBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateRe
 
         // Evaluate the round and update the next rounds parameter.
         EvaluateRound(next);
-    } else if (round->number >= Params().GetConsensus().nRewardsFirst_1_3_Round
+/*    } else if (round->number >= Params().GetConsensus().nRewardsFirst_1_3_Round
             && cache.GetCurrentBlock()->nHeight == (round->startBlockHeight + 1)) {
         // Evaluate all entries at the beginning of the round to provide estimation
         CSmartRewardRound current(*cache.GetCurrentRound());
         EvaluateRound(current);
-    }
+*/    }
 
     UpdatePercentage();
 
