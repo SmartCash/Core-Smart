@@ -1183,7 +1183,7 @@ UniValue sendmany(const UniValue& params, bool fHelp)
             "\nSend two amounts to two different addresses:\n"
             + HelpExampleCli("sendmany", "\"\" \'{\\\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\\\":0.01,\\\"SBun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1A\\\":0.02}\'") +
             "\nSend two amounts to two different addresses setting the confirmation and comment:\n"
-            + HelpExampleCli("sendmany", "\"\" \'{\\\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\\\":0.01,\\\"SBun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1A\\\":0.02}\' 6 false \"testing\"") +
+            + HelpExampleCli("sendmany", "\"\" \'{\\\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\\\":0.01,\\\"SBun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1A\\\":0.02}\" 6 false \"testing\'") +
             "\nAs a json rpc call\n"
             + HelpExampleRpc("sendmany", "\"\", \'{\\\"v\\\":0.01,\\\"XuQQkwA4FYkq2XERzMY2CiAZhJTEDAbtcG\\\":0.02}\', 6, false, \"testing\"")
         );
