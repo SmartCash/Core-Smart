@@ -17,6 +17,7 @@ static bool smartnodes_count(HTTPRequest* req, const std::map<std::string, std::
 static bool smartnodes_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartnodes_check_one(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartnodes_check_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool smartnodes_filter_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup smartnodesEndpoints = {
     "smartnodes",
@@ -43,6 +44,13 @@ SAPI::EndpointGroup smartnodesEndpoints = {
             "check/{info}", HTTPRequest::GET, UniValue::VNULL, smartnodes_check_one,
             {
                // No body parameter
+            }
+        },
+        {
+            "filter", HTTPRequest::GET, UniValue::VOBJ, smartnodes_filter_list,
+            {
+                SAPI::BodyParameter(SAPI::Keys::status, new SAPI::Validation::String(), true),
+                SAPI::BodyParameter(SAPI::Keys::protocol, new SAPI::Validation::Int(), true)
             }
         }
     }
@@ -187,6 +195,31 @@ static bool smartnodes_check_list(HTTPRequest* req, const std::map<std::string, 
     for( auto result : vecResults ) obj.push_back(result);
 
     SAPI::WriteReply(req, obj);
+
+    return true;
+}
+
+static bool smartnodes_filter_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    std::string filterStatus = bodyParameter.exists(SAPI::Keys::status) ? bodyParameter[SAPI::Keys::status].get_str() : "*";
+    int64_t filterProtocol = bodyParameter.exists(SAPI::Keys::protocol) ? bodyParameter[SAPI::Keys::protocol].get_int64() : -1;
+
+    UniValue result(UniValue::VARR);
+
+    std::map<COutPoint, CSmartnode> mapSmartnodes = mnodeman.GetFullSmartnodeMap();
+
+    for (auto& mnpair : mapSmartnodes) {
+        CSmartnode mn = mnpair.second;
+        if (((filterStatus == "*") || (mn.GetStatus() == filterStatus)) &&
+            ((filterProtocol < 0) || (mn.nProtocolVersion == filterProtocol))) {
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV("payee", CSmartAddress(mn.pubKeyCollateralAddress.GetID()).ToString());
+            obj.pushKV("ip", mn.addr.ToString());
+            result.push_back(obj);
+        }
+    }
+
+    SAPI::WriteReply(req, result);
 
     return true;
 }
