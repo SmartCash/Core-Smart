@@ -111,6 +111,8 @@ namespace Keys{
     const std::string inputs = "inputs";
     const std::string outputs = "outputs";
     const std::string locktime = "locktime";
+    const std::string protocol = "protocol";
+    const std::string status = "status";
 }
 
 namespace Validation{
