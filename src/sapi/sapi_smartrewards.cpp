@@ -14,6 +14,18 @@
 #include "smartrewards/rewardspayments.h"
 #include "validation.h"
 
+static std::unordered_map<uint8_t, std::string> bonusLevelStr = {
+    {CSmartRewardEntry::NotEligible, "not_eligible"},
+    {CSmartRewardEntry::NoBonus, "no_bonus"},
+    {CSmartRewardEntry::TwoWeekBonus, "two_week_bonus"},
+    {CSmartRewardEntry::ThreeWeekBonus, "three_week_bonus"},
+    {CSmartRewardEntry::FourWeekBonus, "four_week_bonus"},
+    {CSmartRewardEntry::SuperBonus, "super_bonus"},
+    {CSmartRewardEntry::SuperTwoWeekBonus, "super_two_week_bonus"},
+    {CSmartRewardEntry::SuperThreeWeekBonus, "super_three_week_bonus"},
+    {CSmartRewardEntry::SuperFourWeekBonus, "super_four_week_bonus"},
+};
+
 static bool smartrewards_current(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartrewards_check_one(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
@@ -93,6 +105,7 @@ static bool CheckAddresses(HTTPRequest* req, std::vector<std::string> vecAddr, s
         obj.pushKV("is_smartnode", !entry->smartnodePaymentTx.IsNull());
         obj.pushKV("activated", entry->fActivated);
         obj.pushKV("eligible", current->number < nFirst_1_3_Round ? entry->balanceEligible > 0 : entry->IsEligible());
+        obj.pushKV("bonus_level", bonusLevelStr.count(entry->bonusLevel) ? bonusLevelStr[entry->bonusLevel] : "unknown");
 
         vecResults.push_back(obj);
     }
