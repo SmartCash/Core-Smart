@@ -47,7 +47,7 @@ SAPI::EndpointGroup smartnodesEndpoints = {
             }
         },
         {
-            "filter", HTTPRequest::GET, UniValue::VOBJ, smartnodes_filter_list,
+            "filter", HTTPRequest::POST, UniValue::VOBJ, smartnodes_filter_list,
             {
                 SAPI::BodyParameter(SAPI::Keys::status, new SAPI::Validation::String(), true),
                 SAPI::BodyParameter(SAPI::Keys::protocol, new SAPI::Validation::Int(), true)
