@@ -396,6 +396,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             if( next.number == (nFirst_1_3_Round) ){
                 entry->second->activationTx.SetNull();
                 entry->second->fActivated = false;
+                entry->second->bonusLevel = CSmartRewardEntry::NotEligible;
                 next.eligibleEntries = 0;
                 next.eligibleSmart = 0;
             }
@@ -627,6 +628,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, uint1
     if (nCurrentRound >= nFirst_1_3_Round && tx.IsActivationTx() && !rEntry->fActivated) {
         rEntry->activationTx = tx.GetHash();
         rEntry->fActivated = true;
+        rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
     }
 
     rEntry->balance -= in.nValue;
@@ -643,6 +645,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, uint1
     if (nCurrentRound >= nFirst_1_3_Round && rEntry->fActivated && !tx.IsActivationTx()) {
         rEntry->activationTx.SetNull();
         rEntry->fActivated = false;
+        rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
     }
 
     if (nCurrentRound < nFirst_1_3_Round && !rEntry->fDisqualifyingTx) {
@@ -676,6 +679,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                 if (!rEntry->fActivated) {
                     rEntry->activationTx = tx.GetHash();
                     rEntry->fActivated = true;
+                    rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
                     if ( rEntry->IsEligible() ) {
                        result.qualifiedEntries++;
                        result.qualifiedSmart += rEntry->balanceEligible;
@@ -705,6 +709,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                             result.disqualifiedSmart += rEntry->balanceEligible;
                             rEntry->activationTx.SetNull();
                             rEntry->fActivated = false;
+                            rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
                         }
                         rEntry->smartnodePaymentTx = tx.GetHash();
                         rEntry->fSmartnodePaymentTx = true;
@@ -798,6 +803,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
         if (!tx.IsActivationTx() && !rEntry->fActivated) {
             rEntry->activationTx.SetNull();
             rEntry->fActivated = false;
+            rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
             if (rEntry->disqualifyingTx == tx.GetHash()) {
                 rEntry->disqualifyingTx.SetNull();
                 rEntry->fDisqualifyingTx = false;
@@ -810,6 +816,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
             if (rEntry->activationTx == tx.GetHash()) {
                 rEntry->activationTx.SetNull();
                 rEntry->fActivated = false;
+                rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
                 --result.qualifiedEntries;
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
