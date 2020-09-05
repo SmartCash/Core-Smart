@@ -104,10 +104,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1510704000; // November 15th, 2017.
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000004b8dcb2b97403a5bdc");
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000004c9acb372cf996af15");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x000000000000029c03b91dea261d213bdece8428a4cf73cffd11b6c237e41379"); // 1763000
+        consensus.defaultAssumeValid = uint256S("0x0000000000004c1413e09c0ccc55fed6fdd1c513b907b237224b1784e68b3ab3"); // 1783802
 
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT; // not true, but it's ok as long as it's less then nSmartnodePaymentsIncreaseBlock
