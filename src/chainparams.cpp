@@ -141,7 +141,7 @@ public:
         //! 1.3 Parameter
         consensus.nRewardsBlocksPerRound_1_3 = 11000;  // 1 week
         consensus.nRewardsFirst_1_3_Round = 38; // Round 38 on 8/21 starts on block 1761600
-        consensus.nRewardsPayouts_1_3_BlockStretch = 10000;
+        consensus.nRewardsPayouts_1_3_BlockStretch = 100;   //Allows for up to 50k payees.  Highest in past has been 20k without required activation.
         consensus.nRewardsPayouts_1_3_BlockPayees = 500;
 
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
