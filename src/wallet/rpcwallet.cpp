@@ -1246,7 +1246,7 @@ UniValue sendmany(const UniValue& params, bool fHelp)
     // Check funds
     CAmount nBalance = GetAccountBalance(strAccount, nMinDepth, ISMINE_SPENDABLE, fAddLockConf);
     if (totalAmount > nBalance)
-        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds");
+        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds.  Use smartcash-cli listaccounts to check which accounts have funds");
 
     // Send
     CReserveKey keyChange(pwalletMain);
