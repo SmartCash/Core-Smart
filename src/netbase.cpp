@@ -644,7 +644,7 @@ bool LookupSubNet(const char* pszName, CSubNet& ret)
     std::vector<CNetAddr> vIP;
 
     std::string strAddress = strSubnet.substr(0, slash);
-    if (LookupHost(strAddress.c_str(), vIP, 1, false))
+    if (LookupHost(strAddress.c_str(), vIP, 1, true))
     {
         CNetAddr network = vIP[0];
         if (slash != strSubnet.npos)

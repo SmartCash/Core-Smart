@@ -77,7 +77,7 @@ CNetAddr::CNetAddr()
 
 CNetAddr::CNetAddr(const struct in_addr& ipv4Addr)
 {
-    SetRaw(NET_IPV4, (const uint8_t*)&ipv4Addr);
+    SetRaw(NET_IPV4, reinterpret_cast<const uint8_t*>(&ipv4Addr.s_addr));
 }
 
 CNetAddr::CNetAddr(const struct in6_addr& ipv6Addr)
@@ -651,7 +651,7 @@ bool CSubNet::Match(const CNetAddr &addr) const
     if (!valid || !addr.IsValid())
         return false;
     for(int x=0; x<16; ++x)
-        if ((addr.ip[x] & netmask[x]) != network.ip[x])
+        if ((network.ip[x] != 0) && ((addr.ip[x] & netmask[x]) != network.ip[x]))
             return false;
     return true;
 }
