@@ -112,32 +112,21 @@ void CSmartRewards::UpdateRoundPayoutParameter()
     int64_t nPayeeCount = round->eligibleEntries - round->disqualifiedEntries;
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
-    if (  round->number < nFirst_1_3_Round ) {
-        nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
-        nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
-    } else if ( nPayeeCount ) {
-        int64_t nBlockStretch = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch;
-        int64_t nBlocksPerRound = Params().GetConsensus().nRewardsBlocksPerRound_1_3;
-        int64_t nTempBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
-
-        nBlockPayees = std::max<int>(nTempBlockPayees, (nPayeeCount / nBlockStretch * nTempBlockPayees) + 1);
-
-        if (nPayeeCount > nBlockPayees) {
-            int64_t nStartDelayBlocks = Params().GetConsensus().nRewardsPayoutStartDelay;
-            int64_t nBlocksTarget = nStartDelayBlocks + nBlocksPerRound;
-            nBlockInterval = ((nBlockStretch * nBlockPayees) / nPayeeCount) + 1;
-            int64_t nStretchedLength = nPayeeCount / nBlockPayees * (nBlockInterval);
-
-            if (nStretchedLength > nBlocksTarget) {
-                nBlockInterval--;
-            } else if (nStretchedLength < nBlockStretch) {
-                nBlockInterval++;
-            }
-
-        } else {
-            // If its only one block to pay
-            nBlockInterval = 1;
-        }
+    if ( nPayeeCount ) {
+        if (  round->number > (nFirst_1_3_Round +1) ) {
+            nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
+            BlockInterval = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch / 20;
+            int64_t nStretchedLength = 5 * ((nPayeeCount / nBlockPayees)+1)
+        }else if (  round->number == (nFirst_1_3_Round +1) ) {
+            nBlockPayees = 1000;
+            BlockInterval = 1;
+            int64_t nStretchedLength = 1
+        }else if (  round->number == (nFirst_1_3_Round +1) ) {
+            nBlockPayees = 0;
+            BlockInterval = 0;
+        }else if (  round->number < nFirst_1_3_Round ) {
+            nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
+            nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
 
     } else {
         // If there are no eligible smartreward entries
