@@ -113,21 +113,19 @@ void CSmartRewards::UpdateRoundPayoutParameter()
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     if ( nPayeeCount ) {
-        if (  round->number > (nFirst_1_3_Round +1) ) {
+        if ( round->number > (nFirst_1_3_Round + 1) ) {
             nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
-            BlockInterval = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch / 20;
-            int64_t nStretchedLength = 5 * ((nPayeeCount / nBlockPayees)+1)
-        }else if (  round->number == (nFirst_1_3_Round +1) ) {
+            nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch / 20;
+        }else if ( round->number == (nFirst_1_3_Round + 1) ) {
             nBlockPayees = 1000;
-            BlockInterval = 1;
-            int64_t nStretchedLength = 1
-        }else if (  round->number == (nFirst_1_3_Round +1) ) {
+            nBlockInterval = 1;
+        }else if ( round->number == nFirst_1_3_Round ) {
             nBlockPayees = 0;
-            BlockInterval = 0;
-        }else if (  round->number < nFirst_1_3_Round ) {
+            nBlockInterval = 0;
+        }else if ( round->number < nFirst_1_3_Round ) {
             nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
             nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
-
+        }
     } else {
         // If there are no eligible smartreward entries
         nBlockPayees = 0;
