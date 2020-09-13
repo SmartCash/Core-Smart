@@ -135,20 +135,6 @@ bool CWalletDB::UpdateVotingKeyRegistration(const CKeyID& keyId, const uint256& 
                txHash, true);
 }
 
-bool CWalletDB::UpdateVotedMap(const CKeyID& keyId, const std::map<int64_t, uint256>& mapVoted)
-{
-    nWalletDBUpdated++;
-    return Write(std::make_pair(std::string("vmap"), keyId),
-               mapVoted, true);
-}
-
-bool CWalletDB::UpdateVoteProofs(const CKeyID& keyId, const std::map<int64_t, uint256>& mapVoteProofs)
-{
-    nWalletDBUpdated++;
-    return Write(std::make_pair(std::string("vproofs"), keyId),
-               mapVoteProofs, true);
-}
-
 bool CWalletDB::WriteVotingKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CVotingKeyMetadata& keyMeta)
 {
     nWalletDBUpdated++;
@@ -747,26 +733,6 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             wss.nVKeyRegistration++;
 
             pwallet->LoadVotingKeyRegistration(keyId, txHash);
-        }
-        else if (strType == "vmap")
-        {
-            CKeyID keyId;
-            ssKey >> keyId;
-            std::map<int64_t, uint256> mapVoted;
-            ssValue >> mapVoted;
-            wss.nMapVoted++;
-
-            pwallet->LoadVotedMap(keyId, mapVoted);
-        }
-        else if (strType == "vproofs")
-        {
-            CKeyID keyId;
-            ssKey >> keyId;
-            std::map<int64_t,  uint256> mapVoteProofs;
-            ssValue >> mapVoteProofs;
-            wss.nMapVoteProofs++;
-
-            pwallet->LoadVoteProofs(keyId, mapVoteProofs);
         }
         else if (strType == "defaultkey")
         {

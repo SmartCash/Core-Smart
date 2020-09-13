@@ -110,7 +110,8 @@ class SendConfirmationDialog : public QMessageBox
     Q_OBJECT
 
 public:
-    SendConfirmationDialog(const QString &title, const QString &text, int secDelay = 0, QWidget *parent = 0);
+    SendConfirmationDialog(const QString &title, const QString &text, int secDelay = 0,
+        QMessageBox::Icon icon = QMessageBox::Question, QWidget *parent = 0);
     int exec();
 
 private Q_SLOTS:

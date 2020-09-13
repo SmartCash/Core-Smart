@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The SmartCash Core developers
+// Copyright (c) 2017-2020 The SmartCash Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,7 +16,7 @@
 #include <QSslConfiguration>
 
 const QString urlHiveVotingPortal = "https://vote.smartcash.cc/api/v1/";
-const QString urlHiveVotingPortalTestnet = "https://votesmartcashtest.azurewebsites.net/api/v1/";
+const QString urlHiveVotingPortalTestnet = "https://testnet-vote.smrt.cash/api/v1/";
 
 SmartHiveRequest::SmartHiveRequest(QString endpoint):
     QNetworkRequest(),

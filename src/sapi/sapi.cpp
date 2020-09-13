@@ -1,4 +1,4 @@
-// Copyright (c) 2017 - 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2020 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -63,13 +63,6 @@
 
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 #include <boost/foreach.hpp>
-
-static const int DEFAULT_SAPI_THREADS=4;
-static const int DEFAULT_SAPI_WORKQUEUE=16;
-static const int DEFAULT_SAPI_SERVER_TIMEOUT=30;
-static const int DEFAULT_SAPI_SERVER_PORT=80;
-
-static const int DEFAULT_SAPI_JSON_INDENT=2;
 
 // SAPI Version
 static const int  SAPI_VERSION_MAJOR = 1;

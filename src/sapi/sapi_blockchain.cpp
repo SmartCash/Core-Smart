@@ -1,4 +1,4 @@
-// Copyright (c) 2017 - 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2020 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,6 +9,8 @@
 #include "validation.h"
 #include "checkpoints.h"
 
+#define BLOCKS_API_MAX_COUNT        10
+#define TRANSACTIONS_API_MAX_COUNT  10
 
 extern void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
 
@@ -16,6 +18,9 @@ static bool blockchain_info(HTTPRequest* req, const std::map<std::string, std::s
 static bool blockchain_height(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool blockchain_block(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool blockchain_block_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool blockchain_blocks_latest(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool blockchain_blocks_range(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool blockchain_transactions_latest(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup blockchainEndpoints = {
     "blockchain",
@@ -30,9 +35,126 @@ SAPI::EndpointGroup blockchainEndpoints = {
              SAPI::BodyParameter(SAPI::Keys::pageNumber,     new SAPI::Validation::IntRange(1,INT_MAX)),
              SAPI::BodyParameter(SAPI::Keys::pageSize,       new SAPI::Validation::IntRange(1,100))
          }
-        }
+        },
+        {"blocks/latest/{count}", HTTPRequest::GET, UniValue::VNULL, blockchain_blocks_latest, {}},
+        {"blocks/{from}/{to}", HTTPRequest::GET, UniValue::VNULL, blockchain_blocks_range, {}},
+        {"transactions/latest/{count}", HTTPRequest::GET, UniValue::VNULL, blockchain_transactions_latest, {}}
     }
 };
+
+static bool GetBlockInfo(HTTPRequest* req, CBlockIndex *blockindex, const CBlock &block, UniValue &blockObj)
+{
+    blockObj.push_back(Pair("hash", blockindex->GetBlockHash().GetHex()));
+    int confirmations = -1;
+    // Only report confirmations if the block is on the main chain
+    if (chainActive.Contains(blockindex))
+        confirmations = chainActive.Height() - blockindex->nHeight + 1;
+    blockObj.push_back(Pair("confirmations", confirmations));
+    blockObj.push_back(Pair("strippedsize", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS)));
+    blockObj.push_back(Pair("size", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION)));
+    blockObj.push_back(Pair("weight", (int)::GetBlockWeight(block)));
+    blockObj.push_back(Pair("height", blockindex->nHeight));
+    blockObj.push_back(Pair("version", block.nVersion));
+    blockObj.push_back(Pair("versionHex", strprintf("%08x", block.nVersion)));
+    blockObj.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
+
+    UniValue txs(UniValue::VARR);
+    BOOST_FOREACH(const CTransaction&tx, block.vtx)
+    {
+        UniValue txObj(UniValue::VOBJ);
+        if (!GetTransactionInfo(req, tx.GetHash(), tx, txObj, false))
+            return false;
+
+        txs.push_back(txObj);
+    }
+
+    blockObj.push_back(Pair("tx", txs));
+    blockObj.push_back(Pair("time", block.GetBlockTime()));
+    blockObj.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
+    blockObj.push_back(Pair("nonce", (uint64_t)block.nNonce));
+    blockObj.push_back(Pair("bits", strprintf("%08x", block.nBits)));
+    blockObj.push_back(Pair("difficulty", GetDifficulty(blockindex)));
+    blockObj.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
+
+    if (blockindex->pprev)
+        blockObj.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
+    CBlockIndex *pnext = chainActive.Next(blockindex);
+    if (pnext)
+        blockObj.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
+
+    return true;
+}
+
+bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransaction &tx, UniValue &txObj, bool showHex)
+{
+    if (showHex) {
+      string strHex = EncodeHexTx(tx, SERIALIZE_TRANSACTION_NO_WITNESS);
+      txObj.pushKV("hex", strHex);
+    }
+
+    uint256 txid = tx.GetHash();
+    txObj.pushKV("txid", txid.GetHex());
+    txObj.pushKV("size", (int)::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION));
+    txObj.pushKV("version", tx.nVersion);
+    txObj.pushKV("locktime", (int64_t)tx.nLockTime);
+    UniValue vin(UniValue::VARR);
+    BOOST_FOREACH(const CTxIn& txin, tx.vin) {
+
+        UniValue in(UniValue::VOBJ);
+        if (tx.IsCoinBase())
+            in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+        else {
+
+            CTransaction txInput;
+            uint256 hashBlockIn;
+            if (!GetTransaction(txin.prevout.hash, txInput, Params().GetConsensus(), hashBlockIn, false))
+                return SAPI::Error(req, SAPI::TxNotFound, "No information available about one of the inputs.");
+
+            const CTxOut& txout = txInput.vout[txin.prevout.n];
+
+            in.pushKV("txid", txin.prevout.hash.GetHex());
+            in.pushKV("value", ValueFromAmount(txout.nValue));
+            in.pushKV("n", (int64_t)txin.prevout.n);
+            UniValue o(UniValue::VOBJ);
+            ScriptPubKeyToJSON(txout.scriptPubKey, o, true);
+            in.pushKV("scriptPubKey", o);
+        }
+
+        in.pushKV("sequence", (int64_t)txin.nSequence);
+        vin.push_back(in);
+    }
+    txObj.pushKV("vin", vin);
+    UniValue vout(UniValue::VARR);
+    for (unsigned int i = 0; i < tx.vout.size(); i++) {
+        const CTxOut& txout = tx.vout[i];
+        UniValue out(UniValue::VOBJ);
+        out.pushKV("value", ValueFromAmount(txout.nValue));
+        out.pushKV("n", (int64_t)i);
+        UniValue o(UniValue::VOBJ);
+        ScriptPubKeyToJSON(txout.scriptPubKey, o, true);
+        out.pushKV("scriptPubKey", o);
+        vout.push_back(out);
+    }
+    txObj.pushKV("vout", vout);
+
+    if (!nHash.IsNull()) {
+        txObj.pushKV("blockhash", nHash.GetHex());
+        BlockMap::iterator mi = mapBlockIndex.find(nHash);
+        if (mi != mapBlockIndex.end() && (*mi).second) {
+            CBlockIndex* pindex = (*mi).second;
+            if (chainActive.Contains(pindex)) {
+                txObj.pushKV("height", pindex->nHeight);
+                txObj.pushKV("confirmations", 1 + chainActive.Height() - pindex->nHeight);
+                txObj.pushKV("time", pindex->GetBlockTime());
+            } else {
+                txObj.pushKV("height", -1);
+                txObj.pushKV("confirmations", 0);
+            }
+        }
+    }
+
+    return true;
+}
 
 static bool blockchain_info(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
@@ -105,43 +227,13 @@ static bool blockchain_block(HTTPRequest* req, const std::map<std::string, std::
         return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk");
 
     UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("hash", blockindex->GetBlockHash().GetHex()));
-    int confirmations = -1;
-    // Only report confirmations if the block is on the main chain
-    if (chainActive.Contains(blockindex))
-        confirmations = chainActive.Height() - blockindex->nHeight + 1;
-    result.push_back(Pair("confirmations", confirmations));
-    result.push_back(Pair("strippedsize", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS)));
-    result.push_back(Pair("size", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION)));
-    result.push_back(Pair("weight", (int)::GetBlockWeight(block)));
-    result.push_back(Pair("height", blockindex->nHeight));
-    result.push_back(Pair("version", block.nVersion));
-    result.push_back(Pair("versionHex", strprintf("%08x", block.nVersion)));
-    result.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
-    UniValue txs(UniValue::VARR);
-    BOOST_FOREACH(const CTransaction&tx, block.vtx)
-    {
-            txs.push_back(tx.GetHash().GetHex());
-    }
-    result.push_back(Pair("tx", txs));
-    result.push_back(Pair("time", block.GetBlockTime()));
-    result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
-    result.push_back(Pair("nonce", (uint64_t)block.nNonce));
-    result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
-    result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
-    result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
-
-    if (blockindex->pprev)
-        result.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
-    CBlockIndex *pnext = chainActive.Next(blockindex);
-    if (pnext)
-        result.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
+    if (!GetBlockInfo(req, blockindex, block, result))
+        return false;
 
     SAPI::WriteReply(req, result);
 
     return true;
 }
-
 
 static bool blockchain_block_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
@@ -212,72 +304,10 @@ static bool blockchain_block_transactions(HTTPRequest* req, const std::map<std::
 
     while(tx != block.vtx.end() && static_cast<int64_t>(txs.size()) < nPageSize )
     {
-        string strHex = EncodeHexTx(*tx, SERIALIZE_TRANSACTION_NO_WITNESS);
-
         UniValue txObj(UniValue::VOBJ);
-        txObj.pushKV("hex", strHex);
-
-        uint256 txid = tx->GetHash();
-        txObj.pushKV("txid", txid.GetHex());
-        txObj.pushKV("size", (int)::GetSerializeSize(*tx, SER_NETWORK, PROTOCOL_VERSION));
-        txObj.pushKV("version", tx->nVersion);
-        txObj.pushKV("locktime", (int64_t)tx->nLockTime);
-        UniValue vin(UniValue::VARR);
-        BOOST_FOREACH(const CTxIn& txin, tx->vin) {
-
-            UniValue in(UniValue::VOBJ);
-            if (tx->IsCoinBase())
-                in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
-            else {
-
-                CTransaction txInput;
-                uint256 hashBlockIn;
-                if (!GetTransaction(txin.prevout.hash, txInput, Params().GetConsensus(), hashBlockIn, false))
-                    return SAPI::Error(req, SAPI::TxNotFound, "No information available about one of the inputs.");
-
-                const CTxOut& txout = txInput.vout[txin.prevout.n];
-
-                in.pushKV("txid", txin.prevout.hash.GetHex());
-                in.pushKV("value", ValueFromAmount(txout.nValue));
-                in.pushKV("n", (int64_t)txin.prevout.n);
-                UniValue o(UniValue::VOBJ);
-                ScriptPubKeyToJSON(txout.scriptPubKey, o, true);
-                in.pushKV("scriptPubKey", o);
-            }
-
-            in.pushKV("sequence", (int64_t)txin.nSequence);
-            vin.push_back(in);
+        if (!GetTransactionInfo(req, nHash, *tx, txObj, false)) {
+            return false;
         }
-        txObj.pushKV("vin", vin);
-        UniValue vout(UniValue::VARR);
-        for (unsigned int i = 0; i < tx->vout.size(); i++) {
-            const CTxOut& txout = tx->vout[i];
-            UniValue out(UniValue::VOBJ);
-            out.pushKV("value", ValueFromAmount(txout.nValue));
-            out.pushKV("n", (int64_t)i);
-            UniValue o(UniValue::VOBJ);
-            ScriptPubKeyToJSON(txout.scriptPubKey, o, true);
-            out.pushKV("scriptPubKey", o);
-            vout.push_back(out);
-        }
-        txObj.pushKV("vout", vout);
-
-        if (!nHash.IsNull()) {
-            txObj.pushKV("blockhash", nHash.GetHex());
-            BlockMap::iterator mi = mapBlockIndex.find(nHash);
-            if (mi != mapBlockIndex.end() && (*mi).second) {
-                CBlockIndex* pindex = (*mi).second;
-                if (chainActive.Contains(pindex)) {
-                    txObj.pushKV("height", pindex->nHeight);
-                    txObj.pushKV("confirmations", 1 + chainActive.Height() - pindex->nHeight);
-                    txObj.pushKV("blockTime", pindex->GetBlockTime());
-                } else {
-                    txObj.pushKV("height", -1);
-                    txObj.pushKV("confirmations", 0);
-                }
-            }
-        }
-
         txs.push_back(txObj);
         ++tx;
     }
@@ -308,3 +338,157 @@ static bool blockchain_block_transactions(HTTPRequest* req, const std::map<std::
     return true;
 }
 
+bool blockchain_blocks_latest(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    int64_t count = BLOCKS_API_MAX_COUNT;
+
+    if (mapPathParams.count("count")) {
+        std::string blockInfoStr = mapPathParams.at("count");
+        if (IsInteger(blockInfoStr)) {
+            if (ParseInt64(blockInfoStr, &count)) {
+                count = count > BLOCKS_API_MAX_COUNT ? BLOCKS_API_MAX_COUNT : count;
+            }
+        }
+    }
+
+    UniValue response(UniValue::VARR);
+
+    LOCK(cs_main);
+
+    int64_t currentHeight = chainActive.Height();
+    if (currentHeight < count) {
+        count = currentHeight;
+    }
+
+    for (int i = 0; i < count; i++) {
+        CBlock block;
+        CBlockIndex* blockindex = chainActive[currentHeight - i];
+
+        if (fHavePruned && !(blockindex->nStatus & BLOCK_HAVE_DATA) && blockindex->nTx > 0)
+            return SAPI::Error(req, SAPI::BlockNotFound, "Block not available (pruned data).");
+
+        if(!ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))
+            return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+
+        UniValue blockInfo(UniValue::VOBJ);
+        if (!GetBlockInfo(req, blockindex, block, blockInfo))
+            return false;
+
+        response.push_back(blockInfo);
+    }
+
+    SAPI::WriteReply(req, response);
+
+    return true;
+}
+
+bool blockchain_blocks_range(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    UniValue response(UniValue::VARR);
+
+    LOCK(cs_main);
+
+    int64_t to = chainActive.Height();
+    int64_t from = to - BLOCKS_API_MAX_COUNT + 1;
+
+    if (mapPathParams.count("from")) {
+        std::string fromStr = mapPathParams.at("from");
+        if (IsInteger(fromStr)) {
+            if (ParseInt64(fromStr, &from)) {
+                from = from < 0 ? 0 : from;
+            }
+        }
+    }
+
+    if (mapPathParams.count("to")) {
+        std::string toStr = mapPathParams.at("to");
+        if (IsInteger(toStr)) {
+            if (ParseInt64(toStr, &to)) {
+                to = to > chainActive.Height() ? chainActive.Height() : to;
+            }
+        }
+    }
+
+    // Check that 'from' and 'to' were given in the right order
+    if (from >= to) {
+        return SAPI::Error(req, SAPI::BlockHeightOutOfRange, "Range should be in ascending order");
+    }
+
+    // If number of requested blocks is bigger than max, reduce the range
+    if ((to - from + 1) > BLOCKS_API_MAX_COUNT) {
+        to = from + BLOCKS_API_MAX_COUNT - 1;
+    }
+
+    // Clip range if out of bounds
+    from = from < 0 ? 0 : from;
+    to = to > chainActive.Height() ? chainActive.Height() : to;
+
+    for (int i = to; i >= from; i--) {
+        CBlock block;
+        CBlockIndex* blockindex = chainActive[i];
+
+        if (fHavePruned && !(blockindex->nStatus & BLOCK_HAVE_DATA) && blockindex->nTx > 0)
+            return SAPI::Error(req, SAPI::BlockNotFound, "Block not available (pruned data).");
+
+        if(!ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))
+            return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+
+        UniValue blockInfo(UniValue::VOBJ);
+        if (!GetBlockInfo(req, blockindex, block, blockInfo))
+            return false;
+
+        response.push_back(blockInfo);
+    }
+
+    SAPI::WriteReply(req, response);
+
+    return true;
+}
+
+bool blockchain_transactions_latest(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    int64_t count = TRANSACTIONS_API_MAX_COUNT;
+
+    if (mapPathParams.count("count")) {
+        std::string blockInfoStr = mapPathParams.at("count");
+        if (IsInteger(blockInfoStr)) {
+            if (ParseInt64(blockInfoStr, &count)) {
+                count = count > TRANSACTIONS_API_MAX_COUNT ? TRANSACTIONS_API_MAX_COUNT : count;
+            }
+        }
+    }
+
+    UniValue response(UniValue::VARR);
+
+    LOCK(cs_main);
+
+    int64_t nHeight = chainActive.Height();
+    int64_t numTxs = count;
+
+    while (numTxs) {
+        CBlock block;
+        CBlockIndex* blockindex = chainActive[nHeight];
+
+        if (fHavePruned && !(blockindex->nStatus & BLOCK_HAVE_DATA) && blockindex->nTx > 0)
+            return SAPI::Error(req, SAPI::BlockNotFound, "Block not available (pruned data).");
+
+        if (!ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))
+            return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+
+        auto tx = block.vtx.begin();
+        while (tx != block.vtx.end() && numTxs) {
+            UniValue txObj(UniValue::VOBJ);
+            if (!GetTransactionInfo(req, blockindex->GetBlockHash(), *tx, txObj, false)) {
+                return false;
+            }
+            response.push_back(txObj);
+            numTxs--;
+        }
+
+        nHeight--;
+    }
+
+    SAPI::WriteReply(req, response);
+
+    return true;
+}

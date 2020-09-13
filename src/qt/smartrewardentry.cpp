@@ -20,6 +20,7 @@ QSmartRewardEntry::QSmartRewardEntry(const QString& strLabel, const QString& str
 
     ui->lblLabel->setText(strLabel);
     ui->lblAddress->setText(strAddress);
+    ui->lblBonus->setVisible(false);
 
     QAction *copyAddressAction = new QAction(tr("Copy address"), this);
     QAction *copyLabelAction = new QAction(tr("Copy label"), this);
@@ -46,6 +47,11 @@ QSmartRewardEntry::QSmartRewardEntry(const QString& strLabel, const QString& str
 QSmartRewardEntry::~QSmartRewardEntry()
 {
     delete ui;
+}
+
+void QSmartRewardEntry::setMinBalance(CAmount nMinBalance)
+{
+    this->nMinBalance = nMinBalance;
 }
 
 void QSmartRewardEntry::setDisqualifyingTx(const uint256& txHash){
@@ -82,9 +88,9 @@ void QSmartRewardEntry::setEligible(CAmount nEligible, CAmount nEstimated)
     ui->lblEstimated->setText(strEstimated + " SMART");
 }
 
-void QSmartRewardEntry::setVoted(bool fState)
+void QSmartRewardEntry::setActivated(bool fState)
 {
-    fVoted = fState;
+    fActivated = fState;
 }
 
 void QSmartRewardEntry::setIsSmartNode(bool fState)
@@ -92,9 +98,60 @@ void QSmartRewardEntry::setIsSmartNode(bool fState)
     fIsSmartNode = fState;
 }
 
-void QSmartRewardEntry::setVoteProofConfirmations(int nConfirmations)
+void QSmartRewardEntry::setBonusText(uint8_t bonusLevel)
 {
-    nVoteProofConfirmations = nConfirmations;
+    switch (bonusLevel) {
+        case CSmartRewardEntry::SuperBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
+            ui->lblBonus->setText("SuperRewards bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::TwoWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
+            ui->lblBonus->setText("2 week bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::SuperTwoWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
+            ui->lblBonus->setText("SuperRewards with 2 week bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::ThreeWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
+            ui->lblBonus->setText("3 week bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::SuperThreeWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
+            ui->lblBonus->setText("SuperRewards with 3 week bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::FourWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
+            ui->lblBonus->setText("4 week bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        case CSmartRewardEntry::SuperFourWeekBonus:
+            ui->lblEstimatedRewards->setText("Estimated SuperReward");
+            ui->lblBonus->setText("SuperRewards with 4 week bonus");
+            ui->lblBonus->setVisible(true);
+            break;
+        default:
+            ui->lblEstimatedRewards->setText("Estimated SmartReward");
+            ui->lblBonus->setText(" ");
+            ui->lblBonus->setVisible(false);
+            break;
+    }
+
+    if (bonusLevel >= CSmartRewardEntry::SuperBonus) {
+      ui->lblBonusIcon->setPixmap(QPixmap(":/icons/superrewardsactivated"));
+      ui->lblBonusIcon->setVisible(true);
+    } else if (bonusLevel >= CSmartRewardEntry::NoBonus) {
+      ui->lblBonusIcon->setPixmap(QPixmap(":/icons/smartrewardsactivated"));
+      ui->lblBonusIcon->setVisible(true);
+    } else {
+      ui->lblBonusIcon->setVisible(false);
+    }
 }
 
 QString QSmartRewardEntry::Address() const
@@ -104,17 +161,11 @@ QString QSmartRewardEntry::Address() const
 
 QSmartRewardEntry::State QSmartRewardEntry::CurrentState()
 {
-    if( nBalanceAtStart < SMART_REWARDS_MIN_BALANCE ) return LowBalance;
+    if( nBalanceAtStart < nMinBalance ) return LowBalance;
 
     if( fIsSmartNode ) return IsASmartNode;
 
     if( !disqualifyingTx.IsNull() ) return OutgoingTransaction;
-
-    if( !fVoted ) return VotingRequired;
-
-    if( nVoteProofConfirmations == -1 ) return VoteProofRequired;
-
-    if( nVoteProofConfirmations < Params().GetConsensus().nRewardsConfirmationsRequired ) return VoteProofConfirmationsRequired;
 
     if( nEligible ) return IsEligible;
 

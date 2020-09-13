@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The SmartCash Core developers
+// Copyright (c) 2017-2020 The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -59,7 +59,7 @@ private:
     SmartVotingManager *votingManager;
     std::vector<SmartProposalWidget*> vecProposalWidgets;
     std::map<SmartProposal, SmartHiveVoting::Type> mapVoteProposals;
-    
+
 public Q_SLOTS:
     void updateUI();
     void updateProposalUI();
@@ -72,6 +72,5 @@ public Q_SLOTS:
     void scrollChanged(int value);
     void balanceChanged(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                         const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
-    void voteDone(QString &address, int nProposalId, bool successful);
 };
 #endif // BITCOIN_QT_SMARTVOTING_H

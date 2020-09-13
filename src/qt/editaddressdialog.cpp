@@ -7,6 +7,8 @@
 
 #include "addresstablemodel.h"
 #include "guiutil.h"
+#include "validation.h"
+#include "chainparams.h"
 
 #include <QDataWidgetMapper>
 #include <QMessageBox>
@@ -77,7 +79,8 @@ bool EditAddressDialog::saveCurrentRow()
         address = model->addRow(
                 mode == NewSendingAddress ? AddressTableModel::Send : AddressTableModel::Receive,
                 ui->labelEdit->text(),
-                ui->addressEdit->text());
+                ui->addressEdit->text(),
+                ui->timeLockSettings->getLockTime());
         break;
     case EditReceivingAddress:
     case EditSendingAddress:
@@ -142,3 +145,4 @@ void EditAddressDialog::setAddress(const QString &address)
     this->address = address;
     ui->addressEdit->setText(address);
 }
+

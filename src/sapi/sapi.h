@@ -1,4 +1,4 @@
-// Copyright (c) 2017 - 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2020 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,6 +6,7 @@
 #define SMARTCASH_SAPI_H
 
 #include "httpserver.h"
+#include "validation.h"
 #include "rpc/protocol.h"
 #include "rpc/server.h"
 #include <string>
@@ -20,6 +21,14 @@ class CSAPIStatistics;
 extern CSAPIStatistics sapiStatistics;
 
 extern UniValue UniValueFromAmount(int64_t nAmount);
+extern bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransaction &tx, UniValue &txObj, bool showHex);
+
+static const int DEFAULT_SAPI_THREADS=4;
+static const int DEFAULT_SAPI_WORKQUEUE=16;
+static const int DEFAULT_SAPI_SERVER_TIMEOUT=30;
+static const int DEFAULT_SAPI_SERVER_PORT=8080;
+
+static const int DEFAULT_SAPI_JSON_INDENT=2;
 
 namespace SAPI{
 
@@ -73,6 +82,9 @@ enum Codes{
     TxAlreadyInBlockchain,
     TxCantRelay,
     TxNotFound,
+    TxMissingTxId,
+    TxMissingVout,
+    TxInvalidParameter,
     /* smartreward errors */
     RewardsDatabaseBusy = 6000,
     NoActiveRewardRound,
@@ -96,6 +108,11 @@ namespace Keys{
     const std::string maxInputs = "maxInputs";
     const std::string height = "height";
     const std::string hash = "hash";
+    const std::string inputs = "inputs";
+    const std::string outputs = "outputs";
+    const std::string locktime = "locktime";
+    const std::string protocol = "protocol";
+    const std::string status = "status";
 }
 
 namespace Validation{
@@ -186,6 +203,36 @@ namespace Validation{
         CAmount max;
     public:
         AmountRange( CAmount min, CAmount max ) : Amount(), min(min), max(max) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class Array : public Base{
+    public:
+        Array() : Base(UniValue::VARR) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const override;
+    };
+
+    class Object : public Base{
+    public:
+        Object() : Base(UniValue::VOBJ) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const override;
+    };
+
+    class Outputs : public Object{
+    public:
+        Outputs() : Object() {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class Transaction : public Object{
+    public:
+        Transaction() : Object() {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class Transactions : public Array{
+    public:
+        Transactions() : Array() {}
         SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
     };
 

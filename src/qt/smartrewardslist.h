@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The SmartCash Core developers
+// Copyright (c) 2017-2020 The SmartCash Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -59,7 +59,6 @@ class SmartrewardsList : public QWidget
 
     enum SmartRewardsListState{
         STATE_INIT,
-        STATE_PROCESSING,
         STATE_OVERVIEW
     };
 

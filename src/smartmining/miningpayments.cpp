@@ -1,4 +1,4 @@
-// Copyright (c) 2017 - 2019 - The SmartCash Developers
+// Copyright (c) 2017 - 2020 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -220,13 +220,18 @@ static bool CheckSignature(const CBlock &block, const CBlockIndex *pindex)
 
 CAmount GetMiningReward(CBlockIndex * pindex, CAmount blockReward)
 {
+    if( pindex->nHeight < HF_V1_3_HEIGHT ){ 
     return blockReward / 20; // 5%
+    }
+    else {
+    return blockReward / 100; // 1%
+    }
 }
 
 void SmartMining::FillPayment(CMutableTransaction& coinbaseTx, int nHeight, CBlockIndex * pindexPrev, CAmount blockReward, CTxOut &outSignature, const CSmartAddress &signingAddress)
 {
-    coinbaseTx.vout[0].nValue = GetMiningReward(pindexPrev, blockReward);
-
+//    coinbaseTx.vout[0].nValue = GetMiningReward(pindexPrev+1, blockReward);
+    coinbaseTx.vout[0].nValue = nHeight >= HF_V1_3_HEIGHT ? blockReward / 100 : blockReward / 20;
     if( pwalletMain ){
 
         CSmartAddress validAddress;

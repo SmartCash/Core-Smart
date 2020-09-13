@@ -32,7 +32,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -59,7 +59,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Initialize SmartRewards...</string>
+          <string>Initializing SmartRewards...</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -142,142 +142,6 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="loadingPage">
-      <layout class="QVBoxLayout" name="verticalLayout_7">
-       <item>
-        <spacer name="verticalSpacer_5">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>142</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="font">
-          <font>
-           <pointsize>29</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
-         <property name="text">
-          <string>Creating SmartRewards database...</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>30</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>80</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QProgressBar" name="loadingProgress">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QProgressBar {
-    border: 2px solid black;
-    border-radius: 5px;
-    text-align: center;
-    font-weight: bold;
-}
-
-QProgressBar::chunk {
-    background-color: #FEC60D;
-}</string>
-           </property>
-           <property name="maximum">
-            <number>100000</number>
-           </property>
-           <property name="value">
-            <number>21</number>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-           <property name="invertedAppearance">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>80</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <spacer name="verticalSpacer_6">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>142</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
      <widget class="QWidget" name="rewardsPage">
       <property name="minimumSize">
        <size>
@@ -321,11 +185,11 @@ QProgressBar::chunk {
                <widget class="QLabel" name="label_17">
                 <property name="font">
                  <font>
-                  <pointsize>17</pointsize>
+                  <pointsize>14</pointsize>
                  </font>
                 </property>
                 <property name="text">
-                 <string>SmartRewards round</string>
+                 <string>SmartRewards Round</string>
                 </property>
                </widget>
               </item>
@@ -339,7 +203,7 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>17</pointsize>
+                  <pointsize>14</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -363,11 +227,11 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>13</pointsize>
+                  <pointsize>12</pointsize>
                  </font>
                 </property>
                 <property name="text">
-                 <string>Round ends</string>
+                 <string>Round ends in</string>
                 </property>
                </widget>
               </item>
@@ -381,7 +245,7 @@ QProgressBar::chunk {
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>13</pointsize>
+                  <pointsize>12</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -395,17 +259,32 @@ QProgressBar::chunk {
             </item>
            </layout>
           </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_14">
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
             <item>
              <widget class="QLabel" name="label_21">
               <property name="font">
                <font>
-                <pointsize>17</pointsize>
+                <pointsize>12</pointsize>
+                <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>Current reward</string>
+               <string>Yearly Yield (Paid Weekly)</string>
+              </property>
+             </widget>
+            </item>
+           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_14">
+            <item>
+             <widget class="QLabel" name="label_211">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>SmartRewards</string>
               </property>
              </widget>
             </item>
@@ -413,17 +292,306 @@ QProgressBar::chunk {
              <widget class="QLabel" name="percentLabel">
               <property name="font">
                <font>
-                <pointsize>17</pointsize>
+                <pointsize>12</pointsize>
                 <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
               <property name="text">
-               <string>0.00%</string>
+               <string>0.0%</string>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_151">
+              <item>
+              <widget class="QLabel" name="label_2111">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                </font>
+               </property>
+               <property name="text">
+               <string>SmartRewards</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="percentLabela">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>0.0%</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_15">
+             <item>
+             <widget class="QLabel" name="label_212">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Hold 2 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelTwo">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.0%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+             <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_16">
+             <item>
+             <widget class="QLabel" name="label_213">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Hold 3 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelThree">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.0%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+             <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_17">
+             <item>
+             <widget class="QLabel" name="label_214">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Hold 4 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelFour">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.0%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QLabel" name="label_215">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>1+ million Smart</string>
+              </property>
+             </widget>
+            </item>
+           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_18">
+            <item>
+             <widget class="QLabel" name="label_2112">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>SmartRewards</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelb">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.0%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_191">
+             <item>
+              <widget class="QLabel" name="label_216">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>SuperRewards</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="percentLabelSuper">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>0.0%</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_19">
+            <item>
+             <widget class="QLabel" name="label_217">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Hold 2 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelSuperTwo">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.0%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_20">
+            <item>
+             <widget class="QLabel" name="label_218">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Hold 3 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelSuperThree">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.0%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_21">
+            <item>
+             <widget class="QLabel" name="label_219">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Hold 4 weeks</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="percentLabelSuperFour">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>0.0%</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          </layout>
           </item>
          </layout>
         </widget>
@@ -456,14 +624,33 @@ QProgressBar::chunk {
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item row="0" column="7">
+          <item row="0" column="6">
+           <spacer name="horizontalSpacer_1">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="5">
            <widget class="QLabel" name="lblTotalRewards">
             <property name="text">
              <string>0</string>
             </property>
+            <property name="minimumSize">
+              <size>
+                <width>90</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>90</width>
+                <height>40</height>
+              </size>
+            </property>
            </widget>
           </item>
-          <item row="0" column="6">
+          <item row="0" column="4">
            <widget class="QLabel" name="label_9">
             <property name="font">
              <font>
@@ -474,9 +661,40 @@ QProgressBar::chunk {
             <property name="text">
              <string>Estimated SmartRewards</string>
             </property>
+            <property name="minimumSize">
+              <size>
+                <width>170</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>170</width>
+                <height>40</height>
+              </size>
+            </property>
            </widget>
           </item>
           <item row="0" column="3">
+           <widget class="QLabel" name="lblEligibleAddresses">
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="minimumSize">
+              <size>
+                <width>145</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>145</width>
+                <height>40</height>
+              </size>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
            <widget class="QLabel" name="label_6">
             <property name="font">
              <font>
@@ -487,12 +705,17 @@ QProgressBar::chunk {
             <property name="text">
              <string>Eligible addresses</string>
             </property>
-           </widget>
-          </item>
-          <item row="0" column="4">
-           <widget class="QLabel" name="lblEligibleAddresses">
-            <property name="text">
-             <string>0</string>
+            <property name="minimumSize">
+              <size>
+                <width>120</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>120</width>
+                <height>40</height>
+              </size>
             </property>
            </widget>
           </item>
@@ -500,6 +723,18 @@ QProgressBar::chunk {
            <widget class="QLabel" name="lblActiveAddresses">
             <property name="text">
              <string>0</string>
+            </property>
+            <property name="minimumSize">
+              <size>
+                <width>240</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>240</width>
+                <height>40</height>
+              </size>
             </property>
            </widget>
           </item>
@@ -511,36 +746,22 @@ QProgressBar::chunk {
               <bold>true</bold>
              </font>
             </property>
+            <property name="minimumSize">
+              <size>
+                <width>120</width>
+                <height>0</height>
+              </size>
+            </property>
+            <property name="maximumSize">
+              <size>
+                <width>120</width>
+                <height>40</height>
+              </size>
+            </property>
             <property name="text">
              <string>Active addresses</string>
             </property>
            </widget>
-          </item>
-          <item row="0" column="2">
-           <spacer name="horizontalSpacer_4">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="5">
-           <spacer name="horizontalSpacer_7">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
           </item>
          </layout>
         </widget>
@@ -609,7 +830,7 @@ QProgressBar::chunk {
           <item>
            <widget class="QPushButton" name="btnSendProofs">
             <property name="text">
-             <string>Send VoteProofs [0]</string>
+             <string>Activate Rewards [0]</string>
             </property>
            </widget>
           </item>

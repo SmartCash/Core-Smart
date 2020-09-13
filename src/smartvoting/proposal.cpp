@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2017 The Dash Core developers
-// Copyright (c) 2018 The SmartCash developers
+// Copyright (c) 2018-2020 The SmartCash developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -525,8 +525,6 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
     CScript findDataScript;
     findDataScript << OP_RETURN << ToByteVector(nExpectedHash);
 
-    CScript findHiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
-
     bool fFoundOpReturn = false;
     bool fFoundFee = false;
     for (const auto& output : txCollateral.vout) {
@@ -538,10 +536,6 @@ bool CProposal::IsCollateralValid(std::string& strError, int& fMissingConfirmati
             strError = strprintf("Invalid Script %s", txCollateral.ToString());
             LogPrintf ("CProposal::IsCollateralValid -- %s\n", strError);
             return false;
-        }
-        if(output.scriptPubKey == findHiveScript && output.nValue >= nMinFee) {
-            DBG( std::cout << "IsCollateralValid fFoundFee = true" << std::endl; );
-            fFoundFee = true;
         }
         if(output.scriptPubKey == findDataScript && output.nValue == 0) {
             DBG( std::cout << "IsCollateralValid fFoundOpReturn = true" << std::endl; );

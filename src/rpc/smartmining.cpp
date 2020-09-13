@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 The SmartCash developers
+// Copyright (c) 2018-2020 The SmartCash developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -405,7 +405,7 @@ UniValue smartmining(const UniValue& params, bool fHelp)
         }
 
         throw runtime_error(
-            "smartmining blocks <blockCount>\n"
+            "smartmining count <blockCount>\n"
             "<blockCount> is the number of past blocks to check.\n");
     }
 

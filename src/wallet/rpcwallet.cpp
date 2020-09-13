@@ -110,20 +110,39 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
     if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
 
-    if (fHelp || params.size() > 1)
-        throw runtime_error(
-            "getnewaddress ( \"account\" )\n"
+//    bool fBIP65Enabled = IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
+//        Params().GetConsensus());
+
+    if (fHelp || params.size() > 2)
+    {
+        std::string errorMsg =
+            "getnewaddress ( \"account\" locktime)\n"
             "\nReturns a new SmartCash address for receiving payments.\n"
             "If 'account' is specified (DEPRECATED), it is added to the address book \n"
             "so payments received with the address will be credited to 'account'.\n"
             "\nArguments:\n"
             "1. \"account\"        (string, optional) DEPRECATED. The account name for the address to be linked to. If not provided, the default account \"\" is used. It can also be set to the empty string \"\" to represent the default account. The account does not need to exist, it will be created if there is no account by the given name.\n"
-            "\nResult:\n"
-            "\"smartcashaddress\"    (string) The new SmartCash address\n"
+            "2. \"JSON format or Locktime\"    (numeric, optional, default=0) 1 will specify JSON format. Value > 1 locks the address to be spendable until after a locking period. If locktime is greater than 500000000 then it is processed as a UNIX timestamp after which the coins attached to the address can be spent.\n"
+                  "\nResult:\n"
+                  "address\n"
+                  "JSON format\n"
+                  "{\n"
+                  "  \"address\":\"address\",    (string) The new SmartCash address\n"
+                  "}\n"
+                  "With Locktime\n"
+                  "{\n"
+                  "  \"address\":\"address\",    (string) The new SmartCash address\n"
+                  "  \"redeemScript\":\"hex\",  (string) The hex encoded redeem script if locktime was set\n"
+                  "}\n";
+        errorMsg +=
             "\nExamples:\n"
             + HelpExampleCli("getnewaddress", "")
-            + HelpExampleRpc("getnewaddress", "")
-        );
+            + "getnewaddress \"\" 1       (JSON output)\n"
+            + "getnewaddress \"\" 1750000       (locked until block 1750000)\n"
+            + HelpExampleRpc("getnewaddress", "");
+
+        throw runtime_error(errorMsg);
+    }
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
@@ -131,6 +150,10 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
     string strAccount;
     if (params.size() > 0)
         strAccount = AccountFromValue(params[0]);
+
+    int nLockTime = 0;
+    if ((params.size() > 1))
+        nLockTime = params[1].get_int();
 
     if (!pwalletMain->IsLocked(true))
         pwalletMain->TopUpKeyPool();
@@ -140,10 +163,24 @@ UniValue getnewaddress(const UniValue& params, bool fHelp)
     if (!pwalletMain->GetKeyFromPool(newKey, false))
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     CKeyID keyID = newKey.GetID();
+    UniValue obj(UniValue::VOBJ);
 
-    pwalletMain->SetAddressBook(keyID, strAccount, "receive");
-
-    return CBitcoinAddress(keyID).ToString();
+    if (nLockTime > 1) {
+        CScript redeemScript = GetLockedScriptForDestination(keyID, nLockTime);
+        CScriptID scriptHash(redeemScript);
+        pwalletMain->AddCScript(redeemScript);
+        pwalletMain->SetAddressBook(scriptHash, strAccount, "receive");
+        obj.push_back(Pair("address", CBitcoinAddress(scriptHash).ToString()));
+        obj.push_back(Pair("redeemScript", HexStr(redeemScript.begin(), redeemScript.end())));
+        return obj;
+    } else if (nLockTime == 1) {
+        pwalletMain->SetAddressBook(keyID, strAccount, "receive");
+        obj.push_back(Pair("address", CBitcoinAddress(keyID).ToString()));
+        return obj;
+    } else {
+        pwalletMain->SetAddressBook(keyID, strAccount, "receive");
+        return CBitcoinAddress(keyID).ToString();
+    }
 }
 
 UniValue getaddress(const UniValue& params, bool fHelp)
@@ -557,6 +594,96 @@ UniValue instantsendtoaddress(const UniValue& params, bool fHelp)
     EnsureWalletIsUnlocked();
 
     SendMoney(address.Get(), nAmount, fSubtractFeeFromAmount, wtx, true);
+
+    return wtx.GetHash().GetHex();
+}
+
+
+UniValue sendtoaddresslocked(const UniValue& params, bool fHelp)
+{
+    if (!EnsureWalletIsAvailable(fHelp))
+        return NullUniValue;
+
+    if (fHelp || params.size() < 3 || params.size() > 5)
+        throw runtime_error(
+            "sendtoaddresslocked \"smartcashaddress\" amount blockheight( \"comment\" \"comment-to\" subtractfeefromamount )\n"
+            "\nSend an amount to a given address and lock the output until a future blockheight or Unix time.\n"
+            "This is not an InstantPay lock. Use sendmany or instantsendtoaddress instead.\n"
+            + HelpRequiringPassphrase() +
+            "\nArguments:\n"
+            "1. \"smartcashaddress\"  (string, required) The SmartCash address to send to.\n"
+            "2. \"amount\"      (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
+            "3. \"blockheight\" (numeric, required) The blockheight at which the output becomes spendable/unlocked. \n"
+            "                             Unix time can be used for the time available to spend.\n"
+            "                             This is impossible to reverse after sent. Please be careful.\n"
+            "4. \"comment\"     (string, optional) A comment used to store what the transaction is for. \n"
+            "                             This is not part of the transaction, just kept in your wallet.\n"
+            "5. \"comment-to\"  (string, optional) A comment to store the name of the person or organization \n"
+            "                             to which you're sending the transaction. This is not part of the \n"
+            "                             transaction, just kept in your wallet.\n"
+            "\nResult:\n"
+            "\"transactionid\"  (string) The transaction id.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 1400000")
+            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 1577132833 \"donation\" \"seans outpost\"")
+            + HelpExampleCli("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\" 0.1 1400000 \"\" \"\" true")
+            + HelpExampleRpc("sendtoaddresslocked", "\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\", 0.1, 1400000, \"donation\", \"seans outpost\"")
+        );
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    CBitcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid SmartCash address");
+
+    // Amount
+    CAmount nAmount = AmountFromValue(params[1]);
+    if (nAmount <= 0)
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
+
+    // Locktime
+    unsigned int nLockTime = params[2].get_int();
+
+    if( nLockTime >= LOCKTIME_THRESHOLD && nLockTime < 1595404442 ){
+        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("blockheight needs to be < %d or Unix time is invalid", LOCKTIME_THRESHOLD));
+    }
+
+    // Wallet comments
+    CWalletTx wtx;
+    if (params.size() > 3 && !params[3].isNull() && !params[3].get_str().empty())
+        wtx.mapValue["comment"] = params[3].get_str();
+    if (params.size() > 4 && !params[4].isNull() && !params[4].get_str().empty())
+        wtx.mapValue["to"]      = params[4].get_str();
+
+    EnsureWalletIsUnlocked();
+
+    CAmount curBalance = pwalletMain->GetBalance();
+
+    if (nAmount > curBalance)
+        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
+
+    if (pwalletMain->GetBroadcastTransactions() && !g_connman)
+        throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
+
+    // Parse SmartCash address
+    CScript scriptPubKey = GetLockedScriptForDestination(address.Get(), nLockTime);
+
+    // Create and send the transaction
+    CReserveKey reservekey(pwalletMain);
+    CAmount nFeeRequired;
+    std::string strError;
+    vector<CRecipient> vecSend;
+    int nChangePosRet = -1;
+    CRecipient recipient = {scriptPubKey, nAmount, false};
+    vecSend.push_back(recipient);
+    if (!pwalletMain->CreateTransaction(vecSend, wtx, reservekey, nFeeRequired, nChangePosRet,
+                                         strError, NULL, true, ALL_COINS, false)) {
+        if (nAmount + nFeeRequired > pwalletMain->GetBalance())
+            strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    if (!pwalletMain->CommitTransaction(wtx, reservekey, g_connman.get(), NetMsgType::TX))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: The transaction was rejected! This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
 
     return wtx.GetHash().GetHex();
 }
@@ -1054,11 +1181,11 @@ UniValue sendmany(const UniValue& params, bool fHelp)
             "                                    the number of addresses.\n"
             "\nExamples:\n"
             "\nSend two amounts to two different addresses:\n"
-            + HelpExampleCli("sendmany", "\"\" \"{\\\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\\\":0.01,\\\"SBun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1A\\\":0.02}\"") +
+            + HelpExampleCli("sendmany", "\"\" \'{\\\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\\\":0.01,\\\"SBun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1A\\\":0.02}\'") +
             "\nSend two amounts to two different addresses setting the confirmation and comment:\n"
-            + HelpExampleCli("sendmany", "\"\" \"{\\\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\\\":0.01,\\\"SBun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1A\\\":0.02}\" 6 false \"testing\"") +
+            + HelpExampleCli("sendmany", "\"\" \'{\\\"SXun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1b\\\":0.01,\\\"SBun9XDHLdBhG4Yd1ueZfLfRpC9kZgwT1A\\\":0.02}\' 6 false \"testing\"") +
             "\nAs a json rpc call\n"
-            + HelpExampleRpc("sendmany", "\"\", \"{\\\"v\\\":0.01,\\\"XuQQkwA4FYkq2XERzMY2CiAZhJTEDAbtcG\\\":0.02}\", 6, false, \"testing\"")
+            + HelpExampleRpc("sendmany", "\"\", \'{\\\"v\\\":0.01,\\\"XuQQkwA4FYkq2XERzMY2CiAZhJTEDAbtcG\\\":0.02}\', 6, false, \"testing\"")
         );
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
@@ -1119,7 +1246,7 @@ UniValue sendmany(const UniValue& params, bool fHelp)
     // Check funds
     CAmount nBalance = GetAccountBalance(strAccount, nMinDepth, ISMINE_SPENDABLE, fAddLockConf);
     if (totalAmount > nBalance)
-        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds");
+        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds.  Use smartcash-cli listaccounts to check which accounts have funds");
 
     // Send
     CReserveKey keyChange(pwalletMain);

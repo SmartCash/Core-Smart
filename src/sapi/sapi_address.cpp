@@ -1,4 +1,4 @@
-// Copyright (c) 2017 - 2018 - The SmartCash Developers
+// Copyright (c) 2017 - 2020 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -51,6 +51,7 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
 static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup addressEndpoints = {
     "address",
@@ -93,6 +94,14 @@ SAPI::EndpointGroup addressEndpoints = {
                 SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::AmountRange(1,MAX_MONEY)),
                 SAPI::BodyParameter(SAPI::Keys::random,     new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true)
+            }
+        },
+        {
+            "transactions/{address}", HTTPRequest::POST, UniValue::VOBJ, address_transactions,
+            {
+                SAPI::BodyParameter(SAPI::Keys::pageNumber,  new SAPI::Validation::IntRange(1,INT_MAX)),
+                SAPI::BodyParameter(SAPI::Keys::pageSize,    new SAPI::Validation::IntRange(1,100)),
+                SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true)
             }
         }
     }
@@ -173,6 +182,55 @@ static bool GetAddressesBalances(HTTPRequest* req,
 
     if( !vecBalances.size() ){
         return SAPI::Error(req, HTTPStatus::INTERNAL_SERVER_ERROR, "Balance check failed unexpected.");
+    }
+
+    return true;
+}
+
+static bool GetAddressesTransactions(HTTPRequest* req, std::string addrStr,
+    std::vector<std::tuple<uint256, int, CAmount>> &addressTxs, int64_t pageNum, int64_t pageSize,
+    bool ascending, int64_t &totalNumTxs)
+{
+    addressTxs.clear();
+
+    CBitcoinAddress address(addrStr);
+    uint160 hashBytes;
+    int type = 0;
+
+    if (!address.GetIndexKey(hashBytes, type)) {
+        return SAPI::Error(req, SAPI::InvalidSmartCashAddress, "Invalid address: " + addrStr);
+    }
+
+    std::vector<std::pair<CAddressIndexKey, CAmount>> addressIndex;
+
+    if (!GetAddressIndex(hashBytes, type, addressIndex)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "No information available for " + addrStr);
+    }
+
+    if (!ascending) {
+        // Reverse index from newest to oldest transactions
+        std::reverse(addressIndex.begin(), addressIndex.end());
+    }
+
+    totalNumTxs = 0;
+    int nIndexOffset = static_cast<int>((pageNum - 1) * pageSize);
+    auto tx = addressIndex.begin();
+    while (tx != addressIndex.end()) {
+        // If we have multiple entries for the same tx, add up all amounts
+        auto found = std::find_if(addressTxs.begin(), addressTxs.end(),
+            [&tx] (const std::tuple<uint256, int, CAmount> &t) {
+                return std::get<0>(t) == tx->first.txhash;
+        });
+
+        if (found == addressTxs.end()) {
+            if (tx > (addressIndex.begin() + nIndexOffset) && static_cast<int64_t>(addressTxs.size()) < pageSize) {
+                addressTxs.emplace_back(tx->first.txhash, tx->first.blockHeight, tx->second);
+            }
+            totalNumTxs++;
+        } else {
+            std::get<2>(*found) += tx->second;
+        }
+        tx++;
     }
 
     return true;
@@ -648,6 +706,69 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     LogPrint("sapi-benchmark", " Evaluate inputs: %.2fms\n", (nTime2 - nTime3) * 0.001);
     LogPrint("sapi-benchmark", " Write reply: %.2fms\n", (nTime3 - nTime4) * 0.001);
     LogPrint("sapi-benchmark", " Total: %.2fms\n\n", (nTime3 - nTime0) * 0.001);
+
+    return true;
+}
+
+static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    int64_t nPageNumber = bodyParameter[SAPI::Keys::pageNumber].get_int64();
+    int64_t nPageSize = bodyParameter[SAPI::Keys::pageSize].get_int64();
+    bool fAsc = bodyParameter.exists(SAPI::Keys::ascending) ? bodyParameter[SAPI::Keys::ascending].get_bool() : false;
+
+    if ( !mapPathParams.count("address") )
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/transactions/<smartcash_address>");
+
+    std::string addrStr = mapPathParams.at("address");
+    std::vector<std::tuple<uint256, int, CAmount>> vecResult;
+    int64_t totalNumTxs;
+    if( !GetAddressesTransactions(req, addrStr, vecResult, nPageNumber, nPageSize, fAsc, totalNumTxs) )
+        return false;
+
+    int nPages = totalNumTxs / nPageSize;
+    if (totalNumTxs % nPageSize ) nPages++;
+
+    if (nPageNumber > nPages)
+        return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
+
+    UniValue transactions(UniValue::VARR);
+    for (const auto &txEntry : vecResult) {
+      CBlock block;
+      CBlockIndex* pBlockindex = chainActive[std::get<1>(txEntry)];
+      if(!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus()))
+          return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+
+      int confirmations = -1;
+      // Only report confirmations if the block is on the main chain
+      if (chainActive.Contains(pBlockindex))
+          confirmations = chainActive.Height() - pBlockindex->nHeight + 1;
+
+      UniValue txValue(UniValue::VOBJ);
+      txValue.pushKV("address", addrStr);
+      txValue.pushKV("amount", UniValueFromAmount(abs(std::get<2>(txEntry))));
+      txValue.pushKV("direction", std::get<2>(txEntry) > 0 ? "Received" : "Sent");
+
+      // Find TX inside the block
+      auto tx = std::find_if(block.vtx.begin(), block.vtx.end(), [&txEntry] (const CTransaction &t) {
+          return std::get<0>(txEntry) == t.GetHash();
+      });
+
+      if (tx != block.vtx.end()) {
+        if (!GetTransactionInfo(req, block.GetHash(), *tx, txValue, false))
+            return false;
+      }
+
+      transactions.push_back(txValue);
+    }
+
+    UniValue response(UniValue::VOBJ);
+    response.pushKV("count", totalNumTxs);
+    response.pushKV("pages", nPages);
+    response.pushKV("page", nPageNumber);
+
+    response.pushKV("data", transactions);
+
+    SAPI::WriteReply(req, response);
 
     return true;
 }

@@ -607,7 +607,13 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE));
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
-
+    strUsage += HelpMessageGroup(_("SAPI server options:"));
+    strUsage += HelpMessageOpt("-sapi", _("Enable SmartCash API server and databases.  Also enables -addressindex, -spentindex, -depositindex, -instantpayindex."));
+    strUsage += HelpMessageOpt("-sapiport=<port>",_("Listen for SAPI requests on <port> (default: 8080)"));
+    strUsage += HelpMessageOpt("-sapithreads=<n>",_("Set the number of threads for SAPI requests (default: 4)"));
+    strUsage += HelpMessageOpt("-sapiworkqueue=<n>",_("Set the queue for SAPI requests (default: 16)"));
+    strUsage += HelpMessageOpt("-sapiservertimeout=<n>",_("Set the seconds before SAPI timeout (default: 30)"));
+    strUsage += HelpMessageOpt("-sapiwhitelist=<ip>",_("Whitelist ip for SAPI"));
     return strUsage;
 }
 
@@ -824,10 +830,10 @@ void InitParameterInteraction()
             LogPrintf("%s: parameter interaction: -whitebind set -> setting -listen=1\n", __func__);
     }
 
-    if (GetBoolArg("-smartnode", false)) {
+    if (GetBoolArg("-smartnode", true)) {
         // smartnodes must accept connections from outside
-        if (SoftSetBoolArg("-listen", true))
-            LogPrintf("%s: parameter interaction: -smartnode=1 -> setting -listen=1\n", __func__);
+        if (SoftSetBoolArg("-listen", true) && SoftSetBoolArg("-sapi", true))
+            LogPrintf("%s: parameter interaction: -smartnode=1 -> setting -listen=1 and -sapi=1\n", __func__);
     }
 
     if (mapArgs.count("-connect") && mapMultiArgs["-connect"].size() > 0) {
@@ -1259,6 +1265,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     nTxConfirmTarget = GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     bSpendZeroConfChange = GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
     fSendFreeTransactions = GetBoolArg("-sendfreetransactions", DEFAULT_SEND_FREE_TRANSACTIONS);
+    fUseNewAddressFormat = GetBoolArg("-usenewaddressformat", DEFAULT_USE_NEW_ADDRESS_FORMAT);
 
     std::string strWalletFile = GetArg("-wallet", "wallet.dat");
 #endif // ENABLE_WALLET
@@ -1645,13 +1652,64 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     int64_t nRewardsCache = (GetArg("-rewardsdbcache", nRewardsDefaultDbCache) << 20);
     LogPrintf("* Using %.1fMiB for smart rewards database\n", nRewardsCache * (1.0 / 1024 / 1024));
 
+    nCacheRewardEntries = GetArg("-rewardsentrycache", REWARDS_CACHE_ENTRIES_DEFAULT);
+
     delete prewards;
 
     CSmartRewardsDB *prewardsdb = new CSmartRewardsDB(nRewardsCache, false, false);
 
     prewards = new CSmartRewards(prewardsdb);
 
+    uiInterface.InitMessage(_("Loading SmartRewards..."));
+
     bool fLoaded = false;
+
+    while (!fLoaded) {
+
+        std::string strLoadError;
+
+        nStart = GetTimeMillis();
+        do {
+            try {
+
+                if( fReindex ){
+                    delete prewards;
+
+                    prewardsdb = new CSmartRewardsDB(nRewardsCache, false, true);
+                    prewards = new CSmartRewards(prewardsdb);
+                }
+
+                if( !(fLoaded = prewards->Verify()) ) throw std::runtime_error(_("Failed to verify SmartRewards database."));
+
+                if (fRequestShutdown) break;
+
+            } catch (const std::runtime_error &e) {
+                if (fDebug) LogPrintf("%s\n", e.what());
+                strLoadError = e.what();
+                break;
+            } catch (const std::exception &e) {
+                if (fDebug) LogPrintf("%s\n", e.what());
+                strLoadError = _("Error opening rewards database");
+                break;
+            } catch ( ... ){
+                if (fDebug) LogPrintf("Unexpected exception\n");
+                strLoadError = _("Unexpected error with the rewards database");
+                break;
+            }
+
+            fLoaded = true;
+
+        } while(false);
+
+        if( !fLoaded ){
+            InitWarning(strLoadError + _("\n\nReindexing blockchain data now..."));
+            fReindex = true;
+        }
+
+    }
+
+    fLoaded = false;
+
     while (!fLoaded && !fRequestShutdown) {
         bool fReset = fReindex;
         std::string strLoadError;
@@ -1777,62 +1835,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         return false;
     }
     LogPrintf(" block index %15dms\n", GetTimeMillis() - nStart);
-
-    uiInterface.InitMessage(_("Verifying SmartRewards..."));
-
-    CBlockIndex *pLastIndex = chainActive.Tip();
-    bool fResetRewards = fReindex;
-    fLoaded = false;
-
-    while (!fLoaded) {
-
-        std::string strLoadError;
-
-        nStart = GetTimeMillis();
-        do {
-            try {
-
-                if( fResetRewards ){
-                    delete prewards;
-
-                    prewardsdb = new CSmartRewardsDB(nRewardsCache, false, true);
-                    prewards = new CSmartRewards(prewardsdb);
-                }
-
-                if( prewards->IsLocked() ) throw std::runtime_error(_("SmartRewards database is incomplete."));
-
-                if( !(fLoaded = prewards->Verify()) ) throw std::runtime_error(_("Failed to verify SmartRewards database."));
-
-                if( pLastIndex != NULL && !(fLoaded = (prewards->GetLastHeight() <= pLastIndex->nHeight)) ) throw std::runtime_error(_("SmartRewards database exceeds current chain height."));
-
-                if (fRequestShutdown) break;
-
-                prewards->Lock();
-
-            } catch (const std::runtime_error &e) {
-                if (fDebug) LogPrintf("%s\n", e.what());
-                strLoadError = e.what();
-                break;
-            } catch (const std::exception &e) {
-                if (fDebug) LogPrintf("%s\n", e.what());
-                strLoadError = _("Error opening rewards database");
-                break;
-            } catch ( ... ){
-                if (fDebug) LogPrintf("Unexpected exception\n");
-                strLoadError = _("Unexpected error with the rewards database");
-                break;
-            }
-
-            fLoaded = true;
-
-        } while(false);
-
-        if( !fLoaded ){
-            InitWarning(strLoadError + _("\n\nRecreating it now..."));
-            fResetRewards = true;
-        }
-
-    }
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
@@ -2073,6 +2075,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if(fSmartNode) {
         LogPrintf("SMARTNODE:\n");
 
+        if (!GetBoolArg("-sapi", false) || (GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT) != GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT))) {
+            return InitError(_("Smartnodes are not allowed to disable SAPI or use a port different than 8080.  Add sapi=1 in smartcash.conf"));
+        }
+
         std::string strSmartNodePrivKey = GetArg("-smartnodeprivkey", "");
         if(!strSmartNodePrivKey.empty()) {
             if(!CMessageSigner::GetKeysFromSecret(strSmartNodePrivKey, activeSmartnode.keySmartnode, activeSmartnode.pubKeySmartnode))
@@ -2292,6 +2298,11 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 #endif
 
     threadGroup.create_thread(boost::bind(&ThreadSendAlert, boost::ref(connman)));
+
+/*    if( MainNet() ){
+        InitError("Mainnet is not available in this beta. You can start the client on Testnet with testnet=1 in the smartcash.conf or -testnet=1 as command line argument.");
+        StartShutdown();
+    }*/
 
     return !fRequestShutdown;
 }

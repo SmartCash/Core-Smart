@@ -1,4 +1,4 @@
-// Copyright (c) 2017 - 2019 - The SmartCash Developers
+// Copyright (c) 2017 - 2020 - The SmartCash Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,10 +13,12 @@ static CSmartHiveSplit *hiveSplitInitial = nullptr;
 static CSmartHiveSplit *hiveSplit_1_0 = nullptr;
 static CSmartHiveSplit *hiveSplit_1_1 = nullptr;
 static CSmartHiveSplit *hiveSplit_1_2 = nullptr;
+static CSmartHiveSplit *hiveSplit_1_3 = nullptr;
 static CSmartHiveSplit *hiveSplitDisabled = nullptr;
 static CSmartHiveSplit *hiveSplitInvalid_1_0 = nullptr;
 
 static int nPayoutInterval_1_2;
+static int nPayoutInterval_1_3;
 
 void SmartHivePayments::Init()
 {
@@ -26,50 +28,64 @@ void SmartHivePayments::Init()
     hiveSplitInitial = new CSmartHiveClassicSplit {
         95, // Split 95% of the block reward as followed.
         {
-            new CSmartHiveClassic(SmartHive::Outreach,  0.08),
-            new CSmartHiveClassic(SmartHive::Support,  0.08),
-            new CSmartHiveClassic(SmartHive::Development,  0.08),
-            new CSmartHiveClassic(SmartHive::SmartRewards,  0.15),
-            new CSmartHiveClassic(SmartHive::ProjectTreasury,  0.56)
+            new CSmartHiveClassic(SmartHive::Outreach_Legacy,  0.08),
+            new CSmartHiveClassic(SmartHive::Support_Legacy,  0.08),
+            new CSmartHiveClassic(SmartHive::Development_Legacy,  0.08),
+            new CSmartHiveClassic(SmartHive::SmartRewards_Legacy,  0.15),
+            new CSmartHiveClassic(SmartHive::ProjectTreasury_Legacy,  0.56)
         }
     };
 
     hiveSplit_1_0 = new CSmartHiveRotationSplit(
         95, // Split 95% of the block reward as followed.
         {
-            new CSmartHiveRotation(SmartHive::Outreach, 0,7),
-            new CSmartHiveRotation(SmartHive::Support, 8,15),
-            new CSmartHiveRotation(SmartHive::Development, 16,23),
-            new CSmartHiveRotation(SmartHive::SmartRewards, 24,38),
-            new CSmartHiveRotation(SmartHive::ProjectTreasury, 39,94)
+            new CSmartHiveRotation(SmartHive::Outreach_Legacy, 0,7),
+            new CSmartHiveRotation(SmartHive::Support_Legacy, 8,15),
+            new CSmartHiveRotation(SmartHive::Development_Legacy, 16,23),
+            new CSmartHiveRotation(SmartHive::SmartRewards_Legacy, 24,38),
+            new CSmartHiveRotation(SmartHive::ProjectTreasury_Legacy, 39,94)
         }
     );
 
     hiveSplit_1_1 = new CSmartHiveRotationSplit(
         85, // Split 85% of the block reward as followed.
         {
-            new CSmartHiveRotation(SmartHive::Outreach, 0,7),
-            new CSmartHiveRotation(SmartHive::Support, 8,15),
-            new CSmartHiveRotation(SmartHive::Development, 16,23),
-            new CSmartHiveRotation(SmartHive::SmartRewards, 24,38),
-            new CSmartHiveRotation(SmartHive::ProjectTreasury, 39,84)
+            new CSmartHiveRotation(SmartHive::Outreach_Legacy, 0,7),
+            new CSmartHiveRotation(SmartHive::Support_Legacy, 8,15),
+            new CSmartHiveRotation(SmartHive::Development_Legacy, 16,23),
+            new CSmartHiveRotation(SmartHive::SmartRewards_Legacy, 24,38),
+            new CSmartHiveRotation(SmartHive::ProjectTreasury_Legacy, 39,84)
         }
     );
 
     if(MainNet()) nPayoutInterval_1_2 = 1000;
     else          nPayoutInterval_1_2 = 25;
 
+    if(MainNet()) nPayoutInterval_1_3 = 10000;
+    else          nPayoutInterval_1_3 = 50;
+
     hiveSplit_1_2 = new CSmartHiveBatchSplit(
         70, // Split 70% of the block reward as followed.
         nPayoutInterval_1_2, // Trigger the payouts every n blocks
         {
-            new CSmartHiveClassic(SmartHive::Outreach, 0.04),
-            new CSmartHiveClassic(SmartHive::Support, 0.04),
-            new CSmartHiveClassic(SmartHive::Development, 0.04),
-            new CSmartHiveClassic(SmartHive::Outreach2, 0.04),
-            new CSmartHiveClassic(SmartHive::Web, 0.04),
-            new CSmartHiveClassic(SmartHive::Quality, 0.04),
-            new CSmartHiveClassic(SmartHive::ProjectTreasury, 0.46),
+            new CSmartHiveClassic(SmartHive::Outreach_Legacy, 0.04),
+            new CSmartHiveClassic(SmartHive::Support_Legacy, 0.04),
+            new CSmartHiveClassic(SmartHive::Development_Legacy, 0.04),
+            new CSmartHiveClassic(SmartHive::Outreach2_Legacy, 0.04),
+            new CSmartHiveClassic(SmartHive::Web_Legacy, 0.04),
+            new CSmartHiveClassic(SmartHive::Quality_Legacy, 0.04),
+            new CSmartHiveClassic(SmartHive::ProjectTreasury_Legacy, 0.46),
+        }
+    );
+
+    hiveSplit_1_3 = new CSmartHiveBatchSplit(
+        29, // Split 29% of the block reward as followed.
+        nPayoutInterval_1_3, // Trigger the payouts every n blocks
+        {
+            new CSmartHiveClassic(SmartHive::Outreach, 0.0725),
+            new CSmartHiveClassic(SmartHive::Support, 0.0725),
+            new CSmartHiveClassic(SmartHive::Development, 0.0725),
+            new CSmartHiveClassic(SmartHive::SmartHub, 0.0725),
         }
     );
 
@@ -78,78 +94,6 @@ void SmartHivePayments::Init()
 
     init = true;
 }
-
-const CSmartHiveSplit * Get_1_2_Split(int nHeight)
-{
-    static int64_t nLastPayNewHives = -1;
-    static CSmartHiveSplit* sporked_Split_1_2 = nullptr;
-
-    int64_t nPayNewHives = 0;
-    int64_t nPayOutreachSpork = sporkManager.GetSporkValue(SPORK_18_PAY_OUTREACH2);
-    int64_t nPayWebSpork = sporkManager.GetSporkValue(SPORK_19_PAY_WEB);
-    int64_t nPayQualitySpork = sporkManager.GetSporkValue(SPORK_20_PAY_QUALITY);
-
-    if( !nPayOutreachSpork || nHeight < nPayOutreachSpork ){
-        nPayNewHives |= SmartHivePayments::OUTREACH2_ENABLED;
-    }
-
-    if( !nPayWebSpork || nHeight < nPayWebSpork ){
-        nPayNewHives |= SmartHivePayments::WEB_ENABLED;
-    }
-
-    if( !nPayQualitySpork || nHeight < nPayQualitySpork ){
-        nPayNewHives |= SmartHivePayments::QUALITY_ENABLED;
-    }
-
-    // If one of the hives is disabled.
-    if( (nPayNewHives & SmartHivePayments::NEW_HIVES_ENABLED) != SmartHivePayments::NEW_HIVES_ENABLED ){
-
-        if( nLastPayNewHives == -1 ||  nLastPayNewHives != nPayNewHives ){
-
-            nLastPayNewHives = nPayNewHives;
-
-            delete sporked_Split_1_2;
-
-            std::vector<CSmartHiveRewardBase*> sporkedHives_1_2;
-
-            if( nPayNewHives & SmartHivePayments::OUTREACH2_ENABLED ){
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach, 0.04));
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach2, 0.04));
-            }else{
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Outreach, 0.08));
-            }
-
-            if( nPayNewHives & SmartHivePayments::WEB_ENABLED ){
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Development, 0.04));
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Web, 0.04));
-            }else{
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Development, 0.08));
-            }
-
-            if( nPayNewHives & SmartHivePayments::QUALITY_ENABLED ){
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Support, 0.04));
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Quality, 0.04));
-            }else{
-                sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::Support, 0.08));
-            }
-
-            sporkedHives_1_2.push_back(new CSmartHiveClassic(SmartHive::ProjectTreasury, 0.46));
-
-            sporked_Split_1_2 = new CSmartHiveBatchSplit(
-                70, // Split 70% of the block reward as followed.
-                nPayoutInterval_1_2, // Trigger the payouts every n blocks
-                sporkedHives_1_2
-            );
-
-        }
-
-        return sporked_Split_1_2;
-    }
-
-    // Else us the normal 1.2 split.
-    return hiveSplit_1_2;
-}
-
 
 const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
 {
@@ -165,18 +109,22 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
             return hiveSplit_1_0;
         }else if ( nHeight >= HF_V1_1_SMARTNODE_HEIGHT && nHeight < HF_V1_2_SMARTREWARD_HEIGHT ) {
             return hiveSplit_1_1;
-        }else if ( (nHeight >= HF_V1_2_SMARTREWARD_HEIGHT) && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
-            return Get_1_2_Split(nHeight);
+        }else if ( (nHeight >= HF_V1_2_SMARTREWARD_HEIGHT) && nHeight < HF_V1_3_HEIGHT ) {
+            return hiveSplit_1_2;
+        }else if ( (nHeight >= HF_V1_3_HEIGHT) && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
+            return hiveSplit_1_3;
         }else if(nHeight <= 1 || nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
             return hiveSplitDisabled;
         }
 
     }else{
 
-        if ( nHeight <= TESTNET_V1_2_PAYMENTS_HEIGHT ) {
+        if ( nHeight < TESTNET_V1_2_8_PAYMENTS_HEIGHT ) {
             return hiveSplit_1_1;
-        }else if ( nHeight > TESTNET_V1_2_PAYMENTS_HEIGHT && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
-            return Get_1_2_Split(nHeight);
+        }else if ( nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT && nHeight < TESTNET_V1_3_HEIGHT ) {
+            return hiveSplit_1_2;
+        }else if ( nHeight >= TESTNET_V1_3_HEIGHT && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
+            return hiveSplit_1_3;
         }else if(nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
             return hiveSplitDisabled;
         }

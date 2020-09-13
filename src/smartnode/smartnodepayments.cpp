@@ -48,14 +48,10 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 
     }else{
 
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
-            return TESTNET_V1_2_NODES_PER_BLOCK_1;
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
-            return TESTNET_V1_2_NODES_PER_BLOCK_2;
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3 && nHeight < TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)
-            return TESTNET_V1_2_NODES_PER_BLOCK_3;
-        if(nHeight >= TESTNET_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT)
+        if(nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT && nHeight < TESTNET_V1_3_HEIGHT)
             return TESTNET_V1_2_8_NODES_PER_BLOCK;
+        if(nHeight >= TESTNET_V1_3_HEIGHT)
+            return TESTNET_V1_3_NODES_PER_BLOCK;
 
     }
 
@@ -73,12 +69,11 @@ int SmartNodePayments::PayoutInterval(int nHeight)
         }
 
     }else{
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2)
-            return TESTNET_V1_2_NODES_BLOCK_INTERVAL_1;
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_2 && nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
-            return TESTNET_V1_2_NODES_BLOCK_INTERVAL_2;
-        if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_3)
-            return TESTNET_V1_2_NODES_BLOCK_INTERVAL_3;
+
+        if(nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT && nHeight < TESTNET_V1_3_HEIGHT)
+            return TESTNET_V1_2_8_NODES_BLOCK_INTERVAL;
+        if(nHeight >= TESTNET_V1_3_HEIGHT)
+            return TESTNET_V1_3_NODES_BLOCK_INTERVAL;
 
     }
 
@@ -110,12 +105,9 @@ CAmount SmartNodePayments::Payment(int nHeight)
 
     }else{
 
-        if( nHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ){
+        if( nHeight < TESTNET_V1_2_8_PAYMENTS_HEIGHT ){
             blockValue = 0;
-        }else if( nHeight >= TESTNET_V1_2_PAYMENTS_HEIGHT &&
-            nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 ){
-            blockValue = GetBlockValue(nHeight,0,INT_MAX);
-        }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1){
+        }else if( nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT ){
 
             int interval = SmartNodePayments::PayoutInterval(nHeight);
 
@@ -161,13 +153,9 @@ bool SmartNodePayments::IsPaymentValid(const CTransaction& txNew, int nHeight, C
 
     }else{
 
-        if( nHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ){
+        if( nHeight < TESTNET_V1_2_8_PAYMENTS_HEIGHT ){
             return true;
-        }else if( nHeight >= TESTNET_V1_2_PAYMENTS_HEIGHT &&
-            nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 ){
-            return true;
-        }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1){
-
+        }else if( nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT ){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return true;
         }
 
@@ -243,6 +231,8 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 {
     vxoutSmartNodes.clear();
 
+    if( mnodeman.size() < MIN_ACTIVE_SMARTNODES ) return;
+
     if( MainNet() ){
 
         if( nHeight < HF_V1_1_SMARTNODE_HEIGHT ){
@@ -277,12 +267,9 @@ void CSmartnodePayments::FillBlockPayee(CMutableTransaction& txNew, int nHeight,
 
     }else{
 
-        if( nHeight < TESTNET_V1_2_PAYMENTS_HEIGHT ){
+        if( nHeight < TESTNET_V1_2_8_PAYMENTS_HEIGHT ){
             return;
-        }else if( nHeight >= TESTNET_V1_2_PAYMENTS_HEIGHT &&
-            nHeight < TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1 ){
-            return;
-        }else if(nHeight >= TESTNET_V1_2_MULTINODE_PAYMENTS_HEIGHT_1){
+        }else if(nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT){
             if( nHeight % SmartNodePayments::PayoutInterval(nHeight) ) return;
             if( !SmartNodePayments::PayoutsPerBlock(nHeight) ) return;
         }

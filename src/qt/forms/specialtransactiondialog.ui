@@ -364,6 +364,9 @@
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="legendLabel"/>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>

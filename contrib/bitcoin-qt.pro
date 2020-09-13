@@ -2,6 +2,7 @@ FORMS += \
     ../src/qt/forms/aboutdialog.ui \
     ../src/qt/forms/addmilestonedialog.ui \
     ../src/qt/forms/addressbookpage.ui \
+    ../src/qt/forms/addressconverter.ui \
     ../src/qt/forms/askpassphrasedialog.ui \
     ../src/qt/forms/castvotesdialog.ui \
     ../src/qt/forms/coincontroldialog.ui \

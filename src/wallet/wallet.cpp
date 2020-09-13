@@ -64,6 +64,12 @@ const uint256 CMerkleTx::ABANDON_HASH(uint256S("00000000000000000000000000000000
  * @{
  */
 
+enum LockTimeFormat {
+  UNSET = 0,
+  BLOCKTIME,
+  TIMESTAMP
+};
+
 struct CompareValueOnly {
     bool operator()(const pair <CAmount, pair<const CWalletTx *, unsigned int>> &t1,
                     const pair <CAmount, pair<const CWalletTx *, unsigned int>> &t2) const {
@@ -459,28 +465,6 @@ bool CWallet::LoadVotingKeyRegistration(const CKeyID &keyId, const uint256 &txha
 bool CWallet::UpdateVotingKeyRegistration(const CKeyID &keyId) {
     AssertLockHeld(cs_wallet); // mapKeyMetadata
     return CWalletDB(strWalletFile).UpdateVotingKeyRegistration(keyId, mapVotingKeyRegistrations[keyId]);
-}
-
-bool CWallet::LoadVotedMap(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoted) {
-    AssertLockHeld(cs_wallet);
-    this->mapVoted[keyId] = mapVoted;
-    return true;
-}
-
-bool CWallet::UpdateVotedMap(const CKeyID &keyId) {
-    AssertLockHeld(cs_wallet);
-    return CWalletDB(strWalletFile).UpdateVotedMap(keyId, mapVoted[keyId]);
-}
-
-bool CWallet::LoadVoteProofs(const CKeyID &keyId, const std::map<int64_t, uint256> &mapVoteProofs) {
-    AssertLockHeld(cs_wallet);
-    this->mapVoteProofs[keyId] = mapVoteProofs;
-    return true;
-}
-
-bool CWallet::UpdateVoteProofs(const CKeyID &keyId) {
-    AssertLockHeld(cs_wallet);
-    return CWalletDB(strWalletFile).UpdateVoteProofs(keyId, mapVoteProofs[keyId]);
 }
 
 bool CWallet::LoadCryptedVotingKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret) {
@@ -2405,11 +2389,13 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, bool fOnlyConfirmed, cons
                 if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     (!IsLockedCoin((*it).first, i) || nCoinType == ONLY_10000) &&
                     (pcoin->vout[i].nValue > 0 || fIncludeZeroValue) &&
-                    (!coinControl || !coinControl->HasSelected() || coinControl->fAllowOtherInputs || coinControl->IsSelected(COutPoint((*it).first, i))))
+                    (!coinControl || !coinControl->HasSelected() || coinControl->fAllowOtherInputs || coinControl->IsSelected(COutPoint((*it).first, i)))){
+
                         vCoins.push_back(COutput(pcoin, i, nDepth,
                                                  ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
                                                   (coinControl && coinControl->fAllowWatchOnly && (mine & ISMINE_WATCH_SOLVABLE) != ISMINE_NO),
-                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO));
+                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO, pcoin->vout[i].GetLockTime()));
+                }
 
             }
         }
@@ -2452,11 +2438,13 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, const CSmartAddress& addr
                 isminetype mine = IsMine(pcoin->vout[i]);
                 if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     !IsLockedCoin((*it).first, i) &&
-                    pcoin->vout[i].nValue > 0)
+                    pcoin->vout[i].nValue > 0){                        
                         vCoins.push_back(COutput(pcoin, i, nDepth,
                                                  ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
                                                   false,
-                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO));
+                                                 (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO,
+                                                 pcoin->vout[i].GetLockTime()));
+                }
 
             }
         }
@@ -2937,7 +2925,14 @@ int CWallet::CountInputsWithAmount(CAmount nInputAmount)
                 int nDepth = pcoin->GetDepthInMainChain(false);
 
                 for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
-                    COutput out = COutput(pcoin, i, nDepth, true, true);
+
+                    uint32_t nLockTime = pcoin->vout[i].GetLockTime();
+
+                    if( nLockTime ){
+                        LogPrintf("LOGTIME FOUND %d\n", nLockTime);
+                    }
+
+                    COutput out = COutput(pcoin, i, nDepth, true, true, nLockTime);
                     //COutPoint outpoint = COutPoint(out.tx->GetHash(), out.i);
 
                     if(out.tx->vout[out.i].nValue != nInputAmount) continue;
@@ -2979,10 +2974,6 @@ bool CWallet::GetProposalFeeTX(CWalletTx& tx, const CSmartAddress& fromAddress, 
     CRecipient dataRecipient = {scriptData, 0, false};
     vector< CRecipient > vecSend;
     vecSend.push_back(dataRecipient);
-
-    CScript hiveScript = SmartHive::Script(SmartHive::ProjectTreasury);
-    CRecipient hiveRecipient = {hiveScript, nAmount, false};
-    vecSend.push_back(hiveRecipient);
 
     CCoinControl coinControl;
 
@@ -3058,38 +3049,6 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
     wtxNew.BindWallet(this);
     CMutableTransaction txNew;
 
-    // Discourage fee sniping.
-    //
-    // For a large miner the value of the transactions in the best block and
-    // the mempool can exceed the cost of deliberately attempting to mine two
-    // blocks to orphan the current best block. By setting nLockTime such that
-    // only the next block can include the transaction, we discourage this
-    // practice as the height restricted and limited blocksize gives miners
-    // considering fee sniping fewer options for pulling off this attack.
-    //
-    // A simple way to think about this is from the wallet's point of view we
-    // always want the blockchain to move forward. By setting nLockTime this
-    // way we're basically making the statement that we only want this
-    // transaction to appear in the next block; we don't want to potentially
-    // encourage reorgs by allowing transactions to appear at lower heights
-    // than the next block in forks of the best chain.
-    //
-    // Of course, the subsidy is high enough, and transaction volume low
-    // enough, that fee sniping isn't a problem yet, but by implementing a fix
-    // now we ensure code won't be written that makes assumptions about
-    // nLockTime that preclude a fix later.
-    txNew.nLockTime = chainActive.Height();
-
-    // Secondly occasionally randomly pick a nLockTime even further back, so
-    // that transactions that are delayed after signing for whatever reason,
-    // e.g. high-latency mix networks and some CoinJoin implementations, have
-    // better privacy.
-    if (GetRandInt(10) == 0)
-        txNew.nLockTime = std::max(0, (int) txNew.nLockTime - GetRandInt(100));
-
-    assert(txNew.nLockTime <= (unsigned int) chainActive.Height());
-    assert(txNew.nLockTime < LOCKTIME_THRESHOLD);
-
     {
         LOCK2(cs_main, cs_wallet);
         {
@@ -3160,6 +3119,7 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                     return false;
                 }
 
+                enum LockTimeFormat lockTimeFmt = UNSET;
                 BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
                 {
                     CAmount nCredit = pcoin.first->vout[pcoin.second].nValue;
@@ -3172,6 +3132,84 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                     if (age != 0)
                         age += 1;
                     dPriority += (double) nCredit * age;
+
+                    // Figure out if the input is a CLTV script and the lockTime format it uses
+                    const CTxOut &txout = pcoin.first->vout[pcoin.second];
+                    int lockTime = txout.GetLockTime();
+                    if (!lockTime && txout.scriptPubKey.IsPayToScriptHash()) {
+                       // Need to parse redeem script
+                       CTxDestination outputAddress;
+                       if (ExtractDestination(txout.scriptPubKey, outputAddress)) {
+                          const CScriptID& hash = boost::get<CScriptID>(outputAddress);
+                           CScript redeemScript;
+                           if (pwalletMain->GetCScript(hash, redeemScript)) {
+                                int nLockTimeLength = redeemScript[0];
+                                std::vector<unsigned char> lockTimeVch(redeemScript.begin() + 1,
+                                        redeemScript.begin() + 1 + nLockTimeLength);
+                                lockTime = CScriptNum(lockTimeVch, false).getint();
+                           }
+                       }
+                    }
+
+                    if (lockTime > LOCKTIME_THRESHOLD) {
+                      if (lockTimeFmt == BLOCKTIME) {
+                        strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
+                        return false;
+                      } else {
+                        lockTimeFmt = TIMESTAMP;
+                      }
+                    } else if (lockTime > 0) {
+                      if (lockTimeFmt == TIMESTAMP) {
+                        strFailReason = _("Cannot mix Timestamp and block based time-locked inputs in the same transaction. Consider using coin control to select inputs manually.");
+                        return false;
+                      } else {
+                        lockTimeFmt = BLOCKTIME;
+                      }
+                    }
+                }
+
+                if (lockTimeFmt == TIMESTAMP) {
+                    // Use one second less than median time of past block as required by BIP113
+                    txNew.nLockTime = chainActive.Tip()->GetMedianTimePast() - 1;
+
+                    // Randomize until 3h back
+                    if (GetRandInt(10) == 0)
+                        txNew.nLockTime = std::max(0, (int) txNew.nLockTime - GetRandInt(3 * 3600));
+
+                    assert(txNew.nLockTime <= (unsigned int)GetTime());
+                    assert(txNew.nLockTime > LOCKTIME_THRESHOLD);
+                } else {
+                    // Discourage fee sniping.
+                    //
+                    // For a large miner the value of the transactions in the best block and
+                    // the mempool can exceed the cost of deliberately attempting to mine two
+                    // blocks to orphan the current best block. By setting nLockTime such that
+                    // only the next block can include the transaction, we discourage this
+                    // practice as the height restricted and limited blocksize gives miners
+                    // considering fee sniping fewer options for pulling off this attack.
+                    //
+                    // A simple way to think about this is from the wallet's point of view we
+                    // always want the blockchain to move forward. By setting nLockTime this
+                    // way we're basically making the statement that we only want this
+                    // transaction to appear in the next block; we don't want to potentially
+                    // encourage reorgs by allowing transactions to appear at lower heights
+                    // than the next block in forks of the best chain.
+                    //
+                    // Of course, the subsidy is high enough, and transaction volume low
+                    // enough, that fee sniping isn't a problem yet, but by implementing a fix
+                    // now we ensure code won't be written that makes assumptions about
+                    // nLockTime that preclude a fix later.
+                    txNew.nLockTime = chainActive.Height();
+
+                    // Secondly occasionally randomly pick a nLockTime even further back, so
+                    // that transactions that are delayed after signing for whatever reason,
+                    // e.g. high-latency mix networks and some CoinJoin implementations, have
+                    // better privacy.
+                    if (GetRandInt(10) == 0)
+                        txNew.nLockTime = std::max(0, (int) txNew.nLockTime - GetRandInt(100));
+
+                    assert(txNew.nLockTime <= (unsigned int) chainActive.Height());
+                    assert(txNew.nLockTime < LOCKTIME_THRESHOLD);
                 }
 
                 const CAmount nChange = nValueIn - nValueToSelect;
@@ -3254,7 +3292,7 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
                 // Note how the sequence number is set to max()-1 so that the
                 // nLockTime set above actually works.
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx *, unsigned int) &coin, setCoins)
-                    txNew.vin.push_back(CTxIn(coin.first->GetHash(), coin.second, CScript(), std::numeric_limits < unsigned int > ::max()));
+                    txNew.vin.push_back(CTxIn(coin.first->GetHash(), coin.second, CScript(), std::numeric_limits < unsigned int > ::max() - 1));
 
                 // Sign
                 int nIn = 0;

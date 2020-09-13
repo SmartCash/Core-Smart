@@ -938,9 +938,11 @@ void ThreadSmartnode(CConnman& connman)
                 mnodeman.DoFullVerificationStep(connman);
             }
 
+            /* WIP-VOTING uncomment
             if(nTick % (60 * 5) == 0) {
                 smartVoting.DoMaintenance(connman);
             }
+            */
 
         }
     }
