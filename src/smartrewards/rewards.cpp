@@ -121,7 +121,7 @@ void CSmartRewards::UpdateRoundPayoutParameter()
             nBlockInterval = 1;
         }else if ( round->number == nFirst_1_3_Round ) {
             nBlockPayees = 0;
-            nBlockInterval = 0;
+            nBlockInterval = 1;
         }else if ( round->number < nFirst_1_3_Round ) {
             nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
             nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
@@ -129,7 +129,7 @@ void CSmartRewards::UpdateRoundPayoutParameter()
     } else {
         // If there are no eligible smartreward entries
         nBlockPayees = 0;
-        nBlockInterval = 0;
+        nBlockInterval = 1;
     }
 
     cache.UpdateRoundPayoutParameter(nBlockPayees, nBlockInterval);
