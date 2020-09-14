@@ -113,11 +113,11 @@ void CSmartRewards::UpdateRoundPayoutParameter()
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
     if ( nPayeeCount ) {
-        if ( round->number > (nFirst_1_3_Round + 3) ) {
+        if ( round->number > (nFirst_1_3_Round + 2) ) {
             nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
             nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch / 20;
         }else if ( round->number > nFirst_1_3_Round ) {
-            nBlockPayees = nPayeeCount;
+            nBlockPayees = 1000;
             nBlockInterval = 1;
         }else if ( round->number == nFirst_1_3_Round ) {
             nBlockPayees = 0;
