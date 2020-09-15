@@ -135,15 +135,7 @@ void SmartRewardPayments::FillPayments(CMutableTransaction &coinbaseTx, int nHei
 SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, int nHeight, CAmount &smartReward)
 {
     // Necessary to make the transition from 90030 to 90031 SmartRewards change
-/*  if (nHeight == 1805799) {
-      smartReward = 263083560000000;
-      return SmartRewardPayments::Valid;
-    }
-    if (nHeight == 1794799) {
-      smartReward = 264681480000000;
-      return SmartRewardPayments::Valid;
-    }
-*/    if (nHeight == 1783799) {
+    if (nHeight == 1783799) {
       smartReward = 109307197536547;
       return SmartRewardPayments::Valid;
     }

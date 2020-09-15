@@ -107,29 +107,13 @@ void CSmartRewards::UpdateRoundPayoutParameter()
     AssertLockHeld(cs_rewardscache);
 
     const CSmartRewardRound* round = cache.GetCurrentRound();
-    int64_t nBlockPayees = round->nBlockPayees, nBlockInterval;
-
-    int64_t nPayeeCount = round->eligibleEntries - round->disqualifiedEntries;
+    int64_t nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
+    int64_t nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch / 20;
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
-    if ( nPayeeCount ) {
-        if ( round->number > (nFirst_1_3_Round + 2) ) {
-            nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
-            nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch / 20;
-        }else if ( round->number > nFirst_1_3_Round ) {
-            nBlockPayees = 1000;
-            nBlockInterval = 1;
-        }else if ( round->number == nFirst_1_3_Round ) {
-            nBlockPayees = 0;
-            nBlockInterval = 1;
-        }else if ( round->number < nFirst_1_3_Round ) {
-            nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
-            nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
-        }
-    } else {
-        // If there are no eligible smartreward entries
-        nBlockPayees = 0;
-        nBlockInterval = 1;
+    if ( round->number < (nFirst_1_3_Round + 3) ) {
+        nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
+        nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
     }
 
     cache.UpdateRoundPayoutParameter(nBlockPayees, nBlockInterval);

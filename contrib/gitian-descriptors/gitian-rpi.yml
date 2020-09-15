@@ -1,5 +1,5 @@
 ---
-name: "smartcash-rpi-1.3.1"
+name: "smartcash-rpi-1.3.3"
 enable_cache: true
 suites:
 - "trusty"
