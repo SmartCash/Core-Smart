@@ -107,42 +107,13 @@ void CSmartRewards::UpdateRoundPayoutParameter()
     AssertLockHeld(cs_rewardscache);
 
     const CSmartRewardRound* round = cache.GetCurrentRound();
-    int64_t nBlockPayees = round->nBlockPayees, nBlockInterval;
-
-    int64_t nPayeeCount = round->eligibleEntries - round->disqualifiedEntries;
+    int64_t nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
+    int64_t nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch / 20;
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
 
-    if (  round->number < nFirst_1_3_Round ) {
+    if ( round->number < (nFirst_1_3_Round + 3) ) {
         nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
         nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
-    } else if ( nPayeeCount ) {
-        int64_t nBlockStretch = Params().GetConsensus().nRewardsPayouts_1_3_BlockStretch;
-        int64_t nBlocksPerRound = Params().GetConsensus().nRewardsBlocksPerRound_1_3;
-        int64_t nTempBlockPayees = Params().GetConsensus().nRewardsPayouts_1_3_BlockPayees;
-
-        nBlockPayees = std::max<int>(nTempBlockPayees, (nPayeeCount / nBlockStretch * nTempBlockPayees) + 1);
-
-        if (nPayeeCount > nBlockPayees) {
-            int64_t nStartDelayBlocks = Params().GetConsensus().nRewardsPayoutStartDelay;
-            int64_t nBlocksTarget = nStartDelayBlocks + nBlocksPerRound;
-            nBlockInterval = ((nBlockStretch * nBlockPayees) / nPayeeCount) + 1;
-            int64_t nStretchedLength = nPayeeCount / nBlockPayees * (nBlockInterval);
-
-            if (nStretchedLength > nBlocksTarget) {
-                nBlockInterval--;
-            } else if (nStretchedLength < nBlockStretch) {
-                nBlockInterval++;
-            }
-
-        } else {
-            // If its only one block to pay
-            nBlockInterval = 1;
-        }
-
-    } else {
-        // If there are no eligible smartreward entries
-        nBlockPayees = 0;
-        nBlockInterval = 0;
     }
 
     cache.UpdateRoundPayoutParameter(nBlockPayees, nBlockInterval);

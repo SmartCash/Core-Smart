@@ -140,7 +140,6 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       return SmartRewardPayments::Valid;
     }
 
-
     LOCK(cs_rewardscache);
 
     SmartRewardPayments::Result result;
