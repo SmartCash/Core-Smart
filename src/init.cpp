@@ -2078,7 +2078,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if(fSmartNode) {
         LogPrintf("SMARTNODE:\n");
 
-        if (!GetBoolArg("-sapi", false) || (GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT) != GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT))) {
+        if (!GetBoolArg("-sapi", false) || (GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT) != DEFAULT_SAPI_SERVER_PORT)) {
             return InitError(_("Smartnodes are not allowed to disable SAPI or use a port different than 8080.  Add sapi=1 in smartcash.conf"));
         }
 
