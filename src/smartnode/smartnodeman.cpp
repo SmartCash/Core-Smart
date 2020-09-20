@@ -15,6 +15,16 @@
 #include "smartnodeman.h"
 #include "smartnodeman.h"
 #include "../util.h"
+//port check
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+
 
 /** Smartnode manager */
 CSmartnodeMan mnodeman;
@@ -1394,6 +1404,23 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
 
         if(!CMessageSigner::VerifyMessage(pmn2->pubKeySmartnode, mnv.vchSig2, strMessage2, strError)) {
             LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- VerifyMessage() for smartnode2 failed, error: %s\n", strError);
+            return;
+        }
+
+        char *hostname = "pmn1->addr.ToString()";
+        int sockfd;
+        struct sockaddr_in serv_addr;
+        struct hostent *server;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        server = gethostbyname(hostname);
+        bzero((char *) &serv_addr, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        bcopy((char *)server->h_addr,
+             (char *)&serv_addr.sin_addr.s_addr,
+             server->h_length);
+        serv_addr.sin_port = htons(8080);
+        if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
+            LogPrintf("SAPI Port is closed on addr %s ", mnv.addr.ToString());
             return;
         }
 

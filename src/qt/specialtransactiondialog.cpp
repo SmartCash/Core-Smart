@@ -41,7 +41,7 @@
 #include <QTreeWidgetItem>
 
 #define SEND_CONFIRM_DELAY 5
-#define MAX_ACTIVATION_TRANSACTIONS 10
+#define MAX_ACTIVATION_TRANSACTIONS 100
 
 bool Error(std::string where, std::string message, QString &strError)
 {
