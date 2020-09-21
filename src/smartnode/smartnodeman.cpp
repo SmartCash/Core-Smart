@@ -1407,12 +1407,17 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
             return;
         }
 
-        char *hostname = "pmn1->addr.ToString()";
+LogPrintf("SAPI-check Checking IP mnv.addr %s\n ", mnv.addr.ToString());
+        string hostname = mnv.addr.ToString();
+LogPrintf("SAPI-check input host %s\n",hostname);
+        size_t pos = hostname.find(":");
+        if (pos != std::string::npos) {  hostname = hostname.substr(0, pos);}
+LogPrintf("SAPI-check Converted IP %s \n",hostname);
         int sockfd;
         struct sockaddr_in serv_addr;
         struct hostent *server;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        server = gethostbyname(hostname);
+        server = gethostbyname(hostname.c_str());
         bzero((char *) &serv_addr, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         bcopy((char *)server->h_addr,
@@ -1420,9 +1425,12 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
              server->h_length);
         serv_addr.sin_port = htons(8080);
         if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
-            LogPrintf("SAPI Port is closed on addr %s ", mnv.addr.ToString());
+            LogPrintf("SAPI-check Port is closed on addr %s \n", mnv.addr.ToString());
             return;
+        } else {
+LogPrintf("SAPI-check Port is active on addr %s \n", mnv.addr.ToString());
         }
+        close(sockfd);
 
         if(!pmn1->IsPoSeVerified()) {
             pmn1->DecreasePoSeBanScore();
