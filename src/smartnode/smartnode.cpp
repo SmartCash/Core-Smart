@@ -277,7 +277,7 @@ std::string CSmartnode::StateToString(int nStateIn)
         case SMARTNODE_UPDATE_REQUIRED:        return "UPDATE_REQUIRED";
         case SMARTNODE_WATCHDOG_EXPIRED:       return "WATCHDOG_EXPIRED";
         case SMARTNODE_NEW_START_REQUIRED:     return "NEW_START_REQUIRED";
-        case SMARTNODE_POSE_BAN:               return "POSE_BAN";
+        case SMARTNODE_POSE_BAN:               return "POSE_SAPI_BAN";
         default:                                return "UNKNOWN";
     }
 }
