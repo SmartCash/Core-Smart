@@ -120,7 +120,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
             strCommand != "start-alias" && strCommand != "start-all" && strCommand != "start-missing" &&
          strCommand != "start-disabled" && strCommand != "outputs" &&
 #endif // ENABLE_WALLET
-         strCommand != "list" && strCommand != "list-conf" && strCommand != "count" &&
+         strCommand != "list" && strCommand != "list-conf" && strCommand != "count" && strCommand != "roi" &&
          strCommand != "debug" && strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
          strCommand != "connect" && strCommand != "status" && strCommand != "protocol"))
             throw std::runtime_error(
@@ -130,6 +130,7 @@ UniValue smartnode(const UniValue& params, bool fHelp)
                 "1. \"command\"        (string or set of strings, required) The command to execute\n"
                 "\nAvailable commands:\n"
                 "  count        - Print number of all known smartnodes (optional: 'ps', 'enabled', 'all', 'qualify', 'states')\n"
+                "  roi          - Current Yearly Yield in percent\n"
                 "  current      - Print info on current smartnode winner to be paid the next block (calculated locally)\n"
                 "  genkey       - Generate new smartnodeprivkey\n"
 #ifdef ENABLE_WALLET
@@ -211,6 +212,11 @@ UniValue smartnode(const UniValue& params, bool fHelp)
 
             return obj;
         }
+    }
+
+    if (strCommand == "roi")
+    {
+       return  22500 / ( 1 + mnodeman.CountEnabled() );
     }
 
     if (strCommand == "current" || strCommand == "winner")

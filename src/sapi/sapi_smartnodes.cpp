@@ -14,6 +14,7 @@
 #include "validation.h"
 
 static bool smartnodes_count(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool smartnodes_roi(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartnodes_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartnodes_check_one(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartnodes_check_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
@@ -52,7 +53,13 @@ SAPI::EndpointGroup smartnodesEndpoints = {
                 SAPI::BodyParameter(SAPI::Keys::status, new SAPI::Validation::String(), true),
                 SAPI::BodyParameter(SAPI::Keys::protocol, new SAPI::Validation::Int(), true)
             }
-        }
+        },
+        {
+            "roi", HTTPRequest::GET, UniValue::VNULL, smartnodes_roi,
+            {
+                // No body parameter
+            }
+        },
     }
 };
 
@@ -123,6 +130,21 @@ static bool smartnodes_count(HTTPRequest* req, const std::map<std::string, std::
     return true;
 }
 
+static bool smartnodes_roi(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    UniValue response(UniValue::VOBJ);
+
+
+    {
+        response.pushKV("SmartNode Collateral", 100000 );
+        response.pushKV("Yearly Rewards", 22500000 / ( 1 + mnodeman.CountEnabled() ) );
+        response.pushKV("Yearly Yield %", 22500 / ( 1 + mnodeman.CountEnabled() ) );   //actual is 22659 Sept 2020
+    }
+
+    SAPI::WriteReply(req, response);
+
+    return true;
+}
 
 static bool smartnodes_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
