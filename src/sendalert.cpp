@@ -49,7 +49,7 @@ void ThreadSendAlert(CConnman& connman)
     alert.nCancel       = 0;   // cancels previous messages up to this ID number
 
     // These versions are protocol versions
-    alert.nMinVer       = MIN_PEER_PROTO_VERSION;
+    alert.nMinVer       = minPeerProtoVersion;
     alert.nMaxVer       = PROTOCOL_VERSION;
 
     //

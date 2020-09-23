@@ -9,6 +9,7 @@
 
 #include "net.h"
 
+#include "init.h"
 #include "addrman.h"
 #include "chainparams.h"
 #include "clientversion.h"
@@ -2617,7 +2618,11 @@ void CConnman::RelayTransaction(const CTransaction& tx)
     }
 }
 
-void CConnman::RelayInv(CInv &inv, const int minProtoVersion) {
+void CConnman::RelayInv(CInv &inv, int minProtoVersion) {
+    if (minProtoVersion < 0) {
+        minProtoVersion = minPeerProtoVersion;
+    }
+
     LOCK(cs_vNodes);
     for (const auto& pnode : vNodes)
         if(pnode->nVersion >= minProtoVersion)

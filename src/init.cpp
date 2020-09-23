@@ -106,6 +106,7 @@ extern void ThreadSendAlert(CConnman& connman);
 
 CVersionInfo versionInfo;
 std::string strClientVersion;
+int minPeerProtoVersion = MIN_PEER_PROTO_VERSION;
 
 #ifdef ENABLE_WALLET
 CWallet* pwalletMain = NULL;
@@ -1106,7 +1107,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
 #endif
     }
-    static const int MIN_PEER_PROTO_VERSION = GetArg("-minpeerprotocol", MIN_PEER_PROTO_VERSION);
+
+    // Override minimum protocol version if specified
+    minPeerProtoVersion = GetArg("-minpeerprotocol", MIN_PEER_PROTO_VERSION);
 
     // Make sure enough file descriptors are available
     int nBind = std::max((int)mapArgs.count("-bind") + (int)mapArgs.count("-whitebind"), 1);
