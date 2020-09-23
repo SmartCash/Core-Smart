@@ -27,6 +27,7 @@ static std::unordered_map<uint8_t, std::string> bonusLevelStr = {
 };
 
 static bool smartrewards_current(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool smartrewards_roi(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartrewards_check_one(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartrewards_check_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
@@ -36,6 +37,12 @@ SAPI::EndpointGroup smartrewardsEndpoints = {
     {
         {
             "current", HTTPRequest::GET, UniValue::VNULL, smartrewards_current,
+            {
+                // No body parameter
+            }
+        },
+        {
+            "roi", HTTPRequest::GET, UniValue::VNULL, smartrewards_roi,
             {
                 // No body parameter
             }
@@ -149,6 +156,33 @@ static bool smartrewards_current(HTTPRequest* req, const std::map<std::string, s
 
     return true;
 }
+
+static bool smartrewards_roi(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    UniValue obj(UniValue::VOBJ);
+
+    TRY_LOCK(cs_rewardscache, cacheLocked);
+
+    if(!cacheLocked) return SAPI::Error(req, SAPI::RewardsDatabaseBusy, "Rewards database is busy..Try it again!");
+
+    const CSmartRewardRound *current = prewards->GetCurrentRound();
+
+    if( !current->number ) return SAPI::Error(req, SAPI::NoActiveRewardRound, "No active reward round available yet.");
+
+    obj.pushKV("SmartRewards Yearly Yield % (>1000 Smart)",int(current->percent * 52 * 100));
+    obj.pushKV("SmartRewards Yearly Yield % with 2 Week Bonus",int(current->percent * 52 * 120));
+    obj.pushKV("SmartRewards Yearly Yield % with 3 Week Bonus",int(current->percent * 52 * 140));
+    obj.pushKV("SmartRewards Yearly Yield % with 4 Week Bonus",int(current->percent * 52 * 150));
+    obj.pushKV("SuperRewards Yearly Yield % (>1 million Smart)",int(current->percent * 52 * 200));
+    obj.pushKV("SuperRewards Yearly Yield % with 2 week Bonus",int(current->percent * 52 * 220));
+    obj.pushKV("SuperRewards Yearly Yield % with 3 week Bonux",int(current->percent * 52 * 240));
+    obj.pushKV("SuperRewards Yearly Yield % with 4 week Bonux",int(current->percent * 52 * 250));
+
+    SAPI::WriteReply(req, obj);
+
+    return true;
+}
+
 
 
 static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
