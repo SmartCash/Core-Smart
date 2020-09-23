@@ -592,7 +592,7 @@ UniValue smartnodelist(const UniValue& params, bool fHelp)
                 "  pubkey         - Print the smartnode (not collateral) public key\n"
                 "  rank           - Print rank of a smartnode based on current block\n"
                 "  status         - Print smartnode status: PRE_ENABLED / ENABLED / EXPIRED / NEW_START_REQUIRED /\n"
-                "                   UPDATE_REQUIRED / POSE_BAN / OUTPOINT_SPENT (can be additionally filtered, partial match)\n"
+                "                   UPDATE_REQUIRED / POSE_SAPI_BAN / OUTPOINT_SPENT (can be additionally filtered, partial match)\n"
                 );
     }
 

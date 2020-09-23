@@ -24,7 +24,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/select.h>
 
 /** Smartnode manager */
 CSmartnodeMan mnodeman;
@@ -1408,45 +1411,80 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
         }
 
         //Check if the SAPI port is open before decreasing SmartNode PoSe score.
-LogPrintf("SAPI-Check Checking IP mnv.addr %s\n ", mnv.addr.ToString());
         string hostname = mnv.addr.ToString();
-LogPrintf("SAPI-Check input host %s\n",hostname);
         size_t pos = hostname.find(":");
-        if (pos != std::string::npos) {  hostname = hostname.substr(0, pos);}
-LogPrintf("SAPI-Check Converted IP %s \n",hostname);
+        if (pos != std::string::npos) {  hostname = hostname.substr(0, pos); }
         int sockfd;
         struct sockaddr_in serv_addr;
         struct hostent *server;
+        struct timeval timeout = {1,0};
+        int res, opt;
+        // set socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	// get socket flags
+	if ((opt = fcntl (sockfd, F_GETFL, NULL)) < 0) {
+            LogPrintf("SAPI-Check failed socket for %s\n ", mnv.addr.ToString());
+	    return;
+	}
+	// set socket non-blocking
+	if (fcntl (sockfd, F_SETFL, opt | O_NONBLOCK) < 0) {
+            LogPrintf("SAPI-Check failed to set socket non-blocking for %s\n ", mnv.addr.ToString());
+ 	    return;
+	}
+
         server = gethostbyname(hostname.c_str());
         bzero((char *) &serv_addr, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
-        bcopy((char *)server->h_addr,
-             (char *)&serv_addr.sin_addr.s_addr,
-             server->h_length);
+        bcopy((char *)server->h_addr,(char *)&serv_addr.sin_addr.s_addr,server->h_length);
         serv_addr.sin_port = htons(8080);
-        if (sockfd < 0) {
-            LogPrintf("SAPI-Check no socket %s \n",mnv.addr.ToString());
-            close(sockfd);
-            return;
-        }
         if (server == NULL) {
-            LogPrintf("SAPI-Check no host %s\n", mnv.addr.ToString());
+           LogPrintf("SAPI-Check server name invalid for %s\n ", mnv.addr.ToString());
             close(sockfd);
             return;
         }
-        if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
-            LogPrintf("SAPI-Check Port is closed on addr %s \n", mnv.addr.ToString());
+
+	// try to connect
+	if ((res = connect (sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr))) < 0) {
+	    if (errno == EINPROGRESS) {
+	        fd_set wait_set;
+
+		// make file descriptor set with socket
+		FD_ZERO (&wait_set);
+		FD_SET (sockfd, &wait_set);
+
+		// wait for socket to be writable; return after given timeout
+		res = select (sockfd + 1, NULL, &wait_set, NULL, &timeout);
+	    }
+        // connection was successfu[l immediately
+	} else {
+	    res = 1;
+	}
+        if ( res == 1 ) {
+//            LogPrintf("SAPI-Check Success on SmartNode %s\n ", mnv.addr.ToString());
             close(sockfd);
-            return;
         } else {
-LogPrintf("SAPI-Check Port is active on addr %s \n", mnv.addr.ToString());
+            LogPrintf("SAPI-Check connection failed for SmartNode %s\n ", mnv.addr.ToString());
+            pmn1->IncreasePoSeBanScore();
             close(sockfd);
+            return;
         }
+
+	// Check errors in connect or select
+/*	if (res < 0) { LogPrintf("SAPI-Check error connecting on SmartNode %s\n ", mnv.addr.ToString());}
+	// select timed out
+ 	} else if (res == 0) { errno = ETIMEDOUT; LogPrintf("SAPI-Check timed out on SmartNode %s\n ", mnv.addr.ToString());
+	// almost finished...
+	} else { socklen_t len = sizeof (opt);
+            // check for errors in socket layer
+            if (getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &opt, &len) < 0) { LogPrintf("SAPI-Check Port is closed on SmartNode %s\n ", mnv.addr.ToString()); }
+	    // there was an error
+	    if (opt) { errno = opt; LogPrintf("SAPI-Check failed on SmartNode %s\n ", mnv.addr.ToString()); }
+        } */
 
         if(!pmn1->IsPoSeVerified()) {
             pmn1->DecreasePoSeBanScore();
         }
+
         mnv.Relay();
 
         LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- verified smartnode %s for addr %s\n",
