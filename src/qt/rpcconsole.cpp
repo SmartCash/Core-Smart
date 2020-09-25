@@ -279,17 +279,18 @@ RPCConsole::RPCConsole(const PlatformStyle *platformStyle, QWidget *parent) :
     // Wallet Repair Buttons
     // connect(ui->btn_salvagewallet, SIGNAL(clicked()), this, SLOT(walletSalvage()));
     // Disable salvage option in GUI, it's way too powerful and can lead to funds loss
+    // Failing on a few OSes.  Disabling to remove support issues.
     ui->btn_salvagewallet->setEnabled(false);
-    connect(ui->btn_rescan, SIGNAL(clicked()), this, SLOT(walletRescan()));
-//    ui->btn_rescan->setEnabled(false);
-    connect(ui->btn_zapwallettxes1, SIGNAL(clicked()), this, SLOT(walletZaptxes1()));
-//    ui->btn_zapwallettxes1->setEnabled(false);
-    connect(ui->btn_zapwallettxes2, SIGNAL(clicked()), this, SLOT(walletZaptxes2()));
-//    ui->btn_zapwallettxes2->setEnabled(false);
-    connect(ui->btn_upgradewallet, SIGNAL(clicked()), this, SLOT(walletUpgrade()));
-//    ui->btn_upgradewallet->setEnabled(false);
-    connect(ui->btn_reindex, SIGNAL(clicked()), this, SLOT(walletReindex()));
-//    ui->btn_reindex->setEnabled(false);
+//    connect(ui->btn_rescan, SIGNAL(clicked()), this, SLOT(walletRescan()));
+    ui->btn_rescan->setEnabled(false);
+//    connect(ui->btn_zapwallettxes1, SIGNAL(clicked()), this, SLOT(walletZaptxes1()));
+    ui->btn_zapwallettxes1->setEnabled(false);
+//    connect(ui->btn_zapwallettxes2, SIGNAL(clicked()), this, SLOT(walletZaptxes2()));
+    ui->btn_zapwallettxes2->setEnabled(false);
+//    connect(ui->btn_upgradewallet, SIGNAL(clicked()), this, SLOT(walletUpgrade()));
+    ui->btn_upgradewallet->setEnabled(false);
+//    connect(ui->btn_reindex, SIGNAL(clicked()), this, SLOT(walletReindex()));
+    ui->btn_reindex->setEnabled(false);
 
     // set library version labels
 #ifdef ENABLE_WALLET
