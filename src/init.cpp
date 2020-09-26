@@ -1388,7 +1388,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     {
         uiInterface.InitMessage.connect(SetRPCWarmupStatus);
         if (!AppInitServers(threadGroup))
-            return InitError(_("Unable to start HTTP server. See debug log for details."));
+            return InitError(_("Unable to start HTTP server. Use rpcport=<port> to select an available port.  See debug log for details."));
     }
 
     bool fSAPI = GetBoolArg("-sapi", false);
@@ -2078,10 +2078,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                   "Please add txindex=1 to your configuration and start with -reindex");
     }
 
-    if(fSmartNode) {
+    if( fSmartNode && MainNet() ) {
         LogPrintf("SMARTNODE:\n");
 
-        if (!GetBoolArg("-sapi", false) || (GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT) != DEFAULT_SAPI_SERVER_PORT)) {
+        if (!GetBoolArg("-sapi", false) || ( MainNet() && (GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT) != DEFAULT_SAPI_SERVER_PORT) )) {
             return InitError(_("Smartnodes are not allowed to disable SAPI or use a port different than 8080.  Add sapi=1 in smartcash.conf"));
         }
 

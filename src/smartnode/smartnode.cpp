@@ -23,6 +23,7 @@
 #endif // ENABLE_WALLET
 
 #include <boost/lexical_cast.hpp>
+#include "sapi/sapi.h"
 
 CSmartnode::CSmartnode() :
     smartnode_info_t{ SMARTNODE_ENABLED, PROTOCOL_VERSION, GetAdjustedTime()},
@@ -784,6 +785,23 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
             // nDos = 1;
             return false;
         }
+    }
+
+    //Check if the SAPI port is open before resetting ping timer.
+    CService nodeAddr;
+    SOCKET hSocket;
+    std::string hostname = pmn->addr.ToString();
+    // Remove the port from the address to later replace it by the SAPI port
+    size_t pos = hostname.find(":");
+    if (pos != std::string::npos) {
+        hostname = hostname.substr(0, pos);
+    }
+
+    // Try connecting to the SAPI port of the node
+    if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
+        LogPrintf("CSmartnodePing::CheckAndUpdate -- SAPI connection failed for SmartNode %s\n ",
+            pmn->addr.ToString());
+        return false;
     }
 
     LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- New ping: smartnode=%s  blockHash=%s  sigTime=%d\n", outpoint.ToStringShort(), blockHash.ToString(), sigTime);
