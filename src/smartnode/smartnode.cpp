@@ -799,10 +799,11 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
 
     // Try connecting to the SAPI port of the node
     if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
-        LogPrintf("CSmartnodePing::CheckAndUpdate -- SAPI connection failed for SmartNode %s\n ",
+        LogPrintf("CSmartnodePing::CheckAndUpdate -- Ping invalid, SAPI connection failed for SmartNode %s\n ",
             pmn->addr.ToString());
         return false;
     }
+    CloseSocket(hSocket);
 
     LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- New ping: smartnode=%s  blockHash=%s  sigTime=%d\n", outpoint.ToStringShort(), blockHash.ToString(), sigTime);
 

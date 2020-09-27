@@ -1407,9 +1407,24 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
 
         // Try connecting to the SAPI port of the node
         if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
-            LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- SAPI connection failed for SmartNode %s\n ",
-                mnv.addr.ToString());
-            pmn1->IncreasePoSeBanScore();
+            mnv.IncreasePoSeBanScore()
+            LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- SAPI connection failed for SmartNode %s, new score %d\n ",
+                mnv.addr.ToString(), mnv.nPoSeBanScore);
+//              pmn1->IncreasePoSeBanScore();
+
+            // increase ban score for everyone else with the same addr
+            int nCount = 0;
+            for (auto& mnpair : mapSmartnodes) {
+                 if(mnpair.second.addr != mnv.addr || mnpair.first == mnv.vin1.prevout) continue;
+                 mnpair.second.IncreasePoSeBanScore();
+                 nCount++;
+                 LogPrint("smartnode", "CSmartnodeMan::ProcessVerifyBroadcast -- increased PoSe ban score for %s addr %s, new score %d\n",
+                             mnpair.first.ToStringShort(), mnpair.second.addr.ToString(), mnpair.second.nPoSeBanScore);
+             }
+             if(nCount)
+                 LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- PoSe score increased for %d fake smartnodes, addr %s\n",
+                        nCount, pmn1->addr.ToString());
+
             return;
         }
 
