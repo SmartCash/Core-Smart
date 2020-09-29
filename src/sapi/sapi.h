@@ -113,6 +113,7 @@ namespace Keys{
     const std::string locktime = "locktime";
     const std::string protocol = "protocol";
     const std::string status = "status";
+    const std::string direction = "direction";
 }
 
 namespace Validation{
@@ -233,6 +234,12 @@ namespace Validation{
     class Transactions : public Array{
     public:
         Transactions() : Array() {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class TxDirection : public Base{
+    public:
+        TxDirection() : Base(UniValue::VSTR) {}
         SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
     };
 

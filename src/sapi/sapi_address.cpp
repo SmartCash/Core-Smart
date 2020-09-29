@@ -101,7 +101,8 @@ SAPI::EndpointGroup addressEndpoints = {
             {
                 SAPI::BodyParameter(SAPI::Keys::pageNumber,  new SAPI::Validation::IntRange(1,INT_MAX)),
                 SAPI::BodyParameter(SAPI::Keys::pageSize,    new SAPI::Validation::IntRange(1,100)),
-                SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true)
+                SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true),
+                SAPI::BodyParameter(SAPI::Keys::direction,   new SAPI::Validation::TxDirection(), true)
             }
         }
     }
@@ -715,6 +716,8 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
     int64_t nPageNumber = bodyParameter[SAPI::Keys::pageNumber].get_int64();
     int64_t nPageSize = bodyParameter[SAPI::Keys::pageSize].get_int64();
     bool fAsc = bodyParameter.exists(SAPI::Keys::ascending) ? bodyParameter[SAPI::Keys::ascending].get_bool() : false;
+    std::string direction = bodyParameter.exists(SAPI::Keys::direction)
+        ? bodyParameter[SAPI::Keys::direction].get_str() : "Any";
 
     if ( !mapPathParams.count("address") )
         return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/transactions/<smartcash_address>");
@@ -733,6 +736,13 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
 
     UniValue transactions(UniValue::VARR);
     for (const auto &txEntry : vecResult) {
+      std::string txDirection = std::get<2>(txEntry) > 0 ? "Received" : "Sent";
+
+      // Filter out based on direction if requested
+      if ((direction != "Any") && (direction != txDirection)) {
+          continue;
+      }
+
       CBlock block;
       CBlockIndex* pBlockindex = chainActive[std::get<1>(txEntry)];
       if(!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus()))
@@ -746,7 +756,7 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
       UniValue txValue(UniValue::VOBJ);
       txValue.pushKV("address", addrStr);
       txValue.pushKV("amount", UniValueFromAmount(abs(std::get<2>(txEntry))));
-      txValue.pushKV("direction", std::get<2>(txEntry) > 0 ? "Received" : "Sent");
+      txValue.pushKV("direction", txDirection);
 
       // Find TX inside the block
       auto tx = std::find_if(block.vtx.begin(), block.vtx.end(), [&txEntry] (const CTransaction &t) {

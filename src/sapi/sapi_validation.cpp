@@ -299,6 +299,20 @@ SAPI::Result SAPI::Validation::Transactions::Validate(const std::string &paramet
     return SAPI::Result(code, ResultMessage(code));
 }
 
+SAPI::Result SAPI::Validation::TxDirection::Validate(const std::string &parameter, const UniValue &value) const
+{
+    SAPI::Codes code = SAPI::Valid;
+    std::string message = std::string();
+    std::string direction = value.get_str();
+
+    if ((direction != "Received") && (direction != "Sent") && (direction != "Any")) {
+        code = SAPI::TxInvalidParameter;
+        message = "Direction should be one of 'Received|Sent|Any'";
+    }
+
+    return SAPI::Result(code, message);
+}
+
 std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
 {
     switch(value){
