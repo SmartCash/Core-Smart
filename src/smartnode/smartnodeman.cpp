@@ -1407,7 +1407,7 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
 
         // Try connecting to the SAPI port of the node
         if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
-            mnv.IncreasePoSeBanScore()
+            mnv.IncreasePoSeBanScore();
             LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- SAPI connection failed for SmartNode %s, new score %d\n ",
                 mnv.addr.ToString(), mnv.nPoSeBanScore);
 //              pmn1->IncreasePoSeBanScore();
