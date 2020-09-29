@@ -788,8 +788,8 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     }
     if (!fFromNewBroadcast){
         //Check if the SAPI port is open before resetting ping timer.
-       CService nodeAddr;
-       SOCKET hSocket;
+        CService nodeAddr;
+        SOCKET hSocket;
         std::string hostname = pmn->addr.ToString();
         // Remove the port from the address to later replace it by the SAPI port
         size_t pos = hostname.find(":");

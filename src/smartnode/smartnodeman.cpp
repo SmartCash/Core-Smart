@@ -1423,6 +1423,7 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
                  LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- SAPI failed -- PoSe score increased for %d fake smartnodes, addr %s\n",
                         nCount, pmn1->addr.ToString());
 
+            CloseSocket(hSocket);
             return;
         }
 
