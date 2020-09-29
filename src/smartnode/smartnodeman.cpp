@@ -1397,7 +1397,7 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
         //Check if the SAPI port is open before decreasing SmartNode PoSe score.
         CService nodeAddr;
         SOCKET hSocket;
-        std::string hostname = mnv.addr.ToString();
+        std::string hostname = pmn1->addr.ToString();
 
         // Remove the port from the address to later replace it by the SAPI port
         size_t pos = hostname.find(":");
@@ -1407,10 +1407,8 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
 
         // Try connecting to the SAPI port of the node
         if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
-            mnv.IncreasePoSeBanScore();
-            LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- SAPI connection failed for SmartNode %s, new score %d\n ",
-                mnv.addr.ToString(), mnv.nPoSeBanScore);
-//              pmn1->IncreasePoSeBanScore();
+            LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- SAPI connection failed for SmartNode %s\n ",
+                pmn1->addr.ToString());
 
             // increase ban score for everyone else with the same addr
             int nCount = 0;
@@ -1418,11 +1416,11 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
                  if(mnpair.second.addr != mnv.addr || mnpair.first == mnv.vin1.prevout) continue;
                  mnpair.second.IncreasePoSeBanScore();
                  nCount++;
-                 LogPrint("smartnode", "CSmartnodeMan::ProcessVerifyBroadcast -- increased PoSe ban score for %s addr %s, new score %d\n",
+                 LogPrint("smartnode", "CSmartnodeMan::ProcessVerifyBroadcast -- SAPI failed PoSe score increased for %s addr %s, new score %d\n",
                              mnpair.first.ToStringShort(), mnpair.second.addr.ToString(), mnpair.second.nPoSeBanScore);
              }
              if(nCount)
-                 LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- PoSe score increased for %d fake smartnodes, addr %s\n",
+                 LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- SAPI failed -- PoSe score increased for %d fake smartnodes, addr %s\n",
                         nCount, pmn1->addr.ToString());
 
             return;
