@@ -195,9 +195,13 @@ void CoinControlDialog::buttonSelectAllClicked()
         }
     }
     ui->treeWidget->setEnabled(false);
-    for (int i = 0; i < ui->treeWidget->topLevelItemCount(); i++)
-            if (ui->treeWidget->topLevelItem(i)->checkState(COLUMN_CHECKBOX) != state)
-                ui->treeWidget->topLevelItem(i)->setCheckState(COLUMN_CHECKBOX, state);
+    for (int j = 0; j < ui->treeWidget->topLevelItemCount(); j++)
+    {
+        if (ui->treeWidget->topLevelItem(j)->checkState(COLUMN_CHECKBOX) != state){
+            ui->treeWidget->topLevelItem(j)->setCheckState(COLUMN_CHECKBOX, state);
+            if ( j > 498 ) break;
+        }
+    }
     ui->treeWidget->setEnabled(true);
     if (state == Qt::Unchecked)
         coinControl->UnSelectAll(); // just to be sure

@@ -1,4 +1,4 @@
-    // Copyright (c) 2011-2015 The Bitcoin Core developers
+// Copyright (c) 2011-2015 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -268,10 +268,9 @@ void SpecialTransactionDialog::buttonSelectAllClicked()
 
     mapOutputs.clear();
 
-    for (int i = 0; i < ui->treeWidget->topLevelItemCount(); i++){
-
+    for (int i = 1; i < ui->treeWidget->topLevelItemCount(); i++){
+        if (i > MAX_ACTIVATION_TRANSACTIONS) break;
         QTreeWidgetItem* topLevel = ui->treeWidget->topLevelItem(i);
-
         topLevel->setExpanded(fSelect);
 
         for(int k = 0; k<topLevel->childCount(); k++){
