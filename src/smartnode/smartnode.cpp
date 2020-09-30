@@ -786,26 +786,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
             return false;
         }
     }
-    if (!fFromNewBroadcast){
-        //Check if the SAPI port is open before resetting ping timer.
-        CService nodeAddr;
-        SOCKET hSocket;
-        std::string hostname = pmn->addr.ToString();
-        // Remove the port from the address to later replace it by the SAPI port
-        size_t pos = hostname.find(":");
-        if (pos != std::string::npos) {
-            hostname = hostname.substr(0, pos);
-        }
 
-        // Try connecting to the SAPI port of the node
-        if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
-            LogPrintf("CSmartnodePing::CheckAndUpdate -- Ping invalid, SAPI connection failed for SmartNode %s\n ",
-                pmn->addr.ToString());
-            CloseSocket(hSocket);
-            return false;
-        }
-        CloseSocket(hSocket);
-    }
     LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- New ping: smartnode=%s  blockHash=%s  sigTime=%d\n", outpoint.ToStringShort(), blockHash.ToString(), sigTime);
 
     // LogPrintf("mnping - Found corresponding mn for vin: %s\n", vin.prevout.ToStringShort());
@@ -827,6 +808,27 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
         // let's bump sync timeout
         LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- bumping sync timeout, smartnode=%s\n", outpoint.ToStringShort());
         smartnodeSync.BumpAssetLastTime("CSmartnodePing::CheckAndUpdate");
+    }
+
+    if (pmn->IsEnabled()){
+        //Check if the SAPI port is open before resetting ping timer.
+        CService nodeAddr;
+        SOCKET hSocket;
+        std::string hostname = pmn->addr.ToString();
+        // Remove the port from the address to later replace it by the SAPI port
+        size_t pos = hostname.find(":");
+        if (pos != std::string::npos) {
+            hostname = hostname.substr(0, pos);
+        }
+
+        // Try connecting to the SAPI port of the node
+        if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
+            LogPrintf("CSmartnodePing::CheckAndUpdate -- Ping invalid, SAPI connection failed for SmartNode %s\n ",
+                pmn->addr.ToString());
+            CloseSocket(hSocket);
+            return false;
+        }
+        CloseSocket(hSocket);
     }
 
     // let's store this ping as the last one
