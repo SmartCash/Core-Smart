@@ -361,7 +361,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>(un)select all</string>
+           <string>Clear or Select All/500 Inputs</string>
           </property>
           <property name="autoDefault">
            <bool>false</bool>
