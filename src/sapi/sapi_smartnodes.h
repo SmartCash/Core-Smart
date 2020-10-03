@@ -7,7 +7,7 @@
 
 #include "sapi/sapi.h"
 
-extern SAPI::EndpointGroup smartnodesEndpoints;
+extern SAPI::EndpointGroup smartnodeEndpoints;
 
 #endif // SMARTCASH_SAPI_SMARTNODES_H
 

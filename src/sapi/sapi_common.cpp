@@ -14,6 +14,7 @@
 #include "clientversion.h"
 
 static bool client_status(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool client_help(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup clientEndpoints = {
     "client",
@@ -23,31 +24,38 @@ SAPI::EndpointGroup clientEndpoints = {
             {
                 // No body parameter
             },
+        },
+        {
+
+            "help", HTTPRequest::GET, UniValue::VNULL, client_help,
+            {
+                 // No body parameter
+            }
         }
     }
 };
 
-static bool statistic_requests(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
-static bool statistic_instantpay(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
-static bool statistic_instantpay_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool statistics_requests(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool statistics_instantpay(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool statistics_instantpay_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
-SAPI::EndpointGroup statisticEndpoints = {
-    "statistic",
+SAPI::EndpointGroup statisticsEndpoints = {
+    "statistics",
     {
         {
-            "requests", HTTPRequest::GET, UniValue::VNULL, statistic_requests,
+            "requests", HTTPRequest::GET, UniValue::VNULL, statistics_requests,
             {
                 // No body parameter
             },
         },
         {
-            "instantpay", HTTPRequest::GET, UniValue::VNULL, statistic_instantpay,
+            "instantpay", HTTPRequest::GET, UniValue::VNULL, statistics_instantpay,
             {
                 // No body parameter
             },
         },
         {
-            "instantpay", HTTPRequest::POST, UniValue::VOBJ, statistic_instantpay_list,
+            "instantpay", HTTPRequest::POST, UniValue::VOBJ, statistics_instantpay_list,
             {
                 SAPI::BodyParameter(SAPI::Keys::timestampFrom,  new SAPI::Validation::UInt(), true),
                 SAPI::BodyParameter(SAPI::Keys::timestampTo,    new SAPI::Validation::UInt(), true),
@@ -58,6 +66,25 @@ SAPI::EndpointGroup statisticEndpoints = {
         }
     }
 };
+
+static bool client_help(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    UniValue response(UniValue::VOBJ);
+    UniValue connections(UniValue::VOBJ);
+
+    response.pushKV("IP:8080/v1/client/help","Show this help menu");
+    response.pushKV("IP:8080/v1/address/", "balance balances deposit unspent unspent/amount transactions transactions/{address}");
+    response.pushKV("IP:8080/v1/blockchain/", "info height block/{blockinfo} block/transactions blocks/latest/{count} blocks/{from?/{to}");
+    response.pushKV("IP:8080/v1/client/", "status help");
+    response.pushKV("IP:8080/v1/smartnode/", "count roi list check check/{address}");
+    response.pushKV("IP:8080/v1/smartrewards/","current roi history check/{address}");
+    response.pushKV("IP:8080/v1/statistics/", "requests instantpay");
+    response.pushKV("IP:8080/v1/transaction/", "send check create");
+
+    SAPI::WriteReply(req, response);
+
+    return true;
+}
 
 static bool client_status(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
@@ -83,13 +110,13 @@ static bool client_status(HTTPRequest* req, const std::map<std::string, std::str
     return true;
 }
 
-static bool statistic_requests(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+static bool statistics_requests(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     SAPI::WriteReply(req, sapiStatistics.ToUniValue());
     return true;
 }
 
-static bool statistic_instantpay(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+static bool statistics_instantpay(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     int nInstantPayLocks = 0;
     int nStart = GetTime() - (24 * 60 * 60);
@@ -130,7 +157,7 @@ static bool statistic_instantpay(HTTPRequest* req, const std::map<std::string, s
     return true;
 }
 
-static bool statistic_instantpay_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+static bool statistics_instantpay_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     int64_t nTime0, nTime1, nTime2, nTime3, nTime4, nTime5;
 
@@ -203,7 +230,7 @@ static bool statistic_instantpay_list(HTTPRequest* req, const std::map<std::stri
 
     nTime5 = GetTimeMicros();
 
-    LogPrint("sapi-benchmark", "statistic_instantpay_list\n");
+    LogPrint("sapi-benchmark", "statistics_instantpay_list\n");
     LogPrint("sapi-benchmark", " Prepare parameter: %.2fms\n", (nTime1 - nTime0) * 0.001);
     LogPrint("sapi-benchmark", " Get instantpay count: %.2fms\n", (nTime2 - nTime1) * 0.001);
     LogPrint("sapi-benchmark", " Get instantpay index: %.2fms\n", (nTime3 - nTime2) * 0.001);

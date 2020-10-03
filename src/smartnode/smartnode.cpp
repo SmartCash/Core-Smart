@@ -827,11 +827,14 @@ LogPrintf("CSmartnodePing::CheckAndUpdate SAPI mid loop hostname %s\n ", hostnam
         if (!ConnectSocketByName(nodeAddr, h1Socket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
             LogPrintf("CSmartnodePing::CheckAndUpdate -- Ping invalid, SAPI connection failed for SmartNode %s\n ",
                 pmn->addr.ToString());
+            MilliSleep(1000);
             CloseSocket(h1Socket);
 LogPrintf("CSmartnodePing::CheckAndUpdate SAPI end1 loop %s\n ", pmn->addr.ToString());
             return false;
+        } else {
+            MilliSleep(1000);
+            CloseSocket(h1Socket);
         }
-        CloseSocket(h1Socket);
 LogPrintf("CSmartnodePing::CheckAndUpdate SAPI end2 loop %s\n ", pmn->addr.ToString());
     }
 

@@ -248,7 +248,7 @@ namespace Validation{
 
 namespace Limits {
 
-    const int64_t nRequestsPerInterval = 200;
+    const int64_t nRequestsPerInterval = 20;
     const int64_t nRequestIntervalMs = 2000;
     const int64_t nClientRemovalMs = 10 * 60 * 1000;
 

@@ -20,8 +20,8 @@ static bool smartnodes_check_one(HTTPRequest* req, const std::map<std::string, s
 static bool smartnodes_check_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartnodes_filter_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
-SAPI::EndpointGroup smartnodesEndpoints = {
-    "smartnodes",
+SAPI::EndpointGroup smartnodeEndpoints = {
+    "smartnode",
     {
         {
             "count", HTTPRequest::GET, UniValue::VNULL, smartnodes_count,
@@ -177,7 +177,7 @@ static bool smartnodes_list(HTTPRequest* req, const std::map<std::string, std::s
 static bool smartnodes_check_one(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     if ( !mapPathParams.count("info") )
-        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /smartnodes/check/<smartnode_info>");
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /smartnode/check/<smartnode_info>");
 
     std::string strInfo = mapPathParams.at("info");
 

@@ -175,7 +175,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     // Early reject unknown HTTP methods
     if (method == HTTPRequest::UNKNOWN) {
         sapiStatistics.request(peer, CSAPIStatistics::Invalid);
-        SAPI::Error(hreq.get(), HTTPStatus::BAD_METHOD, "Invalid method");
+        SAPI::Error(hreq.get(), HTTPStatus::BAD_METHOD, "Invalid method. See: IP:8080/v1/client/help");
         return;
     }
 
@@ -185,7 +185,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     // For now we only have v1, so just check if its provided..
     if( strURI.substr(0,SAPI::versionSubPath.size()) != SAPI::versionSubPath ){
         sapiStatistics.request(peer, CSAPIStatistics::Invalid);
-        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid api version. Use: <host>/v1/<endpoint>");
+        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid api version. See: IP:8080/v1/client/help" );
         return;
     }
 
@@ -194,7 +194,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
     // Check if there is anything else provided after the version
     if( !strURI.size() || strURI.front() != '/' ){
         sapiStatistics.request(peer, CSAPIStatistics::Invalid);
-        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Endpoint missing. Use: <host>/v1/<endpoint>");
+        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Endpoint missing. See: IP:8080/v1/client/help");
         return;
     }
 
@@ -302,7 +302,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
         }
     } else {
         sapiStatistics.request(peer, CSAPIStatistics::Invalid);
-        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid endpoint: " + strURI + " with method: " + RequestMethodString(hreq->GetRequestMethod()));
+        SAPI::Error(hreq.get(), HTTPStatus::NOT_FOUND, "Invalid endpoint: " + strURI + " with method: " + RequestMethodString(hreq->GetRequestMethod()) + " See: IP:8080/v1/client/help");
     }
 
     // Clean up rate limits
@@ -587,11 +587,11 @@ bool StartSAPI()
 
     endpointGroups = {
         &clientEndpoints,
-        &statisticEndpoints,
+        &statisticsEndpoints,
         &blockchainEndpoints,
         &addressEndpoints,
         &transactionEndpoints,
-        &smartnodesEndpoints,
+        &smartnodeEndpoints,
         &smartrewardsEndpoints,
     };
 

@@ -21,7 +21,7 @@ static const int SMARTNODE_WATCHDOG_MAX_SECONDS        = 60 * 60;
 static const int SMARTNODE_NEW_START_REQUIRED_SECONDS  = 120 * 60;
 static const int SMARTNODE_COIN_REQUIRED  = 100000;
 
-static const int SMARTNODE_POSE_BAN_MAX_SCORE          = 6;  //Increased from 5 to allow for a SAPI communication failure
+static const int SMARTNODE_POSE_BAN_MAX_SCORE          = 5;
 
 //
 // The Smartnode Ping Class : Contains a different serialize method for sending pings from smartnodes throughout the network

@@ -60,7 +60,7 @@ void SAPI::Limits::Client::Request()
 
     IsRequestLimited();
 
-    nRemainingRequests += (static_cast<double>(nTimePassed * nRequestsPerInterval) / nRequestIntervalMs) - 1.0;
+    nRemainingRequests = (static_cast<double>(nTimePassed * nRequestsPerInterval) / nRequestIntervalMs) - 1.0;
 
     if( nRemainingRequests > nRequestsPerInterval )
             nRemainingRequests = nRequestsPerInterval;
