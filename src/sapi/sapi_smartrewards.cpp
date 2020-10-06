@@ -169,14 +169,14 @@ static bool smartrewards_roi(HTTPRequest* req, const std::map<std::string, std::
 
     if( !current->number ) return SAPI::Error(req, SAPI::NoActiveRewardRound, "No active reward round available yet.");
 
-    obj.pushKV("SmartRewards Yearly Yield % (>1000 Smart)",int(current->percent * 52 * 100));
-    obj.pushKV("SmartRewards Yearly Yield % with 2 Week Bonus",int(current->percent * 52 * 120));
-    obj.pushKV("SmartRewards Yearly Yield % with 3 Week Bonus",int(current->percent * 52 * 140));
-    obj.pushKV("SmartRewards Yearly Yield % with 4 Week Bonus",int(current->percent * 52 * 150));
-    obj.pushKV("SuperRewards Yearly Yield % (>1 million Smart)",int(current->percent * 52 * 200));
-    obj.pushKV("SuperRewards Yearly Yield % with 2 week Bonus",int(current->percent * 52 * 220));
-    obj.pushKV("SuperRewards Yearly Yield % with 3 week Bonux",int(current->percent * 52 * 240));
-    obj.pushKV("SuperRewards Yearly Yield % with 4 week Bonux",int(current->percent * 52 * 250));
+    obj.pushKV("SmartRewards Yearly Yield % (>1000 Smart)",int(0.5 + current->percent * 52 * 100));
+    obj.pushKV("SmartRewards Yearly Yield % with 2 Week Bonus",int(0.5 + current->percent * 52 * 120));
+    obj.pushKV("SmartRewards Yearly Yield % with 3 Week Bonus",int(0.5 + current->percent * 52 * 140));
+    obj.pushKV("SmartRewards Yearly Yield % with 4 Week Bonus",int(0.5 + current->percent * 52 * 150));
+    obj.pushKV("SuperRewards Yearly Yield % (>1 million Smart)",int(0.5 + current->percent * 52 * 200));
+    obj.pushKV("SuperRewards Yearly Yield % with 2 week Bonus",int(0.5 + current->percent * 52 * 220));
+    obj.pushKV("SuperRewards Yearly Yield % with 3 week Bonux",int(0.5 + current->percent * 52 * 240));
+    obj.pushKV("SuperRewards Yearly Yield % with 4 week Bonux",int(0.5 + current->percent * 52 * 250));
 
     SAPI::WriteReply(req, obj);
 

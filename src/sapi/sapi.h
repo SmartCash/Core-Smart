@@ -248,9 +248,9 @@ namespace Validation{
 
 namespace Limits {
 
-    const int64_t nRequestsPerInterval = 20;
+    const int64_t nRequestsPerInterval = 100;
     const int64_t nRequestIntervalMs = 2000;
-    const int64_t nClientRemovalMs = 10 * 60 * 1000;
+    const int64_t nClientRemovalMs = 1 * 1000;
 
     class Client{
 
