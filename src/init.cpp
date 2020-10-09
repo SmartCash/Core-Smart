@@ -2078,7 +2078,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                   "Please add txindex=1 to your configuration and start with -reindex");
     }
 
-    if( fSmartNode && MainNet() ) {
+    if( fSmartNode ) {
         LogPrintf("SMARTNODE:\n");
 
         if (!GetBoolArg("-sapi", false) || ( MainNet() && (GetArg("-sapiport", DEFAULT_SAPI_SERVER_PORT) != DEFAULT_SAPI_SERVER_PORT) )) {

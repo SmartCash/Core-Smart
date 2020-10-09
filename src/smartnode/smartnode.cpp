@@ -811,32 +811,30 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     }
 
 LogPrintf("CSmartnodePing::CheckAndUpdate SAPI preloop %s\n ", pmn->addr.ToString());
-    if (pmn->IsEnabled()){
+//    if (pmn->IsEnabled()){
 LogPrintf("CSmartnodePing::CheckAndUpdate SAPI beg loop %s\n ", pmn->addr.ToString());
         //Check if the SAPI port is open before resetting ping timer.
-        CService nodeAddr1;
-        SOCKET hSocket1;
-        std::string hostname1 = pmn->addr.ToString();
+        CService nodeAddr;
+        SOCKET hSocket;
+        std::string hostname = pmn->addr.ToString();
         // Remove the port from the address to later replace it by the SAPI port
-        size_t pos1 = hostname1.find(":");
-        if (pos1 != std::string::npos) {
-            hostname1 = hostname1.substr(0, pos1);
+        size_t pos = hostname.find(":");
+        if (pos != std::string::npos) {
+            hostname = hostname.substr(0, pos);
         }
-LogPrintf("CSmartnodePing::CheckAndUpdate SAPI mid loop hostname %s\n ", hostname1.c_str() );
+LogPrintf("CSmartnodePing::CheckAndUpdate SAPI mid loop hostname %s\n ", hostname.c_str() );
         // Try connecting to the SAPI port of the node
-        if (!ConnectSocketByName(nodeAddr1, hSocket1, hostname1.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
+        if (!ConnectSocketByName(nodeAddr, hSocket, hostname.c_str(), DEFAULT_SAPI_SERVER_PORT, 1000, NULL)) {
             LogPrintf("CSmartnodePing::CheckAndUpdate -- Ping invalid, SAPI connection failed for SmartNode %s\n ",
                 pmn->addr.ToString());
-            MilliSleep(1000);
-            CloseSocket(hSocket1);
+            CloseSocket(hSocket);
 LogPrintf("CSmartnodePing::CheckAndUpdate SAPI end1 loop %s\n ", pmn->addr.ToString());
             return false;
         } else {
-            MilliSleep(1000);
-            CloseSocket(hSocket1);
+            CloseSocket(hSocket);
         }
 LogPrintf("CSmartnodePing::CheckAndUpdate SAPI end2 loop %s\n ", pmn->addr.ToString());
-    }
+//    }
 
     // let's store this ping as the last one
     LogPrint("smartnode", "CSmartnodePing::CheckAndUpdate -- Smartnode ping accepted, smartnode=%s\n", outpoint.ToStringShort());

@@ -1393,7 +1393,7 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
             LogPrintf("CSmartnodeMan::ProcessVerifyBroadcast -- VerifyMessage() for smartnode2 failed, error: %s\n", strError);
             return;
         }
-/*
+
         //Check if the SAPI port is open before decreasing SmartNode PoSe score.
         CService nodeAddr;
         SOCKET hSocket;
@@ -1428,7 +1428,7 @@ void CSmartnodeMan::ProcessVerifyBroadcast(CNode* pnode, const CSmartnodeVerific
         }
 
         CloseSocket(hSocket);
-*/
+
         if(!pmn1->IsPoSeVerified()) {
             pmn1->DecreasePoSeBanScore();
         }
