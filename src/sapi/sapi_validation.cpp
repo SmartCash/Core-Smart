@@ -316,7 +316,6 @@ SAPI::Result SAPI::Validation::TxDirection::Validate(const std::string &paramete
 std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
 {
     switch(value){
-    /* Parameter errors */
     case ParameterMissing:
         return "Parameter missing";
     case InvalidType:
@@ -349,8 +348,7 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Amount out of max money range";
     case AmountOutOfRange:
         return "Amount value out of the valid range: %s - %s";
-        /* common errors */
-    case TimedOut:
+/*    case TimedOut:
         return "Operation timed out";
     case PageOutOfRange:
         return "Page out of valid range";
@@ -362,8 +360,7 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Ressource rate limit exceeded";
     case AddressNotFound:
         return "Address not found";
-        /* block errors */
-    case BlockHeightOutOfRange:
+*/    case BlockHeightOutOfRange:
         return "Block height out of range";
     case BlockNotFound:
         return "Block not found";
@@ -371,12 +368,10 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Block information not specified";
     case BlockHashInvalid:
         return "Block hash invalid";
-        /* address errors */
     case NoDepositAvailble:
         return "No deposits available";
     case NoUtxosAvailble:
         return "No unspent outpouts available";
-        /* transaction errors */
     case TxDecodeFailed:
         return "Transaction decode failed";
     case TxNotSpecified:
@@ -397,7 +392,6 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Missing 'txid' field in transaction";
     case TxMissingVout:
         return "Missing 'vout' field in transaction";
-        /* smartreward errors */
     case RewardsDatabaseBusy:
         return "SmartRewards database busy";
     case NoActiveRewardRound:

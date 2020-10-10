@@ -10,7 +10,7 @@ CCriticalSection cs_clients;
 static std::map<std::string, SAPI::Limits::Client*> mapClients;
 
 static std::vector<int> vecThrottling = {
-    10,60,600,3600
+    1,1,1,1,5,5,5,5,50,120,6000
 };
 
 SAPI::Limits::Client *SAPI::Limits::GetClient(const CService &peer)
@@ -74,7 +74,7 @@ void SAPI::Limits::Client::Request()
 
         int64_t nThrottlingTime = vecThrottling.at(nThrottling);
 
-        nRequestsLimitUnlock = nTime + nThrottlingTime * 1000;
+        nRequestsLimitUnlock = nTime + nThrottlingTime * 100;
         nRemainingRequests = nRequestIntervalMs;
 
     }

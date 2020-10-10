@@ -25,7 +25,7 @@ extern bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransacti
 
 static const int DEFAULT_SAPI_THREADS=4;
 static const int DEFAULT_SAPI_WORKQUEUE=16;
-static const int DEFAULT_SAPI_SERVER_TIMEOUT=30;
+static const int DEFAULT_SAPI_SERVER_TIMEOUT=3;
 static const int DEFAULT_SAPI_SERVER_PORT=8080;
 
 static const int DEFAULT_SAPI_JSON_INDENT=2;
@@ -58,7 +58,7 @@ enum Codes{
     AmountOverflow,
     AmountOutOfRange,
     /* common errors */
-    TimedOut = 2000,
+    TimedOut = 1000,
     PageOutOfRange,
     BalanceInsufficient,
     RequestRateLimitExceeded,
@@ -249,7 +249,7 @@ namespace Validation{
 namespace Limits {
 
     const int64_t nRequestsPerInterval = 100;
-    const int64_t nRequestIntervalMs = 2000;
+    const int64_t nRequestIntervalMs = 1000;
     const int64_t nClientRemovalMs = 1 * 1000;
 
     class Client{
