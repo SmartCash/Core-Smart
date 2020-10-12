@@ -361,7 +361,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Clear or Select All/500 Inputs</string>
+           <string>Clear or Select All up to Max 500 Addresses or 500 Inputs</string>
           </property>
           <property name="autoDefault">
            <bool>false</bool>
@@ -377,7 +377,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Tree mode</string>
+           <string>Addresses</string>
           </property>
          </widget>
         </item>
@@ -390,7 +390,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>List mode</string>
+           <string>Inputs</string>
           </property>
           <property name="checked">
            <bool>true</bool>

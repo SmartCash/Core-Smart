@@ -348,7 +348,7 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Amount out of max money range";
     case AmountOutOfRange:
         return "Amount value out of the valid range: %s - %s";
-/*    case TimedOut:
+    case TimedOut:
         return "Operation timed out";
     case PageOutOfRange:
         return "Page out of valid range";
@@ -360,7 +360,7 @@ std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
         return "Ressource rate limit exceeded";
     case AddressNotFound:
         return "Address not found";
-*/    case BlockHeightOutOfRange:
+    case BlockHeightOutOfRange:
         return "Block height out of range";
     case BlockNotFound:
         return "Block not found";

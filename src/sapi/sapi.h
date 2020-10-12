@@ -58,7 +58,7 @@ enum Codes{
     AmountOverflow,
     AmountOutOfRange,
     /* common errors */
-    TimedOut = 1000,
+    TimedOut = 2000,
     PageOutOfRange,
     BalanceInsufficient,
     RequestRateLimitExceeded,
