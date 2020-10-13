@@ -18,11 +18,16 @@ TimeLockSettingsWidget::TimeLockSettingsWidget(QWidget *parent) :
 {
     const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
     timeLockItems.emplace_back("Set LockTime", 0);
-    timeLockItems.emplace_back("1 month", (int)(ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("2 months", (int)(2 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("3 months", (int)(3 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("6 months", (int)(6 * ONE_MONTH / nAvgBlockTime));
-    timeLockItems.emplace_back("1 year", (int)(ONE_YEAR / nAvgBlockTime));
+    timeLockItems.emplace_back("1 month", (int)(1600028718 + (QDateTime::currentMSecsSinceEpoch() / 1000)));
+    timeLockItems.emplace_back("2 months", (int)(2 * 1600028718) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("3 months", (int)(3 * 1600028718) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("6 months", (int)(6 * 1600028718) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("1 year", (int)(31556926 + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("2 year TermRewards", (int)( (2 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("3 year TermRewards", (int)( (3 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("4 year TermRewards", (int)( (4 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("5 year TermRewards", (int)( (5 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+
     timeLockItems.emplace_back("Custom (until block)", -1);
     timeLockItems.emplace_back("Custom (until date)", -1);
 

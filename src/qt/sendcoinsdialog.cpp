@@ -332,8 +332,8 @@ void SendCoinsDialog::on_sendButton_clicked()
         questionString.append("<span style='color:#aa0000;'>");
         questionString.append(tr("This is not a normal transaction. "));
         questionString.append(tr("Do not use this to deposit funds to an exchange. "));
-        questionString.append(tr("Funds sent will not be spendable until approximatively "));
-        questionString.append(unlockDateTime.toString("MMMM d yy hh:mm:ss"));
+        questionString.append(tr("Funds sent will not be spendable until "));
+        questionString.append(unlockDateTime.toString("MMMM d yyyy hh:mm:ss"));
         questionString.append("</span></br><hr />");
     }
 

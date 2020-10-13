@@ -655,7 +655,8 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     }
 
     // turn labels "red"
-    l5->setStyleSheet((nBytes >= MAX_FREE_TRANSACTION_CREATE_SIZE) ? "color:red;" : "");// Bytes >= 1000
+    l1->setStyleSheet((nQuantity > 500) ? "color:red;" : "");// 500 inputs is max reasonable to send
+    l5->setStyleSheet((nBytes > 75000) ? "color:red;" : "");// 500 inputs is about  74000 Bytes
     l6->setStyleSheet((dPriority > 0 && !fAllowFree) ? "color:red;" : "");              // Priority < "medium"
     l7->setStyleSheet((fDust) ? "color:red;" : "");                                     // Dust = "yes"
 
