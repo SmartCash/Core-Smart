@@ -178,7 +178,7 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
                 .arg(strType)
                 .arg(BitcoinUnits::formatHtmlWithUnit(model->getOptionsModel()->getDisplayUnit(), GetRequiredTotal()));
 
-        questionString.append("<hr />");
+        questionString.append("\n");
         questionString.append(tr("Total Amount %1")
             .arg(BitcoinUnits::formatHtmlWithUnit(model->getOptionsModel()->getDisplayUnit(), nTotalAmount)));
 
@@ -234,7 +234,7 @@ void SpecialTransactionDialog::buttonBoxClicked(QAbstractButton* button)
                                        .arg(vecErrors.size());
             }
 
-            strResult.append("<hr />");
+            strResult.append("\n");
 
             switch(type){
             case REGISTRATION_TRANSACTIONS:

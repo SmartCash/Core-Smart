@@ -9,25 +9,21 @@
 
 #include "timelocksettingswidget.h"
 
-#define ONE_MONTH                     (30.5 * 24 * 60 * 60)
-#define ONE_YEAR                      (365 * 24 * 60 * 60)
+#define ONE_MONTH               (30.5 * 24 * 60 * 60)
+#define ONE_YEAR                (365 * 24 * 60 * 60)
 
 TimeLockSettingsWidget::TimeLockSettingsWidget(QWidget *parent) :
     QWidget(parent),
     nLockTime(0)
 {
     const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
-    timeLockItems.emplace_back("Set LockTime", 0);
-    timeLockItems.emplace_back("1 month", (int)(1600028718 + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("2 months", (int)( (2 * 1600028718) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("3 months", (int)( (3 * 1600028718) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("6 months", (int)( (6 * 1600028718) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("1 year", (int)(31556926 + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("2 year TermRewards", (int)( (2 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("3 year TermRewards", (int)( (3 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("4 year TermRewards", (int)( (4 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("5 year TermRewards", (int)( (5 * 31556926) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-
+    timeLockItems.emplace_back("LockTime or TermRewards", 0);
+    timeLockItems.emplace_back("1 month", (int)(ONE_MONTH + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("2 months", (int)( (2 * ONE_MONTH) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("3 months", (int)( (3 * ONE_MONTH) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("6 months", (int)( (6 * ONE_MONTH) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("1 year", (int)(ONE_YEAR + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("2 year TermRewards", (int)( (2 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
     timeLockItems.emplace_back("Custom (until block)", -1);
     timeLockItems.emplace_back("Custom (until date)", -1);
 
@@ -42,13 +38,6 @@ TimeLockSettingsWidget::TimeLockSettingsWidget(QWidget *parent) :
 
     timeLockCombo->setSizePolicy(sizePolicy);
     timeLockCombo->setToolTip("Lock a transaction to be spent at future time.");
-
-    // Make Timelock feature visible only if supermajority enforced BIP65
-    if(!IsSuperMajority(4, chainActive.Tip(), Params().GetConsensus().nMajorityEnforceBlockUpgrade,
-          Params().GetConsensus()))
-    {
-        timeLockCombo->setVisible(false);
-    }
 
     timeLockCustomBlocks = new QSpinBox();
     timeLockCustomBlocks->setVisible(false);
