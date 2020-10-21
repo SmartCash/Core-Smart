@@ -224,7 +224,7 @@ static bool GetAddressesTransactions(HTTPRequest* req, std::string addrStr,
         });
 
         if (found == addressTxs.end()) {
-            if (tx > (addressIndex.begin() + nIndexOffset) && static_cast<int64_t>(addressTxs.size()) < pageSize) {
+            if ((std::distance(addressIndex.begin(), tx) >= nIndexOffset) && static_cast<int64_t>(addressTxs.size()) < pageSize) {
                 addressTxs.emplace_back(tx->first.txhash, tx->first.blockHeight, tx->second);
             }
             totalNumTxs++;
