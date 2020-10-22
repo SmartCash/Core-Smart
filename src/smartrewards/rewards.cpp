@@ -602,7 +602,9 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, uint1
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
     }
 
-    rEntry->balance -= in.nValue;
+    if (!in.GetLockTime() || nCurrentRound < 52) {
+        rEntry->balance -= in.nValue;
+    }
 
     if (nCurrentRound >= nFirst_1_3_Round && !tx.IsActivationTx() && !rEntry->fDisqualifyingTx) {
         if( rEntry->IsEligible() ){
@@ -659,8 +661,33 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
             }
         }
 
-
+    // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
+//    bool eligible = true;
+//    const uint32_t lockTime = out.GetLockTime();
+/*    if (lockTime) {
+        // We already enforced they were the same format when verifying the transaction
+        uint32_t lockPeriod = lockTime - tx.nLockTime;
+        if (lockTime > LOCKTIME_THRESHOLD) {
+            // lock by timestamp
+            if (lockPeriod > (365 * 24 * 60 * 60)) {
+                eligible = false;
+            }
+        } else {
+            // lock by blockheight
+            const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
+            if (lockPeriod > (365 * 24 * 60 * 60 / nAvgBlockTime)) {
+                eligible = false;
+            }
+        }
+    }
+    if (eligible) {
         rEntry->balance += out.nValue;
+    }
+*/
+     // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
+     if (!out.GetLockTime() || nCurrentRound < 52) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
+         rEntry->balance += out.nValue;
+     }
 
        if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
             int nInterval = SmartNodePayments::PayoutInterval(nHeight);
@@ -735,7 +762,9 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t
         return;
     }
 
-    rEntry->balance += in.nValue;
+    if (!in.GetLockTime() || nCurrentRound < 52) {
+        rEntry->balance += in.nValue;
+    }
 
     if ( nCurrentRound >= nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash()) {
         rEntry->disqualifyingTx.SetNull();
@@ -772,9 +801,9 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
     } else {
         GetRewardEntry(id, rEntry, true);
         if (!tx.IsActivationTx() && !rEntry->fActivated) {
-            rEntry->activationTx.SetNull();
-            rEntry->fActivated = false;
-            rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
+//            rEntry->activationTx.SetNull();
+//            rEntry->fActivated = false;
+//            rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
             if (rEntry->disqualifyingTx == tx.GetHash()) {
                 rEntry->disqualifyingTx.SetNull();
                 rEntry->fDisqualifyingTx = false;
@@ -783,7 +812,8 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
                     result.disqualifiedSmart -= rEntry->balanceEligible;
                 }
             }
-        } else if (!tx.IsActivationTx() && rEntry->fActivated && !SmartHive::IsHive(rEntry->id)) {
+//        } else if (!tx.IsActivationTx() && rEntry->fActivated && !SmartHive::IsHive(rEntry->id)) {
+        } else if (tx.IsActivationTx() && rEntry->fActivated && !SmartHive::IsHive(rEntry->id)) {
             if (rEntry->activationTx == tx.GetHash()) {
                 rEntry->activationTx.SetNull();
                 rEntry->fActivated = false;
@@ -792,8 +822,9 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
         }
-        rEntry->balance -= out.nValue;
-
+        if (!out.GetLockTime() || nCurrentRound < 52) {
+            rEntry->balance -= out.nValue;
+        }
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
         if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
             if (rEntry->smartnodePaymentTx == tx.GetHash()) {
