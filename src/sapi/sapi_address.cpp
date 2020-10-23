@@ -97,8 +97,9 @@ SAPI::EndpointGroup addressEndpoints = {
             }
         },
         {
-            "transactions/{address}", HTTPRequest::POST, UniValue::VOBJ, address_transactions,
+            "transactions", HTTPRequest::POST, UniValue::VOBJ, address_transactions,
             {
+                SAPI::BodyParameter(SAPI::Keys::address,     new SAPI::Validation::SmartCashAddress()),
                 SAPI::BodyParameter(SAPI::Keys::pageNumber,  new SAPI::Validation::IntRange(1,INT_MAX)),
                 SAPI::BodyParameter(SAPI::Keys::pageSize,    new SAPI::Validation::IntRange(1,100)),
                 SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true),
@@ -713,16 +714,17 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
 static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
+    std::string addrStr = bodyParameter[SAPI::Keys::address].get_str();
     int64_t nPageNumber = bodyParameter[SAPI::Keys::pageNumber].get_int64();
     int64_t nPageSize = bodyParameter[SAPI::Keys::pageSize].get_int64();
     bool fAsc = bodyParameter.exists(SAPI::Keys::ascending) ? bodyParameter[SAPI::Keys::ascending].get_bool() : false;
     std::string direction = bodyParameter.exists(SAPI::Keys::direction)
         ? bodyParameter[SAPI::Keys::direction].get_str() : "Any";
 
-    if ( !mapPathParams.count("address") )
-        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/transactions/<smartcash_address>");
+//    if ( !mapPathParams.count("address") )
+ //       return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/transactions/<smartcash_address>");
 
-    std::string addrStr = mapPathParams.at("address");
+//    std::string addrStr = mapPathParams.at("address");
     std::vector<std::tuple<uint256, int, CAmount>> vecResult;
     int64_t totalNumTxs;
     if( !GetAddressesTransactions(req, addrStr, vecResult, nPageNumber, nPageSize, fAsc, totalNumTxs) )
