@@ -162,10 +162,10 @@ public:
     bool Update(CBlockIndex* pindexNew, const CChainParams& chainparams, const int nCurrentRound, CSmartRewardsUpdateResult& result);
     bool UpdateRound(const CSmartRewardRound& round);
 
-    void ProcessInput(const CTransaction& tx, const CTxOut& in, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
+    void ProcessInput(const CTransaction& tx, const CTxOut& in, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
     void ProcessOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
 
-    void UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
+    void UndoInput(const CTransaction& tx, const CTxOut& in, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
     void UndoOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
 
     bool ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, int nCurrentRound);

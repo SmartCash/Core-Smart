@@ -580,7 +580,7 @@ const CSmartRewardRoundMap* CSmartRewards::GetRewardRounds()
     return cache.GetRounds();
 }
 
-void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result)
+void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result)
 {
     uint16_t nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
     CSmartRewardEntry* rEntry = nullptr;
@@ -602,7 +602,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, uint1
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
     }
 
-    if (!in.GetLockTime() || in.nHeight < 1915600){ //nCurrentRound < 52
+    if (!in.GetLockTime() || (txHeight < 1915600)) {
         rEntry->balance -= in.nValue;
     }
 
@@ -662,7 +662,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         }
 
      // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-     if (!out.GetLockTime() || nCurrentRound < 52) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
+     if (!out.GetLockTime() || (nCurrentRound < 52)) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
          rEntry->balance += out.nValue;
      }
 
@@ -723,7 +723,7 @@ bool CSmartRewards::ProcessTransaction(CBlockIndex* pIndex, const CTransaction& 
     return true;
 }
 
-void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result)
+void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result)
 {
     uint16_t nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
     CSmartRewardEntry* rEntry = nullptr;
@@ -739,7 +739,7 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t
         return;
     }
 
-    if (!in.GetLockTime() || in.nHeight < 1915600){ //nCurrentRound < 52
+    if (!in.GetLockTime() || (txHeight < 1915600)) {
         rEntry->balance += in.nValue;
     }
 
@@ -801,7 +801,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
         }
-        if (!out.GetLockTime() || nCurrentRound < 52) {
+        if (!out.GetLockTime() || (nCurrentRound < 52)) {
             rEntry->balance -= out.nValue;
         }
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists
@@ -867,7 +867,7 @@ void CSmartRewards::UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx,
             const Coin& coin = coins.AccessCoin(in.prevout);
             const CTxOut& rOut = coin.out;
 
-            UndoInput(tx, rOut, nCurrentRound, result);
+            UndoInput(tx, rOut, nHeight, nCurrentRound, result);
         }
     }
 

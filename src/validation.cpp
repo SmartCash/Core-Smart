@@ -2431,7 +2431,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 const CTxOut &prevout = coin.out;
 
                 if( fProcessRewards && !input.scriptSig.IsZerocoinSpend() ){
-                    prewards->ProcessInput(tx, prevout, nCurrentRewardsRound, smartRewardsResult);
+                    prewards->ProcessInput(tx, prevout, coin.nHeight, nCurrentRewardsRound, smartRewardsResult);
                 }
 
                 if (fAddressIndex || fSpentIndex || fDepositIndex)
