@@ -602,7 +602,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, uint1
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
     }
 
-    if (!in.GetLockTime() || nCurrentRound < 52) {
+    if (!in.GetLockTime() || in.nHeight < 1915600){ //nCurrentRound < 52
         rEntry->balance -= in.nValue;
     }
 
@@ -661,29 +661,6 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
             }
         }
 
-    // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-//    bool eligible = true;
-//    const uint32_t lockTime = out.GetLockTime();
-/*    if (lockTime) {
-        // We already enforced they were the same format when verifying the transaction
-        uint32_t lockPeriod = lockTime - tx.nLockTime;
-        if (lockTime > LOCKTIME_THRESHOLD) {
-            // lock by timestamp
-            if (lockPeriod > (365 * 24 * 60 * 60)) {
-                eligible = false;
-            }
-        } else {
-            // lock by blockheight
-            const int nAvgBlockTime = Params().GetConsensus().nPowTargetSpacing;
-            if (lockPeriod > (365 * 24 * 60 * 60 / nAvgBlockTime)) {
-                eligible = false;
-            }
-        }
-    }
-    if (eligible) {
-        rEntry->balance += out.nValue;
-    }
-*/
      // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
      if (!out.GetLockTime() || nCurrentRound < 52) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
          rEntry->balance += out.nValue;
@@ -762,7 +739,7 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, uint16_t
         return;
     }
 
-    if (!in.GetLockTime() || nCurrentRound < 52) {
+    if (!in.GetLockTime() || in.nHeight < 1915600){ //nCurrentRound < 52
         rEntry->balance += in.nValue;
     }
 
@@ -817,7 +794,9 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
             if (rEntry->activationTx == tx.GetHash()) {
                 rEntry->activationTx.SetNull();
                 rEntry->fActivated = false;
-                rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
+                if (rEntry->bonusLevel == CSmartRewardEntry::NoBonus) {
+                    rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
+                }
                 --result.qualifiedEntries;
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
