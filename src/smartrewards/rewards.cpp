@@ -602,7 +602,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
     }
 */
-    if (!in.GetLockTime() || (txHeight < 1915600)) {
+    if (!in.GetLockTime() ||  ((txHeight < HF_V1_3_4_HEIGHT /*1915600*/) && MainNet()) || ((txHeight < TESTNET_V1_3_4_HEIGHT) && TestNet()) ) {
         rEntry->balance -= in.nValue;
     }
 
@@ -663,7 +663,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         }
 
      // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-     if (!out.GetLockTime() || (nCurrentRound < 52)) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
+     if ( !out.GetLockTime() || ( (nCurrentRound < 52) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
          rEntry->balance += out.nValue;
      }
 
@@ -742,8 +742,8 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
         LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
-
-    if (!in.GetLockTime() || (txHeight < 1915600)) {
+    // 1.3.4 rules effective at the start of round 52 or 1915600 and round 10 block 5000
+    if ( !in.GetLockTime() || ((txHeight < HF_V1_3_4_HEIGHT /*1915600*/) && MainNet()) || ((txHeight < TESTNET_V1_3_4_HEIGHT) && TestNet()) ) {
         rEntry->balance += in.nValue;
     }
 
@@ -814,7 +814,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
         }
-        if (!out.GetLockTime() || (nCurrentRound < 52)) {
+        if (!out.GetLockTime() || ((nCurrentRound < 52) && MainNet()) || ((nCurrentRound < 20) && TestNet()) ) {
             rEntry->balance -= out.nValue;
         }
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists

@@ -30,11 +30,13 @@ static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545005;
 static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
 static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
 static const int HF_V1_3_HEIGHT = 1761600; // Round 38 starts 1761600
+static const int HF_V1_3_4_HEIGHT = 1915600; // Round 52 starts 1915600 - TermRewards
 
 /* Mainnet payment intervals*/
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
 static const int HF_V1_2_NODES_BLOCK_INTERVAL   = 2;
 static const int HF_V1_2_8_NODES_PER_BLOCK      = 1;
+static const int HF_V1_3_4_NODES_BLOCK_INTERVAL   = 10;
 
 /** SmartCash max reward block */
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
@@ -42,6 +44,7 @@ static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 /** Testnet payment start blocks*/
 static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 201;
 static const int TESTNET_V1_3_HEIGHT = 1001;  //round start is 10 x 100 block 1000-1100 payments start at 1110
+static const int TESTNET_V1_3_4_HEIGHT = 2001; //round start is 20 block 2000 - TermRewards
 
 /** Testnet payment intervals*/
 static const int TESTNET_V1_2_8_NODES_PER_BLOCK         = 1;

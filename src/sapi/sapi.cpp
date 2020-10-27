@@ -157,7 +157,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
         if( client->IsRequestLimited() ){
             sapiStatistics.request(peer, CSAPIStatistics::Blocked);
             SAPI::Result error(SAPI::RequestRateLimitExceeded,
-                               strprintf("Cool down! Requests locked for %d seconds", client->GetRequestLockSeconds()));
+                               strprintf("Too many Requests. Requests locked for %d seconds.", 10 + client->GetRequestLockSeconds()));
             SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
             return;
         }
@@ -165,7 +165,7 @@ static void sapi_request_cb(struct evhttp_request* req, void* arg)
         if( client->IsRessourceLimited() ){
             sapiStatistics.request(peer, CSAPIStatistics::Blocked);
             SAPI::Result error(SAPI::RessourceRateLimitExceeded,
-                               strprintf("Cool down! Ressources locked for %d seconds", client->GetRessourceLockSeconds()));
+                               strprintf("Too many Requests. Ressources locked for %d seconds.", 10 + client->GetRessourceLockSeconds()));
             SAPI::Error(hreq.get(), HTTPStatus::FORBIDDEN, error);
             return;
         }

@@ -9,9 +9,9 @@
 CCriticalSection cs_clients;
 static std::map<std::string, SAPI::Limits::Client*> mapClients;
 
-static std::vector<int> vecThrottling = {
-    1,1,1,1,5,5,5,5,50,120,6000
-};
+//static std::vector<int> vecThrottling = {
+//    1,1,1,1,5,5,5,5,50,120,6000
+//};
 
 SAPI::Limits::Client *SAPI::Limits::GetClient(const CService &peer)
 {
@@ -58,9 +58,26 @@ void SAPI::Limits::Client::Request()
     int64_t nTime = GetTimeMillis();
     int64_t nTimePassed = nTime - nLastRequestTime;
 
-    IsRequestLimited();
+//    IsRequestLimited();
 
-    nRemainingRequests = (static_cast<double>(nTimePassed * nRequestsPerInterval) / nRequestIntervalMs) - 1.0;
+    if ( nTimePassed < (10 * nRequestIntervalMs) ){
+        ++nThrottling;
+        --nRemainingRequests;
+        if ((nThrottling > 2 * nRequestsPerInterval) && (nTime > nRequestsLimitUnlock)) {
+            nRequestsLimitUnlock = nTime + nRequestIntervalMs;
+            LogPrintf("SAPI Throttled Wait %d Seconds (Requests %d)\n", (10 * nRequestIntervalMs + nRequestsLimitUnlock -nTime)/1000, nThrottling);
+        } else if (nThrottling > 2 * nRequestsPerInterval) {
+            nRequestsLimitUnlock = nRequestsLimitUnlock + nRequestIntervalMs;
+            LogPrintf("SAPI Throttled Wait %d Seconds (Requests %d)\n", (10 * nRequestIntervalMs + nRequestsLimitUnlock -nTime)/1000, nThrottling);
+        }
+    } else if ( (nTime > nRequestsLimitUnlock) || (nTimePassed > 60 * nRequestIntervalMs) ){
+        nThrottling = 1;
+        nRequestsLimitUnlock = -1;
+        nRemainingRequests = nRequestsPerInterval;
+    }
+
+
+/*    nRemainingRequests = (static_cast<double>(nTimePassed * nRequestsPerInterval) / nRequestIntervalMs) - 1.0;
 
     if( nRemainingRequests > nRequestsPerInterval )
             nRemainingRequests = nRequestsPerInterval;
@@ -80,7 +97,7 @@ void SAPI::Limits::Client::Request()
     }
 
     LogPrintf("nRemaining after: %f, throttling %d\n", nRemainingRequests, nThrottling);
-
+*/
     nLastRequestTime = nTime;
 }
 
@@ -100,7 +117,7 @@ bool SAPI::Limits::Client::IsRequestLimited()
         return false;
     }
 
-    LogPrintf("Request limited: %.2fms\n", nRequestsLimitUnlock - nTime);
+    LogPrintf("Request limited: %d Seconds\n", (nRequestsLimitUnlock - nTime)/1000);
 
     return true;
 }
