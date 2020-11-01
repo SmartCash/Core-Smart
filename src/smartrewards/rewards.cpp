@@ -659,7 +659,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
                     // Reset outgoing transaction.
                     rEntry->disqualifyingTx.SetNull();
-                    rEntry->->fDisqualifyingTx = false;
+                    rEntry->fDisqualifyingTx = false;
                     // Reset SmartNode payment.
                     rEntry->smartnodePaymentTx.SetNull();
                     rEntry->fSmartnodePaymentTx = false;
