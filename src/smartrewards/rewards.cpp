@@ -194,12 +194,12 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             }
 
             // Reset outgoing transaction with every cycle.
-            entry->second->disqualifyingTx.SetNull();
-            entry->second->fDisqualifyingTx = false;
+//            entry->second->disqualifyingTx.SetNull();
+//            entry->second->fDisqualifyingTx = false;
 
             // Reset SmartNode payment tx with every cycle in case a node was shut down during the cycle.
-            entry->second->smartnodePaymentTx.SetNull();
-            entry->second->fSmartnodePaymentTx = false;
+//            entry->second->smartnodePaymentTx.SetNull();
+//            entry->second->fSmartnodePaymentTx = false;
 
             // Reset the vote proof tx 2 cycles before the first 1.3 round.
             ++entry;
@@ -234,6 +234,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         std::list<CSmartAddress> eligibleAddresses;
         next.eligibleSmart = 0;
         next.eligibleEntries = 0;
+        next.disqualifiedEntries = 0
+        next.disqualifiedSmart = 0
+
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
             if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
@@ -654,6 +657,12 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rEntry->activationTx = tx.GetHash();
                     rEntry->fActivated = true;
                     rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
+                    // Reset outgoing transaction.
+                    rEntry->disqualifyingTx.SetNull();
+                    rEntry->->fDisqualifyingTx = false;
+                    // Reset SmartNode payment.
+                    rEntry->smartnodePaymentTx.SetNull();
+                    rEntry->fSmartnodePaymentTx = false;
                     if ( rEntry->IsEligible() ) {
                        result.qualifiedEntries++;
                        result.qualifiedSmart += rEntry->balanceEligible;
