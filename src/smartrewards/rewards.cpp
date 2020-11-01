@@ -234,8 +234,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         std::list<CSmartAddress> eligibleAddresses;
         next.eligibleSmart = 0;
         next.eligibleEntries = 0;
-        next.disqualifiedEntries = 0
-        next.disqualifiedSmart = 0
+        next.disqualifiedEntries = 0;
+        next.disqualifiedSmart = 0;
 
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
