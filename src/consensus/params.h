@@ -84,6 +84,8 @@ struct Params {
     int nRewardsBlocksPerRound_1_3;
     //! Number of the first round with 1.3 rules
     int nRewardsFirst_1_3_Round;
+    //! Number of the first round with 1.3.4 rules
+    int nRewardsFirst_1_3_4_Round;
     //! Number of blocks to wait until we start to pay the rewards after a cycles end.
     int nRewardsPayoutStartDelay;
     //! Number of blocks to wait between reward payout blocks for 1.2 rounds

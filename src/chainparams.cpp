@@ -307,6 +307,9 @@ public:
         consensus.nRewardsPayouts_1_3_BlockStretch = 80;
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
+        //TermRewards Start
+        consensus.nRewardsFirst_1_3_4_Round = 20; // 
+
         consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
 
         pchMessageStart[0] = 0xcf;
