@@ -192,15 +192,15 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             if( nReward ){
                 pResult->payouts.push_back(pResult->results.back());
             }
+            if (round->number < Params().GetConsensus().nRewardsFirst_1_3_4_Round ) {
+                // Reset outgoing transaction with every cycle.
+                entry->second->disqualifyingTx.SetNull();
+                entry->second->fDisqualifyingTx = false;
 
-            // Reset outgoing transaction with every cycle.
-//            entry->second->disqualifyingTx.SetNull();
-//            entry->second->fDisqualifyingTx = false;
-
-            // Reset SmartNode payment tx with every cycle in case a node was shut down during the cycle.
-//            entry->second->smartnodePaymentTx.SetNull();
-//            entry->second->fSmartnodePaymentTx = false;
-
+                // Reset SmartNode payment tx with every cycle in case a node was shut down during the cycle.
+                entry->second->smartnodePaymentTx.SetNull();
+                entry->second->fSmartnodePaymentTx = false;
+            }
             // Reset the vote proof tx 2 cycles before the first 1.3 round.
             ++entry;
         }
@@ -657,12 +657,14 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rEntry->activationTx = tx.GetHash();
                     rEntry->fActivated = true;
                     rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
-                    // Reset outgoing transaction.
-                    rEntry->disqualifyingTx.SetNull();
-                    rEntry->fDisqualifyingTx = false;
-                    // Reset SmartNode payment.
-                    rEntry->smartnodePaymentTx.SetNull();
-                    rEntry->fSmartnodePaymentTx = false;
+                    if (nCurrentRound >= Params().GetConsensus().nRewardsFirst_1_3_Round ) {
+		        // Reset outgoing transaction.
+                        rEntry->disqualifyingTx.SetNull();
+                        rEntry->fDisqualifyingTx = false;
+                        // Reset SmartNode payment.
+                        rEntry->smartnodePaymentTx.SetNull();
+                        rEntry->fSmartnodePaymentTx = false;
+                    }
                     if ( rEntry->IsEligible() ) {
                        result.qualifiedEntries++;
                        result.qualifiedSmart += rEntry->balanceEligible;
@@ -672,7 +674,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         }
 
      // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-     if ( !out.GetLockTime() || ( (nCurrentRound < 52) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
+     if ( !out.GetLockTime() || ( (nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_Round) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
          rEntry->balance += out.nValue;
      }
 
@@ -823,7 +825,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
         }
-        if (!out.GetLockTime() || ((nCurrentRound < 52) && MainNet()) || ((nCurrentRound < 20) && TestNet()) ) {
+        if (!out.GetLockTime() || ((nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_Round) && MainNet()) || ((nCurrentRound < 20) && TestNet()) ) {
             rEntry->balance -= out.nValue;
         }
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists

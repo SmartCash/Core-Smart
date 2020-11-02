@@ -144,6 +144,9 @@ public:
         consensus.nRewardsPayouts_1_3_BlockStretch = 100;   //Allows for up to 50k payees.  Highest in past has been 20k without required activation.
         consensus.nRewardsPayouts_1_3_BlockPayees = 500;
 
+        // TermRewards Start
+        consensus.nRewardsFirst_1_3_4_Round = 52; // Round 52 on 11/21 starts on block 1915600 must match block set on consensus/params.h
+
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
 
         /**
