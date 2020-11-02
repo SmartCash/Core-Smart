@@ -160,7 +160,10 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
                 // Search for the reward payment in the transactions outputs.
                 auto isInOutputs = std::find_if(txCoinbase.vout.begin(), txCoinbase.vout.end(), [payout](const CTxOut &txout) -> bool {
-                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) < 100000000;
+                    if  ( payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > 10000000) {
+                        LogPrintf("ValidateRewardPayments -- payment amount invalid - address %s difference %0.2f payout %0.2f actual %0.2f\n",  payout->entry.id.ToString(), (float)(abs(payout->reward - txout.nValue))/100000000, (float)payout->reward/100000000, (float)txout.nValue/100000000);
+                    }
+                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) < 1000000000;
                 });
 
                 // If the payout is not in the list?
