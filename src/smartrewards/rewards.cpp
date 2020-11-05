@@ -115,6 +115,10 @@ void CSmartRewards::UpdateRoundPayoutParameter()
         nBlockPayees = Params().GetConsensus().nRewardsPayouts_1_2_BlockPayees;
         nBlockInterval = Params().GetConsensus().nRewardsPayouts_1_2_BlockInterval;
     }
+    int64_t nPayeeCount = round->eligibleEntries - round->disqualifiedEntries;
+    if ( !nPayeeCount || nPayeeCount <= 0 ) {
+        nBlockPayees = 0;
+    }
 
     cache.UpdateRoundPayoutParameter(nBlockPayees, nBlockInterval);
 }
@@ -598,14 +602,14 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
         LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
-/*
+
     if (nCurrentRound >= nFirst_1_3_Round && tx.IsActivationTx() && !rEntry->fActivated) {
         rEntry->activationTx = tx.GetHash();
         rEntry->fActivated = true;
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
     }
-*/
-    if (!in.GetLockTime() ||  ((txHeight < HF_V1_3_4_HEIGHT /*1915600*/) && MainNet()) || ((txHeight < TESTNET_V1_3_4_HEIGHT) && TestNet()) ) {
+
+    if (!in.GetLockTime() ||  ((txHeight < HF_V1_3_4_HEIGHT) && MainNet()) || ((txHeight < TESTNET_V1_3_4_HEIGHT) && TestNet()) ) {
         rEntry->balance -= in.nValue;
     }
 
@@ -657,7 +661,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rEntry->activationTx = tx.GetHash();
                     rEntry->fActivated = true;
                     rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
-                    if (nCurrentRound >= Params().GetConsensus().nRewardsFirst_1_3_Round ) {
+                    if (nCurrentRound >= Params().GetConsensus().nRewardsFirst_1_3_4_Round ) {
 		        // Reset outgoing transaction.
                         rEntry->disqualifyingTx.SetNull();
                         rEntry->fDisqualifyingTx = false;
@@ -673,12 +677,12 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
             }
         }
 
-     // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-     if ( !out.GetLockTime() || ( (nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_Round) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
-         rEntry->balance += out.nValue;
-     }
+        // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
+        if ( !out.GetLockTime() || ( (nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_4_Round) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
+            rEntry->balance += out.nValue;
+        }
 
-       if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
+        if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
             int nInterval = SmartNodePayments::PayoutInterval(nHeight);
             int nPayoutsPerBlock = SmartNodePayments::PayoutsPerBlock(nHeight);
             // Just to avoid potential zero divisions
@@ -698,8 +702,10 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                             rEntry->activationTx = tx.GetHash();
                             rEntry->fActivated = false;
                             rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
-                            rEntry->disqualifyingTx = tx.GetHash();
-                            rEntry->fDisqualifyingTx = true;
+                            if (nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_4_Round ) {
+                                rEntry->disqualifyingTx = tx.GetHash();
+                                rEntry->fDisqualifyingTx = true;
+                            }
                         }
                         rEntry->smartnodePaymentTx = tx.GetHash();
                         rEntry->fSmartnodePaymentTx = true;
@@ -795,10 +801,11 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
     } else {
         GetRewardEntry(id, rEntry, true);
         if (!tx.IsActivationTx() && !rEntry->fActivated) {
-//        if (!tx.IsActivationTx() && !rEntry->fActivated) {
-//            rEntry->activationTx.SetNull();
-//            rEntry->fActivated = false;
-//            rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
+            if (nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_4_Round ) {
+                rEntry->activationTx.SetNull();
+                rEntry->fActivated = false;
+                rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
+            }
             if (rEntry->disqualifyingTx == tx.GetHash()) {
                 rEntry->disqualifyingTx.SetNull();
                 rEntry->fDisqualifyingTx = false;
@@ -813,6 +820,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
                     result.disqualifiedSmart -= rEntry->balanceEligible;
                 }
             }
+//        } else if (!tx.IsActivationTx() && rEntry->fActivated && !SmartHive::IsHive(rEntry->id)) {
         } else if (tx.IsActivationTx() && rEntry->fActivated && !SmartHive::IsHive(rEntry->id)) {
             if (rEntry->activationTx == tx.GetHash()) {
                 rEntry->activationTx.SetNull();
@@ -825,7 +833,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, uint16
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
         }
-        if (!out.GetLockTime() || ((nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_Round) && MainNet()) || ((nCurrentRound < 20) && TestNet()) ) {
+        if (!out.GetLockTime() || ((nCurrentRound < Params().GetConsensus().nRewardsFirst_1_3_4_Round) && MainNet()) || ((nCurrentRound < 20) && TestNet()) ) {
             rEntry->balance -= out.nValue;
         }
         // If we are in the 1.3 cycles check for node rewards to remove node addresses from lists

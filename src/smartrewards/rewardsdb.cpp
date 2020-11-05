@@ -406,7 +406,7 @@ string CSmartRewardBlock::ToString() const
 
 void CSmartRewardRound::UpdatePayoutParameter()
 {
-    nPayeeCount = eligibleEntries - disqualifiedEntries;
+    nPayeeCount = ((eligibleEntries - disqualifiedEntries) > 0) ? (eligibleEntries - disqualifiedEntries) : 0;
 
     if (nPayeeCount > 0 && nBlockPayees > 0) {
         int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;

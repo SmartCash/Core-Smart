@@ -126,7 +126,7 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
                 payObj.pushKV("lastBlockPayees", round->second.GetPayeeCount() % round->second.nBlockPayees );
                 payObj.pushKV("blockInterval", round->second.nBlockInterval);
             }else{
-                payObj.pushKV("error", "No payees were eligible for this round");
+                payObj.pushKV("None","No payees were eligible for this round");
             }
 
             roundObj.pushKV("payouts", payObj);
