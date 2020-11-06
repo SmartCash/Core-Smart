@@ -107,8 +107,8 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
             roundObj.pushKV("start_blocktime",round->second.startBlockTime);
             roundObj.pushKV("end_blockheight",round->second.endBlockHeight);
             roundObj.pushKV("end_blocktime",round->second.endBlockTime);
-            roundObj.pushKV("eligible_addresses",round->second.eligibleEntries - round->second.disqualifiedEntries);
-            roundObj.pushKV("eligible_smart",format(round->second.eligibleSmart - round->second.disqualifiedSmart));
+            roundObj.pushKV("eligible_addresses",((round->second.eligibleEntries - round->second.disqualifiedEntries)>0) ? (round->second.eligibleEntries - round->second.disqualifiedEntries) : 0);
+            roundObj.pushKV("eligible_smart",format(((round->second.eligibleSmart - round->second.disqualifiedSmart) > 0) ? (round->second.eligibleSmart - round->second.disqualifiedSmart) : 0));
             roundObj.pushKV("disqualified_addresses",round->second.disqualifiedEntries);
             roundObj.pushKV("disqualified_smart",format(round->second.disqualifiedSmart));
             roundObj.pushKV("rewards",format(round->second.rewards));

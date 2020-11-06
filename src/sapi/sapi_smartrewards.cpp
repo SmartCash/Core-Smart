@@ -145,8 +145,8 @@ static bool smartrewards_current(HTTPRequest* req, const std::map<std::string, s
     obj.pushKV("start_blocktime",current->startBlockTime);
     obj.pushKV("end_blockheight",current->endBlockHeight);
     obj.pushKV("end_blocktime",current->endBlockTime);
-    obj.pushKV("eligible_addresses",current->eligibleEntries - current->disqualifiedEntries);
-    obj.pushKV("eligible_smart",UniValueFromAmount(current->eligibleSmart - current->disqualifiedSmart));
+    obj.pushKV("eligible_addresses",((current->eligibleEntries - current->disqualifiedEntries) > 0) ? (current->eligibleEntries - current->disqualifiedEntries) : 0);
+    obj.pushKV("eligible_smart",UniValueFromAmount(((current->eligibleSmart - current->disqualifiedSmart) > 0) ? (current->eligibleSmart - current->disqualifiedSmart) : 0));
     obj.pushKV("disqualified_addresses",current->disqualifiedEntries);
     obj.pushKV("disqualified_smart",UniValueFromAmount(current->disqualifiedSmart));
     obj.pushKV("estimated_rewards",UniValueFromAmount(current->rewards));
@@ -210,8 +210,8 @@ static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, s
         roundObj.pushKV("start_blocktime",round->second.startBlockTime);
         roundObj.pushKV("end_blockheight",round->second.endBlockHeight);
         roundObj.pushKV("end_blocktime",round->second.endBlockTime);
-        roundObj.pushKV("eligible_addresses",round->second.eligibleEntries - round->second.disqualifiedEntries);
-        roundObj.pushKV("eligible_smart",UniValueFromAmount(round->second.eligibleSmart - round->second.disqualifiedSmart));
+        roundObj.pushKV("eligible_addresses",((round->second.eligibleEntries - round->second.disqualifiedEntries) > 0) ? (round->second.eligibleEntries - round->second.disqualifiedEntries) : 0);
+        roundObj.pushKV("eligible_smart",UniValueFromAmount(((round->second.eligibleSmart - round->second.disqualifiedSmart) > 0) ? (round->second.eligibleSmart - round->second.disqualifiedSmart) : 0));
         roundObj.pushKV("disqualified_addresses",round->second.disqualifiedEntries);
         roundObj.pushKV("disqualified_smart",UniValueFromAmount(round->second.disqualifiedSmart));
         roundObj.pushKV("rewards",UniValueFromAmount(round->second.rewards));
@@ -219,20 +219,24 @@ static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, s
 
         UniValue payObj(UniValue::VOBJ);
 
-        int nPayeeCount = round->second.eligibleEntries - round->second.disqualifiedEntries;
-        int nBlockPayees = round->second.nBlockPayees;
-        int nPayoutInterval = round->second.nBlockInterval;
-        int nRewardBlocks = nPayeeCount / nBlockPayees;
-        if( nPayeeCount % nBlockPayees ) nRewardBlocks += 1;
-        int nLastRoundBlock = round->second.endBlockHeight + nPayoutDelay + ( (nRewardBlocks - 1) * nPayoutInterval );
+        if ( (round->second.eligibleEntries - round->second.disqualifiedEntries) > 0) {
+            int nPayeeCount = round->second.eligibleEntries - round->second.disqualifiedEntries;
+            int nBlockPayees = round->second.nBlockPayees;
+            int nPayoutInterval = round->second.nBlockInterval;
+            int nRewardBlocks = nPayeeCount / nBlockPayees;
+            if( nPayeeCount % nBlockPayees ) nRewardBlocks += 1;
+            int nLastRoundBlock = round->second.endBlockHeight + nPayoutDelay + ( (nRewardBlocks - 1) * nPayoutInterval );
 
-        payObj.pushKV("firstBlock", round->second.endBlockHeight + nPayoutDelay );
-        payObj.pushKV("totalBlocks", nRewardBlocks );
-        payObj.pushKV("lastBlock", nLastRoundBlock );
-        payObj.pushKV("totalPayees", nPayeeCount);
-        payObj.pushKV("blockPayees", round->second.nBlockPayees);
-        payObj.pushKV("lastBlockPayees", nPayeeCount % nBlockPayees );
-        payObj.pushKV("blockInterval",round->second.nBlockInterval);
+            payObj.pushKV("firstBlock", round->second.endBlockHeight + nPayoutDelay );
+            payObj.pushKV("totalBlocks", nRewardBlocks );
+            payObj.pushKV("lastBlock", nLastRoundBlock );
+            payObj.pushKV("totalPayees", nPayeeCount);
+            payObj.pushKV("blockPayees", round->second.nBlockPayees);
+            payObj.pushKV("lastBlockPayees", nPayeeCount % nBlockPayees);
+            payObj.pushKV("blockInterval",round->second.nBlockInterval);
+        } else {
+            payObj.pushKV("None","No payees were eligible for this round");
+        }
 
         roundObj.pushKV("payouts", payObj);
 
