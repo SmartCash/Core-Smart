@@ -32,7 +32,7 @@
 #include <QTimer>
 
 #define SEND_CONFIRM_DELAY             3
-#define SEND_CONFIRM_DELAY_LOCKTIME   10
+#define SEND_CONFIRM_DELAY_LOCKTIME   20
 
 SendCoinsDialog::SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent) :
     QDialog(parent),
@@ -333,11 +333,16 @@ void SendCoinsDialog::on_sendButton_clicked()
         questionString.append(tr("This is not a normal transaction. "));
         questionString.append(tr("Do not use this to deposit funds to an exchange. "));
         questionString.append(tr("Funds sent will not be spendable until "));
-        questionString.append(unlockDateTime.toString("MMMM d yyyy hh:mm:ss"));
+        questionString.append(unlockDateTime.toString("MMMM d yyyy hh:mm:ss<br></br>"));
+        questionString.append("<br></br>");
+        questionString.append(tr("You will not get SmartRewards on these funds.<br></br>"));
+        questionString.append(tr("TermRewards requires 2 year TimeLock and 1+ million Smart"));
         questionString.append("</span></br><hr />");
+        questionString.append(tr("Are you sure you want to send with a TimeLock?"));
     }
-
-    questionString.append(tr("Are you sure you want to send?"));
+    if (!nLockTime) {
+        questionString.append(tr("Are you sure you want to send?"));
+    }
     questionString.append("<br /><br />%1");
 
     if(txFee > 0)
