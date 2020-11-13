@@ -54,8 +54,8 @@ void TimeLockSettingsWidget::setShowTermRewards(bool show)
     bShowTermRewards = false;
 
     // Only enable if we passed first 1.3.4 block height
-    if (show && ((MainNet() && chainActive.Height() >= HF_V1_3_4_HEIGHT) ||
-                 (TestNet() && chainActive.Height() >= TESTNET_V1_3_4_HEIGHT))) {
+    if (show && ((MainNet() && chainActive.Height() >= HF_V2_0_HEIGHT) ||
+                 (TestNet() && chainActive.Height() >= TESTNET_V2_0_HEIGHT))) {
         bShowTermRewards = true;
     }
 

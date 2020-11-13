@@ -811,7 +811,7 @@ bool CSmartnodePing::CheckAndUpdate(CSmartnode* pmn, bool fFromNewBroadcast, int
     }
 
     //Check if the SAPI port is open before resetting ping timer.
-    if ( Params().NetworkIDString() == CBaseChainParams::TESTNET || chainActive.Height() >= HF_V1_3_4_HEIGHT ) {
+    if ( Params().NetworkIDString() == CBaseChainParams::TESTNET || chainActive.Height() >= HF_V2_0_HEIGHT ) {
         CService nodeAddr;
         SOCKET hSocket;
         std::string hostname = pmn->addr.ToString();

@@ -61,9 +61,9 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 int SmartNodePayments::PayoutInterval(int nHeight)
 {
     if( MainNet() ){
-        if(nHeight >= HF_V1_3_4_HEIGHT){
-            return HF_V1_3_4_NODES_BLOCK_INTERVAL;
-        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT && nHeight < HF_V1_3_4_HEIGHT){
+        if(nHeight >= HF_V2_0_HEIGHT){
+            return HF_V2_0_NODES_BLOCK_INTERVAL;
+        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT && nHeight < HF_V2_0_HEIGHT){
             return HF_V1_2_NODES_BLOCK_INTERVAL;
         }else if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT && nHeight < HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
             return 1;
