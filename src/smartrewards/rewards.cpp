@@ -196,7 +196,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             if( nReward ){
                 pResult->payouts.push_back(pResult->results.back());
             }
-            if (round->number < Params().GetConsensus().nRewardsFirst_2_0_Round ) {
+            if (round->number < Params().GetConsensus().nRewardsFirst_2_0_Round || entry->second->fActivated ) {
                 // Reset outgoing transaction with every cycle.
                 entry->second->disqualifyingTx.SetNull();
                 entry->second->fDisqualifyingTx = false;
@@ -607,11 +607,15 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
         rEntry->activationTx = tx.GetHash();
         rEntry->fActivated = true;
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
+//        rEntry->disqualifyingTx.SetNull();
+//        rEntry->fDisqualifyingTx = false;
+//        rEntry->smartnodePaymentTx.SetNull();
+//        rEntry->fSmartnodePaymentTx = false;
     }
 
-    if (!in.GetLockTime() ||  ((txHeight < HF_V2_0_HEIGHT) && MainNet()) || ((txHeight < TESTNET_V2_0_HEIGHT) && TestNet()) ) {
-        rEntry->balance -= in.nValue;
-    }
+//    if (!in.GetLockTime() ||  ((txHeight < HF_V2_0_HEIGHT) && MainNet()) || ((txHeight < TESTNET_V2_0_HEIGHT) && TestNet()) ) {
+    rEntry->balance -= in.nValue;
+//    }
 
     if (nCurrentRound >= nFirst_1_3_Round && !tx.IsActivationTx() && !rEntry->fDisqualifyingTx) {
         if( rEntry->IsEligible() ){
@@ -661,7 +665,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rEntry->activationTx = tx.GetHash();
                     rEntry->fActivated = true;
                     rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
-                    if (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round ) {
+/*                    if (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round ) {
 		        // Reset outgoing transaction.
                         rEntry->disqualifyingTx.SetNull();
                         rEntry->fDisqualifyingTx = false;
@@ -669,7 +673,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                         rEntry->smartnodePaymentTx.SetNull();
                         rEntry->fSmartnodePaymentTx = false;
                     }
-                    if ( rEntry->IsEligible() ) {
+*/                    if ( rEntry->IsEligible() ) {
                        result.qualifiedEntries++;
                        result.qualifiedSmart += rEntry->balanceEligible;
                     }
@@ -702,10 +706,10 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                             rEntry->activationTx = tx.GetHash();
                             rEntry->fActivated = false;
                             rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
-                            if (nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round ) {
+//                            if (nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round ) {
                                 rEntry->disqualifyingTx = tx.GetHash();
                                 rEntry->fDisqualifyingTx = true;
-                            }
+//                            }
                         }
                         rEntry->smartnodePaymentTx = tx.GetHash();
                         rEntry->fSmartnodePaymentTx = true;
@@ -760,9 +764,9 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
         return;
     }
     // 1.3.4 rules effective at the start of round 52 or 1915600 and round 10 block 5000
-    if ( !in.GetLockTime() || ((txHeight < HF_V2_0_HEIGHT /*1915600*/) && MainNet()) || ((txHeight < TESTNET_V2_0_HEIGHT) && TestNet()) ) {
-        rEntry->balance += in.nValue;
-    }
+//    if ( !in.GetLockTime() || ((txHeight < HF_V2_0_HEIGHT /*1915600*/) && MainNet()) || ((txHeight < TESTNET_V2_0_HEIGHT) && TestNet()) ) {
+    rEntry->balance += in.nValue;
+//    }
 
     if ( nCurrentRound >= nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash()) {
         rEntry->disqualifyingTx.SetNull();

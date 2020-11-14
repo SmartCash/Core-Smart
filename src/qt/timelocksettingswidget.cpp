@@ -80,6 +80,8 @@ void TimeLockSettingsWidget::updateTimeLockCombo()
 
     if (bShowTermRewards) {
         timeLockItems.emplace_back("2 year TermRewards", (int)( (2 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    } else {
+        timeLockItems.emplace_back("TermRewards Not Active Yet", 0);
     }
 
     timeLockItems.emplace_back("Custom (until block)", -1);
