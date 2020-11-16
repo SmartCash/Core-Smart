@@ -684,6 +684,14 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
         if ( !out.GetLockTime() || ( (nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
             rEntry->balance += out.nValue;
+        } else if ( (out.nValue >= 1000000 * COIN) && (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ||  (nCurrentRound >= 20) && TestNet() ) {
+            if ( (out.GetLockTime() > (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
+                LogPrintf("CSmartRewards::ProcessOutput::3YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
+            } else if ( (out.GetLockTime() > (63000000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
+                LogPrintf("CSmartRewards::ProcessOutput::2YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
+            } else if ( (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
+                LogPrintf("CSmartRewards::ProcessOutput::1YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
+            }
         }
 
         if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
