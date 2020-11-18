@@ -214,6 +214,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     QList<SendCoinsRecipient> recipients;
     bool valid = true;
     int64_t nLockTime = ui->timeLockSettings->getLockTime();
+    bool multi = 0;
 
     for(int i = 0; i < ui->entries->count(); ++i)
     {
@@ -223,11 +224,13 @@ void SendCoinsDialog::on_sendButton_clicked()
             if(entry->validate())
             {
                 recipients.append(entry->getValue());
-                if ( ui->timeLockSettings->getLockTime() && recipients.last().nLockTime)
-                   {
-                       ui->labelCoinControlChangeLabel->setText(tr("Warning: Cannot use timelocked sending to a timelocked address."));
-                       return;
-                   }
+                if ( ui->timeLockSettings->getLockTime() && CBitcoinAddress(recipients.last().address.toStdString()).IsScript() ) {
+                   ui->labelCoinControlChangeLabel->setText(tr("Warning: Cannot use timelocked sending to a timelocked address."));
+                   return;
+                }
+                if ( CBitcoinAddress(recipients.last().address.toStdString()).IsScript() ) {
+                    multi = 1;
+                }
                 recipients.last().nLockTime = nLockTime;
             }
             else
@@ -339,6 +342,15 @@ void SendCoinsDialog::on_sendButton_clicked()
         questionString.append(tr("TermRewards requires 2 year TimeLock and 1+ million Smart"));
         questionString.append("</span></br><hr />");
         questionString.append(tr("Are you sure you want to send with a TimeLock?"));
+
+//        questionString.append(tr("recipients.last() %s recipients.at(0) %s",recipients.last(),recipients.at(0)));
+    }
+    if (multi == 1){
+         questionString.append("<span style='color:#aa0000;'>");
+         questionString.append(tr("There is TimeLock address in this transaction. "));
+         questionString.append(tr("Funds sent to a timelock address cannot be released before the unlock time. "));
+         questionString.append("<br></br>");
+         questionString.append(tr("You will not get SmartRewards or SuperRewards on TimeLock addresses.<br></br>"));
     }
     if (!nLockTime) {
         questionString.append(tr("Are you sure you want to send?"));
@@ -373,7 +385,7 @@ void SendCoinsDialog::on_sendButton_clicked()
 
     SendConfirmationDialog confirmationDialog(tr("Confirm send coins"),
         questionString.arg(formatted.join("<br />")),
-        nLockTime > 0 ? SEND_CONFIRM_DELAY_LOCKTIME : SEND_CONFIRM_DELAY,
+        nLockTime > 0 || (multi == 1) ? SEND_CONFIRM_DELAY_LOCKTIME : SEND_CONFIRM_DELAY,
         nLockTime > 0 ? QMessageBox::Warning : QMessageBox::Question,
         this);
     confirmationDialog.exec();
