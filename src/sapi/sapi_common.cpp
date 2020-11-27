@@ -73,7 +73,7 @@ static bool client_help(HTTPRequest* req, const std::map<std::string, std::strin
     UniValue connections(UniValue::VOBJ);
 
     response.pushKV("IP:8080/v1/client/help","Show this help menu");
-    response.pushKV("IP:8080/v1/address/", "balance balances deposit unspent unspent/amount transactions transactions/{address}");
+    response.pushKV("IP:8080/v1/address/", "balance balances deposit unspent unspent/amount transaction{address} transactions");
     response.pushKV("IP:8080/v1/blockchain/", "info height block/{blockinfo} block/transactions blocks/latest/{count} blocks/{from?/{to}");
     response.pushKV("IP:8080/v1/client/", "status help");
     response.pushKV("IP:8080/v1/smartnode/", "count roi list check check/{address}");

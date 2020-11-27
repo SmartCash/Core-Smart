@@ -51,6 +51,7 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
 static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool address_transaction(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup addressEndpoints = {
@@ -94,6 +95,15 @@ SAPI::EndpointGroup addressEndpoints = {
                 SAPI::BodyParameter(SAPI::Keys::amount,     new SAPI::Validation::AmountRange(1,MAX_MONEY)),
                 SAPI::BodyParameter(SAPI::Keys::random,     new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::instantpay, new SAPI::Validation::Bool(), true)
+            }
+        },
+        {
+            "transaction/{address}", HTTPRequest::GET, UniValue::VNULL, address_transaction,
+            {
+//                SAPI::BodyParameter(SAPI::Keys::pageNumber,  new SAPI::Validation::IntRange(1,INT_MAX)),
+//                SAPI::BodyParameter(SAPI::Keys::pageSize,    new SAPI::Validation::IntRange(1,100)),
+//                SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true),
+//                SAPI::BodyParameter(SAPI::Keys::direction,   new SAPI::Validation::TxDirection(), true)
             }
         },
         {
@@ -712,6 +722,81 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     return true;
 }
 
+static bool address_transaction(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    int64_t nPageNumber = 1; //bodyParameter.exists(SAPI::Keys::pageNumber) ? bodyParameter[SAPI::Keys::pageNumber].get_int64() : 1;
+    int64_t nPageSize = 100; //bodyParameter.exists(SAPI::Keys::pageSize) ? bodyParameter[SAPI::Keys::pageSize].get_int64() : 10;
+    bool fAsc = false; //bodyParameter.exists(SAPI::Keys::ascending) ? bodyParameter[SAPI::Keys::ascending].get_bool() : false;
+    std::string direction = "Any"; //bodyParameter.exists(SAPI::Keys::direction)
+//        ? bodyParameter[SAPI::Keys::direction].get_str() : "Any";
+
+    if ( !mapPathParams.count("address") )
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/transaction/<smartcash_address>");
+
+    std::string addrStr = mapPathParams.at("address");
+    std::vector<std::tuple<uint256, int, CAmount>> vecResult;
+    int64_t totalNumTxs;
+    if( !GetAddressesTransactions(req, addrStr, vecResult, nPageNumber, nPageSize, fAsc, totalNumTxs) )
+        return false;
+
+    if (totalNumTxs < 1)
+        return SAPI::Error(req, SAPI::PageOutOfRange, "No transactions available for this address.");
+
+    int nPages = totalNumTxs / nPageSize;
+    if (totalNumTxs % nPageSize || (totalNumTxs < nPageSize) ) nPages++;
+
+    if (nPageNumber > nPages)
+        return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
+
+    UniValue transactions(UniValue::VARR);
+    for (const auto &txEntry : vecResult) {
+      std::string txDirection = std::get<2>(txEntry) > 0 ? "Received" : "Sent";
+
+      // Filter out based on direction if requested
+      if ((direction != "Any") && (direction != txDirection)) {
+          continue;
+      }
+
+      CBlock block;
+      CBlockIndex* pBlockindex = chainActive[std::get<1>(txEntry)];
+      if(!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus()))
+          return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+
+      int confirmations = -1;
+      // Only report confirmations if the block is on the main chain
+      if (chainActive.Contains(pBlockindex))
+          confirmations = chainActive.Height() - pBlockindex->nHeight + 1;
+
+      UniValue txValue(UniValue::VOBJ);
+      txValue.pushKV("address", addrStr);
+      txValue.pushKV("amount", UniValueFromAmount(abs(std::get<2>(txEntry))));
+      txValue.pushKV("direction", txDirection);
+
+      // Find TX inside the block
+      auto tx = std::find_if(block.vtx.begin(), block.vtx.end(), [&txEntry] (const CTransaction &t) {
+          return std::get<0>(txEntry) == t.GetHash();
+      });
+
+      if (tx != block.vtx.end()) {
+        if (!GetTransactionInfo(req, block.GetHash(), *tx, txValue, false))
+            return false;
+      }
+
+      transactions.push_back(txValue);
+    }
+
+    UniValue response(UniValue::VOBJ);
+    response.pushKV("count", totalNumTxs);
+    response.pushKV("pages", nPages);
+    response.pushKV("page", nPageNumber);
+
+    response.pushKV("data", transactions);
+
+    SAPI::WriteReply(req, response);
+
+    return true;
+}
+
 static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
     std::string addrStr = bodyParameter[SAPI::Keys::address].get_str();
@@ -729,9 +814,11 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
     int64_t totalNumTxs;
     if( !GetAddressesTransactions(req, addrStr, vecResult, nPageNumber, nPageSize, fAsc, totalNumTxs) )
         return false;
+    if (totalNumTxs < 1)
+        return SAPI::Error(req, SAPI::PageOutOfRange, "No transactions available for this address.");
 
     int nPages = totalNumTxs / nPageSize;
-    if (totalNumTxs % nPageSize ) nPages++;
+    if (totalNumTxs % nPageSize || (totalNumTxs < nPageSize) ) nPages++;
 
     if (nPageNumber > nPages)
         return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
