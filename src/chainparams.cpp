@@ -145,7 +145,7 @@ public:
         consensus.nRewardsPayouts_1_3_BlockPayees = 500;
 
         // TermRewards Start
-        consensus.nRewardsFirst_2_0_Round = 52; // Round 52 on 11/21 starts on block 1915600 must match block set on consensus/params.h
+        consensus.nRewardsFirst_2_0_Round = 57; // Round 57 starts 1970600 was Round 52 on 11/21 starts on block 1915600 must match block set on consensus/params.h
 
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
 
