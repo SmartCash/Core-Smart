@@ -43,6 +43,7 @@ CAmount CalculateRewardsForBlockRange(int64_t start, int64_t end);
 
 extern CCriticalSection cs_rewardscache;
 extern CCriticalSection cs_rewardsdb;
+//extern CCriticalSection cs_termrewardsdb;
 
 extern size_t nCacheRewardEntries;
 
@@ -73,7 +74,17 @@ struct CSmartRewardsRoundResult {
 
     void Clear();
 };
+/*
+struct CTermRewardsRoundResult {
+    CTermRewardRound round;
+    CTermRewardResultEntryPtrList results;
+    CTermRewardResultEntryPtrList payouts;
+    bool fSynced;
+    CTermRewardsRoundResult() { fSynced = false; }
 
+    void Clear();
+};
+*/
 class CSmartRewardsCache
 {
     int chainHeight;
@@ -126,7 +137,17 @@ public:
     void RemoveTransaction(const CSmartRewardTransaction& transaction);
     void AddEntry(CSmartRewardEntry* entry);
 };
+/*
+class CTermRewards
+{
+    CTermRewardsdb pdb;
 
+    bool GetTermRewardRoundResults(const int16_t round, CTermRewardResultEntryList& results);
+    bool GetTermRewardRoundResults(const int16_t round, CTermRewardResultEntryPtrList& results);
+    const CTermRewardsRoundResult* GetLastRoundResult();
+    void AddTermRewardsEntry(CTermRewardEntry* entry);
+}
+*/
 class CSmartRewards
 {
     CSmartRewardsDB* pdb;
@@ -184,6 +205,7 @@ public:
     bool GetRewardRoundResults(const int16_t round, CSmartRewardResultEntryList& results);
     bool GetRewardRoundResults(const int16_t round, CSmartRewardResultEntryPtrList& results);
     const CSmartRewardsRoundResult* GetLastRoundResult();
+
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryList& payouts);
     bool GetRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList& payouts);
 

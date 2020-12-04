@@ -237,7 +237,34 @@ bool CSmartRewardsDB::ReadRewardEntries(CSmartRewardEntryMap& entries)
 
     return true;
 }
+/*
+bool CTermRewardsDB::ReadRewardEntries(CSmartRewardEntryMap& entries)
+{
+    boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
+    pcursor->Seek(DB_REWARD_ENTRY);
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char, CSmartAddress> key;
+        if (pcursor->GetKey(key) && key.first == DB_REWARD_ENTRY) {
+            if (key.second.txHash == txHash) {
+                CTermRewardEntry entry;
+                if (pcursor->GetValue(entry)) {
+                    entries.insert(std::make_pair(entry.id, new CSmartRewardEntry(entry)));
+                    pcursor->Next();
+            }
+            } else {
+                return error("failed to get reward entry");
+            }
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+*/
 bool CSmartRewardsDB::ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryList& results)
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
@@ -458,7 +485,34 @@ arith_uint256 CSmartRewardResultEntry::CalculateScore(const uint256& blockHash)
     ss << reward << entry.id << blockHash;
     return UintToArith256(ss.GetHash());
 }
+/*
+string CTermRewardResultEntry::GetAddress() const
+{
+    return entry.id.ToString();
+}
 
+string CTermRewardResultEntry::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CTermRewardResultEntry(id=%d, txhash=%s, inblock=%d, outtime=d%, deposit=%d, term months\n",
+        GetAddress(),
+        entry.txhash,
+        entry.inblock,
+        entry.outtime,
+        entry.deposit
+        entry.term);
+    return s.str();
+}
+
+arith_uint256 CTermRewardResultEntry::CalculateScore(const uint256& blockHash)
+{
+    // Deterministically calculate a "score" for a CSmartRewardResultEntry based on any given (block)hash
+    // Used to sort the payout list for 1.3 smartreward payouts
+    CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
+    ss << reward << entry.id << blockHash;
+    return UintToArith256(ss.GetHash());
+}
+*/
 string CSmartRewardTransaction::ToString() const
 {
     std::stringstream s;

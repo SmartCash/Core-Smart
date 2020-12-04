@@ -34,6 +34,9 @@ typedef std::map<uint16_t, CSmartRewardRound> CSmartRewardRoundMap;
 typedef std::vector<CSmartRewardResultEntry> CSmartRewardResultEntryList;
 typedef std::vector<CSmartRewardResultEntry*> CSmartRewardResultEntryPtrList;
 
+//typedef std::vector<CTermRewardResultEntry> CTermRewardResultEntryList;
+//typedef std::vector<CTermRewardResultEntry*> CTermRewardResultEntryPtrList;
+
 typedef std::map<uint256, CSmartRewardTransaction> CSmartRewardTransactionMap;
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
 
@@ -310,8 +313,51 @@ public:
 
     arith_uint256 CalculateScore(const uint256& blockHash);
 };
+/*
+class CTermRewardResultEntry
+{
 
+public:
 
+    CTermRewardEntry entry;
+    CAmount reward;
+
+    ADD_SERIALIZE_METHODS
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(entry);
+        READWRITE(reward);
+    }
+
+    CTermRewardResultEntry(){}
+
+    CTermRewardResultEntry(CTermRewardEntry *entry, CAmount nReward) :
+        entry(*entry), reward(nReward){}
+
+    friend bool operator==(const CTermRewardListEntry& a, const CTermRewardResultEntry& b)
+    {
+        return (a.entry.id == b.entry.id);
+    }
+
+    friend bool operator!=(const CTermRewardResultEntry& a, const CTermRewardResultEntry& b)
+    {
+        return !(a == b);
+    }
+
+    friend bool operator<(const CTermRewardResultEntry& a, const CTermRewardResultEntry& b)
+    {
+        // TBD, verify this sort is fast/unique
+        int cmp = a.entry.id.Compare(b.entry.id);
+        return cmp < 0 || (cmp == 0 && a.reward < b.reward);
+    }
+
+    std::string GetAddress() const;
+    std::string ToString() const;
+
+    arith_uint256 CalculateScore(const uint256& blockHash);
+};
+*/
 /** Access to the rewards database (rewards/) */
 class CSmartRewardsDB : public CDBWrapper
 {
@@ -343,6 +389,9 @@ public:
     bool ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryPtrList &results);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryList &payouts);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList &payouts);
+
+//    bool ReadTermRewardResults(const int16_t round, CTermRewardResultEntryList &results);
+//    bool ReadTermRewardResults(const int16_t round, CTermRewardResultEntryPtrList &resultss);
 
     bool SyncCached(const CSmartRewardsCache &cache);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardResultEntryList &results);

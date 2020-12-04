@@ -685,13 +685,16 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         if ( !out.GetLockTime() || ( (nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
             rEntry->balance += out.nValue;
         } else if ( (out.nValue >= 1000000 * COIN) && (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ||  (nCurrentRound >= 20) && TestNet() ) {
+/*            AddTermRewardEntry(rEntry, tx.GetHash().ToString(), tx.nLockTime, out.GetLockTime(), out.nValue);
+
             if ( (out.GetLockTime() > (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
                 LogPrintf("CSmartRewards::ProcessOutput::3YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
+                nCurrentRound->results.push_back(new CTermRewardResultEntry(rEntry, out.nValue));
             } else if ( (out.GetLockTime() > (63000000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
                 LogPrintf("CSmartRewards::ProcessOutput::2YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
             } else if ( (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
                 LogPrintf("CSmartRewards::ProcessOutput::1YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
-            }
+            }*/
         }
 
         if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
@@ -1331,7 +1334,18 @@ void CSmartRewardsCache::AddEntry(CSmartRewardEntry* entry)
     LOCK(cs_rewardscache);
     entries[entry->id] = entry;
 }
+/*
+void CTermRewardsDB::AddTermRewardEntry(entry, txhash, inblock, outtime, deposit)
+{
+    LOCK(cs_termrewardsdb);
+    auto it = readTermRewardEntry(entry, txhash);
 
+    if (it != end()) { return }
+
+    int term = ((outtime - (inblock - 1809000) * 55) + 1600716503) / 2628000;  //in months
+    entry.push_back(id, txhash, intime, outtime, deposit, term)
+}
+*/
 void CSmartRewardsRoundResult::Clear()
 {
     for (CSmartRewardResultEntry* resultEntry : results) {
