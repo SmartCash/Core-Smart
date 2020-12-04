@@ -806,7 +806,7 @@ UniValue getreceivedbyaddress(const UniValue& params, bool fHelp)
             "\nReturns the total amount received by the given smartcashaddress in transactions with at least minconf confirmations.\n"
             "\nArguments:\n"
             "1. \"smartcashaddress\"  (string, required) The SmartCash address for transactions.\n"
-            "2. minconf             (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
+            "2. minconf             (numeric, optional, default=3) Only include transactions confirmed at least this many times.\n"
             "3. addlockconf    (bool, optional, default=false) Whether to add " + std::to_string(nInstantSendDepth) + " confirmations to transactions locked via InstantPay.\n"
             "\nResult:\n"
             "amount   (numeric) The total amount in " + CURRENCY_UNIT + " received at this address.\n"
@@ -832,7 +832,7 @@ UniValue getreceivedbyaddress(const UniValue& params, bool fHelp)
         return ValueFromAmount(0);
 
     // Minimum confirmations
-    int nMinDepth = 1;
+    int nMinDepth = 3;
     if (params.size() > 1)
         nMinDepth = params[1].get_int();
     bool fAddLockConf = (params.size() > 2 && params[2].get_bool());
@@ -866,7 +866,7 @@ UniValue getreceivedbyaccount(const UniValue& params, bool fHelp)
             "\nDEPRECATED. Returns the total amount received by addresses with <account> in transactions with at least [minconf] confirmations.\n"
             "\nArguments:\n"
             "1. \"account\"      (string, required) The selected account, may be the default account using \"\".\n"
-            "2. minconf          (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
+            "2. minconf          (numeric, optional, default=3) Only include transactions confirmed at least this many times.\n"
             "\nResult:\n"
             "amount              (numeric) The total amount in " + CURRENCY_UNIT + " received for this account.\n"
             "\nExamples:\n"
@@ -883,7 +883,7 @@ UniValue getreceivedbyaccount(const UniValue& params, bool fHelp)
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
     // Minimum confirmations
-    int nMinDepth = 1;
+    int nMinDepth = 3;
     if (params.size() > 1)
         nMinDepth = params[1].get_int();
 
