@@ -74,17 +74,7 @@ struct CSmartRewardsRoundResult {
 
     void Clear();
 };
-/*
-struct CTermRewardsRoundResult {
-    CTermRewardRound round;
-    CTermRewardResultEntryPtrList results;
-    CTermRewardResultEntryPtrList payouts;
-    bool fSynced;
-    CTermRewardsRoundResult() { fSynced = false; }
 
-    void Clear();
-};
-*/
 class CSmartRewardsCache
 {
     int chainHeight;
@@ -96,6 +86,7 @@ class CSmartRewardsCache
     CSmartRewardTransactionMap addTransactions;
     CSmartRewardTransactionMap removeTransactions;
     CSmartRewardEntryMap entries;
+    CTermRewardEntryMap termRewardEntries;
     CSmartRewardsRoundResult* result;
     CSmartRewardsRoundResult* undoResults;
 
@@ -128,6 +119,7 @@ public:
     const CSmartRewardTransactionMap* GetAddedTransactions() const { return &addTransactions; }
     const CSmartRewardTransactionMap* GetRemovedTransactions() const { return &removeTransactions; }
     const CSmartRewardEntryMap* GetEntries() const { return &entries; }
+    const CTermRewardEntryMap* GetTermRewardsEntries() const { return &termRewardEntries; }
     const CSmartRewardsRoundResult* GetLastRoundResult() const { return result; }
     const CSmartRewardsRoundResult* GetUndoResult() const { return undoResults; }
 
@@ -136,18 +128,9 @@ public:
     void AddTransaction(const CSmartRewardTransaction& transaction);
     void RemoveTransaction(const CSmartRewardTransaction& transaction);
     void AddEntry(CSmartRewardEntry* entry);
+    void AddTermRewardEntry(CTermRewardEntry *entry);
 };
-/*
-class CTermRewards
-{
-    CTermRewardsdb pdb;
 
-    bool GetTermRewardRoundResults(const int16_t round, CTermRewardResultEntryList& results);
-    bool GetTermRewardRoundResults(const int16_t round, CTermRewardResultEntryPtrList& results);
-    const CTermRewardsRoundResult* GetLastRoundResult();
-    void AddTermRewardsEntry(CTermRewardEntry* entry);
-}
-*/
 class CSmartRewards
 {
     CSmartRewardsDB* pdb;
@@ -196,6 +179,8 @@ public:
     bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& entry, bool fCreate);
+    bool GetTermRewardEntry(const CSmartAddress& id, CTermRewardEntry*& entry, bool fCreate);
+    bool GetTermRewardsEntries(CTermRewardEntryMap& entries);
 
     void EvaluateRound(CSmartRewardRound& next);
     bool StartFirstRound(const CSmartRewardRound& next, const CSmartRewardEntryList& entries);

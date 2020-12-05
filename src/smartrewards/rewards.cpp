@@ -471,10 +471,47 @@ bool CSmartRewards::GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& 
     return false;
 }
 
+bool CSmartRewards::GetTermRewardEntry(const CSmartAddress& id, CTermRewardEntry*& entry, bool fCreate)
+{
+    LOCK(cs_rewardscache);
+
+    // Return the entry if its already in cache.
+    auto it = cache.GetTermRewardsEntries()->find(id);
+
+    if (it != cache.GetTermRewardsEntries()->end()) {
+        entry = it->second;
+        return true;
+    }
+
+    entry = new CTermRewardEntry(id);
+
+    // Return the entry if its already in db.
+    if (pdb->ReadTermRewardEntry(id, *entry)) {
+        cache.AddTermRewardEntry(entry);
+        return true;
+    }
+
+    if (fCreate) {
+        cache.AddTermRewardEntry(entry);
+        return true;
+    }
+
+    delete entry;
+    entry = nullptr;
+
+    return false;
+}
+
 bool CSmartRewards::GetRewardEntries(CSmartRewardEntryMap& entries)
 {
     LOCK(cs_rewardsdb);
     return pdb->ReadRewardEntries(entries);
+}
+
+bool CSmartRewards::GetTermRewardsEntries(CTermRewardEntryMap& entries)
+{
+    LOCK(cs_rewardsdb);
+    return pdb->ReadTermRewardEntries(entries);
 }
 
 bool CSmartRewards::SyncCached()
@@ -653,6 +690,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
 void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result)
 {
     CSmartRewardEntry* rEntry = nullptr;
+    CTermRewardEntry* rTermEntry = nullptr;
     CSmartAddress id;
 
     if (!ExtractDestination(out.scriptPubKey, id)) {
@@ -682,19 +720,27 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         }
 
         // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-        if ( !out.GetLockTime() || ( (nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ) || ( (nCurrentRound < 20) && TestNet() ) ) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
+        if (!out.GetLockTime() ||
+                ((nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet()) ||
+                ((nCurrentRound < 20) && TestNet())) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
             rEntry->balance += out.nValue;
         } else if ( (out.nValue >= 1000000 * COIN) && (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ||  (nCurrentRound >= 20) && TestNet() ) {
-/*            AddTermRewardEntry(rEntry, tx.GetHash().ToString(), tx.nLockTime, out.GetLockTime(), out.nValue);
 
-            if ( (out.GetLockTime() > (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
-                LogPrintf("CSmartRewards::ProcessOutput::3YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
-                nCurrentRound->results.push_back(new CTermRewardResultEntry(rEntry, out.nValue));
-            } else if ( (out.GetLockTime() > (63000000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
-                LogPrintf("CSmartRewards::ProcessOutput::2YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
-            } else if ( (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) || TestNet() ) {
-                LogPrintf("CSmartRewards::ProcessOutput::1YearTermRewards - Address-Amount %d SendTime %d UnLockTime %d Hash %s\n", out.ToString(),(94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503), out.GetLockTime(),tx.GetHash().ToString() );
-            }*/
+          if (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+              // At least one year
+              if (GetTermRewardEntry(id, rTermEntry, true)) {
+                  if (out.GetLockTime() < (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+                      // If less than 3 years
+                      rTermEntry->level = CTermRewardEntry::TwoYears;
+                  } else {
+                      // 3 years and more
+                      rTermEntry->level = CTermRewardEntry::ThreeYears;
+                  }
+                  rTermEntry->balance = out.nValue;
+                  LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
+                      rTermEntry->GetLevel());
+              }
+          }
         }
 
         if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
@@ -1334,18 +1380,13 @@ void CSmartRewardsCache::AddEntry(CSmartRewardEntry* entry)
     LOCK(cs_rewardscache);
     entries[entry->id] = entry;
 }
-/*
-void CTermRewardsDB::AddTermRewardEntry(entry, txhash, inblock, outtime, deposit)
+
+void CSmartRewardsCache::AddTermRewardEntry(CTermRewardEntry *entry)
 {
-    LOCK(cs_termrewardsdb);
-    auto it = readTermRewardEntry(entry, txhash);
-
-    if (it != end()) { return }
-
-    int term = ((outtime - (inblock - 1809000) * 55) + 1600716503) / 2628000;  //in months
-    entry.push_back(id, txhash, intime, outtime, deposit, term)
+    LOCK(cs_rewardscache);
+    termRewardEntries[entry->id] = entry;
 }
-*/
+
 void CSmartRewardsRoundResult::Clear()
 {
     for (CSmartRewardResultEntry* resultEntry : results) {

@@ -23,6 +23,7 @@ static const int64_t nRewardsMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
 
 class CSmartRewardBlock;
 class CSmartRewardEntry;
+class CTermRewardEntry;
 class CSmartRewardRound;
 class CSmartRewardResultEntry;
 class CSmartRewardTransaction;
@@ -34,11 +35,9 @@ typedef std::map<uint16_t, CSmartRewardRound> CSmartRewardRoundMap;
 typedef std::vector<CSmartRewardResultEntry> CSmartRewardResultEntryList;
 typedef std::vector<CSmartRewardResultEntry*> CSmartRewardResultEntryPtrList;
 
-//typedef std::vector<CTermRewardResultEntry> CTermRewardResultEntryList;
-//typedef std::vector<CTermRewardResultEntry*> CTermRewardResultEntryPtrList;
-
 typedef std::map<uint256, CSmartRewardTransaction> CSmartRewardTransactionMap;
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
+typedef std::map<CSmartAddress, CTermRewardEntry*> CTermRewardEntryMap;
 
 class CSmartRewardTransaction
 {
@@ -313,51 +312,48 @@ public:
 
     arith_uint256 CalculateScore(const uint256& blockHash);
 };
-/*
-class CTermRewardResultEntry
+
+class CTermRewardEntry
 {
 
 public:
-
-    CTermRewardEntry entry;
-    CAmount reward;
 
     ADD_SERIALIZE_METHODS
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(entry);
-        READWRITE(reward);
+        READWRITE(id);
+        READWRITE(balance);
     }
 
-    CTermRewardResultEntry(){}
+    enum TermRewardsLevel {
+      OneYear = 0,
+      TwoYears,
+      ThreeYears
+    };
 
-    CTermRewardResultEntry(CTermRewardEntry *entry, CAmount nReward) :
-        entry(*entry), reward(nReward){}
+    CSmartAddress id;
+    CAmount balance;
+    uint8_t level;
 
-    friend bool operator==(const CTermRewardListEntry& a, const CTermRewardResultEntry& b)
+    CTermRewardEntry() : id(CSmartAddress()), balance(0), level(OneYear) {}
+    CTermRewardEntry(const CSmartAddress &address) : id(address), balance(0), level(OneYear) {}
+
+    friend bool operator==(const CTermRewardEntry& a, const CTermRewardEntry& b)
     {
-        return (a.entry.id == b.entry.id);
+        return (a.id == b.id);
     }
 
-    friend bool operator!=(const CTermRewardResultEntry& a, const CTermRewardResultEntry& b)
+    friend bool operator!=(const CTermRewardEntry& a, const CTermRewardEntry& b)
     {
         return !(a == b);
     }
 
-    friend bool operator<(const CTermRewardResultEntry& a, const CTermRewardResultEntry& b)
-    {
-        // TBD, verify this sort is fast/unique
-        int cmp = a.entry.id.Compare(b.entry.id);
-        return cmp < 0 || (cmp == 0 && a.reward < b.reward);
-    }
-
     std::string GetAddress() const;
     std::string ToString() const;
-
-    arith_uint256 CalculateScore(const uint256& blockHash);
+    std::string GetLevel() const;
 };
-*/
+
 /** Access to the rewards database (rewards/) */
 class CSmartRewardsDB : public CDBWrapper
 {
@@ -384,14 +380,13 @@ public:
 
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool ReadRewardEntries(CSmartRewardEntryMap &entries);
+    bool ReadTermRewardEntry(const CSmartAddress &id, CTermRewardEntry &entry);
+    bool ReadTermRewardEntries(CTermRewardEntryMap& entries);
 
     bool ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryList &results);
     bool ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryPtrList &results);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryList &payouts);
     bool ReadRewardPayouts(const int16_t round, CSmartRewardResultEntryPtrList &payouts);
-
-//    bool ReadTermRewardResults(const int16_t round, CTermRewardResultEntryList &results);
-//    bool ReadTermRewardResults(const int16_t round, CTermRewardResultEntryPtrList &resultss);
 
     bool SyncCached(const CSmartRewardsCache &cache);
     bool FinalizeRound(const CSmartRewardRound &current, const CSmartRewardRound &next, const CSmartRewardEntryList &entries, const CSmartRewardResultEntryList &results);
