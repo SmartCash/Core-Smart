@@ -270,3 +270,57 @@ UniValue smartrewards(const UniValue& params, bool fHelp)
 
     return NullUniValue;
 }
+
+UniValue termrewards(const UniValue& params, bool fHelp)
+{
+    std::function<double (CAmount)> format = [](CAmount a) {
+        return a / COIN + ( double(a % COIN) / COIN );
+    };
+
+    if (fHelp) {
+        throw std::runtime_error(
+            "termrewardds\n"
+            "Display addresses currently eligible to TermRewards\n"
+
+            "\nResult (if verbose > 0):\n"
+            "[\n"
+            " {\n"
+            "  \"address\" : \"smartcashaddress\",   (string) smartcash address\n"
+            "  \"balance\" : \"smartcashaddress\",   (string) smartcash address\n"
+            "  \"level\" : \"years\",                (string) TermRewards level (1, 2, 3 years)\n"
+            " },\n"
+            " {\n"
+            " ...\n"
+            " }\n"
+            "]\n"
+            );
+    }
+
+    if( !fDebug && !prewards->IsSynced() )
+        throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is not up to date.");
+
+    TRY_LOCK(cs_rewardsdb, lockRewardsDb);
+
+    if (!lockRewardsDb) {
+        throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+    }
+
+    UniValue arr(UniValue::VARR);
+
+    TRY_LOCK(cs_rewardscache, cacheLocked);
+
+    if(!cacheLocked) throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+
+    CTermRewardEntryMap entries;
+    if (!prewards->GetTermRewardsEntries(entries)) throw JSONRPCError(RPC_DATABASE_ERROR, "Failed to get TermRewards entries");
+
+    for (const auto &entry : entries) {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("address", entry.second->GetAddress());
+        obj.pushKV("balance", format(entry.second->balance));
+        obj.pushKV("level", entry.second->GetLevel());
+        arr.push_back(obj);
+    }
+
+    return arr;
+}

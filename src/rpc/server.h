@@ -297,6 +297,7 @@ extern UniValue smartvoting(const UniValue& params, bool fHelp);
 extern UniValue votekeys(const UniValue& params, bool fHelp);
 extern UniValue snsync(const UniValue& params, bool fHelp);
 extern UniValue smartrewards(const UniValue& params, bool fHelp);
+extern UniValue termrewards(const UniValue& params, bool fHelp);
 extern UniValue smartmining(const UniValue& params, bool fHelp);
 
 extern UniValue getblockcount(const UniValue& params, bool fHelp); // in rpc/blockchain.cpp
