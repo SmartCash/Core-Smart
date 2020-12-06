@@ -513,24 +513,26 @@ string CTermRewardEntry::GetAddress() const
 
 string CTermRewardEntry::GetLevel() const
 {
-    std::string str;
+//    std::string str;
 
     switch (level) {
       case OneYear:
-        str = "1 Year";
-        break;
+//        str = "1 Year";
+//        return str;
+        return "1 Year";
       case TwoYears:
-        str = "2 Years";
-        break;
+//        str = "2 Years";
+//        return str;
+        return "2 Years";
       case ThreeYears:
-        str = "3 Years";
-        break;
+//        str = "3 Years";
+//        return str;
+        return "3 Years";
       default:
-        str = "Unknown";
-        break;
+//        str = "Unknown";
+//        return str;
+        return "Unknown";
     }
-
-    return str;
 }
 
 string CTermRewardEntry::ToString() const

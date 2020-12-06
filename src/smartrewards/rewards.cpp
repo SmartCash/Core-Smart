@@ -724,23 +724,40 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                 ((nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet()) ||
                 ((nCurrentRound < 20) && TestNet())) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
             rEntry->balance += out.nValue;
-        } else if ( (out.nValue >= 1000000 * COIN) && (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ||  (nCurrentRound >= 20) && TestNet() ) {
-
-          if (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
-              // At least one year
-              if (GetTermRewardEntry(id, rTermEntry, true)) {
-                  if (out.GetLockTime() < (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
-                      // If less than 3 years
-                      rTermEntry->level = CTermRewardEntry::TwoYears;
-                  } else {
-                      // 3 years and more
-                      rTermEntry->level = CTermRewardEntry::ThreeYears;
-                  }
-                  rTermEntry->balance = out.nValue;
-                  LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
-                      rTermEntry->GetLevel());
-              }
-          }
+        } else if ( (out.nValue >= 1000000 * COIN) && (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ) {
+                if (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+                    // At least one year then create an entry
+                    if (GetTermRewardEntry(id, rTermEntry, true)) {
+                        rTermEntry->level = CTermRewardEntry::OneYear;
+                        if (out.GetLockTime() > (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+                            // If minimum 3 years
+                            rTermEntry->level = CTermRewardEntry::ThreeYears;
+                        } else if (out.GetLockTime() > (63000000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+                            // Mininimum 2 years
+                            rTermEntry->level = CTermRewardEntry::TwoYears;
+                        }
+                    }
+                    rTermEntry->balance = out.nValue;
+                    LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
+                        rTermEntry->GetLevel());
+                }
+        } else if ( (out.nValue >= 1000 * COIN) && (nCurrentRound >= 20) && TestNet() ) {
+                if (out.GetLockTime() > (31500000 + 1607246570)) {
+                    // At least one year 31500000 94500000
+                    if (GetTermRewardEntry(id, rTermEntry, true)) {
+                        rTermEntry->level = CTermRewardEntry::OneYear;
+                        if (out.GetLockTime() > (94500000 + 1607246570)) {
+                            // If minimum 3 years
+                            rTermEntry->level = CTermRewardEntry::ThreeYears;
+                        } else if (out.GetLockTime() > (63000000 + 1607246570)) {
+                            // Mininimum 2 years
+                            rTermEntry->level = CTermRewardEntry::TwoYears;
+                        }
+                    }
+                    rTermEntry->balance = out.nValue;
+                    LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
+                        rTermEntry->GetLevel());
+                }
         }
 
         if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {

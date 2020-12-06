@@ -302,7 +302,7 @@ UniValue termrewards(const UniValue& params, bool fHelp)
     TRY_LOCK(cs_rewardsdb, lockRewardsDb);
 
     if (!lockRewardsDb) {
-        throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy..Try it again!");
+        throw JSONRPCError(RPC_DATABASE_ERROR, "Rewards database is busy.  Try again");
     }
 
     UniValue arr(UniValue::VARR);
