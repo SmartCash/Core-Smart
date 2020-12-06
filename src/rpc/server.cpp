@@ -371,6 +371,7 @@ static const CRPCCommand vRPCCommands[] =
     { "smartcash",               "snsync",                 &snsync,                 true  },
     { "smartcash",               "spork",                  &spork,                  true  },
     { "smartcash",               "smartrewards",           &smartrewards,           true  },
+    { "smartcash",               "termrewards",            &termrewards,            true  },
     { "smartcash",               "smartmining",            &smartmining,            true  },
 #ifdef ENABLE_WALLET
 

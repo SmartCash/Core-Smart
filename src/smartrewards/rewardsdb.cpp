@@ -25,6 +25,7 @@ static const char DB_ROUND = 'r';
 static const char DB_ROUND_SNAPSHOT = 's';
 
 static const char DB_REWARD_ENTRY = 'E';
+static const char DB_TERMREWARD_ENTRY = 'T';
 static const char DB_BLOCK = 'B';
 static const char DB_BLOCK_LAST = 'b';
 static const char DB_TX_HASH = 't';
@@ -121,6 +122,11 @@ bool CSmartRewardsDB::ReadRewardEntry(const CSmartAddress& id, CSmartRewardEntry
     return Read(make_pair(DB_REWARD_ENTRY, id), entry);
 }
 
+bool CSmartRewardsDB::ReadTermRewardEntry(const CSmartAddress &id, CTermRewardEntry &entry)
+{
+    return Read(make_pair(DB_TERMREWARD_ENTRY, id), entry);
+}
+
 bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache& cache)
 {
     CDBBatch batch(*this);
@@ -175,6 +181,13 @@ bool CSmartRewardsDB::SyncCached(const CSmartRewardsCache& cache)
 
             ++entry;
         }
+    }
+
+    auto entry = cache.GetTermRewardsEntries()->begin();
+
+    while (entry != cache.GetTermRewardsEntries()->end()) {
+        batch.Write(make_pair(DB_TERMREWARD_ENTRY, entry->first), *entry->second);
+        ++entry;
     }
 
     auto addTx = cache.GetAddedTransactions()->begin();
@@ -237,25 +250,23 @@ bool CSmartRewardsDB::ReadRewardEntries(CSmartRewardEntryMap& entries)
 
     return true;
 }
-/*
-bool CTermRewardsDB::ReadRewardEntries(CSmartRewardEntryMap& entries)
+
+bool CSmartRewardsDB::ReadTermRewardEntries(CTermRewardEntryMap& entries)
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
 
-    pcursor->Seek(DB_REWARD_ENTRY);
+    pcursor->Seek(DB_TERMREWARD_ENTRY);
 
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
         std::pair<char, CSmartAddress> key;
-        if (pcursor->GetKey(key) && key.first == DB_REWARD_ENTRY) {
-            if (key.second.txHash == txHash) {
-                CTermRewardEntry entry;
-                if (pcursor->GetValue(entry)) {
-                    entries.insert(std::make_pair(entry.id, new CSmartRewardEntry(entry)));
-                    pcursor->Next();
-            }
+        if (pcursor->GetKey(key) && key.first == DB_TERMREWARD_ENTRY) {
+            CTermRewardEntry entry;
+            if (pcursor->GetValue(entry)) {
+                entries.insert(std::make_pair(entry.id, new CTermRewardEntry(entry)));
+                pcursor->Next();
             } else {
-                return error("failed to get reward entry");
+                return error("failed to get term reward entry");
             }
         } else {
             break;
@@ -264,7 +275,7 @@ bool CTermRewardsDB::ReadRewardEntries(CSmartRewardEntryMap& entries)
 
     return true;
 }
-*/
+
 bool CSmartRewardsDB::ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryList& results)
 {
     boost::scoped_ptr<CDBIterator> pcursor(NewIterator());
@@ -485,25 +496,54 @@ arith_uint256 CSmartRewardResultEntry::CalculateScore(const uint256& blockHash)
     ss << reward << entry.id << blockHash;
     return UintToArith256(ss.GetHash());
 }
-/*
-string CTermRewardResultEntry::GetAddress() const
-{
-    return entry.id.ToString();
-}
 
-string CTermRewardResultEntry::ToString() const
+string CSmartRewardTransaction::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CTermRewardResultEntry(id=%d, txhash=%s, inblock=%d, outtime=d%, deposit=%d, term months\n",
-        GetAddress(),
-        entry.txhash,
-        entry.inblock,
-        entry.outtime,
-        entry.deposit
-        entry.term);
+    s << strprintf("CSmartRewardTransaction(hash=%s, blockHeight=%d\n",
+        hash.ToString(),
+        blockHeight);
     return s.str();
 }
 
+string CTermRewardEntry::GetAddress() const
+{
+    return id.ToString();
+}
+
+string CTermRewardEntry::GetLevel() const
+{
+    std::string str;
+
+    switch (level) {
+      case OneYear:
+        str = "1 Year";
+        break;
+      case TwoYears:
+        str = "2 Years";
+        break;
+      case ThreeYears:
+        str = "3 Years";
+        break;
+      default:
+        str = "Unknown";
+        break;
+    }
+
+    return str;
+}
+
+string CTermRewardEntry::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CTermRewardEntry(id=%s, balance=%d, level=%s)\n",
+        GetAddress(),
+        balance,
+        GetLevel());
+    return s.str();
+}
+
+/*
 arith_uint256 CTermRewardResultEntry::CalculateScore(const uint256& blockHash)
 {
     // Deterministically calculate a "score" for a CSmartRewardResultEntry based on any given (block)hash
@@ -513,11 +553,3 @@ arith_uint256 CTermRewardResultEntry::CalculateScore(const uint256& blockHash)
     return UintToArith256(ss.GetHash());
 }
 */
-string CSmartRewardTransaction::ToString() const
-{
-    std::stringstream s;
-    s << strprintf("CSmartRewardTransaction(hash=%s, blockHeight=%d\n",
-        hash.ToString(),
-        blockHeight);
-    return s.str();
-}
