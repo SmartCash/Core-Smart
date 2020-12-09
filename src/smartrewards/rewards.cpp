@@ -737,6 +737,8 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                             rTermEntry->level = CTermRewardEntry::TwoYears;
                         }
                     }
+
+                    rTermEntry->txHash = out.GetHash();
                     rTermEntry->balance = out.nValue;
                     LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
                         rTermEntry->GetLevel());
@@ -754,6 +756,8 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                             rTermEntry->level = CTermRewardEntry::TwoYears;
                         }
                     }
+
+                    rTermEntry->txHash = out.GetHash();
                     rTermEntry->balance = out.nValue;
                     LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
                         rTermEntry->GetLevel());

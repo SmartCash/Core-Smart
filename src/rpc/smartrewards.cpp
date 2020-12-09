@@ -285,6 +285,7 @@ UniValue termrewards(const UniValue& params, bool fHelp)
             "\nResult (if verbose > 0):\n"
             "[\n"
             " {\n"
+            "  \"tx_hash\" : \"hash\",               (string) hash of the locking tx\n"
             "  \"address\" : \"smartcashaddress\",   (string) smartcash address\n"
             "  \"balance\" : \"smartcashaddress\",   (string) smartcash address\n"
             "  \"level\" : \"years\",                (string) TermRewards level (1, 2, 3 years)\n"
@@ -316,6 +317,7 @@ UniValue termrewards(const UniValue& params, bool fHelp)
 
     for (const auto &entry : entries) {
         UniValue obj(UniValue::VOBJ);
+        obj.pushKV("tx_hash", entry.second->txHash.GetHex());
         obj.pushKV("address", entry.second->GetAddress());
         obj.pushKV("balance", format(entry.second->balance));
         obj.pushKV("level", entry.second->GetLevel());

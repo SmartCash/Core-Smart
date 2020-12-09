@@ -324,6 +324,8 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(id);
         READWRITE(balance);
+        READWRITE(txHash);
+        READWRITE(level);
     }
 
     enum TermRewardsLevel {
@@ -332,6 +334,7 @@ public:
       ThreeYears
     };
 
+    uint256 txHash;
     CSmartAddress id;
     CAmount balance;
     uint8_t level;
