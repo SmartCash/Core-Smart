@@ -326,6 +326,8 @@ public:
         READWRITE(balance);
         READWRITE(txHash);
         READWRITE(level);
+        READWRITE(percent);
+        READWRITE(expires);
     }
 
     enum TermRewardsLevel {
@@ -338,10 +340,12 @@ public:
     CSmartAddress address;
     CAmount balance;
     uint8_t level;
+    CAmount percent;
+    CAmount expires;
 
-    CTermRewardEntry() : balance(0), level(OneYear) {}
+    CTermRewardEntry() : balance(0), level(OneYear), percent(0), expires(0) {}
     CTermRewardEntry(const CSmartAddress &_address, const uint256 &_hash)
-        : address(_address), txHash(_hash), balance(0), level(OneYear) {}
+        : address(_address), txHash(_hash), balance(0), level(OneYear), percent(0), expires(0) {}
 
     friend bool operator==(const CTermRewardEntry& a, const CTermRewardEntry& b)
     {

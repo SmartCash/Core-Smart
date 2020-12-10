@@ -528,11 +528,13 @@ string CTermRewardEntry::GetLevel() const
 string CTermRewardEntry::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CTermRewardEntry(tx_hash=%s, address=%s, balance=%d, level=%s)\n",
-        txHash.GetHex(),
+    s << strprintf("CTermRewardEntry(address=%s, tx_hash=%s, balance=%d, level=%s, percent=%d, expires=%d)\n",
         GetAddress(),
+        txHash.GetHex(),
         balance,
-        level);
+        level,
+        percent,
+        expires);
     return s.str();
 }
 

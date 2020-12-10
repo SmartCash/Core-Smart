@@ -730,12 +730,16 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     // At least one year then create an entry
                     if (GetTermRewardEntry({id, out.GetHash()}, rTermEntry, true)) {
                         rTermEntry->level = CTermRewardEntry::OneYear;
+                        rTermEntry->percent = 40;
+                        rTermEntry->expires = out.GetLockTime();
                         if (out.GetLockTime() > (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
                             // If minimum 3 years
                             rTermEntry->level = CTermRewardEntry::ThreeYears;
+                            rTermEntry->percent = 60;
                         } else if (out.GetLockTime() > (63000000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
                             // Mininimum 2 years
                             rTermEntry->level = CTermRewardEntry::TwoYears;
+                            rTermEntry->percent = 50;
                         }
                     }
 
@@ -748,12 +752,16 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     // At least one year 31500000 94500000
                     if (GetTermRewardEntry({id, out.GetHash()}, rTermEntry, true)) {
                         rTermEntry->level = CTermRewardEntry::OneYear;
+                        rTermEntry->percent = 40;
+                        rTermEntry->expires = out.GetLockTime();
                         if (out.GetLockTime() > (94500000 + 1607246570)) {
                             // If minimum 3 years
                             rTermEntry->level = CTermRewardEntry::ThreeYears;
+                            rTermEntry->percent = 60;
                         } else if (out.GetLockTime() > (63000000 + 1607246570)) {
                             // Mininimum 2 years
                             rTermEntry->level = CTermRewardEntry::TwoYears;
+                            rTermEntry->percent = 50;
                         }
                     }
 

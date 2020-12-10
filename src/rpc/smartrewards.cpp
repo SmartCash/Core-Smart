@@ -285,10 +285,12 @@ UniValue termrewards(const UniValue& params, bool fHelp)
             "\nResult (if verbose > 0):\n"
             "[\n"
             " {\n"
+            "  \"address\" : \"smartcash address\",  (string) smartcash address\n"
             "  \"tx_hash\" : \"hash\",               (string) hash of the locking tx\n"
-            "  \"address\" : \"smartcashaddress\",   (string) smartcash address\n"
-            "  \"balance\" : \"smartcashaddress\",   (string) smartcash address\n"
+            "  \"balance\" : \"term balance\",       (string) Term balance\n"
             "  \"level\" : \"years\",                (string) TermRewards level (1, 2, 3 years)\n"
+            "  \"percent\" : \"% Annual Return\",     (string) Return in % per year\n"
+            "  \"expires\" : \"expires\",             (string) Term Expiration Date\n"
             " },\n"
             " {\n"
             " ...\n"
@@ -317,10 +319,12 @@ UniValue termrewards(const UniValue& params, bool fHelp)
 
     for (const auto &entry : entries) {
         UniValue obj(UniValue::VOBJ);
-        obj.pushKV("tx_hash", entry.second->txHash.GetHex());
         obj.pushKV("address", entry.second->GetAddress());
+        obj.pushKV("tx_hash", entry.second->txHash.GetHex());
         obj.pushKV("balance", format(entry.second->balance));
         obj.pushKV("level", entry.second->GetLevel());
+        obj.pushKV("percent", entry.second->percent);
+        obj.pushKV("expires", entry.second->expires);
         arr.push_back(obj);
     }
 
