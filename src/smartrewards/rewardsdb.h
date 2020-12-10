@@ -37,7 +37,7 @@ typedef std::vector<CSmartRewardResultEntry*> CSmartRewardResultEntryPtrList;
 
 typedef std::map<uint256, CSmartRewardTransaction> CSmartRewardTransactionMap;
 typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
-typedef std::map<CSmartAddress, CTermRewardEntry*> CTermRewardEntryMap;
+typedef std::map<std::pair<CSmartAddress, uint256>, CTermRewardEntry*> CTermRewardEntryMap;
 
 class CSmartRewardTransaction
 {
@@ -322,7 +322,7 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(id);
+        READWRITE(address);
         READWRITE(balance);
         READWRITE(txHash);
         READWRITE(level);
@@ -335,16 +335,17 @@ public:
     };
 
     uint256 txHash;
-    CSmartAddress id;
+    CSmartAddress address;
     CAmount balance;
     uint8_t level;
 
-    CTermRewardEntry() : id(CSmartAddress()), balance(0), level(OneYear) {}
-    CTermRewardEntry(const CSmartAddress &address) : id(address), balance(0), level(OneYear) {}
+    CTermRewardEntry() : balance(0), level(OneYear) {}
+    CTermRewardEntry(const CSmartAddress &_address, const uint256 &_hash)
+        : address(_address), txHash(_hash), balance(0), level(OneYear) {}
 
     friend bool operator==(const CTermRewardEntry& a, const CTermRewardEntry& b)
     {
-        return (a.id == b.id);
+        return ((a.address == b.address) && (a.txHash == b.txHash));
     }
 
     friend bool operator!=(const CTermRewardEntry& a, const CTermRewardEntry& b)
@@ -383,7 +384,7 @@ public:
 
     bool ReadRewardEntry(const CSmartAddress &id, CSmartRewardEntry &entry);
     bool ReadRewardEntries(CSmartRewardEntryMap &entries);
-    bool ReadTermRewardEntry(const CSmartAddress &id, CTermRewardEntry &entry);
+    bool ReadTermRewardEntry(const std::pair<CSmartAddress, uint256 >&id, CTermRewardEntry &entry);
     bool ReadTermRewardEntries(CTermRewardEntryMap& entries);
 
     bool ReadRewardRoundResults(const int16_t round, CSmartRewardResultEntryList &results);

@@ -179,7 +179,7 @@ public:
     bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& entry, bool fCreate);
-    bool GetTermRewardEntry(const CSmartAddress& id, CTermRewardEntry*& entry, bool fCreate);
+    bool GetTermRewardEntry(const std::pair<CSmartAddress, uint256>& id, CTermRewardEntry*& entry, bool fCreate);
     bool GetTermRewardsEntries(CTermRewardEntryMap& entries);
 
     void EvaluateRound(CSmartRewardRound& next);

@@ -471,7 +471,8 @@ bool CSmartRewards::GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& 
     return false;
 }
 
-bool CSmartRewards::GetTermRewardEntry(const CSmartAddress& id, CTermRewardEntry*& entry, bool fCreate)
+bool CSmartRewards::GetTermRewardEntry(const std::pair<CSmartAddress, uint256>& id, CTermRewardEntry*& entry,
+    bool fCreate)
 {
     LOCK(cs_rewardscache);
 
@@ -483,7 +484,7 @@ bool CSmartRewards::GetTermRewardEntry(const CSmartAddress& id, CTermRewardEntry
         return true;
     }
 
-    entry = new CTermRewardEntry(id);
+    entry = new CTermRewardEntry(id.first, id.second);
 
     // Return the entry if its already in db.
     if (pdb->ReadTermRewardEntry(id, *entry)) {
@@ -727,7 +728,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         } else if ( (out.nValue >= 1000000 * COIN) && (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ) {
                 if (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
                     // At least one year then create an entry
-                    if (GetTermRewardEntry(id, rTermEntry, true)) {
+                    if (GetTermRewardEntry({id, out.GetHash()}, rTermEntry, true)) {
                         rTermEntry->level = CTermRewardEntry::OneYear;
                         if (out.GetLockTime() > (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
                             // If minimum 3 years
@@ -738,7 +739,6 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                         }
                     }
 
-                    rTermEntry->txHash = out.GetHash();
                     rTermEntry->balance = out.nValue;
                     LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
                         rTermEntry->GetLevel());
@@ -746,7 +746,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         } else if ( (out.nValue >= 1000 * COIN) && (nCurrentRound >= 20) && TestNet() ) {
                 if (out.GetLockTime() > (31500000 + 1607246570)) {
                     // At least one year 31500000 94500000
-                    if (GetTermRewardEntry(id, rTermEntry, true)) {
+                    if (GetTermRewardEntry({id, out.GetHash()}, rTermEntry, true)) {
                         rTermEntry->level = CTermRewardEntry::OneYear;
                         if (out.GetLockTime() > (94500000 + 1607246570)) {
                             // If minimum 3 years
@@ -757,7 +757,6 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                         }
                     }
 
-                    rTermEntry->txHash = out.GetHash();
                     rTermEntry->balance = out.nValue;
                     LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n",
                         rTermEntry->GetLevel());
@@ -1405,7 +1404,7 @@ void CSmartRewardsCache::AddEntry(CSmartRewardEntry* entry)
 void CSmartRewardsCache::AddTermRewardEntry(CTermRewardEntry *entry)
 {
     LOCK(cs_rewardscache);
-    termRewardEntries[entry->id] = entry;
+    termRewardEntries[{entry->address, entry->txHash}] = entry;
 }
 
 void CSmartRewardsRoundResult::Clear()

@@ -122,7 +122,7 @@ bool CSmartRewardsDB::ReadRewardEntry(const CSmartAddress& id, CSmartRewardEntry
     return Read(make_pair(DB_REWARD_ENTRY, id), entry);
 }
 
-bool CSmartRewardsDB::ReadTermRewardEntry(const CSmartAddress &id, CTermRewardEntry &entry)
+bool CSmartRewardsDB::ReadTermRewardEntry(const std::pair<CSmartAddress, uint256> &id, CTermRewardEntry &entry)
 {
     return Read(make_pair(DB_TERMREWARD_ENTRY, id), entry);
 }
@@ -263,7 +263,7 @@ bool CSmartRewardsDB::ReadTermRewardEntries(CTermRewardEntryMap& entries)
         if (pcursor->GetKey(key) && key.first == DB_TERMREWARD_ENTRY) {
             CTermRewardEntry entry;
             if (pcursor->GetValue(entry)) {
-                entries.insert(std::make_pair(entry.id, new CTermRewardEntry(entry)));
+                entries.insert(std::make_pair(std::make_pair(entry.address, entry.txHash), new CTermRewardEntry(entry)));
                 pcursor->Next();
             } else {
                 return error("failed to get term reward entry");
@@ -508,29 +508,19 @@ string CSmartRewardTransaction::ToString() const
 
 string CTermRewardEntry::GetAddress() const
 {
-    return id.ToString();
+    return address.ToString();
 }
 
 string CTermRewardEntry::GetLevel() const
 {
-//    std::string str;
-
     switch (level) {
       case OneYear:
-//        str = "1 Year";
-//        return str;
         return "1 Year";
       case TwoYears:
-//        str = "2 Years";
-//        return str;
         return "2 Years";
       case ThreeYears:
-//        str = "3 Years";
-//        return str;
         return "3 Years";
       default:
-//        str = "Unknown";
-//        return str;
         return "Unknown";
     }
 }
@@ -538,7 +528,7 @@ string CTermRewardEntry::GetLevel() const
 string CTermRewardEntry::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CTermRewardEntry(tx_hash=%s, id=%s, balance=%d, level=%s)\n",
+    s << strprintf("CTermRewardEntry(tx_hash=%s, address=%s, balance=%d, level=%s)\n",
         txHash.GetHex(),
         GetAddress(),
         balance,
