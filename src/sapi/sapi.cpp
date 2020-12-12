@@ -30,7 +30,7 @@
 #include "sapi/sapi_transaction.h"
 #include "sapi/sapi_smartnodes.h"
 #include "sapi/sapi_smartrewards.h"
-
+#include "sapi/sapi_termrewards.h"
 
 #include "compat.h"
 #include "util.h"
@@ -593,6 +593,7 @@ bool StartSAPI()
         &transactionEndpoints,
         &smartnodeEndpoints,
         &smartrewardsEndpoints,
+        &termrewardsEndpoints
     };
 
     return true;
