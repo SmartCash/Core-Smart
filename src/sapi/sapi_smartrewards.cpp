@@ -173,10 +173,12 @@ static bool smartrewards_roi(HTTPRequest* req, const std::map<std::string, std::
     obj.pushKV("SmartRewards Yearly Yield % with 2 Week Bonus",int(0.5 + current->percent * 52 * 120));
     obj.pushKV("SmartRewards Yearly Yield % with 3 Week Bonus",int(0.5 + current->percent * 52 * 140));
     obj.pushKV("SmartRewards Yearly Yield % with 4 Week Bonus",int(0.5 + current->percent * 52 * 150));
+    obj.pushKV("SmartRewards Yearly Yield % 4 week with compounding",int(100 * (pow( 1+(current->percent * 1.50), 52 )-1)+0.5));
     obj.pushKV("SuperRewards Yearly Yield % (>1 million Smart)",int(0.5 + current->percent * 52 * 200));
     obj.pushKV("SuperRewards Yearly Yield % with 2 week Bonus",int(0.5 + current->percent * 52 * 220));
     obj.pushKV("SuperRewards Yearly Yield % with 3 week Bonux",int(0.5 + current->percent * 52 * 240));
     obj.pushKV("SuperRewards Yearly Yield % with 4 week Bonux",int(0.5 + current->percent * 52 * 250));
+    obj.pushKV("SuperRewards Yearly Yield % 4 week with compounding",int(100 * (pow( 1+(current->percent * 2.50), 52 )-1)+0.5));
 
     SAPI::WriteReply(req, obj);
 
