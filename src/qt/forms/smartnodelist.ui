@@ -59,8 +59,13 @@
              </property>
              <item>
               <widget class="QLabel" name="updateNote">
+                <property name="font">
+                 <font>
+                  <pointsize>14</pointsize>
+                 </font>
+                </property>
                <property name="text">
-                <string>Note: Status of your smartnodes in local wallet can potentially be slightly incorrect.&lt;br /&gt;Always wait for wallet to sync additional data and then double check from another node&lt;br /&gt;if your smartnode should be running but you still do not see &quot;ENABLED&quot; in &quot;Status&quot; field.</string>
+                <string>Note: Wait for a full sync to get ENABLED status, although status here isn't always correct.&lt;br /&gt;It is recommended to check with the SAPI of the node using either of these commands from a browser.&lt;br /&gt;http://ip:8080/v1/client/status will show your node status.&lt;br /&gt;http://ip:8080/v1/smartnodes/check/addreess will show if enabled.&lt;br /&gt;Replace ip with your node ip and address with the payee address below.</string>
                </property>
               </widget>
              </item>

@@ -187,6 +187,11 @@
              <layout class="QHBoxLayout" name="horizontalLayout_6">
               <item>
                <widget class="QLabel" name="addressesLabel">
+                 <property name="font">
+                  <font>
+                   <pointsize>14</pointsize>
+                 </font>
+                 </property>
                 <property name="text">
                  <string>( 0 addresses )</string>
                 </property>
@@ -253,6 +258,33 @@
           <widget class="QPushButton" name="refreshButton">
            <property name="text">
             <string>Refresh List</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_7">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="busybee">
+           <property name="font">
+            <font>
+             <pointsize>14</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+             <string>No proposals? Checkout our paid tasks on http://BusyBee.Auction.</string>
            </property>
           </widget>
          </item>
