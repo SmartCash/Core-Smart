@@ -340,8 +340,8 @@ public:
     CSmartAddress address;
     CAmount balance;
     uint8_t level;
-    CAmount percent;
-    CAmount expires;
+    int percent;
+    int expires;
 
     CTermRewardEntry() : balance(0), level(OneYear), percent(0), expires(0) {}
     CTermRewardEntry(const CSmartAddress &_address, const uint256 &_hash)
