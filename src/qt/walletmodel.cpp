@@ -15,6 +15,7 @@
 #include "keystore.h"
 #include "validation.h"
 #include "sync.h"
+#include "script/ismine.h"
 #include "../smartnode/instantx.h"
 #include "../smartnode/spork.h"
 #include "../smartnode/smartnodesync.h"
@@ -905,6 +906,12 @@ void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins, 
             continue;
         mapCoins[QString::fromStdString(CBitcoinAddress(address).ToString())].push_back(out);
     }
+}
+
+bool WalletModel::isMine(const CTxDestination &address) const
+{
+    LOCK2(cs_main, wallet->cs_wallet);
+    return IsMine(*wallet, address) != ISMINE_NO;
 }
 
 bool WalletModel::isLockedCoin(uint256 hash, unsigned int n) const
