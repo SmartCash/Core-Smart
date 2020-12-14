@@ -149,12 +149,12 @@ void SmartrewardsList::updateOverviewUI(const CSmartRewardRound &currentRound, c
     percentTexta.sprintf("%.2f%%", currentRound.percent * 100 * 52);
     percentTextTwo.sprintf("%.2f%%", currentRound.percent * 120 * 52);
     percentTextThree.sprintf("%.2f%%", currentRound.percent * 140 * 52);
-    percentTextFour.sprintf("%.2f%%", currentRound.percent * 150 * 52);
+    percentTextFour.sprintf("%.2f%%", 100 * (pow( (currentRound.percent * 1.5 + 1), 52)-1) );
     percentTextb.sprintf("%.2f%%", currentRound.percent * 100 * 52);
     percentTextSuper.sprintf("%.2f%%", currentRound.percent * 200 * 52);
     percentTextSuperTwo.sprintf("%.2f%%", currentRound.percent * 220 * 52);
     percentTextSuperThree.sprintf("%.2f%%", currentRound.percent * 240 * 52);
-    percentTextSuperFour.sprintf("%.2f%%", currentRound.percent * 250 * 52);
+    percentTextSuperFour.sprintf("%.2f%%", 100 * (pow( (currentRound.percent * 2.5 + 1), 52)-1) );
     ui->percentLabel->setText(percentText);
     ui->percentLabela->setText(percentTexta);
     ui->percentLabelTwo->setText(percentTextTwo);

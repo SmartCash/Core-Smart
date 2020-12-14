@@ -185,7 +185,7 @@
                <widget class="QLabel" name="label_17">
                 <property name="font">
                  <font>
-                  <pointsize>14</pointsize>
+                  <pointsize>16</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -203,7 +203,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>14</pointsize>
+                  <pointsize>16</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -227,7 +227,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>16</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -245,13 +245,29 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>12</pointsize>
+                  <pointsize>16</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
                 </property>
                 <property name="text">
                  <string>25.12.1999</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_13">
+              <item>
+               <widget class="QLabel" name="label_2100">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>*Yearly yield compounded weekly</string>
                 </property>
                </widget>
               </item>
@@ -404,7 +420,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Hold 4 weeks</string>
+               <string>Hold 4+ weeks*</string>
               </property>
              </widget>
             </item>
@@ -478,6 +494,7 @@
                <property name="font">
                 <font>
                  <pointsize>12</pointsize>
+                 <bold>true</bold>
                 </font>
                </property>
                <property name="text">
@@ -571,7 +588,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Hold 4 weeks</string>
+               <string>Hold 4+ weeks*</string>
               </property>
              </widget>
             </item>
