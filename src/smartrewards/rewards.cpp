@@ -688,7 +688,8 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
     }
 }
 
-void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result)
+void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight,
+    unsigned int nTime, CSmartRewardsUpdateResult& result)
 {
     CSmartRewardEntry* rEntry = nullptr;
     CTermRewardEntry* rTermEntry = nullptr;
@@ -726,17 +727,17 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                 ((nCurrentRound < 20) && TestNet())) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
             rEntry->balance += out.nValue;
         } else if ( (out.nValue >= 1000000 * COIN) && (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ) {
-                if (out.GetLockTime() > (31500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+                if (out.GetLockTime() > (31500000 + nTime)) {
                     // At least one year then create an entry
-                    if (GetTermRewardEntry({id, out.GetHash()}, rTermEntry, true)) {
+                    if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                         rTermEntry->level = CTermRewardEntry::OneYear;
                         rTermEntry->percent = 40;
                         rTermEntry->expires = out.GetLockTime();
-                        if (out.GetLockTime() > (94500000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+                        if (out.GetLockTime() > (94500000 + nTime)) {
                             // If minimum 3 years
                             rTermEntry->level = CTermRewardEntry::ThreeYears;
                             rTermEntry->percent = 60;
-                        } else if (out.GetLockTime() > (63000000 + ((tx.nLockTime - 1809000) * 55) + 1600716503)) {
+                        } else if (out.GetLockTime() > (63000000 + nTime)) {
                             // Mininimum 2 years
                             rTermEntry->level = CTermRewardEntry::TwoYears;
                             rTermEntry->percent = 50;
@@ -748,17 +749,17 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                         rTermEntry->GetLevel());
                 }
         } else if ( (out.nValue >= 1000 * COIN) && (nCurrentRound >= 20) && TestNet() ) {
-                if (out.GetLockTime() > (31500000 + 1607246570)) {
+                if (out.GetLockTime() > (31500000 + nTime)) {
                     // At least one year 31500000 94500000
-                    if (GetTermRewardEntry({id, out.GetHash()}, rTermEntry, true)) {
+                    if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                         rTermEntry->level = CTermRewardEntry::OneYear;
                         rTermEntry->percent = 40;
                         rTermEntry->expires = out.GetLockTime();
-                        if (out.GetLockTime() > (94500000 + 1607246570)) {
+                        if (out.GetLockTime() > (94500000 + nTime)) {
                             // If minimum 3 years
                             rTermEntry->level = CTermRewardEntry::ThreeYears;
                             rTermEntry->percent = 60;
-                        } else if (out.GetLockTime() > (63000000 + 1607246570)) {
+                        } else if (out.GetLockTime() > (63000000 + nTime)) {
                             // Mininimum 2 years
                             rTermEntry->level = CTermRewardEntry::TwoYears;
                             rTermEntry->percent = 50;

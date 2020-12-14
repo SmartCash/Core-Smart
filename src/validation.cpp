@@ -2522,7 +2522,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             const CTxOut &out = tx.vout[k];
 
             if( fProcessRewards && !out.scriptPubKey.IsZerocoinMint() ){
-                prewards->ProcessOutput(tx, out, nCurrentRewardsRound, pindex->nHeight, smartRewardsResult);
+                prewards->ProcessOutput(tx, out, nCurrentRewardsRound, pindex->nHeight, pindex->nTime, smartRewardsResult);
             }
 
             if (fAddressIndex || fDepositIndex) {

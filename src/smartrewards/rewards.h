@@ -167,7 +167,7 @@ public:
     bool UpdateRound(const CSmartRewardRound& round);
 
     void ProcessInput(const CTransaction& tx, const CTxOut& in, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
-    void ProcessOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, CSmartRewardsUpdateResult& result);
+    void ProcessOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, unsigned int nTime, CSmartRewardsUpdateResult& result);
 
     void UndoInput(const CTransaction& tx, const CTxOut& in, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
     void UndoOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
