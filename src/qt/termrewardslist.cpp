@@ -8,6 +8,8 @@
 #include "validation.h"
 #include "smartrewards/rewards.h"
 
+#include <QDateTime>
+
 TermRewardsList::TermRewardsList(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::TermRewardsList),
@@ -126,12 +128,13 @@ void TermRewardsList::updateOverviewUI()
                 ui->tableWidgetTermRewards->insertRow(nNewRow);
             }
 
+            QString expirationDate = QDateTime::fromSecsSinceEpoch(reward->expires).toString("MM.dd.yyyy");
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_ADDRESS, new TermRewardsWidgetItem(reward->GetAddress()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_TX_ID, new TermRewardsWidgetItem(reward->txHash.GetHex()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_BALANCE, new TermRewardsWidgetItem(reward->balance));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_LEVEL, new TermRewardsWidgetItem(reward->GetLevel()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_APY, new TermRewardsWidgetItem(reward->percent));
-            ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_EXPIRATION, new TermRewardsWidgetItem(reward->expires));
+            ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_EXPIRATION, new TermRewardsWidgetItem(expirationDate));
         }
     }
 }
