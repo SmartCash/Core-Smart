@@ -56,6 +56,7 @@
         <file alias="smartrewardsactivated">res/icons/smartrewardsactivated.png</file>
         <file alias="superrewardsactivated">res/icons/superrewardsactivated.png</file>
         <file alias="smarthive">res/icons/smarthive.png</file>
+        <file alias="termrewards">res/icons/termrewards.png</file>
         <file alias="hd_enabled">res/icons/hd_enabled.png</file>
         <file alias="hd_disabled">res/icons/hd_disabled.png</file>
     </qresource>

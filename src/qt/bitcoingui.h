@@ -32,6 +32,7 @@ class WalletModel;
 class HelpMessageDialog;
 class ModalOverlay;
 class SmartnodeList;
+class TermRewardsList;
 
 class CWallet;
 
@@ -117,6 +118,7 @@ private:
     QAction *smartnodeAction;
     QAction *smartrewardsAction;
     QAction *smartvotingAction;
+    QAction *termrewardsAction;
     QAction *openRPCConsoleAction;
     QAction *openAddressConverterAction;
     QAction *openAction;
@@ -158,7 +160,7 @@ private:
     void updateNetworkState();
 
     void updateHeadersSyncProgressLabel();
-    
+
 Q_SIGNALS:
     /** Signal raised when a URI was entered or dragged to the GUI */
     void receivedURI(const QString &uri);
@@ -216,6 +218,8 @@ private Q_SLOTS:
     void gotoSmartnodePage();
     /** Switch to smartrewards page */
     void gotoSmartrewardsPage();
+    /** Switch to termrewards page */
+    void gotoTermrewardsPage();
     /** Switch to smartvoting page */
     void gotoSmartvotingPage();
     /** Switch to receive coins page */
@@ -258,7 +262,7 @@ private Q_SLOTS:
 
     /** Show progress dialog e.g. for verifychain */
     void showProgress(const QString &title, int nProgress);
-    
+
     /** When hideTrayIcon setting is changed in OptionsModel hide or show the icon accordingly. */
     void setTrayIconVisible(bool);
 

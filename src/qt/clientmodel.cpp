@@ -368,6 +368,7 @@ static void NotifySmartRewardsUI(ClientModel *clientmodel)
 {
     //pass a async signal to the UI thread
     QMetaObject::invokeMethod(clientmodel, "SmartRewardsUpdated", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(clientmodel, "TermRewardsUpdated", Qt::QueuedConnection);
 }
 
 void ClientModel::subscribeToCoreSignals()

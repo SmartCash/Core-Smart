@@ -136,6 +136,13 @@ void WalletFrame::gotoSmartrewardsPage()
         i.value()->gotoSmartrewardsPage();
 }
 
+void WalletFrame::gotoTermRewardsPage()
+{
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoTermRewardsPage();
+}
+
 void WalletFrame::gotoSmartvotingPage()
 {
     QMap<QString, WalletView*>::const_iterator i;

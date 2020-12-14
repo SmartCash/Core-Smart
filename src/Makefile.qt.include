@@ -125,6 +125,7 @@ QT_FORMS_UI = \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
   qt/forms/specialtransactiondialog.ui \
+  qt/forms/termrewardslist.ui \
   qt/forms/transactiondescdialog.ui \
   qt/forms/voteaddressesdialog.ui \
   qt/forms/zerocoinpage.ui
@@ -180,6 +181,7 @@ QT_MOC_CPP = \
   qt/moc_smartproposaltab.cpp \
   qt/moc_splashscreen.cpp \
   qt/moc_specialtransactiondialog.cpp \
+  qt/moc_termrewardslist.cpp \
   qt/moc_timelocksettingswidget.cpp \
   qt/moc_trafficgraphwidget.cpp \
   qt/moc_transactiondesc.cpp \
@@ -270,6 +272,7 @@ BITCOIN_QT_H = \
   qt/smartproposaltab.h \
   qt/splashscreen.h \
   qt/specialtransactiondialog.h \
+  qt/termrewardslist.h \
   qt/timelocksettingswidget.h \
   qt/trafficgraphdata.h \
   qt/trafficgraphwidget.h \
@@ -338,6 +341,7 @@ RES_ICONS = \
   qt/res/icons/smartrewardsactivated.png \
   qt/res/icons/superrewardsactivated.png \
   qt/res/icons/synced.png \
+  qt/res/icons/termrewards.png \
   qt/res/icons/transaction0.png \
   qt/res/icons/transaction2.png \
   qt/res/icons/transaction_conflicted.png \
@@ -409,6 +413,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/smartvotingmanager.cpp \
   qt/smartproposaltab.cpp \
   qt/specialtransactiondialog.cpp \
+  qt/termrewardslist.cpp \
   qt/timelocksettingswidget.cpp \
   qt/transactiondesc.cpp \
   qt/transactiondescdialog.cpp \

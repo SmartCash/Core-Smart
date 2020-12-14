@@ -40,7 +40,7 @@ public:
 Q_SIGNALS:
     /** Notify that the user has requested more information about the out-of-sync warning */
     void requestedSyncWarningInfo();
-    
+
 private:
     QStackedWidget *walletStack;
     BitcoinGUI *gui;
@@ -62,6 +62,8 @@ public Q_SLOTS:
     void gotoSmartnodePage();
     /** Switch to smartrewards page */
     void gotoSmartrewardsPage();
+    /** Switch to termrewards page */
+    void gotoTermRewardsPage();
     /** Switch to smartvoting page */
     void gotoSmartvotingPage();
     /** Switch to receive coins page */

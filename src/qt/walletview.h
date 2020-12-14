@@ -9,6 +9,7 @@
 #include "smartnodelist.h"
 #include "smartrewardslist.h"
 #include "smartvoting.h"
+#include "termrewardslist.h"
 
 #include <QStackedWidget>
 
@@ -73,6 +74,7 @@ private:
     SmartnodeList *smartnodeListPage;
     SmartrewardsList *smartrewardsListPage;
     SmartVotingPage *smartvotingPage;
+    TermRewardsList *termrewardsListPage;
 
     QProgressDialog *progressDialog;
     QLabel *transactionSum;
@@ -93,6 +95,8 @@ public Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to termrewards page */
+    void gotoTermRewardsPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");

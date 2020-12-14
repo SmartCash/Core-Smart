@@ -75,6 +75,7 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     smartnodeListPage = new SmartnodeList(platformStyle);
     smartrewardsListPage = new SmartrewardsList(platformStyle);
     smartvotingPage = new SmartVotingPage(platformStyle);
+    termrewardsListPage = new TermRewardsList(platformStyle);
 
     addWidget(overviewPage);
     addWidget(transactionsPage);
@@ -82,6 +83,7 @@ WalletView::WalletView(const PlatformStyle *platformStyle, QWidget *parent):
     addWidget(sendCoinsPage);
     addWidget(smartnodeListPage);
     addWidget(smartrewardsListPage);
+    addWidget(termrewardsListPage);
     addWidget(smartvotingPage);
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
@@ -140,6 +142,7 @@ void WalletView::setClientModel(ClientModel *clientModel)
     sendCoinsPage->setClientModel(clientModel);
     smartnodeListPage->setClientModel(clientModel);
     smartrewardsListPage->setClientModel(clientModel);
+    termrewardsListPage->setClientModel(clientModel);
 }
 
 void WalletView::setWalletModel(WalletModel *walletModel)
@@ -155,6 +158,7 @@ void WalletView::setWalletModel(WalletModel *walletModel)
     usedSendingAddressesPage->setModel(walletModel->getAddressTableModel());
     smartnodeListPage->setWalletModel(walletModel);
     smartrewardsListPage->setModel(walletModel);
+    termrewardsListPage->setModel(walletModel);
     smartvotingPage->setWalletModel(walletModel);
 
     if (walletModel)
@@ -244,6 +248,11 @@ void WalletView::gotoSendCoinsPage(QString addr)
 
     if (!addr.isEmpty())
         sendCoinsPage->setAddress(addr);
+}
+
+void WalletView::gotoTermRewardsPage()
+{
+    setCurrentWidget(termrewardsListPage);
 }
 
 void WalletView::gotoSignMessageTab(QString addr)

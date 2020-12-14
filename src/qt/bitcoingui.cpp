@@ -110,6 +110,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *platformStyle, const NetworkStyle *n
     aboutQtAction(0),
     smartnodeAction(0),
     smartrewardsAction(0),
+    termrewardsAction(0),
     smartvotingAction(0),
     openRPCConsoleAction(0),
     openAction(0),
@@ -333,20 +334,29 @@ void BitcoinGUI::createActions()
     smartrewardsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
     tabGroup->addAction(smartrewardsAction);
 
+    termrewardsAction = new QAction(platformStyle->SingleColorIcon(":/icons/termrewards"), tr("&TermRewards"), this);
+    termrewardsAction->setStatusTip(tr("Show eligible addresses for TermRewards"));
+    termrewardsAction->setToolTip(termrewardsAction->statusTip());
+    termrewardsAction->setCheckable(true);
+    termrewardsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
+    tabGroup->addAction(termrewardsAction);
+
     smartvotingAction = new QAction(platformStyle->SingleColorIcon(":/icons/smarthive"), tr("&SmartVote"), this);
     smartvotingAction->setStatusTip(tr("Vote for SmartHive proposals"));
     smartvotingAction->setToolTip(smartvotingAction->statusTip());
     smartvotingAction->setCheckable(true);
-    smartvotingAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
+    smartvotingAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
     tabGroup->addAction(smartvotingAction);
 
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
-    // can be triggered from the tray menu, and need to show the GUI to be useful.    
+    // can be triggered from the tray menu, and need to show the GUI to be useful.
     connect(smartnodeAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(smartnodeAction, SIGNAL(triggered()), this, SLOT(gotoSmartnodePage()));
     connect(smartrewardsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(smartrewardsAction, SIGNAL(triggered()), this, SLOT(gotoSmartrewardsPage()));
+    connect(termrewardsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(termrewardsAction, SIGNAL(triggered()), this, SLOT(gotoTermrewardsPage()));
     connect(smartvotingAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(smartvotingAction, SIGNAL(triggered()), this, SLOT(gotoSmartvotingPage()));
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
@@ -517,6 +527,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(historyAction);
         toolbar->addAction(smartnodeAction);
         toolbar->addAction(smartrewardsAction);
+        toolbar->addAction(termrewardsAction);
         toolbar->addAction(smartvotingAction);
         overviewAction->setChecked(true);
     }
@@ -556,13 +567,13 @@ void BitcoinGUI::setClientModel(ClientModel *clientModel)
         }
 #endif // ENABLE_WALLET
         unitDisplayControl->setOptionsModel(clientModel->getOptionsModel());
-        
+
         OptionsModel* optionsModel = clientModel->getOptionsModel();
         if(optionsModel)
         {
             // be aware of the tray icon disable state change reported by the OptionsModel object.
             connect(optionsModel,SIGNAL(hideTrayIconChanged(bool)),this,SLOT(setTrayIconVisible(bool)));
-        
+
             // initialize the disable state of the tray icon with the current value in the model.
             setTrayIconVisible(optionsModel->getHideTrayIcon());
         }
@@ -621,6 +632,7 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     historyAction->setEnabled(enabled);
     smartnodeAction->setEnabled(enabled);
     smartrewardsAction->setEnabled(enabled);
+    termrewardsAction->setEnabled(enabled);
     smartvotingAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
     encryptVotingAction->setEnabled(enabled);
@@ -780,6 +792,13 @@ void BitcoinGUI::gotoSmartrewardsPage()
     QSettings settings;
     smartrewardsAction->setChecked(true);
     if (walletFrame) walletFrame->gotoSmartrewardsPage();
+}
+
+void BitcoinGUI::gotoTermrewardsPage()
+{
+    QSettings settings;
+    termrewardsAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoTermRewardsPage();
 }
 
 void BitcoinGUI::gotoSmartvotingPage()

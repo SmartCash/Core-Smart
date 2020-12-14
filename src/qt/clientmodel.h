@@ -60,7 +60,7 @@ public:
     long getMempoolSize() const;
     //! Return the dynamic memory usage of the mempool
     size_t getMempoolDynamicUsage() const;
-    
+
     quint64 getTotalBytesRecv() const;
     quint64 getTotalBytesSent() const;
 
@@ -88,7 +88,7 @@ public:
     // caches for the best header
     mutable std::atomic<int> cachedBestHeaderHeight;
     mutable std::atomic<int64_t> cachedBestHeaderTime;
-    
+
 private:
     OptionsModel *optionsModel;
     PeerTableModel *peerTableModel;
@@ -118,6 +118,7 @@ Q_SIGNALS:
     void showProgress(const QString &title, int nProgress);
 
     void SmartRewardsUpdated();
+    void TermRewardsUpdated();
 
 public Q_SLOTS:
     void updateTimer();
