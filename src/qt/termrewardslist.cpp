@@ -128,7 +128,7 @@ void TermRewardsList::updateOverviewUI()
                 ui->tableWidgetTermRewards->insertRow(nNewRow);
             }
 
-            QString expirationDate = QDateTime::fromSecsSinceEpoch(reward->expires).toString("MM.dd.yyyy");
+            QString expirationDate = QDateTime::fromTime_t(reward->expires).toString("MM.dd.yyyy");
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_ADDRESS, new TermRewardsWidgetItem(reward->GetAddress()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_TX_ID, new TermRewardsWidgetItem(reward->txHash.GetHex()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_BALANCE, new TermRewardsWidgetItem(reward->balance));
