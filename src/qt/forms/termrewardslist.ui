@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>811</width>
-    <height>457</height>
+    <height>557</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -142,66 +142,93 @@
        </item>
       </layout>
      </widget>
-     <widget class="QTableWidget" name="tableWidgetTermRewards">
-      <property name="minimumSize">
-       <size>
-        <width>695</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="editTriggers">
-       <set>QAbstractItemView::NoEditTriggers</set>
-      </property>
-      <property name="alternatingRowColors">
-       <bool>true</bool>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::SingleSelection</enum>
-      </property>
-      <property name="selectionBehavior">
-       <enum>QAbstractItemView::SelectRows</enum>
-      </property>
-      <property name="sortingEnabled">
-       <bool>true</bool>
-      </property>
-      <attribute name="horizontalHeaderStretchLastSection">
-       <bool>true</bool>
-      </attribute>
-      <column>
-       <property name="text">
-        <string>Address</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>TX ID</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Balance</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Level</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>APY</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Expiration</string>
-       </property>
-      </column>
-     </widget>
-    </widget>
-   </item>
-  </layout>
- </widget>
+     <widget class="QWidget" name="verticalLayout22">
+      <layout class="QVBoxLayout" name="verticallayout22">
+       <item>
+        <widget class="QLabel" name="updateNote22">
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>695</width>
+           <height>100</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>To setup TermRewards use the "Send" tab and select the TermRewards drop down and the Term length.&lt;br /&gt;TermRewards only qualify for the 1, 2, or 3 year options and with minimum of 1 million Smart.</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+       <widget class="QTableWidget" name="tableWidgetTermRewards">
+        <property name="minimumSize">
+         <size>
+          <width>695</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::SingleSelection</enum>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
+        </property>
+        <property name="sortingEnabled">
+         <bool>true</bool>
+        </property>
+         <attribute name="horizontalHeaderStretchLastSection">
+          <bool>true</bool>
+         </attribute>
+        <column>
+         <property name="text">
+          <string>Address</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Balance</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Term</string>
+         </property>
+        </column>
+        <column>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="text">
+          <string>Yearly Yield</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Expiration</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>TX ID</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+     </layout>
+    </widget> 
+   </widget>
+  </item>
+ </layout>
+</widget>
  <customwidgets>
   <customwidget>
    <class>WaitingSpinnerWidget</class>

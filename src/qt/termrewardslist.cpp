@@ -32,12 +32,12 @@ TermRewardsList::TermRewardsList(const PlatformStyle *platformStyle, QWidget *pa
 
     spinner->start();
 
-    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_ADDRESS, 300);
-    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_TX_ID, 500);
-    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_BALANCE, 150);
-    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_LEVEL, 80);
-    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_APY, 80);
-    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_EXPIRATION, 150);
+    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_ADDRESS, 330);
+    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_BALANCE, 80);
+    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_LEVEL, 70);
+    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_APY, 100);
+    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_EXPIRATION, 100);
+    ui->tableWidgetTermRewards->setColumnWidth(COLUMN_TX_ID, 580);
 }
 
 TermRewardsList::~TermRewardsList()
@@ -128,13 +128,13 @@ void TermRewardsList::updateOverviewUI()
                 ui->tableWidgetTermRewards->insertRow(nNewRow);
             }
 
-            QString expirationDate = QDateTime::fromTime_t(reward->expires).toString("MM.dd.yyyy");
+            QString expirationDate = QDateTime::fromTime_t(reward->expires).toString("M/d/yyyy");
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_ADDRESS, new TermRewardsWidgetItem(reward->GetAddress()));
-            ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_TX_ID, new TermRewardsWidgetItem(reward->txHash.GetHex()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_BALANCE, new TermRewardsWidgetItem(reward->balance));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_LEVEL, new TermRewardsWidgetItem(reward->GetLevel()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_APY, new TermRewardsWidgetItem(reward->percent));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_EXPIRATION, new TermRewardsWidgetItem(expirationDate));
+            ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_TX_ID, new TermRewardsWidgetItem(reward->txHash.GetHex()));
         }
     }
 }

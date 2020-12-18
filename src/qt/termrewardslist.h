@@ -52,11 +52,11 @@ public:
 
     enum{
         COLUMN_ADDRESS = 0,
-        COLUMN_TX_ID,
         COLUMN_BALANCE,
         COLUMN_LEVEL,
         COLUMN_APY,
-        COLUMN_EXPIRATION
+        COLUMN_EXPIRATION,
+        COLUMN_TX_ID
     };
 
 public Q_SLOTS:
