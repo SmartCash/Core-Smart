@@ -145,21 +145,209 @@
      <widget class="QWidget" name="verticalLayout22">
       <layout class="QVBoxLayout" name="verticallayout22">
        <item>
-        <widget class="QLabel" name="updateNote22">
-         <property name="sizeHint" stdset="0">
+        <widget class="QWidget" name="widget_2" native="true">
+         <property name="minimumSize">
           <size>
-           <width>695</width>
-           <height>100</height>
+           <width>0</width>
+           <height>60</height>
           </size>
          </property>
-         <property name="font">
-          <font>
-           <pointsize>14</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>To setup TermRewards use the "Send" tab and select the TermRewards drop down and the Term length.&lt;br /&gt;TermRewards only qualify for the 1, 2, or 3 year options and with minimum of 1 million Smart.</string>
-         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_11">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <item>  
+             <widget class="QLabel" name="updateNote22">
+              <property name="minimumSize">
+               <size>
+                <width>500</width>
+                <height>100</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>14</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Use the Send tab and select the TermRewards drop down to setup.&lt;br /&gt;TermRewards only qualify for 1, 2, or 3 years with 1+ million Smart.&lt;br /&gt;Restart the wallet to see new TermRewards.&lt;br /&gt;The TermRewards initial deposit cannot be spent for the term length.&lt;br /&gt;The quarterly payments are unlocked and can be spent when received. </string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_6">
+            <item>
+             <widget class="QLabel" name="label_21">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>220</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Yearly Yield (Paid Quarterly)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_15">
+              <item>
+               <widget class="QLabel" name="label_212">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>100</width>
+                  <height>40</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>1 Year Term:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="percentLabelTwo">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>30</width>
+                 <height>40</height>
+                </size>
+               </property>   
+                <property name="text">
+                 <string>40%</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_16">
+              <item>
+               <widget class="QLabel" name="label_213">
+                <property name="font">
+                 <font>
+                  <pointsize>13</pointsize>
+                 </font>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>100</width>
+                  <height>40</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>2 Year Term:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="percentLabelThree">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+	        <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>30</width>
+                  <height>40</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>50%</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_17">
+              <item>
+               <widget class="QLabel" name="label_214">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>100</width>
+                  <height>40</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>3 Year Term:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="percentLabelFour">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+  	        <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>         
+                <property name="maximumSize">
+                 <size>
+                  <width>30</width>
+                  <height>40</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>60%</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
