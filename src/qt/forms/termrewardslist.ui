@@ -181,7 +181,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Use the Send tab and select the TermRewards drop down to setup.&lt;br /&gt;TermRewards only qualify for 1, 2, or 3 years with 1+ million Smart.&lt;br /&gt;Restart the wallet to see new TermRewards.&lt;br /&gt;The TermRewards initial deposit cannot be spent for the term length.&lt;br /&gt;The quarterly payments are unlocked and can be spent when received. </string>
+               <string>Use the Send tab and select the TermRewards drop down to setup.&lt;br /&gt;TermRewards only qualify for 1, 2, or 3 years with 1+ million Smart.&lt;br /&gt;Restart the wallet to see new TermRewards.&lt;br /&gt;The TermRewards initial deposit is locked and cannot be spent for the term length.&lt;br /&gt;The quarterly payments are unlocked and can be spent when received. </string>
               </property>
              </widget>
             </item>
@@ -243,7 +243,7 @@
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>30</width>
+                 <width>35</width>
                  <height>40</height>
                 </size>
                </property>   
@@ -289,7 +289,7 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>30</width>
+                  <width>35</width>
                   <height>40</height>
                  </size>
                 </property>
@@ -334,7 +334,7 @@
                 </property>         
                 <property name="maximumSize">
                  <size>
-                  <width>30</width>
+                  <width>35</width>
                   <height>40</height>
                  </size>
                 </property>
