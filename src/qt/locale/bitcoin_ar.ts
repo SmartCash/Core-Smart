@@ -1196,7 +1196,7 @@
         <translation>يجب ان يكون قيمة العملية بالموجب</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>المعاملة طويلة جدا</translation>
     </message>
     <message>

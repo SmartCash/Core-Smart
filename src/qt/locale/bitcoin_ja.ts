@@ -3545,7 +3545,7 @@
         <translation>手数料ポリシーに対してトランザクションが大きすぎます</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>取引が大き過ぎます</translation>
     </message>
     <message>

@@ -2613,7 +2613,7 @@ Var vänlig och försök igen.</translation>
         <translation>Transaktionen är för stor för avgiftspolicyn</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transaktionen är för stor</translation>
     </message>
     <message>

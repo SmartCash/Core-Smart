@@ -142,7 +142,7 @@
         <translation>根据费率标准，本次转账超额</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>超额转账</translation>
     </message>
     <message>

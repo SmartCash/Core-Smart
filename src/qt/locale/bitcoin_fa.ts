@@ -1760,7 +1760,7 @@
         <translation>مقادیر تراکنش باید مثبت باشد</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>تراکنش بسیار بزرگ است</translation>
     </message>
     <message>

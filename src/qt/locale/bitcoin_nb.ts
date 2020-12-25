@@ -2172,7 +2172,7 @@
         <translation>Transaksjon for stor for gebyrpolitikken</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transaksjonen er for stor</translation>
     </message>
     <message>

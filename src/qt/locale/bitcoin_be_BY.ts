@@ -812,7 +812,7 @@
         <translation>Транзакцыя занадта малая</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Транзакцыя занадта вялікая</translation>
     </message>
     <message>

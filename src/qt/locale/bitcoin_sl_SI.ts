@@ -1840,7 +1840,7 @@
         <translation>Znesek mora biti pozitiven</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transkacija je prevelika</translation>
     </message>
     <message>

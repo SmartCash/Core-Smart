@@ -3532,7 +3532,7 @@
         <translation>Transação muito grande para enviar sem taxa</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transação muito larga</translation>
     </message>
     <message>

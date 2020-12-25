@@ -3545,7 +3545,7 @@
         <translation>根據交易手續費準則，本交易的位元量過大</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>交易位元量太大</translation>
     </message>
     <message>

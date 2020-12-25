@@ -6468,8 +6468,8 @@ Recreating it now...</source>
     </message>
     <message>
         <location line="-28"/>
-        <source>Transaction too large</source>
-        <translation>Transaction too large</translation>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
+        <translation>Transaction too large. Try using coin control to select 500 inputs maximum</translation>
     </message>
     <message>
         <location line="+1"/>

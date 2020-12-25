@@ -2192,7 +2192,7 @@
         <translation>Rahansiirto on liian suuri maksukulukäytännölle</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Siirtosumma liian iso</translation>
     </message>
     <message>

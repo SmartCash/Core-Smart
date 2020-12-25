@@ -2241,7 +2241,7 @@
         <translation>Transacção demasiado grande para a política de taxas</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transação grande demais</translation>
     </message>
     <message>

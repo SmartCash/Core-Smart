@@ -1461,7 +1461,7 @@ Importation ...</translation>
         <translation>Montant de la transaction trop élevé pour la politique de frais</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transaction trop grande</translation>
     </message>
     <message>

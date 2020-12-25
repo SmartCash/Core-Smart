@@ -1269,7 +1269,7 @@
         <translation>Montos de transacciones deben ser positivos</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transacción demasiado grande</translation>
     </message>
     <message>

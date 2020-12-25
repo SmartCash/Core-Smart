@@ -786,7 +786,7 @@
         <translation>Magpadalang trace/debug info okeng console kesa keng debug.log file</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Maragul yang masiadu ing transaksion</translation>
     </message>
     <message>

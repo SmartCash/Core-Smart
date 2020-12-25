@@ -398,7 +398,7 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Tor control port to use if onion listening en
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction amount too small"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction amounts must be positive"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction has too long of a mempool chain"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Transaction too large"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Transaction too large. Try using coin control to select 500 inputs maximum"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Unable to bind to %s on this computer (bind returned error %s)"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Unable to sign spork message, wrong key?"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Unable to start HTTP server. See debug log for details."),

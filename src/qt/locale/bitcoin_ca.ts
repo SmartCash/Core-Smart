@@ -2788,7 +2788,7 @@
         <translation>Transacció massa gran per a la política de comissions</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>La transacció és massa gran</translation>
     </message>
     <message>

@@ -1158,7 +1158,7 @@
         <translation>As cantidades da transacción deben ser positivas</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>A transacción é demasiado grande</translation>
     </message>
     <message>

@@ -3548,7 +3548,7 @@
         <translation>Transaktion for stor til gebyrretningslinjer</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transaktionen er for stor</translation>
     </message>
     <message>

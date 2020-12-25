@@ -2283,7 +2283,7 @@ The network does not appear to fully agree! Some miners appear to be experiencin
         <translation>Transakcia je príliš veľká pre aktuálne podmienky poplatkov</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transakcia príliš veľká</translation>
     </message>
     <message>

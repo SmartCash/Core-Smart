@@ -2484,8 +2484,8 @@
         <translation>Transaction too large for fee policy</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
-        <translation>Transaction too large</translation>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
+        <translation>Transaction too large. Try using coin control to select 500 inputs maximum</translation>
     </message>
     <message>
         <source>Unable to bind to %s on this computer (bind returned error %s)</source>

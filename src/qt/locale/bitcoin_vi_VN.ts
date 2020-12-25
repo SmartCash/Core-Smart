@@ -1020,7 +1020,7 @@
         <translation>Thông tin</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Giao dịch quá lớn</translation>
     </message>
     <message>

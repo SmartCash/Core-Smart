@@ -3340,7 +3340,7 @@ bool CWallet::CreateTransaction(const vector<CRecipient>& vecSend, CWalletTx& wt
 
                 // Limit size
                 if (GetTransactionWeight(txNew) >= MAX_STANDARD_TX_WEIGHT) {
-                    strFailReason = _("Transaction too large");
+                    strFailReason = _("Transaction too large. Try using coin control to select 500 inputs maximum");
                     return false;
                 }
 

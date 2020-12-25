@@ -2384,7 +2384,7 @@
         <translation>수수료 정책에 비해 트랜잭션이 너무 큽니다</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>너무 큰 거래</translation>
     </message>
     <message>

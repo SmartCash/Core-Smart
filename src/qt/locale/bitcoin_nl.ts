@@ -3532,7 +3532,7 @@
         <translation>De transactie is te groot voor het transactiekostenbeleid</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transactie te groot</translation>
     </message>
     <message>

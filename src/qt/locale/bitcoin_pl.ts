@@ -2545,7 +2545,7 @@ Zwróć uwagę, że poprawnie zweryfikowana wiadomość potwierdza to, że nadaw
         <translation>Transakcja jest zbyt duża dla tej opłaty</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transakcja zbyt duża</translation>
     </message>
     <message>

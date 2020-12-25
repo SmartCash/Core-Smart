@@ -2128,7 +2128,7 @@
         <translation>Транзакція занадто велика для правил комісії</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Транзакція занадто велика</translation>
     </message>
     <message>

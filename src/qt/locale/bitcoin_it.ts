@@ -2365,7 +2365,7 @@ Per specificare più URL separarli con una barra verticale "|".</translation>
         <translation>Transazione troppo grande in base alla policy sulle commissioni</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transazione troppo grande</translation>
     </message>
     <message>

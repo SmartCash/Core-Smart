@@ -1524,7 +1524,7 @@
         <translation>Tranzakció összege pozitív kell legyen</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Túl nagy tranzakció</translation>
     </message>
     <message>

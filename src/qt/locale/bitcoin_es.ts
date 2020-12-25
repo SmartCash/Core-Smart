@@ -3547,7 +3547,7 @@
         <translation>Operación demasiado grande para la política de tasas</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transacción demasiado grande, intenta dividirla en varias.</translation>
     </message>
     <message>

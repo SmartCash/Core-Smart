@@ -1589,7 +1589,7 @@
         <translation>Τα ποσά των συναλλαγών πρέπει να είναι θετικα</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Η συναλλαγή ειναι πολύ μεγάλη </translation>
     </message>
     <message>

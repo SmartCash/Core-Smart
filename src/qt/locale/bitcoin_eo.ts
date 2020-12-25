@@ -1376,7 +1376,7 @@
         <translation>Transakcia sumo devas esti pozitiva</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transakcio estas tro granda</translation>
     </message>
     <message>

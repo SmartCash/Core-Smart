@@ -3404,7 +3404,7 @@
         <translation>Transakce je na poplatkovou politiku příliš velká</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Transakce je příliš velká</translation>
     </message>
     <message>

@@ -1528,7 +1528,7 @@
         <translation>Сумите на транзакциите трябва да са положителни</translation>
     </message>
     <message>
-        <source>Transaction too large</source>
+        <source>Transaction too large. Try using coin control to select 500 inputs maximum</source>
         <translation>Транзакцията е твърде голяма</translation>
     </message>
     <message>
