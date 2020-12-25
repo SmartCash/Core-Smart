@@ -245,7 +245,7 @@ public:
 private:
 
     WalletModel * walletModel;
-    QNetworkAccessManager * networkManager;
+    QNetworkAccessManager  networkManager;
     QHash<QNetworkReply * ,SmartHiveRequest*> replies;
     std::vector<SmartVotingAddress> vecAddresses;
     std::vector<SmartProposal*> vecProposals;

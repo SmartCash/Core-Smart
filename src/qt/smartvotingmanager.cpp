@@ -38,11 +38,9 @@ SmartHiveRequest::SmartHiveRequest(QString endpoint, const SmartProposalVote &vo
     this->vote = vote;
 }
 
-SmartVotingManager::SmartVotingManager(): walletModel(0), networkManager(0)
+SmartVotingManager::SmartVotingManager(): walletModel(0)
 {
-    networkManager = new QNetworkAccessManager;
-
-    connect(networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
+    connect(&networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
 }
 
 void SmartVotingManager::CreateVotes(const std::map<SmartProposal, SmartHiveVoting::Type> &mapProposals, std::map<SmartProposalVote, std::string> &mapVotes)
@@ -110,7 +108,7 @@ void SmartVotingManager::CastVote(const SmartProposalVote &vote)
     QNetworkReply * qReply;
 
     SmartHiveRequest *castVote = new SmartHiveRequest("VoteProposals/CastVoteList", vote);
-    qReply = networkManager->post(*castVote, vote.ToJson().toUtf8());
+    qReply = networkManager.post(*castVote, vote.ToJson().toUtf8());
 
     if( qReply ){
         replies.insert(qReply,castVote);
@@ -232,7 +230,7 @@ void SmartVotingManager::UpdateProposals()
         data.append( address.GetAddress() );
     }
 
-    QNetworkReply * qReply = networkManager->post(*getProposals, QJsonDocument(data).toJson());
+    QNetworkReply * qReply = networkManager.post(*getProposals, QJsonDocument(data).toJson());
 
     if( qReply ){
         replies.insert(qReply,getProposals);
