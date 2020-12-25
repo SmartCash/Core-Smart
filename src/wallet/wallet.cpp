@@ -1434,26 +1434,11 @@ isminetype CWallet::IsMine(const CTxOut &txout) const {
     return ::IsMine(*this, txout.scriptPubKey);
 }
 
-CAmount CWallet::GetCredit(const CTxOut &txout, const isminefilter &filter, bool countTimeLocked) const {
+CAmount CWallet::GetCredit(const CTxOut &txout, const isminefilter &filter) const {
     if (!MoneyRange(txout.nValue))
         throw std::runtime_error(std::string(__func__) + ": value out of range");
 
-    if (IsMine(txout) & filter) {
-        uint32_t nLockTime = txout.GetLockTime();
-        if (!countTimeLocked && nLockTime) {
-            int nCurrentHeight = chainActive.Height();
-            int64_t nCurrentTime = chainActive.Tip() ? chainActive.Tip()->GetMedianTimePast() : GetTime();
-            if ((nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime ) ||
-                (nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < nLockTime )) {
-                // Time locked transaction that has not expired yet
-                return 0;
-            }
-        }
-
-        return txout.nValue;
-    }
-
-    return 0;
+    return (IsMine(txout) & filter) ? txout.nValue : 0;
 }
 
 bool CWallet::IsChange(const CTxOut &txout) const {
@@ -1937,7 +1922,7 @@ CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const {
     return 0;
 }
 
-CAmount CWalletTx::GetAvailableCredit(bool fUseCache, bool countTimeLocked) const {
+CAmount CWalletTx::GetAvailableCredit(bool fUseCache, bool countLocked) const {
     if (pwallet == 0)
         return 0;
 
@@ -1945,8 +1930,8 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, bool countTimeLocked) cons
     if (IsCoinBase() && GetBlocksToMaturity() > 0)
         return 0;
 
-    // Never use cache when not counting time-locked coins so that we check against current time
-    if (fUseCache && fAvailableCreditCached && countTimeLocked)
+    // Never use cache when not counting locked coins so that we check against current time
+    if (fUseCache && fAvailableCreditCached && countLocked)
         return nAvailableCreditCached;
 
     CAmount nCredit = 0;
@@ -1954,14 +1939,19 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, bool countTimeLocked) cons
     for (unsigned int i = 0; i < vout.size(); i++) {
         if (!pwallet->IsSpent(hashTx, i)) {
             const CTxOut &txout = vout[i];
-            nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE, countTimeLocked);
+
+            if (!countLocked && (pwallet->IsTimeLockedCoin(txout) || pwallet->IsLockedCoin(hashTx, i))) {
+                continue;
+            }
+
+            nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
             if (!MoneyRange(nCredit))
                 throw std::runtime_error("CWalletTx::GetAvailableCredit() : value out of range");
         }
     }
 
     // Always store full credit including time-locked coins in cache
-    if (countTimeLocked) {
+    if (countLocked) {
         nAvailableCreditCached = nCredit;
         fAvailableCreditCached = true;
     }
@@ -2120,14 +2110,14 @@ void CWallet::ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman
  */
 
 
-CAmount CWallet::GetBalance(bool countTimeLocked) const {
+CAmount CWallet::GetBalance(bool countLocked) const {
     CAmount nTotal = 0;
     {
         LOCK2(cs_main, cs_wallet);
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx *pcoin = &(*it).second;
             if (pcoin->IsTrusted())
-                nTotal += pcoin->GetAvailableCredit(true, countTimeLocked);
+                nTotal += pcoin->GetAvailableCredit(true, countLocked);
         }
     }
 
@@ -4110,6 +4100,20 @@ void CWallet::ListLockedCoins(std::vector <COutPoint> &vOutpts) {
     }
 }
 
+bool CWallet::IsTimeLockedCoin(const CTxOut &txout) const {
+    uint32_t nLockTime = txout.GetLockTime();
+    if (nLockTime) {
+        int nCurrentHeight = chainActive.Height();
+        int64_t nCurrentTime = chainActive.Tip() ? chainActive.Tip()->GetMedianTimePast() : GetTime();
+        if ((nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime ) ||
+            (nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < nLockTime )) {
+            // Time locked transaction that has not expired yet
+            return true;
+        }
+    }
+
+    return false;
+}
 /** @} */ // end of Actions
 
 class CAffectedKeysVisitor : public boost::static_visitor<void> {
