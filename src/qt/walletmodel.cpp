@@ -60,21 +60,32 @@ WalletModel::~WalletModel()
     unsubscribeFromCoreSignals();
 }
 
-CAmount WalletModel::getBalance(const CCoinControl *coinControl) const
+CAmount WalletModel::getBalance(const CCoinControl *coinControl, bool countTimeLocked) const
 {
     if (coinControl)
     {
         CAmount nBalance = 0;
         std::vector<COutput> vCoins;
         wallet->AvailableCoins(vCoins, true, coinControl);
-        BOOST_FOREACH(const COutput& out, vCoins)
-            if(out.fSpendable)
+        BOOST_FOREACH(const COutput& out, vCoins) {
+            if (!countTimeLocked && (out.nLockTime > 0)) {
+                int nCurrentHeight = chainActive.Height();
+                int64_t nCurrentTime = chainActive.Tip() ? chainActive.Tip()->GetMedianTimePast() : GetTime();
+                if ((out.nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < out.nLockTime ) ||
+                    (out.nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < out.nLockTime )) {
+                    // Time locked transaction that has not expired yet
+                    continue;
+                }
+            }
+            if (out.fSpendable) {
                 nBalance += out.tx->vout[out.i].nValue;
+            }
+        }
 
         return nBalance;
     }
 
-    return wallet->GetBalance();
+    return wallet->GetBalance(countTimeLocked);
 }
 
 CAmount WalletModel::getUnconfirmedBalance() const

@@ -270,7 +270,7 @@ bool SendCoinsEntry::updateLabel(const QString &address)
 
 void SendCoinsEntry::useAvailableBalanceButtonClicked()
 {
-    CAmount amount = model->getBalance();
+    CAmount amount = model->getBalance(NULL, false);
     if (amount > 0) {
         ui->payAmount->setValue(amount);
         ui->checkboxSubtractFeeFromAmount->setCheckState(Qt::Checked);
