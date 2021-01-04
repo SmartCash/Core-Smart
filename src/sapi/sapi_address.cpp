@@ -46,6 +46,49 @@ bool spendingSort(std::pair<CAddressIndexKey, CAmount> a,
     return a.first.spending != b.first.spending;
 }
 
+
+bool IsTimeLocked(HTTPRequest* req, int blockHeight, const uint256 &txhash, const CSmartAddress &address, bool &locked) {
+    // Get block
+    CBlock block;
+    CBlockIndex* pBlockindex = chainActive[blockHeight];
+    if (!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus())) {
+        return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+    }
+
+    // Find TX inside the block
+    auto tx = std::find_if(block.vtx.begin(), block.vtx.end(), [&txhash] (const CTransaction &t) {
+        return txhash == t.GetHash();
+    });
+
+    if (tx == block.vtx.end()) {
+        return SAPI::Error(req, SAPI::TxNotFound, "Can't find Tx ID in block");
+    }
+
+    // Find output based on the address
+    auto vout = std::find_if(tx->vout.begin(), tx->vout.end(), [&] (const CTxOut &output) {
+        CTxDestination addr;
+        if (!ExtractDestination(output.scriptPubKey, addr)) {
+            return false;
+        }
+        return CSmartAddress(addr) == address;
+    });
+
+    locked = false;
+    uint32_t nLockTime = vout->GetLockTime();
+    if (nLockTime) {
+        int nCurrentHeight = chainActive.Height();
+        int64_t nCurrentTime = chainActive.Tip() ? chainActive.Tip()->GetMedianTimePast() : GetTime();
+        if ((nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime ) ||
+            (nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < nLockTime )) {
+            // Time locked transaction that has not expired yet
+            locked = true;
+        }
+    }
+
+    return true;
+}
+
+
 static bool address_balance(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_balances(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_deposit(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
@@ -64,9 +107,10 @@ SAPI::EndpointGroup addressEndpoints = {
             }
         },
         {
-            "balances", HTTPRequest::POST, UniValue::VARR, address_balances,
+            "balances", HTTPRequest::POST, UniValue::VOBJ, address_balances,
             {
-                // No body parameter
+                SAPI::BodyParameter(SAPI::Keys::addresses,      new SAPI::Validation::SmartCashAddresses()),
+                SAPI::BodyParameter(SAPI::Keys::spendableOnly,  new SAPI::Validation::Bool(), true),
             }
         },
         {
@@ -120,6 +164,7 @@ SAPI::EndpointGroup addressEndpoints = {
 };
 
 static bool GetAddressesBalances(HTTPRequest* req,
+                                 bool spendableOnly,
                                  std::vector<std::string> vecAddr,
                                  std::vector<CAddressBalance> &vecBalances,
                                  std::map<uint256, CAmount> &mapUnconfirmed)
@@ -131,7 +176,7 @@ static bool GetAddressesBalances(HTTPRequest* req,
 
     for( auto addrStr : vecAddr ){
 
-        CBitcoinAddress address(addrStr);
+        CSmartAddress address(addrStr);
         uint160 hashBytes;
         int type = 0;
 
@@ -155,11 +200,27 @@ static bool GetAddressesBalances(HTTPRequest* req,
         CAmount received = 0;
         CAmount unconfirmed = 0;
 
-        for (std::vector<std::pair<CAddressIndexKey, CAmount> >::const_iterator it=addressIndex.begin(); it!=addressIndex.end(); it++) {
-            if (it->second > 0) {
-                received += it->second;
+        for (const auto &addr : addressIndex) {
+            const auto &key = addr.first;
+            const auto &value = addr.second;
+
+            if (spendableOnly) {
+                // Figure out if utxo is spendable (i.e. not time locked)
+                bool fLocked = false;
+                if (!IsTimeLocked(req, key.blockHeight, key.txhash, address, fLocked)) {
+                    return false;
+                }
+
+                if (fLocked) {
+                    // timelock did not expire thus not counting this utxo
+                    continue;
+                }
             }
-            balance += it->second;
+
+            if (value > 0) {
+                received += value;
+            }
+            balance += value;
         }
 
         std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > mempoolDelta;
@@ -299,7 +360,7 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
     std::vector<CAddressBalance> vecResult;
     std::map<uint256, CAmount> mapUnconfirmed;
 
-    if( !GetAddressesBalances(req, {addrStr},vecResult, mapUnconfirmed) )
+    if( !GetAddressesBalances(req, false, {addrStr}, vecResult, mapUnconfirmed) )
         return false;
 
     CAddressBalance result = vecResult.front();
@@ -334,15 +395,15 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
 
 static bool address_balances(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
+    bool fSpendableOnly = bodyParameter.exists(SAPI::Keys::spendableOnly) ?
+        bodyParameter[SAPI::Keys::spendableOnly].get_bool() : false;
 
-    if( !bodyParameter.isArray() || bodyParameter.empty() )
-        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Addresses are expedted to be a JSON array: [ \"address\", ... ]");
-
+    UniValue addresses = bodyParameter[SAPI::Keys::addresses].get_array();
     std::vector<CAddressBalance> vecResult;
     std::vector<std::string> vecAddresses;
     std::map<uint256, CAmount> mapUnconfirmed;
 
-    for( auto addr : bodyParameter.getValues() ){
+    for( auto addr : addresses.getValues() ){
 
         std::string addrStr = addr.get_str();
 
@@ -350,7 +411,7 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
             vecAddresses.push_back(addrStr);
     }
 
-    if( !GetAddressesBalances(req, vecAddresses, vecResult, mapUnconfirmed) )
+    if( !GetAddressesBalances(req, fSpendableOnly, vecAddresses, vecResult, mapUnconfirmed) )
             return false;
 
     UniValue response(UniValue::VARR);
@@ -521,20 +582,29 @@ static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::str
 
     UniValue arrUtxos(UniValue::VARR);
 
-    for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
+    for (const auto &unspentOutput : unspentOutputs) {
+        const auto &key = unspentOutput.first;
+        const auto &value = unspentOutput.second;
         UniValue output(UniValue::VOBJ);
 
         CSpentIndexValue spentInfo;
-        CSpentIndexKey spentKey(it->first.txhash, static_cast<unsigned int>(it->first.index));
+        CSpentIndexKey spentKey(key.txhash, static_cast<unsigned int>(key.index));
 
         // Mark inputs currently used for tx in the mempool
         bool fInMempool = mempool.getSpentIndex(spentKey, spentInfo);
 
-        output.pushKV("txid", it->first.txhash.GetHex());
-        output.pushKV("index", static_cast<int>(it->first.index));
-        output.pushKV("value", UniValueFromAmount(it->second.satoshis));
-        output.pushKV("height", it->first.nBlockHeight);
+        // Figure out if utxo is spendable (i.e. not time locked)
+        bool fLocked = true;
+        if (!IsTimeLocked(req, key.nBlockHeight, key.txhash, address, fLocked)) {
+            return false;
+        }
+
+        output.pushKV("txid", key.txhash.GetHex());
+        output.pushKV("index", static_cast<int>(key.index));
+        output.pushKV("value", UniValueFromAmount(value.satoshis));
+        output.pushKV("height", key.nBlockHeight);
         output.pushKV("inMempool", fInMempool);
+        output.pushKV("spendable", !fLocked);
 
         arrUtxos.push_back(output);
     }

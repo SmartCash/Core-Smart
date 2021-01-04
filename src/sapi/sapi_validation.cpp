@@ -313,6 +313,21 @@ SAPI::Result SAPI::Validation::TxDirection::Validate(const std::string &paramete
     return SAPI::Result(code, message);
 }
 
+SAPI::Result SAPI::Validation::SmartCashAddresses::Validate(const std::string &parameter, const UniValue &value) const
+{
+    SAPI::Codes code = SAPI::Valid;
+    SAPI::Result result = Array::Validate(parameter, value);
+    if( result != SAPI::Valid ) return result;
+
+    const UniValue &array = value.get_array();
+    for (unsigned int i = 0; i < array.size(); i++) {
+        result = SmartCashAddress().Validate(parameter, array[i]);
+        if( result != SAPI::Valid ) return result;
+    }
+
+    return SAPI::Result(code, ResultMessage(code));
+}
+
 std::string SAPI::Validation::ResultMessage(SAPI::Codes value)
 {
     switch(value){

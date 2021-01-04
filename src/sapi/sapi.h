@@ -94,6 +94,7 @@ enum Codes{
 namespace Keys{
 
     const std::string address = "address";
+    const std::string addresses = "addresses";
     const std::string timestampFrom = "from";
     const std::string timestampTo = "to";
     const std::string pageNumber = "pageNumber";
@@ -114,6 +115,7 @@ namespace Keys{
     const std::string protocol = "protocol";
     const std::string status = "status";
     const std::string direction = "direction";
+    const std::string spendableOnly = "spendableOnly";
 }
 
 namespace Validation{
@@ -240,6 +242,12 @@ namespace Validation{
     class TxDirection : public Base{
     public:
         TxDirection() : Base(UniValue::VSTR) {}
+        SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
+    };
+
+    class SmartCashAddresses : public Array{
+    public:
+        SmartCashAddresses() : Array() {}
         SAPI::Result Validate(const std::string &parameter, const UniValue &value) const final;
     };
 
