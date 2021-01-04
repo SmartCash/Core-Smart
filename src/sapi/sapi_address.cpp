@@ -65,7 +65,7 @@ bool IsTimeLocked(HTTPRequest* req, int blockHeight, const uint256 &txhash, cons
     }
 
     // Find output based on the address
-    auto vout = std::find_if(tx->vout.begin(), tx->vout.end(), [&] (const CTxOut &output) {
+    auto vout = std::find_if(tx->vout.begin(), tx->vout.end(), [&address] (const CTxOut &output) {
         CTxDestination addr;
         if (!ExtractDestination(output.scriptPubKey, addr)) {
             return false;
@@ -74,6 +74,12 @@ bool IsTimeLocked(HTTPRequest* req, int blockHeight, const uint256 &txhash, cons
     });
 
     locked = false;
+
+    // If no output script matched destination address, just don't consider it locked
+    if (vout == tx->vout.end()) {
+        return true;
+    }
+
     uint32_t nLockTime = vout->GetLockTime();
     if (nLockTime) {
         int nCurrentHeight = chainActive.Height();
