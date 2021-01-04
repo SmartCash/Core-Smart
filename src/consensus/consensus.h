@@ -31,7 +31,7 @@ static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
 static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
 static const int HF_V1_3_HEIGHT = 1761600; // Round 38 starts 1761600
 //static const int HF_V2_0_HEIGHT = 1915600; // Round 52 starts 1915600 - TermRewards
-static const int HF_V2_0_HEIGHT = 1970600; // Round 57 starts 1915600 - TermRewards
+static const int HF_V2_0_HEIGHT = 2014600; // Round 61 starts at 2014600 on 1/30 - TermRewards
 
 /* Mainnet payment intervals*/
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
