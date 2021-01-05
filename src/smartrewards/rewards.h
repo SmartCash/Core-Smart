@@ -170,7 +170,7 @@ public:
     void ProcessOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, int nHeight, unsigned int nTime, CSmartRewardsUpdateResult& result);
 
     void UndoInput(const CTransaction& tx, const CTxOut& in, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
-    void UndoOutput(const CTransaction& tx, const CTxOut& out, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
+    void UndoOutput(const CTransaction& tx, const CTxOut& out, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result);
 
     bool ProcessTransaction(CBlockIndex* pIndex, const CTransaction& tx, int nCurrentRound);
     void UndoTransaction(CBlockIndex* pIndex, const CTransaction& tx, CCoinsViewCache& coins, const CChainParams& chainparams, CSmartRewardsUpdateResult& result);
