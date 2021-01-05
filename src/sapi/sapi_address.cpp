@@ -21,11 +21,12 @@ struct CAddressBalance
 {
     std::string address;
     CAmount balance;
+    CAmount locked;
     CAmount received;
     CAmount unconfirmed;
 
-    CAddressBalance(std::string address, CAmount balance, CAmount received, CAmount unconfirmed) :
-        address(address), balance(balance), received(received), unconfirmed(unconfirmed){}
+    CAddressBalance(std::string address, CAmount balance, CAmount locked, CAmount received, CAmount unconfirmed) :
+        address(address), balance(balance), locked(locked), received(received), unconfirmed(unconfirmed){}
 };
 
 
@@ -113,10 +114,9 @@ SAPI::EndpointGroup addressEndpoints = {
             }
         },
         {
-            "balances", HTTPRequest::POST, UniValue::VOBJ, address_balances,
+            "balances", HTTPRequest::POST, UniValue::VARR, address_balances,
             {
-                SAPI::BodyParameter(SAPI::Keys::addresses,      new SAPI::Validation::SmartCashAddresses()),
-                SAPI::BodyParameter(SAPI::Keys::spendableOnly,  new SAPI::Validation::Bool(), true),
+                // No body parameter
             }
         },
         {
@@ -170,7 +170,6 @@ SAPI::EndpointGroup addressEndpoints = {
 };
 
 static bool GetAddressesBalances(HTTPRequest* req,
-                                 bool spendableOnly,
                                  std::vector<std::string> vecAddr,
                                  std::vector<CAddressBalance> &vecBalances,
                                  std::map<uint256, CAmount> &mapUnconfirmed)
@@ -203,6 +202,7 @@ static bool GetAddressesBalances(HTTPRequest* req,
         }
 
         CAmount balance = 0;
+        CAmount locked = 0;
         CAmount received = 0;
         CAmount unconfirmed = 0;
 
@@ -210,17 +210,14 @@ static bool GetAddressesBalances(HTTPRequest* req,
             const auto &key = addr.first;
             const auto &value = addr.second;
 
-            if (spendableOnly) {
-                // Figure out if utxo is spendable (i.e. not time locked)
-                bool fLocked = false;
-                if (!IsTimeLocked(req, key.blockHeight, key.txhash, address, fLocked)) {
-                    return false;
-                }
+            // Figure out if utxo is spendable (i.e. not time locked)
+            bool fLocked = false;
+            if (!IsTimeLocked(req, key.blockHeight, key.txhash, address, fLocked)) {
+                return false;
+            }
 
-                if (fLocked) {
-                    // timelock did not expire thus not counting this utxo
-                    continue;
-                }
+            if (fLocked) {
+                locked += value;
             }
 
             if (value > 0) {
@@ -252,7 +249,7 @@ static bool GetAddressesBalances(HTTPRequest* req,
             }
         }
 
-        vecBalances.push_back(CAddressBalance(addrStr, balance, received, unconfirmed));
+        vecBalances.push_back(CAddressBalance(addrStr, balance, locked, received, unconfirmed));
     }
 
     if( errors.size() ){
@@ -366,7 +363,7 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
     std::vector<CAddressBalance> vecResult;
     std::map<uint256, CAmount> mapUnconfirmed;
 
-    if( !GetAddressesBalances(req, false, {addrStr}, vecResult, mapUnconfirmed) )
+    if( !GetAddressesBalances(req, {addrStr}, vecResult, mapUnconfirmed) )
         return false;
 
     CAddressBalance result = vecResult.front();
@@ -375,7 +372,12 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
     response.pushKV("address", result.address);
     response.pushKV("received", UniValueFromAmount(result.received));
     response.pushKV("sent", UniValueFromAmount(result.received - result.balance));
-    response.pushKV("balance", UniValueFromAmount(result.balance));
+
+    UniValue balance(UniValue::VOBJ);
+    balance.pushKV("total", UniValueFromAmount(result.balance));
+    balance.pushKV("locked", UniValueFromAmount(result.locked));
+    balance.pushKV("unlocked", UniValueFromAmount(result.balance - result.locked));
+    response.pushKV("balance", balance);
 
     UniValue unconfirmed(UniValue::VOBJ);
     UniValue unconfirmedTxes(UniValue::VARR);
@@ -401,15 +403,13 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
 
 static bool address_balances(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
-    bool fSpendableOnly = bodyParameter.exists(SAPI::Keys::spendableOnly) ?
-        bodyParameter[SAPI::Keys::spendableOnly].get_bool() : false;
-
-    UniValue addresses = bodyParameter[SAPI::Keys::addresses].get_array();
+    if( !bodyParameter.isArray() || bodyParameter.empty() )
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Addresses are expedted to be a JSON array: [ \"address\", ... ]");
     std::vector<CAddressBalance> vecResult;
     std::vector<std::string> vecAddresses;
     std::map<uint256, CAmount> mapUnconfirmed;
 
-    for( auto addr : addresses.getValues() ){
+    for( const auto &addr : bodyParameter.getValues() ){
 
         std::string addrStr = addr.get_str();
 
@@ -417,18 +417,22 @@ static bool address_balances(HTTPRequest* req, const std::map<std::string, std::
             vecAddresses.push_back(addrStr);
     }
 
-    if( !GetAddressesBalances(req, fSpendableOnly, vecAddresses, vecResult, mapUnconfirmed) )
+    if( !GetAddressesBalances(req, vecAddresses, vecResult, mapUnconfirmed) )
             return false;
 
     UniValue response(UniValue::VARR);
 
     for( auto result : vecResult ){
-
         UniValue entry(UniValue::VOBJ);
         entry.pushKV(SAPI::Keys::address, result.address);
         entry.pushKV("received", UniValueFromAmount(result.received));
         entry.pushKV("sent", UniValueFromAmount(result.received - result.balance));
-        entry.pushKV("balance", UniValueFromAmount(result.balance));
+
+        UniValue balance(UniValue::VOBJ);
+        balance.pushKV("total", UniValueFromAmount(result.balance));
+        balance.pushKV("locked", UniValueFromAmount(result.locked));
+        balance.pushKV("unlocked", UniValueFromAmount(result.balance - result.locked));
+        entry.pushKV("balance", balance);
 
         UniValue unconfirmed(UniValue::VOBJ);
         UniValue unconfirmedTxes(UniValue::VARR);

@@ -94,7 +94,6 @@ enum Codes{
 namespace Keys{
 
     const std::string address = "address";
-    const std::string addresses = "addresses";
     const std::string timestampFrom = "from";
     const std::string timestampTo = "to";
     const std::string pageNumber = "pageNumber";
@@ -115,7 +114,6 @@ namespace Keys{
     const std::string protocol = "protocol";
     const std::string status = "status";
     const std::string direction = "direction";
-    const std::string spendableOnly = "spendableOnly";
 }
 
 namespace Validation{
