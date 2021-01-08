@@ -2,6 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <boost/functional/hash.hpp>
+
 #include "smarthive/hive.h"
 #include "validation.h"
 
@@ -153,4 +155,11 @@ CSmartAddress CSmartAddress::Legacy(const std::string &strAddress)
     }
 
     return address;
+}
+
+size_t CSmartAddress::GetHashSeed() const {
+    size_t seed = 0;
+    boost::hash_combine(seed, vchVersion);
+    boost::hash_combine(seed, vchData);
+    return seed;
 }

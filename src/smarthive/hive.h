@@ -37,6 +37,7 @@ struct CSmartAddress : public CBitcoinAddress
     }
 
     CScript GetScript() const { return GetScriptForDestination(Get()); }
+    size_t GetHashSeed() const;
 
     static CSmartAddress Legacy(const CSmartAddress &address);
     static CSmartAddress Legacy(const std::string &strAddress);

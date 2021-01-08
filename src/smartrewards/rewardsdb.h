@@ -5,6 +5,8 @@
 #ifndef REWARDSDB_H
 #define REWARDSDB_H
 
+#include <unordered_map>
+
 #include "dbwrapper.h"
 #include "amount.h"
 #include "chain.h"
@@ -34,10 +36,19 @@ typedef std::vector<CSmartRewardEntry> CSmartRewardEntryList;
 typedef std::map<uint16_t, CSmartRewardRound> CSmartRewardRoundMap;
 typedef std::vector<CSmartRewardResultEntry> CSmartRewardResultEntryList;
 typedef std::vector<CSmartRewardResultEntry*> CSmartRewardResultEntryPtrList;
+typedef std::pair<CSmartAddress, uint256> CTermRewardDbKey;
+
+struct CSmartAddressHasher {
+    size_t operator()(const CSmartAddress& a) const;
+};
+
+struct CTermRewardDbKeyHasher {
+    size_t operator()(const CTermRewardDbKey& k) const;
+};
 
 typedef std::map<uint256, CSmartRewardTransaction> CSmartRewardTransactionMap;
-typedef std::map<CSmartAddress, CSmartRewardEntry*> CSmartRewardEntryMap;
-typedef std::map<std::pair<CSmartAddress, uint256>, CTermRewardEntry*> CTermRewardEntryMap;
+typedef std::unordered_map<CSmartAddress, CSmartRewardEntry*, CSmartAddressHasher> CSmartRewardEntryMap;
+typedef std::unordered_map<CTermRewardDbKey, CTermRewardEntry*, CTermRewardDbKeyHasher> CTermRewardEntryMap;
 
 class CSmartRewardTransaction
 {
