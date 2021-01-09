@@ -637,7 +637,6 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
     }
 
     if (!GetRewardEntry(id, rEntry, false)) {
-        LogPrint("smartrewards-tx", "CSmartRewards::ProcessInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
 
