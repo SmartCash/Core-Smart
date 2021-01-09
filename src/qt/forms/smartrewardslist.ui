@@ -2,14 +2,6 @@
 <ui version="4.0">
  <class>SmartrewardsList</class>
  <widget class="QWidget" name="SmartrewardsList">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>966</width>
-    <height>457</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
@@ -25,12 +17,6 @@
    </property>
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>16777215</height>
-      </size>
-     </property>
      <property name="currentIndex">
       <number>1</number>
      </property>
@@ -143,33 +129,9 @@
       </layout>
      </widget>
      <widget class="QWidget" name="rewardsPage">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
-      </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QWidget" name="widget_2" native="true">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>110</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>110</height>
-          </size>
-         </property>
          <layout class="QHBoxLayout" name="horizontalLayout_11">
           <property name="leftMargin">
            <number>0</number>
@@ -191,7 +153,7 @@
                <widget class="QLabel" name="label_17">
                 <property name="font">
                  <font>
-                  <pointsize>16</pointsize>
+                  <pointsize>15</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -209,7 +171,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>16</pointsize>
+                  <pointsize>15</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -229,7 +191,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>16</pointsize>
+                  <pointsize>15</pointsize>
                  </font>
                 </property>
                 <property name="text">
@@ -247,7 +209,7 @@
                 </property>
                 <property name="font">
                  <font>
-                  <pointsize>16</pointsize>
+                  <pointsize>15</pointsize>
                   <weight>75</weight>
                   <bold>true</bold>
                  </font>
@@ -269,7 +231,7 @@
                  </font>
                 </property>
                 <property name="text">
-                 <string>Activate an address with button below.  Eligible balance will update after start of next round.</string>
+                 <string>Activate an address with button below. Eligible balance will update after start of next round.</string>
                 </property>
                </widget>
               </item>
@@ -646,7 +608,7 @@
                 </property>
                </spacer>
               </item>
-             </layout>
+            </layout>
             </item>
            </layout>
           </item>
@@ -661,13 +623,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QWidget" name="widget_3" native="true">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
+       <widget class="QWidget" name="widget_3" native="true">
          <layout class="QGridLayout" name="gridLayout">
           <property name="leftMargin">
            <number>0</number>
@@ -686,28 +642,10 @@
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
            </spacer>
           </item>
           <item row="0" column="5">
            <widget class="QLabel" name="lblTotalRewards">
-            <property name="minimumSize">
-             <size>
-              <width>90</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>90</width>
-              <height>40</height>
-             </size>
-            </property>
             <property name="text">
              <string>0</string>
             </property>
@@ -715,18 +653,6 @@
           </item>
           <item row="0" column="4">
            <widget class="QLabel" name="label_9">
-            <property name="minimumSize">
-             <size>
-              <width>170</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>170</width>
-              <height>40</height>
-             </size>
-            </property>
             <property name="font">
              <font>
               <weight>75</weight>
@@ -740,18 +666,6 @@
           </item>
           <item row="0" column="3">
            <widget class="QLabel" name="lblEligibleAddresses">
-            <property name="minimumSize">
-             <size>
-              <width>145</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>145</width>
-              <height>40</height>
-             </size>
-            </property>
             <property name="text">
              <string>0</string>
             </property>
@@ -759,18 +673,6 @@
           </item>
           <item row="0" column="2">
            <widget class="QLabel" name="label_6">
-            <property name="minimumSize">
-             <size>
-              <width>120</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>120</width>
-              <height>40</height>
-             </size>
-            </property>
             <property name="font">
              <font>
               <weight>75</weight>
@@ -784,18 +686,6 @@
           </item>
           <item row="0" column="1">
            <widget class="QLabel" name="lblActiveAddresses">
-            <property name="minimumSize">
-             <size>
-              <width>240</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>240</width>
-              <height>40</height>
-             </size>
-            </property>
             <property name="text">
              <string>0</string>
             </property>
@@ -803,18 +693,6 @@
           </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_4">
-            <property name="minimumSize">
-             <size>
-              <width>120</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>120</width>
-              <height>40</height>
-             </size>
-            </property>
             <property name="font">
              <font>
               <weight>75</weight>
@@ -841,14 +719,6 @@
           <bool>true</bool>
          </property>
          <widget class="QWidget" name="smartRewardsList">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>0</y>
-            <width>928</width>
-            <height>177</height>
-           </rect>
-          </property>
           <layout class="QVBoxLayout" name="verticalLayout_8">
            <property name="spacing">
             <number>0</number>
@@ -871,12 +741,6 @@
        </item>
        <item>
         <widget class="QWidget" name="widget" native="true">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>30</height>
-          </size>
-         </property>
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <property name="leftMargin">
            <number>0</number>
