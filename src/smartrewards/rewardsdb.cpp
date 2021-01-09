@@ -520,6 +520,8 @@ string CTermRewardEntry::GetLevel() const
         return "2 Years";
       case ThreeYears:
         return "3 Years";
+      case FifteenYears:
+        return "15 Years";
       default:
         return "Unknown";
     }

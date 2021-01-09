@@ -339,7 +339,8 @@ void SendCoinsDialog::on_sendButton_clicked()
         questionString.append(unlockDateTime.toString("MMMM d yyyy hh:mm:ss<br></br>"));
         questionString.append("<br></br>");
         questionString.append(tr("You will not get SmartRewards on these funds.<br></br>"));
-        questionString.append(tr("TermRewards requires 2 year TimeLock and 1+ million Smart"));
+        questionString.append(tr("TermRewards requires 1,2, or 3 year TimeLock and 1+ million Smart"));
+        questionString.append(tr("SmartRetire requires a 15 year TimeLock and 1+ million Smart"));
         questionString.append("</span></br><hr />");
         questionString.append(tr("Are you sure you want to send with a TimeLock?"));
 
@@ -347,7 +348,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     }
     if (multi == 1){
          questionString.append("<span style='color:#aa0000;'>");
-         questionString.append(tr("There is TimeLock address in this transaction. "));
+         questionString.append(tr("There is a TimeLock address in this transaction. "));
          questionString.append(tr("Funds sent to a timelock address cannot be released before the unlock time. "));
          questionString.append("<br></br>");
          questionString.append(tr("You will not get SmartRewards or SuperRewards on TimeLock addresses.<br></br>"));

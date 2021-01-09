@@ -175,7 +175,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Use the Send tab and select the TermRewards drop down to setup.&lt;br /&gt;TermRewards only qualify for 1, 2, or 3 years with 1+ million Smart.&lt;br /&gt;Restart the wallet to see new TermRewards.&lt;br /&gt;The TermRewards initial deposit is locked and cannot be spent for the term length.&lt;br /&gt;The quarterly payments are unlocked and can be spent when received. </string>
+               <string>Use the Send tab and select the TermRewards drop down to setup.&lt;br /&gt;TermRewards only qualify for 1, 2, or 3 year terms with 1+ million Smart.&lt;br /&gt;SmartRetire only qualifies with 15 year term with 1+ million Smart.&lt;br /&gt;Restart the wallet to see new TermRewards or SmartRewards transactions.&lt;br /&gt;The TermRewards and SmartRetire initial deposit is locked and cannot be spent for the term length.&lt;br /&gt;The quarterly payments are unlocked and can be spent when received. </string>
               </property>
              </widget>
             </item>
@@ -226,7 +226,7 @@
                <set>Qt::AlignCenter</set>
               </property>
               <property name="text">
-               <string>2 Year Term: &lt;b&gt;50%&lt;/&gt;</string>
+               <string>2 Year Term: &lt;b&gt;45%&lt;/&gt;</string>
               </property>
              </widget>
             </item>
@@ -241,10 +241,27 @@
                <set>Qt::AlignCenter</set>
               </property>
               <property name="text">
-               <string>3 Year Term: &lt;b&gt;60%&lt;/b&gt;</string>
+               <string>3 Year Term: &lt;b&gt;50%&lt;/b&gt;</string>
               </property>
              </widget>
             </item>
+
+            <item>
+             <widget class="QLabel" name="label_214">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="text">
+               <string>SmartRetire: &lt;b&gt;55%&lt;/b&gt;</string>
+              </property>
+             </widget>
+            </item>
+
            </layout>
           </item>
          </layout>

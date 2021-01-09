@@ -333,7 +333,8 @@ public:
     enum TermRewardsLevel {
       OneYear = 0,
       TwoYears,
-      ThreeYears
+      ThreeYears,
+      FifteenYears
     };
 
     uint256 txHash;
