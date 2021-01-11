@@ -211,7 +211,7 @@
                <set>Qt::AlignCenter</set>
               </property>
               <property name="text">
-               <string>1 Year Term: &lt;b&gt;40%&lt;/b&gt;</string>
+               <string>1 Year Term: &lt;b&gt;35%&lt;/b&gt;</string>
               </property>
              </widget>
             </item>
@@ -226,7 +226,7 @@
                <set>Qt::AlignCenter</set>
               </property>
               <property name="text">
-               <string>2 Year Term: &lt;b&gt;45%&lt;/&gt;</string>
+               <string>2 Year Term: &lt;b&gt;40%&lt;/&gt;</string>
               </property>
              </widget>
             </item>
@@ -241,7 +241,7 @@
                <set>Qt::AlignCenter</set>
               </property>
               <property name="text">
-               <string>3 Year Term: &lt;b&gt;50%&lt;/b&gt;</string>
+               <string>3 Year Term: &lt;b&gt;45%&lt;/b&gt;</string>
               </property>
              </widget>
             </item>
@@ -257,7 +257,7 @@
                <set>Qt::AlignCenter</set>
               </property>
               <property name="text">
-               <string>SmartRetire: &lt;b&gt;55%&lt;/b&gt;</string>
+               <string>SmartRetire:  &lt;b&gt;50%&lt;/b&gt;</string>
               </property>
              </widget>
             </item>
