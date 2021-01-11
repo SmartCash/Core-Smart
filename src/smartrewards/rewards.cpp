@@ -710,10 +710,10 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
 //Might now want this.
                    if ( (nHeight >= HF_V2_0_HEIGHT && MainNet() || nHeight >= TESTNET_V2_0_HEIGHT && TestNet()) ) {
 		        // Reset outgoing transaction.
-//                        rEntry->disqualifyingTx.SetNull();
+                        rEntry->disqualifyingTx.SetNull();
                         rEntry->fDisqualifyingTx = false;
                         // Reset SmartNode payment.
-//                        rEntry->smartnodePaymentTx.SetNull();
+                        rEntry->smartnodePaymentTx.SetNull();
                         rEntry->fSmartnodePaymentTx = false;
                     }
 
