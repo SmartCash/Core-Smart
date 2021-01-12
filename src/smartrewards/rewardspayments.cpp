@@ -139,6 +139,18 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 109307197536547;
       return SmartRewardPayments::Valid;
     }
+/*    if (nHeight == 1805799) {
+      smartReward = 145988116123147;
+      return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 1805804) {
+      smartReward = 11710418007636808;
+      return SmartRewardPayments::Valid;
+    } */
+
+// debugging
+    int num = 0;
+//    int64_t blockamt = 0;
 
     LOCK(cs_rewardscache);
 
@@ -156,26 +168,33 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
             for( auto payout : rewards )
             {
+num = num + 1;
                 if( payout->reward == 0 ) continue;
 
                 // Search for the reward payment in the transactions outputs.
                 auto isInOutputs = std::find_if(txCoinbase.vout.begin(), txCoinbase.vout.end(), [payout](const CTxOut &txout) -> bool {
-                    if  ( payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > 10000000) {
-                        LogPrintf("ValidateRewardPayments -- payment amount invalid - address %s difference %0.2f payout %0.2f actual %0.2f\n",  payout->entry.id.ToString(), (float)(abs(payout->reward - txout.nValue))/100000000, (float)payout->reward/100000000, (float)txout.nValue/100000000);
+//if  ( payout->entry.id.GetScript() == txout.scriptPubKey ) {blockamt = blockamt + txout.nValue; LogPrintf("ValidateRewardPayments -- Actual block total %d\n",blockamt);}
+//                    if  ( payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > 10000000) {
+                    if  ( payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > (float)txout.nValue/10000 ) {
+                        LogPrintf("ValidateRewardPayments -- payment amount invalid - address %s exp diff %0.3f act diff %0.3f payout %0.3f actual %0.3f\n",  payout->entry.id.ToString(),(float)txout.nValue/1000000000000, (float)(abs(payout->reward - txout.nValue))/100000000, (float)payout->reward/100000000, (float)txout.nValue/100000000);
                     }
 //                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) < 10000000000;
-                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) < 10000000;
+                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > (float)txout.nValue/10000;
                 });
 
                 // If the payout is not in the list?
                 if( isInOutputs == txCoinbase.vout.end() ){
-                    LogPrintf("ValidateRewardPayments -- missing payment %s",payout->ToString() );
+                    LogPrintf("ValidateRewardPayments -- missing payment num %d %s/n",num, payout->ToString());
                     result = SmartRewardPayments::InvalidRewardList;
                     // We could return here..But lets print which payments else are missing.
                     // return result;
                 }else{
                     smartReward += isInOutputs->nValue;
+LogPrintf("ValidateRewardPayments -- Payout block total %d\n",smartReward);
                 }
+LogPrintf("ValidateRewardPayments -- Payout block total %d\n",smartReward);
+//blockamt = blockamt + txout.nValue; LogPrintf("ValidateRewardPayments -- Actual block total %d\n",blockamt);
+//LogPrintf("ValidateRewardPayments -- Actual block total %d\n",blockamt);
             }
 
     }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::NoRewardBlock ){
