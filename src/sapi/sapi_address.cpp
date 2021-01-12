@@ -660,7 +660,7 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
     bool fRandom = bodyParameter.exists(SAPI::Keys::random) ? bodyParameter[SAPI::Keys::random].get_bool() : true;
     bool fInstantPay = bodyParameter.exists(SAPI::Keys::instantpay) ? bodyParameter[SAPI::Keys::instantpay].get_bool() : false;
 
-    CBitcoinAddress address(addrStr);
+    CSmartAddress address(addrStr);
     CAddressUnspentKey lastIndex;
     int nUtxoCount = 0;
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
@@ -696,6 +696,20 @@ static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, s
 
         if( !GetUTXOs(req, address, unspentOutputs, CAddressUnspentKey(), nIndexOffset , nLimit) )
             return false;
+
+        // Filter out utxos that are currently time-locked
+        for (auto it = unspentOutputs.begin(); it != unspentOutputs.end();) {
+            bool locked = false;
+            if (!IsTimeLocked(req, it->first.nBlockHeight, it->first.txhash, address, locked)) {
+                return false;
+            }
+
+            if (locked) {
+                it = unspentOutputs.erase(it);
+            } else {
+                ++it;
+            }
+        }
 
         if( fRandom ){ // Pick random utxos until the amount is reached.
             std::random_shuffle(unspentOutputs.begin(), unspentOutputs.end());
