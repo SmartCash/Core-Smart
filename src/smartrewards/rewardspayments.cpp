@@ -139,6 +139,14 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 109307197536547;
       return SmartRewardPayments::Valid;
     }
+    if (nHeight == 621799) {
+       smartReward = 88805053056513;
+       return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 716799) {
+       smartReward = 71976569520263;
+       return SmartRewardPayments::Valid;
+    }
 /*    if (nHeight == 1805799) {
       smartReward = 145988116123147;
       return SmartRewardPayments::Valid;
@@ -175,11 +183,11 @@ num = num + 1;
                 auto isInOutputs = std::find_if(txCoinbase.vout.begin(), txCoinbase.vout.end(), [payout](const CTxOut &txout) -> bool {
 //if  ( payout->entry.id.GetScript() == txout.scriptPubKey ) {blockamt = blockamt + txout.nValue; LogPrintf("ValidateRewardPayments -- Actual block total %d\n",blockamt);}
 //                    if  ( payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > 10000000) {
-                    if  ( payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > (float)txout.nValue/10000 ) {
-                        LogPrintf("ValidateRewardPayments -- payment amount invalid - address %s exp diff %0.3f act diff %0.3f payout %0.3f actual %0.3f\n",  payout->entry.id.ToString(),(float)txout.nValue/1000000000000, (float)(abs(payout->reward - txout.nValue))/100000000, (float)payout->reward/100000000, (float)txout.nValue/100000000);
+                    if  ( payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > (float)txout.nValue/100 ) {
+                        LogPrintf("ValidateRewardPayments -- payment amount invalid - address %s exp diff %0.3f act diff %0.3f payout %0.3f actual %0.3f\n",  payout->entry.id.ToString(),(float)txout.nValue/10000000000, (float)(abs(payout->reward - txout.nValue))/100000000, (float)payout->reward/100000000, (float)txout.nValue/100000000);
                     }
 //                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) < 10000000000;
-                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) > (float)txout.nValue/10000;
+                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) <= (float)txout.nValue/100;
                 });
 
                 // If the payout is not in the list?
@@ -190,9 +198,9 @@ num = num + 1;
                     // return result;
                 }else{
                     smartReward += isInOutputs->nValue;
-LogPrintf("ValidateRewardPayments -- Payout block total %d\n",smartReward);
+//LogPrintf("ValidateRewardPayments -- Payout block total %d\n",smartReward);
                 }
-LogPrintf("ValidateRewardPayments -- Payout block total %d\n",smartReward);
+//LogPrintf("ValidateRewardPayments -- Payout block total %d\n",smartReward);
 //blockamt = blockamt + txout.nValue; LogPrintf("ValidateRewardPayments -- Actual block total %d\n",blockamt);
 //LogPrintf("ValidateRewardPayments -- Actual block total %d\n",blockamt);
             }
