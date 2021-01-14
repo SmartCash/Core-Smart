@@ -40,9 +40,9 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 
         if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
             return HF_V1_2_8_NODES_PER_BLOCK;
-        }else if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){
+        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
             return HF_V1_2_NODES_PER_BLOCK;
-        }else if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
+        }else if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){
             return 1;
         }
 
