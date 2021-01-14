@@ -30,7 +30,6 @@ static const int HF_V1_2_MULTINODE_PAYOUT_HEIGHT = 545005;
 static const int HF_V1_2_SMARTREWARD_HEIGHT = 574100;
 static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
 static const int HF_V1_3_HEIGHT = 1761600; // Round 38 starts 1761600
-//static const int HF_V2_0_HEIGHT = 1915600; // Round 52 starts 1915600 - TermRewards
 static const int HF_V2_0_HEIGHT = 2014600; // Round 61 starts at 2014600 on 1/30 - TermRewards
 
 /* Mainnet payment intervals*/
@@ -52,6 +51,7 @@ static const int TESTNET_V1_2_8_NODES_PER_BLOCK         = 1;
 static const int TESTNET_V1_2_8_NODES_BLOCK_INTERVAL    = 2;
 static const int TESTNET_V1_3_NODES_PER_BLOCK           = 1;
 static const int TESTNET_V1_3_NODES_BLOCK_INTERVAL      = 2;
+//static const int TESTNET_V2_0_NODES_BLOCK_INTERVAL   = 10;
 
 /** Minimum number of active SmartNodes required to make SmartNode payments */
 static const int MIN_ACTIVE_SMARTNODES = 2;

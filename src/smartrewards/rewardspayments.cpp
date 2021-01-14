@@ -26,7 +26,7 @@ CSmartRewardResultEntryPtrList SmartRewardPayments::GetPayments(const CSmartRewa
         return CSmartRewardResultEntryPtrList();
     }
 
-    int64_t nBlockPayees = pResult->round.nBlockPayees;
+    int64_t nBlockPayees = nHeight < 1805600 ? 1000 : 500;// pResult->round.nBlockPayees;
     int64_t nPayoutInterval = pResult->round.nBlockInterval;
 
     int64_t nRewardBlocks = nPayeeCount / nBlockPayees;
@@ -147,14 +147,14 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
        smartReward = 71976569520263;
        return SmartRewardPayments::Valid;
     }
-/*    if (nHeight == 1805799) {
+    if (nHeight == 1805799) {
       smartReward = 145988116123147;
       return SmartRewardPayments::Valid;
     }
     if (nHeight == 1805804) {
       smartReward = 11710418007636808;
       return SmartRewardPayments::Valid;
-    } */
+    }
 
 // debugging
     int num = 0;

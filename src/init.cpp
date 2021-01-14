@@ -1392,7 +1392,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     {
         uiInterface.InitMessage.connect(SetRPCWarmupStatus);
         if (!AppInitServers(threadGroup))
-            return InitError(_("Unable to start HTTP server. Use rpcport=<port> to select an available port.  See debug log for details."));
+            return InitError(_("Unable to start HTTP server. Use rpcport=9679 or a port other than 8080 in the smartcash.conf.  See debug log for details."));
     }
 
     bool fSAPI = GetBoolArg("-sapi", false);
@@ -1418,7 +1418,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
 
         if (!AppInitSAPI(threadGroup))
-            return InitError(_("Unable to start SAPI server. See debug log for details."));
+            return InitError(_("Unable to start SAPI server. Use rpcport=9679 or a port other than 8080 that is used by SAPI.  See debug log for details."));
     }
 
     int64_t nStart = 0;
