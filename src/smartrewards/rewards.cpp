@@ -210,12 +210,12 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             ++entry;
         }
 
-        if( pResult->payouts.size() ){
+/*        if( pResult->payouts.size() ){
             // Sort it to make sure the slices are the same network wide.
             std::sort(pResult->payouts.begin(), pResult->payouts.end(), ComparePaymentPrtList() );
-        }
+        } */
 
-/*        if( pResult->payouts.size() ){
+        if( pResult->payouts.size() ){
             uint256 blockHash;
             if(!GetBlockHash(blockHash, pResult->round.startBlockHeight)) {
                 throw std::runtime_error(strprintf("CSmartRewards::EvaluateRound -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", round->startBlockHeight));
@@ -238,7 +238,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
             for(auto s : vecScores)
                 pResult->payouts.push_back(s.second);
-        }*/
+        }
 
         // Look for entries eligible to the next round
         std::list<CSmartAddress> eligibleAddresses;

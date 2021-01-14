@@ -71,9 +71,9 @@ int SmartNodePayments::PayoutInterval(int nHeight)
 
     }else{
 
-        if(nHeight >= TESTNET_V1_3_HEIGHT)
+        if(nHeight >= TESTNET_V1_3_HEIGHT){
             return TESTNET_V1_3_NODES_BLOCK_INTERVAL;
-        } else if(nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT)
+        } else if(nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT){
             return TESTNET_V1_2_8_NODES_BLOCK_INTERVAL;
         }
 
