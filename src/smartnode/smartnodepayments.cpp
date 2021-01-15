@@ -38,11 +38,11 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 {
     if( MainNet() ){
 
-        if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){
-            return HF_V1_2_8_NODES_PER_BLOCK;
-        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
-            return HF_V1_2_NODES_PER_BLOCK;
-        }else if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){
+        if(nHeight >= HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT){ //910000
+            return HF_V1_2_8_NODES_PER_BLOCK; // 1
+        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){//545005
+            return HF_V1_2_NODES_PER_BLOCK; //10
+        }else if(nHeight >= HF_V1_2_MULTINODE_VOTING_HEIGHT){//535000
             return 1;
         }
 
@@ -61,10 +61,10 @@ int SmartNodePayments::PayoutsPerBlock(int nHeight)
 int SmartNodePayments::PayoutInterval(int nHeight)
 {
     if( MainNet() ){
-        if(nHeight >= HF_V2_0_HEIGHT){
-            return HF_V2_0_NODES_BLOCK_INTERVAL;
-        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){
-            return HF_V1_2_NODES_BLOCK_INTERVAL;
+        if(nHeight >= HF_V2_0_HEIGHT){//2014600
+            return HF_V2_0_NODES_BLOCK_INTERVAL;//10
+        }else if(nHeight >= HF_V1_2_MULTINODE_PAYOUT_HEIGHT){//545005
+            return HF_V1_2_NODES_BLOCK_INTERVAL;//2
         }else {
             return 1;
         }
