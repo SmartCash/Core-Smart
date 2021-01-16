@@ -208,11 +208,6 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             ++entry;
         }
 
-/*        if( pResult->payouts.size() ){
-            // Sort it to make sure the slices are the same network wide.
-            std::sort(pResult->payouts.begin(), pResult->payouts.end(), ComparePaymentPrtList() );
-        } */
-
         if( pResult->payouts.size() ){
             uint256 blockHash;
             if(!GetBlockHash(blockHash, pResult->round.startBlockHeight)) {
@@ -247,7 +242,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
-            if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
+            if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) && 
+            !entry->second->fSmartnodePaymentTx && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
                 entry->second->balanceEligible = entry->second->balance;
                 next.eligibleSmart += entry->second->balanceEligible;
                 ++next.eligibleEntries;
@@ -646,9 +642,11 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
 
     if (nCurrentRound >= nFirst_1_3_Round && tx.IsActivationTx() && !rEntry->fActivated) {
 //    if ( (txHeight >= HF_V1_3_HEIGHT && MainNet() || txHeight >= TESTNET_V1_3_HEIGHT && TestNet()) && tx.IsActivationTx() && !rEntry->fActivated) {// 1761600
+        if (!rEntry->fActivated) {   //checking2
         rEntry->activationTx = tx.GetHash();
         rEntry->fActivated = true;
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
+        }
 //Might not want these.
 //        rEntry->disqualifyingTx.SetNull();
 //        rEntry->fDisqualifyingTx = false;
@@ -661,8 +659,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
 //    }
 
 //    if ( (txHeight >= HF_V1_3_HEIGHT && MainNet() || txHeight >= TESTNET_V1_3_HEIGHT && TestNet())
-    if ( nCurrentRound >= nFirst_1_3_Round
-        && !tx.IsActivationTx() && !rEntry->fDisqualifyingTx) {
+    if ( nCurrentRound >= nFirst_1_3_Round && !tx.IsActivationTx() && !rEntry->fDisqualifyingTx) {
         if( rEntry->IsEligible() ){
             result.disqualifiedEntries++;
             result.disqualifiedSmart += rEntry->balanceEligible;
@@ -672,8 +669,7 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
     }
 
 //    if ( (txHeight >= HF_V1_3_HEIGHT && MainNet() || txHeight >= TESTNET_V1_3_HEIGHT && TestNet())
-    if (nCurrentRound >= nFirst_1_3_Round
-        && rEntry->fActivated && !tx.IsActivationTx()) {
+    if (nCurrentRound >= nFirst_1_3_Round && rEntry->fActivated && !tx.IsActivationTx()) {
 //        if ( txHeight >= HF_V2_0_HEIGHT && MainNet() || txHeight >= TESTNET_V2_0_HEIGHT && TestNet() ) { rEntry->activationTx.SetNull();
 //        } else { rEntry->activationTx = tx.GetHash(); }
         rEntry->activationTx.SetNull();
@@ -741,7 +737,8 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
  //               ((nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet()) ||
  //               ((nCurrentRound < 20) && TestNet())) {  //Round 46 ends 1860599 10/24 (activates around 11/28)
             rEntry->balance += out.nValue;
-        } else if ( (out.nValue >= 1000000 * COIN) && nHeight >= HF_V2_0_HEIGHT && MainNet() || (out.nValue >= 1000 * COIN) && nHeight >= TESTNET_V2_0_HEIGHT && TestNet() ){
+        } else if ( (out.nValue >= 1000000 * COIN) && nHeight >= HF_V2_0_HEIGHT && MainNet() ||
+                  (out.nValue >= 1000 * COIN) && nHeight >= TESTNET_V2_0_HEIGHT && TestNet() ){
 // } else if (nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round) && MainNet() ) {
                 if (out.GetLockTime() > (31470552 + nTime)) {
                     // At least one year - 1 day then create an entry
@@ -854,7 +851,7 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
     if ( !in.GetLockTime() || nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) {
 //((txHeight < HF_V2_0_HEIGHT /*1915600*/) && MainNet()) || ((txHeight < TESTNET_V2_0_HEIGHT) && TestNet()) ) {
     rEntry->balance += in.nValue;
-    } else if (in.nValue >= 1000000 && in.GetLockTime() && nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round ) {
+    } else if (rTermEntry && in.nValue >= 1000000 && in.GetLockTime() && nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round ) {
 //((txHeight >= HF_V2_0_HEIGHT /*1915600*/) && MainNet()) || ((txHeight >= TESTNET_V2_0_HEIGHT) && TestNet()) ) {
     rTermEntry->balance += in.nValue;
     }
@@ -880,7 +877,7 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
             --result.disqualifiedEntries;
             result.disqualifiedSmart -= rEntry->balanceEligible;
         }
-        if(rEntry->balance < 0 ){
+        if(rTermEntry && rEntry->balance < 0 ){
             LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Negative amount - %s", rEntry->ToString());
             rEntry->balance = 0;
         }
@@ -901,10 +898,10 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int tx
         if (!tx.IsActivationTx() && !rEntry->fActivated) {
 //            if ( (txHeight < HF_V2_0_HEIGHT  && MainNet() || txHeight < TESTNET_V2_0_HEIGHT && TestNet()) ) {
 //            if (nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round ) {
-                rEntry->activationTx.SetNull();
-                rEntry->fActivated = false;
+/*                rEntry->activationTx.SetNull();
+Checking 2        rEntry->fActivated = false;
                 rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
-//            }
+*/ //           }
             if (rEntry->disqualifyingTx == tx.GetHash()) {
                 rEntry->disqualifyingTx.SetNull();
                 rEntry->fDisqualifyingTx = false;
@@ -926,7 +923,7 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int tx
                 rEntry->fActivated = false;
                 // Don't assume this isn't a duplicate activation transaciton
 //                if (rEntry->bonusLevel == CSmartRewardEntry::NoBonus) {
-                    rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
+// checking 2          rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
 //                }
                 --result.qualifiedEntries;
                 result.qualifiedSmart -= rEntry->balanceEligible;
