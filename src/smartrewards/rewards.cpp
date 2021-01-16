@@ -712,7 +712,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
     } else {
         if (GetRewardEntry(id, rEntry, true)) {
 //            if ( tx.IsActivationTx() && (nHeight >= HF_V1_3_HEIGHT && MainNet() || nHeight >= TESTNET_V1_3_HEIGHT && TestNet())
-            if (Is_1_3(nCurrentRound) && !SmartHive::IsHive(rEntry->id)) {
+            if (tx.IsActivationTx() && Is_1_3(nCurrentRound) && !SmartHive::IsHive(rEntry->id)) {
                 if (!rEntry->fActivated) {
                     rEntry->activationTx = tx.GetHash();
                     rEntry->fActivated = true;
