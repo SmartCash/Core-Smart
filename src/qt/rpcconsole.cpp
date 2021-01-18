@@ -634,6 +634,8 @@ void RPCConsole::clear(bool clearHistory)
         );
 
     message(CMD_REPLY, (tr("Welcome to the %1 RPC console.").arg(tr(PACKAGE_NAME)) + "<br>" +
+                        tr("<b>Commands dumpwallet and dumpprivkey show your private keys.</b>") + "<br>" +
+                        tr("<b>Do not share output with anyone!</b>") + "<br>" +
                         tr("Use up and down arrows to navigate history, and <b>Ctrl-L</b> to clear screen.") + "<br>" +
                         tr("Type <b>help</b> for an overview of available commands.")), true);
 }
