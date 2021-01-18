@@ -139,6 +139,23 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 109307197536547;
       return SmartRewardPayments::Valid;
     }
+    if (nHeight == 1992799) {
+      smartReward = 66590668213606;
+      return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 1992804) {
+      smartReward = 69767403092764;
+      return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 1992809) {
+      smartReward = 68993894112460;
+      return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 1992814) {
+      smartReward = 32976434780252;
+      return SmartRewardPayments::Valid;
+    }
+
 
     LOCK(cs_rewardscache);
 
