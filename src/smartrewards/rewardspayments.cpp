@@ -156,7 +156,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
     SmartRewardPayments::Result result;
 
-    smartReward = 100000000;
+    smartReward = 0;
 
     CSmartRewardResultEntryPtrList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, block.GetBlockTime(), result);
     if (result == SmartRewardPayments::Valid && rewards.size()) {
@@ -207,11 +207,11 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     pResult->round.GetPayeeCount(), pResult->round.GetPayeeCount() - remainingPayouts.size());
             result = SmartRewardPayments::InvalidRewardList;
         }
-    } else if ((result == SmartRewardPayments::NotSynced) || (result == SmartRewardPayments::NoRewardBlock)) {
+    } else if (result == SmartRewardPayments::NoRewardBlock) {
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
         result = SmartRewardPayments::Valid;
     }
 
     return result;
-} 
+}
