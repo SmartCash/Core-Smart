@@ -16,6 +16,7 @@
 #include <stdint.h>
 
 #include "leveldb/include/leveldb/db.h"
+#include <boost/functional/hash.hpp>
 #include <boost/thread.hpp>
 
 using namespace std;
@@ -31,6 +32,16 @@ static const char DB_BLOCK_LAST = 'b';
 static const char DB_TX_HASH = 't';
 
 static const char DB_VERSION = 'V';
+
+size_t CSmartAddressHasher::operator()(const CSmartAddress& a) const {
+    return a.GetHashSeed();
+}
+
+size_t CTermRewardDbKeyHasher::operator()(const CTermRewardDbKey& k) const {
+    size_t seed = k.first.GetHashSeed();
+    boost::hash_combine(seed, std::vector<uint8_t>(k.second.begin(), k.second.end()));
+    return seed;
+}
 
 CSmartRewardsDB::CSmartRewardsDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "rewards", nCacheSize, fMemory, fWipe)
 {
