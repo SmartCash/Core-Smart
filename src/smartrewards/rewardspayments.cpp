@@ -191,7 +191,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     && (abs(payout->reward - txout->nValue) <= (float)payout->reward / 100.0f);
             });
 
-            if (payoutIt == remainingPayouts.end()) {
+            if (payoutIt == remainingPayouts.end() && !fLiteMode) {
                 LogPrintf("ValidateRewardPayments -- could not find block payee in payouts list\n");
                 result = SmartRewardPayments::InvalidRewardList;
                 LogPrintf("ValidateRewardPayments -- Payee %s\n",txout->ToString());
@@ -207,7 +207,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     pResult->round.GetPayeeCount(), pResult->round.GetPayeeCount() - remainingPayouts.size());
             result = SmartRewardPayments::InvalidRewardList;
         }
-    } else if (result == SmartRewardPayments::NoRewardBlock) {
+    } else if (fLiteMode || result == SmartRewardPayments::NoRewardBlock) {
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
         result = SmartRewardPayments::Valid;
