@@ -179,6 +179,12 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                 nHeight, txCoinbase.vout.size() - nOffset);
 
         for (auto txout = txCoinbase.vout.begin() + nOffset; txout != txCoinbase.vout.end(); ++txout) {
+            // If in litemode, don't verify payouts individually
+            if (fLiteMode) {
+                smartReward += txout->nValue;
+                continue;
+            }
+
             auto payoutIt = std::find_if(remainingPayouts.begin(), remainingPayouts.end(),
                     [&txout] (CSmartRewardResultEntry *payout) {
                 if ( (payout->entry.id.GetScript() == txout->scriptPubKey)
@@ -191,7 +197,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     && (abs(payout->reward - txout->nValue) <= (float)payout->reward / 100.0f);
             });
 
-            if (payoutIt == remainingPayouts.end() && !fLiteMode) {
+            if (payoutIt == remainingPayouts.end()) {
                 LogPrintf("ValidateRewardPayments -- could not find block payee in payouts list\n");
                 result = SmartRewardPayments::InvalidRewardList;
                 LogPrintf("ValidateRewardPayments -- Payee %s\n",txout->ToString());
@@ -202,8 +208,8 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
         }
 
         // If last payee block, make sure all expected payouts have been found in blocks
-        if ((nHeight == pResult->round.GetLastRoundBlock()) && (remainingPayouts.size() > 0)) {
-            LogPrintf("ValidateRewardPayments -- missing payments, expected %d but got\n",
+        if (!fLiteMode && (nHeight == pResult->round.GetLastRoundBlock()) && (remainingPayouts.size() > 0)) {
+            LogPrintf("ValidateRewardPayments -- missing payments, expected %d but got %d\n",
                     pResult->round.GetPayeeCount(), pResult->round.GetPayeeCount() - remainingPayouts.size());
             result = SmartRewardPayments::InvalidRewardList;
         }
