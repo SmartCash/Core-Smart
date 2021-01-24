@@ -196,12 +196,12 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
         }
 
         // If last payee block, make sure all expected payouts have been found in blocks
-        if (!fLiteMode && (nHeight == pResult->round.GetLastRoundBlock()) && (remainingPayouts.size() > 0)) {
+        if ((!fLiteMode ||  (nHeight > 2014515 && nHeight < 1992803)) && (nHeight == pResult->round.GetLastRoundBlock()) && (remainingPayouts.size() > 0)) {
             LogPrintf("ValidateRewardPayments -- missing payments, expected %d but got %d\n",
                     pResult->round.GetPayeeCount(), pResult->round.GetPayeeCount() - remainingPayouts.size());
             result = SmartRewardPayments::InvalidRewardList;
         }
-    } else if (fLiteMode || result == SmartRewardPayments::NoRewardBlock) {
+    } else if ((fLiteMode ||  (nHeight < 2014515 && nHeight > 1992803)) || result == SmartRewardPayments::NoRewardBlock) {
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
         result = SmartRewardPayments::Valid;
