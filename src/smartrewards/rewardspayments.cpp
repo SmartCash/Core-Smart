@@ -155,6 +155,10 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 32976434780252;
       return SmartRewardPayments::Valid;
     }
+    if (nHeight == 2003814) {
+      smartReward = 16647722035004;
+      return SmartRewardPayments::Valid;
+    }
 
 
     LOCK(cs_rewardscache);
@@ -162,7 +166,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
     SmartRewardPayments::Result result;
 
     smartReward = 0;
-
+/*
     const CTransaction &txCoinbase = block.vtx[0];
 
     CSmartRewardResultEntryPtrList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, block.GetBlockTime(), result);
@@ -194,6 +198,71 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
     }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::NoRewardBlock ){
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
+        result = SmartRewardPayments::Valid;
+    }
+
+    return result;
+}
+*/
+    CSmartRewardResultEntryPtrList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, block.GetBlockTime(), result);
+    if (result == SmartRewardPayments::Valid && rewards.size()) {
+        const CTransaction &txCoinbase = block.vtx[0];
+        static CSmartRewardResultEntryPtrList remainingPayouts;
+        int64_t nPayoutDelay = Params().GetConsensus().nRewardsPayoutStartDelay;
+        const CSmartRewardsRoundResult *pResult = prewards->GetLastRoundResult();
+
+        // If first payee block, build a list of all expected payouts
+        if (nHeight == (pResult->round.endBlockHeight + nPayoutDelay)) {
+            remainingPayouts.reserve(pResult->payouts.size());
+            std::copy(pResult->payouts.begin(), pResult->payouts.end(), std::back_inserter(remainingPayouts));
+        }
+
+        int nOffset = (nHeight == pResult->round.GetLastRoundBlock()) ?
+            (txCoinbase.vout.size() - (pResult->round.GetPayeeCount() % pResult->round.nBlockPayees)) :
+            (txCoinbase.vout.size() - pResult->round.nBlockPayees);
+
+        LogPrintf("ValidateRewardPayments -- found rewardblock at height %d with %d payees\n",
+                nHeight, txCoinbase.vout.size() - nOffset);
+
+        for (auto txout = txCoinbase.vout.begin() + nOffset; txout != txCoinbase.vout.end(); ++txout) {
+            // If in litemode, don't verify payouts individually
+            if (fLiteMode || (nHeight < 2014515 && nHeight > 1992803) ) {
+                smartReward += txout->nValue;
+                continue;
+            }
+
+            auto payoutIt = std::find_if(remainingPayouts.begin(), remainingPayouts.end(),
+                    [&txout] (CSmartRewardResultEntry *payout) {
+                if ( (payout->entry.id.GetScript() == txout->scriptPubKey)
+                        && (abs(txout->nValue - payout->reward) > (float)txout->nValue / 100.0f) ) {
+                    LogPrintf("ValidateRewardPayments -- Payee %s Diff %0.3f MaxDiff %0.3f Paid %0.3f Expected %0.3f\n",
+                        payout->entry.id.ToString(),abs(txout->nValue - payout->reward)/100000000,
+                        ((float)payout->reward / 10000000000.0f),txout->nValue/100000000,payout->reward/100000000);
+                }
+                return (payout->entry.id.GetScript() == txout->scriptPubKey)
+                    && (abs(txout->nValue - payout->reward) <= (float)payout->reward / 100.0f);
+            });
+
+            if (payoutIt == remainingPayouts.end()) {
+                LogPrintf("ValidateRewardPayments -- could not find block payee in payouts list\n");
+                result = SmartRewardPayments::InvalidRewardList;
+                LogPrintf("ValidateRewardPayments -- Payee %s\n",txout->ToString());
+            } else {
+                smartReward += txout->nValue;
+                remainingPayouts.erase(payoutIt);
+            }
+        }
+
+        // If last payee block, make sure all expected payouts have been found in blocks
+        if ((!fLiteMode && (nHeight > 2014515 && nHeight < 1992803)) && 
+               (nHeight == pResult->round.GetLastRoundBlock()) && (remainingPayouts.size() > 0)) {
+            LogPrintf("ValidateRewardPayments -- missing payments, expected %d but got %d\n",
+                    pResult->round.GetPayeeCount(), pResult->round.GetPayeeCount() - remainingPayouts.size());
+            result = SmartRewardPayments::InvalidRewardList;
+        }
+    } else if ((fLiteMode || (nHeight < 2014515 && nHeight > 1992803)) || result == SmartRewardPayments::NoRewardBlock) {
+        // If we are not synced yet, our database has any issue (should't happen), or the asked block
+        // if no expected reward block just accept the block and let the rest of the network handle the reward validati>
         result = SmartRewardPayments::Valid;
     }
 
