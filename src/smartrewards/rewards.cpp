@@ -204,28 +204,33 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         }
 
         if( pResult->payouts.size() ){
-            uint256 blockHash;
-            if(!GetBlockHash(blockHash, pResult->round.startBlockHeight)) {
-                throw std::runtime_error(strprintf("CSmartRewards::EvaluateRound -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", round->startBlockHeight));
+            if ( round->number >= Params().GetConsensus().nRewardsFirst_2_0_Round) {
+                // Sort it to make sure the slices are the same network wide.
+                std::sort(pResult->payouts.begin(), pResult->payouts.end(), ComparePaymentPrtList() );
+            } else {
+                uint256 blockHash;
+                if(!GetBlockHash(blockHash, pResult->round.startBlockHeight)) {
+                    throw std::runtime_error(strprintf("CSmartRewards::EvaluateRound -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", round->startBlockHeight));
+                }
+
+                std::vector<std::pair<arith_uint256, CSmartRewardResultEntry*>> vecScores;
+                // Since we use payouts stretched out over a week better to have some "random" sort here
+                // based on a score calculated with the round start's blockhash.
+                CSmartRewardResultEntryPtrList::iterator it = pResult->payouts.begin();
+
+                while( it != pResult->payouts.end() ){
+                    arith_uint256 nScore = (*it)->CalculateScore(blockHash);
+                    vecScores.push_back(std::make_pair(nScore,*it));
+                    ++it;
+                }
+
+                std::sort(vecScores.begin(), vecScores.end(), CompareRewardScore());
+
+                pResult->payouts.clear();
+
+                for(auto s : vecScores)
+                    pResult->payouts.push_back(s.second);
             }
-
-            std::vector<std::pair<arith_uint256, CSmartRewardResultEntry*>> vecScores;
-            // Since we use payouts stretched out over a week better to have some "random" sort here
-            // based on a score calculated with the round start's blockhash.
-            CSmartRewardResultEntryPtrList::iterator it = pResult->payouts.begin();
-
-            while( it != pResult->payouts.end() ){
-                arith_uint256 nScore = (*it)->CalculateScore(blockHash);
-                vecScores.push_back(std::make_pair(nScore,*it));
-                ++it;
-            }
-
-            std::sort(vecScores.begin(), vecScores.end(), CompareRewardScore());
-
-            pResult->payouts.clear();
-
-            for(auto s : vecScores)
-                pResult->payouts.push_back(s.second);
         }
 
         // Look for entries eligible to the next round
@@ -235,8 +240,9 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
-            if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) && 
-            !entry->second->fSmartnodePaymentTx && !entry->second->fDisqualifyingTx && entry->second->fActivated ) {
+            if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) &&
+                    !entry->second->fDisqualifyingTx && entry->second->fActivated &&
+                    !entry->second->fSmartnodePaymentTx/*|| next.number <= Params().GetConsensus().nRewardsFirst_2_0_Round)*/) {
                 entry->second->balanceEligible = entry->second->balance;
                 next.eligibleSmart += entry->second->balanceEligible;
                 ++next.eligibleEntries;
@@ -634,11 +640,9 @@ void CSmartRewards::ProcessInput(const CTransaction& tx, const CTxOut& in, int t
     }
 
     if (nCurrentRound >= nFirst_1_3_Round && tx.IsActivationTx() && !rEntry->fActivated) {
-        if (!rEntry->fActivated) {
         rEntry->activationTx = tx.GetHash();
         rEntry->fActivated = true;
         rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
-        }
     }
 
     rEntry->balance -= in.nValue;
@@ -687,15 +691,14 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         return;
     } else {
         if (GetRewardEntry(id, rEntry, true)) {
-            if (tx.IsActivationTx() && Is_1_3(nCurrentRound) && !SmartHive::IsHive(rEntry->id)) {
-                if (!rEntry->fActivated) {
-                    rEntry->activationTx = tx.GetHash();
-                    rEntry->fActivated = true;
-                    rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
-                    if ( rEntry->IsEligible() ) {
-                       result.qualifiedEntries++;
-                       result.qualifiedSmart += rEntry->balanceEligible;
-                    }
+            if (tx.IsActivationTx() && Is_1_3(nCurrentRound) && !SmartHive::IsHive(rEntry->id)
+                    && !rEntry->fActivated ) {
+                rEntry->activationTx = tx.GetHash();
+                rEntry->fActivated = true;
+                rEntry->bonusLevel = CSmartRewardEntry::NoBonus;
+                if ( rEntry->IsEligible() ) {
+                   result.qualifiedEntries++;
+                   result.qualifiedSmart += rEntry->balanceEligible;
                 }
             }
         }
@@ -835,9 +838,13 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
             --result.disqualifiedEntries;
             result.disqualifiedSmart -= rEntry->balanceEligible;
         }
-        if(rTermEntry && rEntry->balance < 0 ){
+        if(rEntry && rEntry->balance < 0 ){
             LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Negative amount - %s", rEntry->ToString());
             rEntry->balance = 0;
+        }
+        if(rTermEntry && rTermEntry->balance < 0 ){
+            LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Negative amount - %s", rEntry->ToString());
+            rTermEntry->balance = 0;
         }
     }
 }
@@ -854,6 +861,11 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int tx
     } else {
         GetRewardEntry(id, rEntry, true);
         if (!tx.IsActivationTx() && !rEntry->fActivated) {
+//            if ( nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) {
+//                rEntry->activationTx.SetNull();
+//                rEntry->fActivated = false;
+//                rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
+//            }
             if (rEntry->disqualifyingTx == tx.GetHash()) {
                 rEntry->disqualifyingTx.SetNull();
                 rEntry->fDisqualifyingTx = false;
@@ -866,10 +878,6 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int tx
             if (rEntry->activationTx == tx.GetHash()) {
                 rEntry->activationTx.SetNull();
                 rEntry->fActivated = false;
-                // Don't assume this isn't a duplicate activation transaciton
-//                if (rEntry->bonusLevel == CSmartRewardEntry::NoBonus) {
-//                    rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
-//                }
                 --result.qualifiedEntries;
                 result.qualifiedSmart -= rEntry->balanceEligible;
             }
@@ -891,12 +899,12 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int tx
             }
         }
     }
-    if (rEntry->balance < 0) {
-        LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount - %s", rEntry->ToString());
+    if (rEntry && rEntry->balance < 0) {
+        LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount SmartRewards - %s", rEntry->ToString());
         rEntry->balance = 0;
     }
     if (rTermEntry && rTermEntry->balance < 0) {
-         LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount - %s", rEntry->ToString());
+         LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount TermRewards - %s", rEntry->ToString());
          rTermEntry->balance = 0;
     }
 }

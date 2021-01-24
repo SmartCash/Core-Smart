@@ -139,18 +139,6 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 109307197536547;
       return SmartRewardPayments::Valid;
     }
-    if (nHeight == 1992804) {
-      smartReward = 69767403092764;
-      return SmartRewardPayments::Valid;
-    }
-    if (nHeight == 1992809) {
-      smartReward = 68993894112460;
-      return SmartRewardPayments::Valid;
-    }
-    if (nHeight == 1992814) {
-      smartReward = 32976434780252;
-      return SmartRewardPayments::Valid;
-    }
 
     LOCK(cs_rewardscache);
 
@@ -180,7 +168,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
         for (auto txout = txCoinbase.vout.begin() + nOffset; txout != txCoinbase.vout.end(); ++txout) {
             // If in litemode, don't verify payouts individually
-            if (fLiteMode) {
+            if (fLiteMode || nHeight < 2014515 || nHeight > 1992803) {
                 smartReward += txout->nValue;
                 continue;
             }
@@ -188,13 +176,13 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
             auto payoutIt = std::find_if(remainingPayouts.begin(), remainingPayouts.end(),
                     [&txout] (CSmartRewardResultEntry *payout) {
                 if ( (payout->entry.id.GetScript() == txout->scriptPubKey)
-                        && (abs(payout->reward - txout->nValue) > (float)txout->nValue / 100.0f) ) {
+                        && (abs(txout->nValue - payout->reward) > (float)txout->nValue / 100.0f) ) {
                     LogPrintf("ValidateRewardPayments -- Payee %s Diff %0.3f MaxDiff %0.3f Paid %0.3f Expected %0.3f\n",
-                        payout->entry.id.ToString(),abs(payout->reward - txout->nValue)/100000000,
+                        payout->entry.id.ToString(),abs(txout->nValue - payout->reward)/100000000,
                         ((float)payout->reward / 10000000000.0f),txout->nValue/100000000,payout->reward/100000000);
                 }
                 return (payout->entry.id.GetScript() == txout->scriptPubKey)
-                    && (abs(payout->reward - txout->nValue) <= (float)payout->reward / 100.0f);
+                    && (abs(txout->nValue - payout->reward) <= (float)payout->reward / 100.0f);
             });
 
             if (payoutIt == remainingPayouts.end()) {
