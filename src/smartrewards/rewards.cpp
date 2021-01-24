@@ -203,11 +203,13 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
             ++entry;
         }
 
-        if( pResult->payouts.size() ){
-            if ( round->number >= Params().GetConsensus().nRewardsFirst_2_0_Round) {
+        if ( round->number >= Params().GetConsensus().nRewardsFirst_2_0_Round) {
+            if( pResult->payouts.size() ){
                 // Sort it to make sure the slices are the same network wide.
                 std::sort(pResult->payouts.begin(), pResult->payouts.end(), ComparePaymentPrtList() );
-            } else {
+            }
+        } else {
+            if( pResult->payouts.size() ){
                 uint256 blockHash;
                 if(!GetBlockHash(blockHash, pResult->round.startBlockHeight)) {
                     throw std::runtime_error(strprintf("CSmartRewards::EvaluateRound -- ERROR: GetBlockHash() failed at nBlockHeight %d\n", round->startBlockHeight));

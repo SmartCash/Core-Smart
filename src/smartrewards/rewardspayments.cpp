@@ -168,7 +168,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
         for (auto txout = txCoinbase.vout.begin() + nOffset; txout != txCoinbase.vout.end(); ++txout) {
             // If in litemode, don't verify payouts individually
-            if (fLiteMode || nHeight < 2014515 || nHeight > 1992803) {
+            if (fLiteMode || (nHeight < 2014515 && nHeight > 1992803) ) {
                 smartReward += txout->nValue;
                 continue;
             }
