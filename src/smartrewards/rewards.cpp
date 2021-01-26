@@ -713,10 +713,10 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         }
 
         // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-        if (!out.GetLockTime() || nHeight < HF_V2_0_HEIGHT && MainNet() || nHeight < TESTNET_V2_0_HEIGHT && TestNet() ) {
+        if (!tx.IsCoinBase() && !out.GetLockTime() || nHeight < HF_V2_0_HEIGHT && MainNet() || nHeight < TESTNET_V2_0_HEIGHT && TestNet() ) {
             rEntry->balance += out.nValue;
-        } else if ( (out.nValue >= 1000000 * COIN) && nHeight >= HF_V2_0_HEIGHT && MainNet() ||
-                  (out.nValue >= 1000 * COIN) && nHeight >= TESTNET_V2_0_HEIGHT && TestNet() ){
+        } else if (!tx.IsCoinBase() && (out.nValue >= 1000000 * COIN) && nHeight >= HF_V2_0_HEIGHT && MainNet() ||
+                  !tx.IsCoinBase() && (out.nValue >= 1000 * COIN) && nHeight >= TESTNET_V2_0_HEIGHT && TestNet() ){
            if ( (out.GetLockTime() > (nTime + 31556952 - 17200)) && (out.GetLockTime() < (nTime + 31556952 + 17200)) ) { // 1year within 2 days
                if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                    rTermEntry->level = CTermRewardEntry::OneYear;
@@ -821,7 +821,7 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
         return;
     }
 
-    if (!GetRewardEntry(id, rEntry, true) && !GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true) ) {
+    if (!GetRewardEntry(id, rEntry, true)/* && !GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)*/ ) {
         LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
@@ -848,11 +848,11 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
         if (result.disqualifiedEntries < 0) { result.disqualifiedEntries = 0; }
         if (result.disqualifiedSmart < 0) { result.disqualifiedSmart = 0; }
     }
-    if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true) ){
+/*    if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true) ){
         if ( rTermEntry) {
             rTermEntry->balance += in.nValue;
         }
-    }
+    }*/
 }
 
 void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int txHeight, uint16_t nCurrentRound, CSmartRewardsUpdateResult& result)
@@ -910,14 +910,14 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int tx
             if (result.qualifiedEntries < 0) { result.qualifiedEntries = 0; }
             if (result.qualifiedSmart < 0) { result.qualifiedSmart = 0; }
         }
-        GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true);
+/*        GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true);
         if (rTermEntry) {
             rTermEntry->balance -= out.nValue;
             if (rTermEntry->balance < 0) {
                 LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount TermRewards - %s", rEntry->ToString());
                 rTermEntry->balance = 0;
             }
-        }
+        }*/
     }
 }
 
