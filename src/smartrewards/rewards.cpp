@@ -196,10 +196,12 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                 pResult->payouts.push_back(pResult->results.back());
             }
             // Reset outgoing transaction with every cycle.
-            entry->second->disqualifyingTx.SetNull();
-            entry->second->fDisqualifyingTx = false;
-            entry->second->smartnodePaymentTx.SetNull();
-            entry->second->fSmartnodePaymentTx = false;
+            if ( next.number < Params().GetConsensus().nRewardsFirst_2_0_Round) {
+                entry->second->disqualifyingTx.SetNull();
+                entry->second->fDisqualifyingTx = false;
+                entry->second->smartnodePaymentTx.SetNull();
+                entry->second->fSmartnodePaymentTx = false;
+            }
             ++entry;
         }
 
@@ -243,14 +245,19 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         entry = cache.GetEntries()->begin();
         while(entry != cache.GetEntries()->end() ) {
             if( entry->second->balance >= nMinBalance && !SmartHive::IsHive(entry->second->id) &&
-                    !entry->second->fDisqualifyingTx && entry->second->fActivated &&
-                    !entry->second->fSmartnodePaymentTx/*|| next.number <= Params().GetConsensus().nRewardsFirst_2_0_Round)*/) {
+                    entry->second->fActivated &&
+                    (!entry->second->fDisqualifyingTx && !entry->second->fSmartnodePaymentTx ||
+                    next.number < Params().GetConsensus().nRewardsFirst_2_0_Round) ) {
                 entry->second->balanceEligible = entry->second->balance;
                 next.eligibleSmart += entry->second->balanceEligible;
                 ++next.eligibleEntries;
                 eligibleAddresses.push_back(entry->first);
             } else {
                 entry->second->balanceEligible = 0;
+                entry->second->disqualifyingTx.SetNull();
+                entry->second->fDisqualifyingTx = false;
+                entry->second->smartnodePaymentTx.SetNull();
+                entry->second->fSmartnodePaymentTx = false;
             }
             entry->second->balanceAtStart = entry->second->balance;
             ++entry;
@@ -814,39 +821,36 @@ void CSmartRewards::UndoInput(const CTransaction& tx, const CTxOut& in, int txHe
         return;
     }
 
-    if (!GetRewardEntry(id, rEntry, true)) {
+    if (!GetRewardEntry(id, rEntry, true) && !GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true) ) {
         LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Spend without previous receive - %s", tx.ToString());
         return;
     }
-    if ( !in.GetLockTime() || nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) {
-    rEntry->balance += in.nValue;
-    } else if (rTermEntry && in.nValue >= 1000000 && in.GetLockTime() && nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round ) {
-    rTermEntry->balance += in.nValue;
+    if ( rEntry) {
+        rEntry->balance += in.nValue;
+
+        if (nCurrentRound >= nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash()) {
+            rEntry->disqualifyingTx.SetNull();
+            rEntry->fDisqualifyingTx = false;
+            if (rEntry->IsEligible()) {
+                --result.disqualifiedEntries;
+                result.disqualifiedSmart -= rEntry->balanceEligible;
+            }
+
+        } else if (nCurrentRound < nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash()) {
+            rEntry->disqualifyingTx.SetNull();
+            rEntry->fDisqualifyingTx = false;
+
+            if (rEntry->balanceEligible) {
+                --result.disqualifiedEntries;
+                result.disqualifiedSmart -= rEntry->balanceEligible;
+            }
+        }
+        if (result.disqualifiedEntries < 0) { result.disqualifiedEntries = 0; }
+        if (result.disqualifiedSmart < 0) { result.disqualifiedSmart = 0; }
     }
-
-    if (nCurrentRound >= nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash()) {
-        rEntry->disqualifyingTx.SetNull();
-        rEntry->fDisqualifyingTx = false;
-        if (rEntry->IsEligible()) {
-            --result.disqualifiedEntries;
-            result.disqualifiedSmart -= rEntry->balanceEligible;
-        }
-
-    } else if (nCurrentRound < nFirst_1_3_Round && rEntry->disqualifyingTx == tx.GetHash()) {
-        rEntry->disqualifyingTx.SetNull();
-        rEntry->fDisqualifyingTx = false;
-
-        if (rEntry->balanceEligible) {
-            --result.disqualifiedEntries;
-            result.disqualifiedSmart -= rEntry->balanceEligible;
-        }
-        if(rEntry && rEntry->balance < 0 ){
-            LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Negative amount - %s", rEntry->ToString());
-            rEntry->balance = 0;
-        }
-        if(rTermEntry && rTermEntry->balance < 0 ){
-            LogPrint("smartrewards-tx", "CSmartRewards::UndoInput - Negative amount - %s", rEntry->ToString());
-            rTermEntry->balance = 0;
+    if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true) ){
+        if ( rTermEntry) {
+            rTermEntry->balance += in.nValue;
         }
     }
 }
@@ -862,52 +866,58 @@ void CSmartRewards::UndoOutput(const CTransaction& tx, const CTxOut& out, int tx
         return;
     } else {
         GetRewardEntry(id, rEntry, true);
-        if (!tx.IsActivationTx() && !rEntry->fActivated) {
+        if (rEntry) {
+            if (!tx.IsActivationTx() && !rEntry->fActivated) {
 //            if ( nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round) {
 //                rEntry->activationTx.SetNull();
 //                rEntry->fActivated = false;
 //                rEntry->bonusLevel = CSmartRewardEntry::NotEligible;
 //            }
-            if (rEntry->disqualifyingTx == tx.GetHash()) {
-                rEntry->disqualifyingTx.SetNull();
-                rEntry->fDisqualifyingTx = false;
-                if (rEntry->IsEligible()) {
-                    --result.disqualifiedEntries;
-                    result.disqualifiedSmart -= rEntry->balanceEligible;
+                if (rEntry->disqualifyingTx == tx.GetHash()) {
+                    rEntry->disqualifyingTx.SetNull();
+                    rEntry->fDisqualifyingTx = false;
+                    if (rEntry->IsEligible()) {
+                        --result.disqualifiedEntries;
+                        result.disqualifiedSmart -= rEntry->balanceEligible;
+                    }
+                }
+            } else if (tx.IsActivationTx() && rEntry->fActivated && !SmartHive::IsHive(rEntry->id)) {
+                if (rEntry->activationTx == tx.GetHash()) {
+                    rEntry->activationTx.SetNull();
+                    rEntry->fActivated = false;
+                    --result.qualifiedEntries;
+                    result.qualifiedSmart -= rEntry->balanceEligible;
                 }
             }
-        } else if (tx.IsActivationTx() && rEntry->fActivated && !SmartHive::IsHive(rEntry->id)) {
-            if (rEntry->activationTx == tx.GetHash()) {
-                rEntry->activationTx.SetNull();
-                rEntry->fActivated = false;
-                --result.qualifiedEntries;
-                result.qualifiedSmart -= rEntry->balanceEligible;
+                rEntry->balance -= out.nValue;
+            if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
+                if (rEntry->smartnodePaymentTx == tx.GetHash()) {
+                    rEntry->smartnodePaymentTx.SetNull();
+                    rEntry->fSmartnodePaymentTx = false;
+                    // If it is eligible now adjust the round's results
+                    if (rEntry->IsEligible()) {
+                        --result.disqualifiedEntries;
+                        result.disqualifiedSmart -= rEntry->balanceEligible;
+                    }
+                }
             }
+            if (rEntry && rEntry->balance < 0) {
+                LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount SmartRewards - %s", rEntry->ToString());
+                rEntry->balance = 0;
+            }
+            if (result.disqualifiedEntries < 0) { result.disqualifiedEntries = 0; }
+            if (result.disqualifiedSmart < 0) { result.disqualifiedSmart = 0; }
+            if (result.qualifiedEntries < 0) { result.qualifiedEntries = 0; }
+            if (result.qualifiedSmart < 0) { result.qualifiedSmart = 0; }
         }
-        if (!out.GetLockTime() || nCurrentRound < Params().GetConsensus().nRewardsFirst_2_0_Round ) {
-            rEntry->balance -= out.nValue;
-        } else if (rTermEntry && out.nValue >= 1000000 && out.GetLockTime() && nCurrentRound >= Params().GetConsensus().nRewardsFirst_2_0_Round ) {
+        GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true);
+        if (rTermEntry) {
             rTermEntry->balance -= out.nValue;
-        }
-        if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
-            if (rEntry->smartnodePaymentTx == tx.GetHash()) {
-                rEntry->smartnodePaymentTx.SetNull();
-                rEntry->fSmartnodePaymentTx = false;
-                // If it is eligible now adjust the round's results
-                if (rEntry->IsEligible()) {
-                    --result.disqualifiedEntries;
-                    result.disqualifiedSmart -= rEntry->balanceEligible;
-                }
+            if (rTermEntry->balance < 0) {
+                LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount TermRewards - %s", rEntry->ToString());
+                rTermEntry->balance = 0;
             }
         }
-    }
-    if (rEntry && rEntry->balance < 0) {
-        LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount SmartRewards - %s", rEntry->ToString());
-        rEntry->balance = 0;
-    }
-    if (rTermEntry && rTermEntry->balance < 0) {
-         LogPrint("smartrewards-tx", "CSmartRewards::UndoOutput - Negative amount TermRewards - %s", rEntry->ToString());
-         rTermEntry->balance = 0;
     }
 }
 
