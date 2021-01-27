@@ -84,7 +84,7 @@ void TimeLockSettingsWidget::updateTimeLockCombo()
         timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int)( (3 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
         timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int)( (15 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
     } else {
-        timeLockItems.emplace_back("TermRewards Not Active Until January 31st", 0);
+        timeLockItems.emplace_back("TermRewards Not Active Until February 6th", 0);
     }
 
     timeLockItems.emplace_back("Custom (until block)", -1);
