@@ -1,4 +1,4 @@
-// Copyright (c) 2010 Satoshi Nakamoto
+ // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2015 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -489,8 +489,8 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
         throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "SmartCash Core is not connected!");
 
-    if (IsInitialBlockDownload() && !fDebug)
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is downloading blocks...");
+//    if (IsInitialBlockDownload() && !fDebug)
+//        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is downloading blocks...");
 
     if (!smartnodeSync.IsSynced() && !fDebug)
          throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "SmartCash is syncing with network...");
