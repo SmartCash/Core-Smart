@@ -159,10 +159,10 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
        smartReward = 10009307197536547;
   //     return SmartRewardPayments::Valid;
     }*/
-//    if (nHeight == 2025814) {
- //      smartReward = 10009307197536547;
-//       return SmartRewardPayments::Valid;
-//    }
+    if (nHeight == 2025814) {
+       smartReward = 1009307197536547;
+       return SmartRewardPayments::Valid;
+    }
 
     LOCK(cs_rewardscache);
 
@@ -223,8 +223,8 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
         if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799 || nHeight == 2025814) ) {
              result = SmartRewardPayments::Valid;
         } else if (nHeight == pResult->round.GetLastRoundBlock() && remainingPayouts.size() > 0) {
-            LogPrintf("ValidateRewardPayments -- missing payments, expected %d but got %d\n",
-                    pResult->round.GetPayeeCount(), pResult->round.GetPayeeCount() - remainingPayouts.size());
+            LogPrintf("ValidateRewardPayments -- missing payments, expected %d remaining %d\n",
+                    pResult->round.GetPayeeCount(), remainingPayouts.size());
             result = SmartRewardPayments::InvalidRewardList;
         }
     } else if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799 /*1992804*/) || result == SmartRewardPayments::NoRewardBlock) {
