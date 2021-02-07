@@ -187,8 +187,8 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
             (txCoinbase.vout.size() - (pResult->round.GetPayeeCount() % pResult->round.nBlockPayees)) :
             (txCoinbase.vout.size() - pResult->round.nBlockPayees);
 
-        LogPrintf("ValidateRewardPayments -- found rewardblock at height %d with %d payees\n",
-                nHeight, txCoinbase.vout.size() - nOffset);
+        LogPrintf("ValidateRewardPayments -- found rewardblock at height %d with %d txs and %d payees\n",
+                nHeight, txCoinbase.vout.size(), nOffset);
 
         for (auto txout = txCoinbase.vout.begin() + nOffset; txout != txCoinbase.vout.end(); ++txout) {
             // If in litemode, don't verify payouts individually
