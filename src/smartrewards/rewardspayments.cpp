@@ -147,18 +147,18 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 16647722035004;
       return SmartRewardPayments::Valid;
     }*/
-/*    if (nHeight == 2025799) {
+    if (nHeight == 2025799) {
        smartReward = 10009307197536547;
- //      return SmartRewardPayments::Valid;
+       return SmartRewardPayments::Valid;
     }
     if (nHeight == 2025804) {
        smartReward = 10009307197536547;
- //      return SmartRewardPayments::Valid;
+       return SmartRewardPayments::Valid;
     }
     if (nHeight == 2025809) {
        smartReward = 10009307197536547;
-  //     return SmartRewardPayments::Valid;
-    }*/
+       return SmartRewardPayments::Valid;
+    }
     if (nHeight == 2025814) {
        smartReward = 30336530615942;
        return SmartRewardPayments::Valid;
@@ -178,7 +178,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
         const CSmartRewardsRoundResult *pResult = prewards->GetLastRoundResult();
 
         // If first payee block, build a list of all expected payouts
-        if (nHeight == (pResult->round.endBlockHeight + nPayoutDelay)) {
+        if (nHeight == (pResult->round.endBlockHeight + nPayoutDelay) && nHeight != 2025799) {
             remainingPayouts.reserve(pResult->payouts.size());
             std::copy(pResult->payouts.begin(), pResult->payouts.end(), std::back_inserter(remainingPayouts));
         }
