@@ -209,13 +209,15 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                 });
 
                 if (payoutIt == remainingPayouts.end() && ((nHeight >= 2015000 && nHeight <= 1783799) ||
-                        nHeight != 2015814 || !fLiteMode)) {
+                        nHeight != 2015799 || nHeight != 2015804 || nHeight != 2015809 || nHeight != 2015814 || !fLiteMode)) {
                     LogPrintf("ValidateRewardPayments -- could not find block payee in payouts list\n");
                     result = SmartRewardPayments::InvalidRewardList;
                     LogPrintf("ValidateRewardPayments -- Payee %s\n",txout->ToString());
+                } else if  ( payoutIt == remainingPayouts.end() ) {
+                    smartReward += txout->nValue;
                 } else {
                     smartReward += txout->nValue;
-                    if ( payoutIt != remainingPayouts.end() ) { remainingPayouts.erase(payoutIt); }
+                    remainingPayouts.erase(payoutIt);
                 }
             }
         }
