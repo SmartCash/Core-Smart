@@ -147,22 +147,22 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 16647722035004;
       return SmartRewardPayments::Valid;
     }*/
-    if (nHeight == 2025799) {
+/*    if (nHeight == 2025799) {
        smartReward = 10009307197536547;
-       return SmartRewardPayments::Valid;
+ //      return SmartRewardPayments::Valid;
     }
     if (nHeight == 2025804) {
        smartReward = 10009307197536547;
-       return SmartRewardPayments::Valid;
+ //      return SmartRewardPayments::Valid;
     }
     if (nHeight == 2025809) {
        smartReward = 10009307197536547;
-       return SmartRewardPayments::Valid;
-    }
-    if (nHeight == 2025814) {
-       smartReward = 10009307197536547;
-       return SmartRewardPayments::Valid;
-    }
+  //     return SmartRewardPayments::Valid;
+    }*/
+//    if (nHeight == 2025814) {
+ //      smartReward = 10009307197536547;
+//       return SmartRewardPayments::Valid;
+//    }
 
     LOCK(cs_rewardscache);
 
@@ -192,7 +192,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
         for (auto txout = txCoinbase.vout.begin() + nOffset; txout != txCoinbase.vout.end(); ++txout) {
             // If in litemode, don't verify payouts individually
-            if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799) ) {
+            if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799 || nHeight == 2025814) ) {
               smartReward += txout->nValue;
             } else {
 
@@ -220,7 +220,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
         }
 
         // If last payee block, make sure all expected payouts have been found in blocks
-        if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799) ) {
+        if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799 || nHeight == 2025814) ) {
              result = SmartRewardPayments::Valid;
         } else if (nHeight == pResult->round.GetLastRoundBlock() && remainingPayouts.size() > 0) {
             LogPrintf("ValidateRewardPayments -- missing payments, expected %d but got %d\n",
