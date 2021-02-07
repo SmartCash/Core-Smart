@@ -107,7 +107,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000004dbf1dea993236b0e3");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000003fba5e0604a5b76d9975169d38521e3fbed206c2f05f3cbab062"); // 1795520
+        consensus.defaultAssumeValid = uint256S("0x0000000000003ef371a5fc044fcc4e5cb07c82bfa6172e88020c19091c44b7bc"); // 2025940
 
         // smartnode params
         consensus.nSmartnodePaymentsStartBlock = HF_V1_1_SMARTNODE_HEIGHT; // not true, but it's ok as long as it's less then nSmartnodePaymentsIncreaseBlock

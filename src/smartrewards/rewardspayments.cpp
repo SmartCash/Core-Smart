@@ -159,10 +159,10 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
        smartReward = 10009307197536547;
   //     return SmartRewardPayments::Valid;
     }*/
-    if (nHeight == 2025814) {
+/*    if (nHeight == 2025814) {
        smartReward = 1009307197536547;
        return SmartRewardPayments::Valid;
-    }
+    }*/
 
     LOCK(cs_rewardscache);
 
@@ -192,7 +192,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
         for (auto txout = txCoinbase.vout.begin() + nOffset; txout != txCoinbase.vout.end(); ++txout) {
             // If in litemode, don't verify payouts individually
-            if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799 || nHeight == 2025814) ) {
+            if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799)) {
               smartReward += txout->nValue;
             } else {
 
@@ -208,19 +208,20 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                         && (abs(txout->nValue - payout->reward) <= (float)payout->reward / 100.0f);
                 });
 
-                if (payoutIt == remainingPayouts.end()) {
+                if (payoutIt == remainingPayouts.end() && ((nHeight >= 2015000 && nHeight <= 1783799) ||
+                        nHeight != 2015814 || !fLiteMode)) {
                     LogPrintf("ValidateRewardPayments -- could not find block payee in payouts list\n");
                     result = SmartRewardPayments::InvalidRewardList;
                     LogPrintf("ValidateRewardPayments -- Payee %s\n",txout->ToString());
                 } else {
                     smartReward += txout->nValue;
-                    remainingPayouts.erase(payoutIt);
+                    if ( payoutIt != remainingPayouts.end() ) { remainingPayouts.erase(payoutIt); }
                 }
             }
         }
 
         // If last payee block, make sure all expected payouts have been found in blocks
-        if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799 || nHeight == 2025814) ) {
+        if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799) || nHeight == 2025814 ) {
              result = SmartRewardPayments::Valid;
         } else if (nHeight == pResult->round.GetLastRoundBlock() && remainingPayouts.size() > 0) {
             LogPrintf("ValidateRewardPayments -- missing payments, expected %d remaining %d\n",
