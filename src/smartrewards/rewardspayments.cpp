@@ -54,12 +54,12 @@ CSmartRewardResultEntryPtrList SmartRewardPayments::GetPayments(const CSmartRewa
         // As ennd index we use the startIndex + number of payees for this round.
         size_t nEndIndex = nStartIndex + nFinalBlockPayees;
         // If for any reason the calculations end up in an overflow of the vector return an error.
-        if( nEndIndex > pResult->payouts.size() ){
+/*        if( nEndIndex > pResult->payouts.size() ){
             // Should not happen!
             result = SmartRewardPayments::DatabaseError;
             return CSmartRewardResultEntryPtrList();
         }
-
+*/
         // Finally return the subvector with the payees of this blockHeight!
         return CSmartRewardResultEntryPtrList(pResult->payouts.begin() + nStartIndex, pResult->payouts.begin() + nEndIndex);
     }
@@ -147,7 +147,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 16647722035004;
       return SmartRewardPayments::Valid;
     }*/
-    if (nHeight == 2025799) {
+/*    if (nHeight == 2025799) {
        smartReward = 10009307197536547;
        return SmartRewardPayments::Valid;
     }
@@ -159,7 +159,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
        smartReward = 10009307197536547;
        return SmartRewardPayments::Valid;
     }
-    if (nHeight == 2025814) {
+*/    if (nHeight == 2025814) {
        smartReward = 30336530615942;
        return SmartRewardPayments::Valid;
     }
@@ -178,7 +178,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
         const CSmartRewardsRoundResult *pResult = prewards->GetLastRoundResult();
 
         // If first payee block, build a list of all expected payouts
-        if (nHeight == (pResult->round.endBlockHeight + nPayoutDelay) && nHeight != 2025799) {
+        if (nHeight == (pResult->round.endBlockHeight + nPayoutDelay)) {
             remainingPayouts.reserve(pResult->payouts.size());
             std::copy(pResult->payouts.begin(), pResult->payouts.end(), std::back_inserter(remainingPayouts));
         }
