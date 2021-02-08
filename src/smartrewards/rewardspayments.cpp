@@ -54,12 +54,12 @@ CSmartRewardResultEntryPtrList SmartRewardPayments::GetPayments(const CSmartRewa
         // As ennd index we use the startIndex + number of payees for this round.
         size_t nEndIndex = nStartIndex + nFinalBlockPayees;
         // If for any reason the calculations end up in an overflow of the vector return an error.
-/*        if( nEndIndex > pResult->payouts.size() ){
+        if( nEndIndex > pResult->payouts.size() ){
             // Should not happen!
             result = SmartRewardPayments::DatabaseError;
             return CSmartRewardResultEntryPtrList();
         }
-*/
+
         // Finally return the subvector with the payees of this blockHeight!
         return CSmartRewardResultEntryPtrList(pResult->payouts.begin() + nStartIndex, pResult->payouts.begin() + nEndIndex);
     }
@@ -139,27 +139,40 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 109307197536547;
       return SmartRewardPayments::Valid;
     }
-/*    if (nHeight == 1794799) {
-      smartReward = 264681879999584;
+    if (nHeight == 1992799) {
+      smartReward = 66590668213606;
+      return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 1992804) {
+      smartReward = 69767403092764;
+      return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 1992809) {
+      smartReward = 68993894112460;
+      return SmartRewardPayments::Valid;
+    }
+    if (nHeight == 1992814) {
+      smartReward = 32976434780252;
       return SmartRewardPayments::Valid;
     }
     if (nHeight == 2003814) {
       smartReward = 16647722035004;
       return SmartRewardPayments::Valid;
-    }*/
-/*    if (nHeight == 2025799) {
-       smartReward = 10009307197536547;
+    }
+
+    if (nHeight == 2025799) {
+       smartReward = 1009307197536547;
        return SmartRewardPayments::Valid;
     }
     if (nHeight == 2025804) {
-       smartReward = 10009307197536547;
+       smartReward = 1009307197536547;
        return SmartRewardPayments::Valid;
     }
     if (nHeight == 2025809) {
-       smartReward = 10009307197536547;
+       smartReward = 1009307197536547;
        return SmartRewardPayments::Valid;
     }
-*/    if (nHeight == 2025814) {
+    if (nHeight == 2025814) {
        smartReward = 30336530615942;
        return SmartRewardPayments::Valid;
     }
@@ -170,6 +183,44 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
     smartReward = 0;
 
+    const CTransaction &txCoinbase = block.vtx[0];
+
+    CSmartRewardResultEntryPtrList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, block.GetBlockTime(), result);
+
+    if( result == SmartRewardPayments::Valid && rewards.size() ) {
+
+            LogPrintf("ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nHeight, rewards.size());
+
+            for( auto payout : rewards )
+            {
+                if( payout->reward == 0 ) continue;
+
+                // Search for the reward payment in the transactions outputs.
+                auto isInOutputs = std::find_if(txCoinbase.vout.begin(), txCoinbase.vout.end(), [payout](const CTxOut &txout) -> bool {
+                    return payout->entry.id.GetScript() == txout.scriptPubKey && abs(payout->reward - txout.nValue) < 10000000;
+                });
+
+                // If the payout is not in the list?
+                if( isInOutputs == txCoinbase.vout.end() ){
+                    LogPrintf("ValidateRewardPayments -- missing payment %s",payout->ToString() );
+                    result = SmartRewardPayments::InvalidRewardList;
+                    // We could return here..But lets print which payments else are missing.
+                    // return result;
+                }else{
+                    smartReward += isInOutputs->nValue;
+                }
+            }
+
+    }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::NoRewardBlock ){
+        // If we are not synced yet, our database has any issue (should't happen), or the asked block
+        // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
+        result = SmartRewardPayments::Valid;
+    }
+
+    return result;
+}
+
+/*
     CSmartRewardResultEntryPtrList rewards =  SmartRewardPayments::GetPaymentsForBlock(nHeight, block.GetBlockTime(), result);
     if (result == SmartRewardPayments::Valid && rewards.size()) {
         const CTransaction &txCoinbase = block.vtx[0];
@@ -230,7 +281,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     pResult->round.GetPayeeCount(), remainingPayouts.size());
             result = SmartRewardPayments::InvalidRewardList;
         }
-    } else if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799 /*1992804*/) || result == SmartRewardPayments::NoRewardBlock) {
+    } else if (fLiteMode || (nHeight < 2015000 && nHeight > 1783799) || result == SmartRewardPayments::NoRewardBlock) {
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
         result = SmartRewardPayments::Valid;
@@ -238,3 +289,4 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
 
     return result;
 }
+*/
