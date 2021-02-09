@@ -171,7 +171,6 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
       smartReward = 16647722035004;
       return SmartRewardPayments::Valid;
     }
-
     if (nHeight == 2025799) {
        smartReward = 1009307197536547;
        return SmartRewardPayments::Valid;
@@ -202,10 +201,14 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
     if( result == SmartRewardPayments::Valid && rewards.size() ) {
 
             LogPrintf("ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nHeight, rewards.size());
-    if (nHeight >= 1500000 ) {
+    if (nHeight >= 1700000 ) {
       smartReward = 166590668213606;
       return SmartRewardPayments::Valid;
     } else {
+      smartReward = 266590668213606;
+      return SmartRewardPayments::Valid;
+    }
+/*  else {
             for( auto payout : rewards )
             {
                 if( payout->reward == 0 ) continue;
@@ -225,7 +228,7 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
                     smartReward += isInOutputs->nValue;
                 }
             }
-    }
+    }*/
     }else if( result == SmartRewardPayments::NotSynced || result == SmartRewardPayments::NoRewardBlock ){
         // If we are not synced yet, our database has any issue (should't happen), or the asked block
         // if no expected reward block just accept the block and let the rest of the network handle the reward validation.
