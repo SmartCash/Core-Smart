@@ -201,13 +201,8 @@ SmartRewardPayments::Result SmartRewardPayments::Validate(const CBlock& block, i
     if( result == SmartRewardPayments::Valid && rewards.size() ) {
 
             LogPrintf("ValidateRewardPayments -- found rewardblock at height %d with %d payees\n", nHeight, rewards.size());
-    if (nHeight >= 1700000 ) {
-      smartReward = 196590668213606;
+      smartReward = 300000000000000;
       return SmartRewardPayments::Valid;
-    } else {
-      smartReward = 266590668213606;
-      return SmartRewardPayments::Valid;
-    }
 /*  else {
             for( auto payout : rewards )
             {
