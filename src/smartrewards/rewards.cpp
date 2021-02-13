@@ -717,7 +717,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
             rEntry->balance += out.nValue;
         } else if (!tx.IsCoinBase() && (out.nValue >= 1000000 * COIN) && nHeight >= HF_V2_0_HEIGHT && MainNet() ||
                   !tx.IsCoinBase() && (out.nValue >= 1000 * COIN) && nHeight >= TESTNET_V2_0_HEIGHT && TestNet() ){
-           if ( (out.GetLockTime() > (nTime + 31556952 - 17200)) && (out.GetLockTime() < (nTime + 31556952 + 17200)) ) { // 1year within 2 days
+           if ( (out.GetLockTime() > (nTime + 31556952 - 432000)) && (out.GetLockTime() < (nTime + 31556952 + 432000)) ) { // 1year within 5 days
                if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                    rTermEntry->level = CTermRewardEntry::OneYear;
                    rTermEntry->percent = 35;
@@ -725,7 +725,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                    rTermEntry->balance = out.nValue;
                }
                LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n", rTermEntry->GetLevel());
-           } else if ( (out.GetLockTime() > (nTime + 63113904 - 17200)) && (out.GetLockTime() < (nTime + 63113904 + 17200)) ) { // 2 years within 2 days
+           } else if ( (out.GetLockTime() > (nTime + 63113904 - 432000)) && (out.GetLockTime() < (nTime + 63113904 + 432000)) ) { // 2 years within 5 days
                if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                    rTermEntry->level = CTermRewardEntry::TwoYears;
                    rTermEntry->percent = 40;
@@ -733,7 +733,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                    rTermEntry->balance = out.nValue;
                }
                LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n", rTermEntry->GetLevel());
-           } else if ( (out.GetLockTime() > (nTime + 94670856 - 17200)) && (out.GetLockTime() < (nTime + 94670856 + 17200)) ) { // 3 years within 2 days
+           } else if ( (out.GetLockTime() > (nTime + 94670856 - 432000)) && (out.GetLockTime() < (nTime + 94670856 + 432000)) ) { // 3 years within 5 days
                if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                    rTermEntry->level = CTermRewardEntry::ThreeYears;
                    rTermEntry->percent = 45;
@@ -741,7 +741,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                    rTermEntry->balance = out.nValue;
                }
                LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n", rTermEntry->GetLevel());
-           } else if ( (out.GetLockTime() > (nTime + 473354280 - 17200)) && (out.GetLockTime() < (nTime + 473354280 + 17200)) ) { // 15 years within 2 days
+           } else if ( (out.GetLockTime() > (nTime + 473354280 - 432000)) && (out.GetLockTime() < (nTime + 473354280 + 432000)) ) { // 15 years within 5 days
                if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                    rTermEntry->level = CTermRewardEntry::FifteenYears;
                    rTermEntry->percent = 50;
