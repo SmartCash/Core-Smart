@@ -33,7 +33,7 @@ private:
     QComboBox *timeLockCombo;
     QSpinBox *timeLockCustomBlocks;
     QDateTimeEdit *timeLockCustomDate;
-    std::vector<std::pair<QString, int>> timeLockItems;
+    std::vector<std::pair<QString, int64_t>> timeLockItems;
     int64_t nLockTime;
     bool bShowTermRewards;
 

@@ -72,17 +72,17 @@ void TimeLockSettingsWidget::updateTimeLockCombo()
     } else {
         timeLockItems.emplace_back("LockTime", 0);
     }
-    timeLockItems.emplace_back("1 month", (int)(ONE_MONTH + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("2 months", (int)( (2 * ONE_MONTH) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("3 months", (int)( (3 * ONE_MONTH) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("6 months", (int)( (6 * ONE_MONTH) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-    timeLockItems.emplace_back("1 year", (int)(ONE_YEAR + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+    timeLockItems.emplace_back("1 month", (int64_t)ONE_MONTH);
+    timeLockItems.emplace_back("2 months", (int64_t)(2 * ONE_MONTH));
+    timeLockItems.emplace_back("3 months", (int64_t)(3 * ONE_MONTH));
+    timeLockItems.emplace_back("6 months", (int64_t)(6 * ONE_MONTH));
+    timeLockItems.emplace_back("1 year", (int64_t)ONE_YEAR);
 
     if (bShowTermRewards) {
-        timeLockItems.emplace_back("1 year TermRewards & 1MM+", (int)( (1 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-        timeLockItems.emplace_back("2 year TermRewards & 1MM+", (int)( (2 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-        timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int)( (3 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
-        timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int)( (15 * ONE_YEAR) + (QDateTime::currentMSecsSinceEpoch() / 1000) ));
+        timeLockItems.emplace_back("1 year TermRewards & 1MM+", (int64_t)(1 * ONE_YEAR));
+        timeLockItems.emplace_back("2 year TermRewards & 1MM+", (int64_t)(2 * ONE_YEAR));
+        timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int64_t)(3 * ONE_YEAR));
+        timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int64_t)(15 * ONE_YEAR));
     } else {
         timeLockItems.emplace_back("TermRewards Not Active Until February 6th", 0);
     }
@@ -117,7 +117,15 @@ void TimeLockSettingsWidget::timeLockComboChanged(int index)
     {
         timeLockCustomDate->setVisible(false);
         timeLockCustomBlocks->setVisible(false);
-        nLockTime = timeLockItems[index].second > 0 ? chainActive.Height() + timeLockItems[index].second : 0;
+
+        int64_t lockTime = timeLockItems[index].second;
+        if (lockTime > LOCKTIME_THRESHOLD) {
+            nLockTime = lockTime + (QDateTime::currentMSecsSinceEpoch() / 1000);
+        } else if (lockTime > 0) {
+            nLockTime = lockTime + chainActive.Height();
+        } else {
+            nLockTime = 0;
+        }
     }
 }
 
