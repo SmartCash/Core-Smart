@@ -225,7 +225,7 @@ void SmartnodeList::updateMySmartnodeInfo(QString strAlias, QString strAddr, con
     SmartnodeWidgetItem *aliasItem = new SmartnodeWidgetItem(strAlias);
     SmartnodeWidgetItem *addrItem = new SmartnodeWidgetItem(fFound ? QString::fromStdString(infoMn.addr.ToString()) : strAddr);
     SmartnodeWidgetItem *protocolItem = new SmartnodeWidgetItem(QString::number(fFound ? infoMn.nProtocolVersion : -1));
-    SmartnodeWidgetItem *statusItem = new SmartnodeWidgetItem(QString::fromStdString(fFound ? CSmartnode::StateToString(infoMn.nActiveState) : "MISSING"));
+    SmartnodeWidgetItem *statusItem = new SmartnodeWidgetItem(QString::fromStdString(fFound ? CSmartnode::StateToString(infoMn.nActiveState) : "USE SAPI"));
 
     int activeSeconds = fFound ? (infoMn.nTimeLastPing - infoMn.sigTime) : 0;
     activeSeconds = activeSeconds < 0 ? 0: activeSeconds;
