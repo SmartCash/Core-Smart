@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <utility>
+#include <tuple>
 
 #include <QWidget>
 #include <QComboBox>
@@ -33,7 +34,7 @@ private:
     QComboBox *timeLockCombo;
     QSpinBox *timeLockCustomBlocks;
     QDateTimeEdit *timeLockCustomDate;
-    std::vector<std::pair<QString, int64_t>> timeLockItems;
+    std::vector<std::tuple<QString, int64_t, bool>> timeLockItems;
     int64_t nLockTime;
     bool bShowTermRewards;
 

@@ -67,23 +67,23 @@ void TimeLockSettingsWidget::setShowTermRewards(bool show)
 void TimeLockSettingsWidget::updateTimeLockCombo()
 {
     timeLockItems.clear();
-    timeLockItems.emplace_back("LockTime or TermRewards", 0);
-    timeLockItems.emplace_back("1 month", (int64_t)ONE_MONTH);
-    timeLockItems.emplace_back("2 months", (int64_t)(2 * ONE_MONTH));
-    timeLockItems.emplace_back("3 months", (int64_t)(3 * ONE_MONTH));
-    timeLockItems.emplace_back("6 months", (int64_t)(6 * ONE_MONTH));
-    timeLockItems.emplace_back("1 year", (int64_t)ONE_YEAR);
-    timeLockItems.emplace_back("1 year TermRewards & 1MM+", (int64_t)(1 * ONE_YEAR));
-    timeLockItems.emplace_back("2 year TermRewards & 1MM+", (int64_t)(2 * ONE_YEAR));
-    timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int64_t)(3 * ONE_YEAR));
-    timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int64_t)(15 * ONE_YEAR));
+    timeLockItems.emplace_back("LockTime or TermRewards", 0, false);
+    timeLockItems.emplace_back("1 month", (int64_t)ONE_MONTH, true);
+    timeLockItems.emplace_back("2 months", (int64_t)(2 * ONE_MONTH), true);
+    timeLockItems.emplace_back("3 months", (int64_t)(3 * ONE_MONTH), true);
+    timeLockItems.emplace_back("6 months", (int64_t)(6 * ONE_MONTH), true);
+    timeLockItems.emplace_back("1 year", (int64_t)ONE_YEAR, true);
+    timeLockItems.emplace_back("1 year TermRewards & 1MM+", (int64_t)(1 * ONE_YEAR), true);
+    timeLockItems.emplace_back("2 year TermRewards & 1MM+", (int64_t)(2 * ONE_YEAR), true);
+    timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int64_t)(3 * ONE_YEAR), true);
+    timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int64_t)(15 * ONE_YEAR), true);
 
-    timeLockItems.emplace_back("Custom (until block)", -1);
-    timeLockItems.emplace_back("Custom (until date)", -1);
+    timeLockItems.emplace_back("Custom (until block)", -1, false);
+    timeLockItems.emplace_back("Custom (until date)", -1, true);
 
     timeLockCombo->clear();
     for (const auto &i : timeLockItems) {
-        timeLockCombo->addItem(i.first);
+        timeLockCombo->addItem(std::get<0>(i));
     }
 }
 
@@ -93,12 +93,12 @@ void TimeLockSettingsWidget::timeLockComboChanged(int index)
         return;
     }
 
-    if (timeLockItems[index].first == "Custom (until block)") {
+    if (std::get<0>(timeLockItems[index]) == "Custom (until block)") {
         timeLockCustomDate->setVisible(false);
         timeLockCustomBlocks->setVisible(true);
         nLockTime = timeLockCustomBlocks->value();
     }
-    else if (timeLockItems[index].first == "Custom (until date)")
+    else if (std::get<0>(timeLockItems[index]) == "Custom (until date)")
     {
         timeLockCustomDate->setVisible(true);
         timeLockCustomBlocks->setVisible(false);
@@ -109,11 +109,13 @@ void TimeLockSettingsWidget::timeLockComboChanged(int index)
         timeLockCustomDate->setVisible(false);
         timeLockCustomBlocks->setVisible(false);
 
-        int64_t lockTime = timeLockItems[index].second;
-        if (lockTime > LOCKTIME_THRESHOLD) {
-            nLockTime = lockTime + (QDateTime::currentMSecsSinceEpoch() / 1000);
-        } else if (lockTime > 0) {
-            nLockTime = lockTime + chainActive.Height();
+        int64_t lockTime = std::get<1>(timeLockItems[index]);
+        if (lockTime > 0) {
+            if (std::get<2>(timeLockItems[index])) {
+                nLockTime = lockTime + (QDateTime::currentMSecsSinceEpoch() / 1000);
+            } else {
+                nLockTime = lockTime + chainActive.Height();
+            }
         } else {
             nLockTime = 0;
         }
