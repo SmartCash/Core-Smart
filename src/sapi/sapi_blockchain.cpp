@@ -101,10 +101,11 @@ bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransaction &tx,
     BOOST_FOREACH(const CTxIn& txin, tx.vin) {
 
         UniValue in(UniValue::VOBJ);
-        if (tx.IsCoinBase())
+        if (tx.IsCoinBase()) {
             in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
-        else {
-
+	} else if (tx.IsZerocoinSpend()) {
+            in.pushKV("zerocoin", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+	} else {
             CTransaction txInput;
             uint256 hashBlockIn;
             if (!GetTransaction(txin.prevout.hash, txInput, Params().GetConsensus(), hashBlockIn, false))
