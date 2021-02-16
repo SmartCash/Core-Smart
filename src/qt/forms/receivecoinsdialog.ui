@@ -169,10 +169,10 @@
             </property>
            </widget>
           </item>
-          <item>
-           <widget class="TimeLockSettingsWidget" name="timeLockSettings" native="true" />
+<!--          <item>
+            <widget class="TimeLockSettingsWidget" name="timeLockSettings" native="true" />
           </item>
-          <item>
+-->          <item>
            <widget class="QCheckBox" name="checkUseInstantSend">
             <property name="text">
              <string>Request InstantPay</string>

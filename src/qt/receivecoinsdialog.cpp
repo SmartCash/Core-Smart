@@ -156,7 +156,7 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
         }else{
           receive = AddressTableModel::Receive;
         }
-        address = model->getAddressTableModel()->addRow(receive, label, "", ui->timeLockSettings->getLockTime());
+//        address = model->getAddressTableModel()->addRow(receive, label, "", ui->timeLockSettings->getLockTime());
     }
     SendCoinsRecipient info(address, label,
         ui->reqAmount->value(), ui->reqMessage->text());
