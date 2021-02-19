@@ -191,7 +191,7 @@ void CSmartnodeMan::CheckAndRemove(CConnman& connman)
             uint256 hash = mnb.GetHash();
             // If collateral was spent ...
             if (it->second.IsOutpointSpent()) {
-                LogPrint("smartnode", "CSmartnodeMan::CheckAndRemove -- Removing Smartnode: %s  addr=%s  %i now\n", it->second.GetStateString(), it->second.addr.ToString(), size() - 1);
+                LogPrint("smartnode", "CSmartnodeMan::CheckAndRemove -- Removing Spent Smartnode: %s  addr=%s  %i now\n", it->second.GetStateString(), it->second.addr.ToString(), size() - 1);
 
                 // erase all of the broadcasts we've seen from this txin, ...
                 mapSeenSmartnodeBroadcast.erase(hash);
@@ -201,6 +201,12 @@ void CSmartnodeMan::CheckAndRemove(CConnman& connman)
                 it->second.FlagGovernanceItemsAsDirty();
                 mapSmartnodes.erase(it++);
                 fSmartnodesRemoved = true;
+            // If node is older than the min peer version, remove it.
+            } else if (it->second.nProtocolVersion < MIN_PEER_PROTO_VERSION) {
+                LogPrint("smartnode", "CSmartnodeMan::CheckAndRemove -- Removing Old Version Smartnode: %s  addr=%s  %i now\n", it->second.GetStateString(), it->second.addr.ToString(), size() - 1);
+                it->second.FlagGovernanceItemsAsDirty();
+                mapSmartnodes.erase(it++);
+                fSmartnodesRemoved=true;
             } else {
                 bool fAsk = (nAskForMnbRecovery > 0) &&
                             smartnodeSync.IsSynced() &&
