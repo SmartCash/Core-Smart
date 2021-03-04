@@ -103,6 +103,7 @@ static bool address_utxos(HTTPRequest* req, const std::map<std::string, std::str
 static bool address_utxos_amount(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_transaction(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool address_mempool(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 
 SAPI::EndpointGroup addressEndpoints = {
     "address",
@@ -164,6 +165,16 @@ SAPI::EndpointGroup addressEndpoints = {
                 SAPI::BodyParameter(SAPI::Keys::pageSize,    new SAPI::Validation::IntRange(1,100)),
                 SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true),
                 SAPI::BodyParameter(SAPI::Keys::direction,   new SAPI::Validation::TxDirection(), true)
+            }
+        },
+        {
+            "mempool/{address}", HTTPRequest::GET, UniValue::VNULL, address_mempool,
+            {
+//                SAPI::BodyParameter(SAPI::Keys::address,     new SAPI::Validation::SmartCashAddress()),
+//                SAPI::BodyParameter(SAPI::Keys::pageNumber,  new SAPI::Validation::IntRange(1,INT_MAX)),
+//                SAPI::BodyParameter(SAPI::Keys::pageSize,    new SAPI::Validation::IntRange(1,100)),
+//                SAPI::BodyParameter(SAPI::Keys::ascending,   new SAPI::Validation::Bool(), true),
+//                SAPI::BodyParameter(SAPI::Keys::direction,   new SAPI::Validation::TxDirection(), true)
             }
         }
     }
@@ -308,6 +319,65 @@ static bool GetAddressesTransactions(HTTPRequest* req, std::string addrStr,
         }
         tx++;
     }
+
+    return true;
+}
+
+bool timestampSorta(std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> a,
+                   std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> b) {
+    return a.second.time < b.second.time;
+}
+
+static bool address_mempool(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+
+    if ( !mapPathParams.count("address") ){
+        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "No SmartCash address specified. Use /address/mempool/<smartcash_address>");
+    }
+
+    std::string addrStr = mapPathParams.at("address");
+    CBitcoinAddress address(addrStr);
+    uint160 hashBytes;
+
+    std::vector<std::pair<uint160, int> > addresses;
+
+//    if (!getAddressesFromParams(Params, addresses)) {
+//    if (!address.GetIndexKey(hashBytes, type)) {
+//        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Invalid address: " + addrStr);
+//    }
+
+    std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > indexes;
+
+    if (!mempool.getAddressIndex(addresses, indexes)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "No information available for " + addrStr);
+    }
+
+    std::sort(indexes.begin(), indexes.end(), timestampSorta);
+
+    UniValue result(UniValue::VARR);
+
+    for (std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> >::iterator it = indexes.begin();
+         it != indexes.end(); it++) {
+
+        std::string address;
+        if (!getAddressFromIndex(it->first.type, it->first.addressBytes, address)) {
+            return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Unknown address type");
+        }
+
+        UniValue delta(UniValue::VOBJ);
+        delta.push_back(Pair("address", address));
+        delta.push_back(Pair("txid", it->first.txhash.GetHex()));
+        delta.push_back(Pair("index", (int)it->first.index));
+        delta.push_back(Pair("satoshis", it->second.amount));
+        delta.push_back(Pair("timestamp", it->second.time));
+        if (it->second.amount < 0) {
+            delta.push_back(Pair("prevtxid", it->second.prevhash.GetHex()));
+            delta.push_back(Pair("prevout", (int)it->second.prevout));
+        }
+        result.push_back(delta);
+    }
+
+    SAPI::WriteReply(req, result);
 
     return true;
 }
