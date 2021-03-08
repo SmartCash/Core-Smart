@@ -338,16 +338,17 @@ static bool address_mempool(HTTPRequest* req, const std::map<std::string, std::s
     std::string addrStr = mapPathParams.at("address");
     CBitcoinAddress address(addrStr);
     uint160 hashBytes;
+    int type = 0;
 
-    std::vector<std::pair<uint160, int> > addresses;
+    if (!address.GetIndexKey(hashBytes, type)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "Invalid address: " + addrStr);
+    }
 
-//    if (!getAddressesFromParams(Params, addresses)) {
-//    if (!address.GetIndexKey(hashBytes, type)) {
-//        return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Invalid address: " + addrStr);
-//    }
+    std::vector<std::pair<uint160, int> > addresses = {
+        {hashBytes, type}
+    };
 
-    std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > indexes;
-
+    std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta>> indexes;
     if (!mempool.getAddressIndex(addresses, indexes)) {
         return SAPI::Error(req, SAPI::AddressNotFound, "No information available for " + addrStr);
     }
