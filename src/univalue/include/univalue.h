@@ -85,6 +85,7 @@ public:
     bool isArray() const { return (typ == VARR); }
     bool isObject() const { return (typ == VOBJ); }
 
+    bool insert(int index, const UniValue& val);
     bool push_back(const UniValue& val);
     bool push_back(const std::string& val_) {
         UniValue tmpVal(VSTR, val_);

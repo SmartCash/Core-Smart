@@ -124,6 +124,18 @@ bool UniValue::setObject()
     return true;
 }
 
+bool UniValue::insert(int index, const UniValue& val)
+{
+    if (typ != VARR)
+        return false;
+
+    if (index >= values.size())
+        return false;
+
+    values.insert(values.begin() + index, val);
+    return true;
+}
+
 bool UniValue::push_back(const UniValue& val)
 {
     if (typ != VARR)
