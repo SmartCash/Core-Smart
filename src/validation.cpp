@@ -2086,10 +2086,6 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
 
             // At this point, all of txundo.vprevout should have been moved out.
         }
-
-        if( !fIsVerifyDB ){
-            prewards->UndoTransaction((CBlockIndex*) pindex, tx, view, params, smartRewardsResult);
-        }
     }
 
 
@@ -2393,9 +2389,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         std::map<std::pair<uint160, int>, CAmount> vecInputs;
         std::map<std::pair<uint160, int>, CAmount> vecOutputs;
 
-        int nCurrentRewardsRound = prewards->GetCurrentRound()->number;
-        bool fProcessRewards = !fIsVerifyDB && prewards->ProcessTransaction(pindex, tx, nCurrentRewardsRound);
-
         nInputs += tx.vin.size();
         nSigOps += GetLegacySigOpCount(tx);
         if (nSigOps > MaxBlockSigOps())
@@ -2429,10 +2422,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 const CTxIn input = tx.vin[j];
                 const Coin& coin = prevouts[j];
                 const CTxOut &prevout = coin.out;
-
-                if( fProcessRewards && !input.scriptSig.IsZerocoinSpend() ){
-                    prewards->ProcessInput(tx, prevout, coin.nHeight, nCurrentRewardsRound, smartRewardsResult);
-                }
 
                 if (fAddressIndex || fSpentIndex || fDepositIndex)
                 {
@@ -2520,10 +2509,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         for (unsigned int k = 0; k < tx.vout.size(); k++) {
 
             const CTxOut &out = tx.vout[k];
-
-            if( fProcessRewards && !out.scriptPubKey.IsZerocoinMint() ){
-                prewards->ProcessOutput(tx, out, nCurrentRewardsRound, pindex->nHeight, pindex->nTime, smartRewardsResult);
-            }
 
             if (fAddressIndex || fDepositIndex) {
 

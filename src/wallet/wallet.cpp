@@ -2480,7 +2480,6 @@ bool CWallet::SelectCoinsDark(CAmount nValueMin, CAmount nValueMax, std::vector<
         //do not allow inputs less than 1/10th of minimum value
         if(out.tx->vout[out.i].nValue < nValueMin/10) continue;
         //do not allow collaterals to be selected
-        if(IsCollateralAmount(out.tx->vout[out.i].nValue)) continue;
         if(fSmartNode && out.tx->vout[out.i].nValue == 100000*COIN) continue; //smartnode input
 
         if(nValueRet + out.tx->vout[out.i].nValue <= nValueMax){

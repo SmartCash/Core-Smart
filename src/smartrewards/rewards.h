@@ -110,8 +110,8 @@ public:
     void ApplyRoundUpdateResult(const CSmartRewardsUpdateResult& result);
     void UpdateRoundPayoutParameter(int64_t nBlockPayees, int64_t nBlockInterval);
     void UpdateRoundEnd(int nBlockHeight, int64_t nBlockTime);
-    void UpdateRoundPercent(double dPercent);
     void UpdateHeights(const int nHeight, const int nRewardHeight);
+    void UpdatePercentage();
 
     const CSmartRewardBlock* GetCurrentBlock() const { return &block; }
     const CSmartRewardRound* GetCurrentRound() const { return &round; }
@@ -139,7 +139,6 @@ class CSmartRewards
     mutable CCriticalSection csRounds;
 
     void UpdateRoundPayoutParameter();
-    void UpdatePercentage();
 
     bool ReadRewardEntry(const CSmartAddress& id, CSmartRewardEntry& entry);
     bool GetRewardEntries(CSmartRewardEntryMap& entries);
@@ -179,10 +178,13 @@ public:
     bool CommitUndoBlock(CBlockIndex* pIndex, const CSmartRewardsUpdateResult& result);
 
     bool GetRewardEntry(const CSmartAddress& id, CSmartRewardEntry*& entry, bool fCreate);
+    bool GetRewardEntryByScript(const CScript &script, CSmartRewardEntry* &entry, bool fCreate);
+    bool GetRewardEntryByInput(const CTxIn &txin, CSmartRewardEntry* &entry, CTxOut &txout, const CBlock &currentBlock,
+        bool fCreate);
     bool GetTermRewardEntry(const std::pair<CSmartAddress, uint256>& id, CTermRewardEntry*& entry, bool fCreate);
     bool GetTermRewardsEntries(CTermRewardEntryMap& entries);
 
-    void EvaluateRound(CSmartRewardRound& next);
+    void EvaluateRound(CSmartRewardRound& next, CBlockIndex *currentBlockIndex);
     bool StartFirstRound(const CSmartRewardRound& next, const CSmartRewardEntryList& entries);
     bool FinalizeRound(const CSmartRewardRound& current, const CSmartRewardRound& next, const CSmartRewardEntryList& entries, const CSmartRewardResultEntryList& results);
     bool UndoFinalizeRound(const CSmartRewardRound& current, const CSmartRewardResultEntryList& results);

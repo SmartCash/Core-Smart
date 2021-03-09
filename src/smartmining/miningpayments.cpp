@@ -220,7 +220,7 @@ static bool CheckSignature(const CBlock &block, const CBlockIndex *pindex)
 
 CAmount GetMiningReward(CBlockIndex * pindex, CAmount blockReward)
 {
-    if( pindex->nHeight < HF_V1_3_HEIGHT ){ 
+    if( pindex->nHeight < HF_V1_3_HEIGHT ){
     return blockReward / 20; // 5%
     }
     else {
@@ -329,16 +329,16 @@ bool SmartMining::Validate(const CBlock &block, CBlockIndex *pindex, CValidation
         return state.DoS(0, error("ConnectBlock(SMARTCASH): couldn't find smartnode payments"),
                                 REJECT_INVALID, "bad-cb-payee");
     }
-//if (pindex->nHeight != 2025799 && pindex->nHeight != 2025804 && pindex->nHeight != 2025809 && pindex->nHeight != 2025814){
+
     if( SmartRewardPayments::Validate(block,pindex->nHeight, smartReward) != SmartRewardPayments::Valid ){
         LogPrintf("SmartMining::Validate - Invalid smartreward payment %s\n", block.vtx[0].ToString());
         return state.DoS(100, false, REJECT_INVALID_SMARTREWARD_PAYMENTS,
                      "CTransaction::CheckTransaction() : SmartReward payment list is invalid");
     }
-//}
+
     CAmount expectedCoinbase = nFees + nodeReward + hiveReward + smartReward + miningReward;
 
-    if( pindex->nHeight > 1 && coinbase > expectedCoinbase && pindex->nHeight != 2025799 && pindex->nHeight != 2025804 && 
+    if( pindex->nHeight > 1 && coinbase > expectedCoinbase && pindex->nHeight != 2025799 && pindex->nHeight != 2025804 &&
             pindex->nHeight != 2025809 && pindex->nHeight != 2025814 ){
         LogPrintf("SmartMining::Validate - Coinbase %d.%08d is higher than Expected %d.%08d! %s\n", coinbase / COIN, coinbase % COIN, expectedCoinbase / COIN, expectedCoinbase % COIN, block.vtx[0].ToString());
         return state.DoS(100, false, REJECT_INVALID,

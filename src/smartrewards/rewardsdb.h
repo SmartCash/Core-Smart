@@ -192,6 +192,7 @@ public:
     }
 
     void UpdatePayoutParameter();
+    void UpdatePercentage();
 
     int GetPayeeCount() const { return nPayeeCount; }
     int GetRewardBlocks() const { return nRewardBlocks; }

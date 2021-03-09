@@ -468,6 +468,11 @@ void CSmartRewardRound::UpdatePayoutParameter()
     }
 }
 
+void CSmartRewardRound::UpdatePercentage()
+{
+    percent = (eligibleSmart - disqualifiedSmart) > 0 ? double(rewards) / (eligibleSmart - disqualifiedSmart) : 0.0;
+}
+
 string CSmartRewardRound::ToString() const
 {
     std::stringstream s;
