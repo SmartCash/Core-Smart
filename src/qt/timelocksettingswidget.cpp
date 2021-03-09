@@ -67,16 +67,18 @@ void TimeLockSettingsWidget::setShowTermRewards(bool show)
 void TimeLockSettingsWidget::updateTimeLockCombo()
 {
     timeLockItems.clear();
-    timeLockItems.emplace_back("LockTime or TermRewards", 0, false);
+    timeLockItems.emplace_back(bShowTermRewards ? "LockTime or TermRewards" : "LockTime", 0, false);
     timeLockItems.emplace_back("1 month", (int64_t)ONE_MONTH, true);
     timeLockItems.emplace_back("2 months", (int64_t)(2 * ONE_MONTH), true);
     timeLockItems.emplace_back("3 months", (int64_t)(3 * ONE_MONTH), true);
     timeLockItems.emplace_back("6 months", (int64_t)(6 * ONE_MONTH), true);
     timeLockItems.emplace_back("1 year", (int64_t)ONE_YEAR, true);
-    timeLockItems.emplace_back("1 year TermRewards & 1MM+", (int64_t)(1 * ONE_YEAR), true);
-    timeLockItems.emplace_back("2 year TermRewards & 1MM+", (int64_t)(2 * ONE_YEAR), true);
-    timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int64_t)(3 * ONE_YEAR), true);
-    timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int64_t)(15 * ONE_YEAR), true);
+    if (bShowTermRewards) {
+        timeLockItems.emplace_back("1 year TermRewards & 1MM+", (int64_t)(1 * ONE_YEAR), true);
+        timeLockItems.emplace_back("2 year TermRewards & 1MM+", (int64_t)(2 * ONE_YEAR), true);
+        timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int64_t)(3 * ONE_YEAR), true);
+        timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int64_t)(15 * ONE_YEAR), true);
+    }
 
     timeLockItems.emplace_back("Custom (until block)", -1, false);
     timeLockItems.emplace_back("Custom (until date)", -1, true);
