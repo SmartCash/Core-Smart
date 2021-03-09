@@ -180,6 +180,99 @@ SAPI::EndpointGroup addressEndpoints = {
     }
 };
 
+bool timestampSorta(std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> a,
+                   std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> b) {
+    return a.second.time < b.second.time;
+}
+
+static bool GetAddressMempool(HTTPRequest* req, const std::string &addr, UniValue &result)
+{
+    std::string address;
+    uint160 hashBytes;
+    int type = 0;
+
+    if (!CBitcoinAddress(addr).GetIndexKey(hashBytes, type)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "Invalid address: " + addr);
+    }
+
+    std::vector<std::pair<uint160, int> > addresses = {
+        {hashBytes, type}
+    };
+
+    std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta>> indexes;
+    if (!mempool.getAddressIndex(addresses, indexes)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "No information available for address in the mempool");
+    }
+
+    std::sort(indexes.begin(), indexes.end(), timestampSorta);
+
+    for (std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> >::iterator it = indexes.begin();
+        it != indexes.end(); it++) {
+
+        if (!getAddressFromIndex(it->first.type, it->first.addressBytes, address)) {
+            return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Unknown address type");
+        }
+
+        UniValue delta(UniValue::VOBJ);
+        delta.push_back(Pair("address", address));
+        delta.push_back(Pair("txid", it->first.txhash.GetHex()));
+        delta.push_back(Pair("index", (int)it->first.index));
+        delta.push_back(Pair("satoshis", it->second.amount));
+        delta.push_back(Pair("timestamp", it->second.time));
+        if (it->second.amount < 0) {
+            delta.push_back(Pair("prevtxid", it->second.prevhash.GetHex()));
+            delta.push_back(Pair("prevout", (int)it->second.prevout));
+        }
+        result.push_back(delta);
+    }
+
+    return true;
+}
+
+static bool GetAddressMempoolFull(HTTPRequest* req, const std::string &addr, UniValue &result)
+{
+    std::string address;
+    CTransaction tx;
+    uint160 hashBytes;
+    int type = 0;
+
+    if (!CBitcoinAddress(addr).GetIndexKey(hashBytes, type)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "Invalid address: " + addr);
+    }
+
+    std::vector<std::pair<uint160, int> > addresses = {
+        {hashBytes, type}
+    };
+
+    std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta>> indexes;
+    if (!mempool.getAddressIndex(addresses, indexes)) {
+        return SAPI::Error(req, SAPI::AddressNotFound, "No information available for address in the mempool");
+    }
+
+    std::sort(indexes.begin(), indexes.end(), timestampSorta);
+
+    for (std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> >::iterator it = indexes.begin();
+        it != indexes.end(); it++) {
+
+        if (!getAddressFromIndex(it->first.type, it->first.addressBytes, address)) {
+            return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Unknown address type");
+        }
+
+        if (!mempool.lookup(it->first.txhash, tx)) {
+            return SAPI::Error(req, SAPI::TxNotFound, "Could not find TX in mempool");
+        }
+
+        UniValue txObj(UniValue::VOBJ);
+        if (!GetTransactionInfo(req, uint256{}, tx, txObj, true)) {
+           return false;
+        }
+
+        result.push_back(txObj);
+    }
+
+    return true;
+}
+
 static bool GetAddressesBalances(HTTPRequest* req,
                                  std::vector<std::string> vecAddr,
                                  std::vector<CAddressBalance> &vecBalances,
@@ -323,11 +416,6 @@ static bool GetAddressesTransactions(HTTPRequest* req, std::string addrStr,
     return true;
 }
 
-bool timestampSorta(std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> a,
-                   std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> b) {
-    return a.second.time < b.second.time;
-}
-
 static bool address_mempool(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
 
@@ -336,46 +424,9 @@ static bool address_mempool(HTTPRequest* req, const std::map<std::string, std::s
     }
 
     std::string addrStr = mapPathParams.at("address");
-    CBitcoinAddress address(addrStr);
-    uint160 hashBytes;
-    int type = 0;
-
-    if (!address.GetIndexKey(hashBytes, type)) {
-        return SAPI::Error(req, SAPI::AddressNotFound, "Invalid address: " + addrStr);
-    }
-
-    std::vector<std::pair<uint160, int> > addresses = {
-        {hashBytes, type}
-    };
-
-    std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta>> indexes;
-    if (!mempool.getAddressIndex(addresses, indexes)) {
-        return SAPI::Error(req, SAPI::AddressNotFound, "No information available for " + addrStr);
-    }
-
-    std::sort(indexes.begin(), indexes.end(), timestampSorta);
-
     UniValue result(UniValue::VARR);
-
-    for (std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> >::iterator it = indexes.begin();
-         it != indexes.end(); it++) {
-
-        std::string address;
-        if (!getAddressFromIndex(it->first.type, it->first.addressBytes, address)) {
-            return SAPI::Error(req, HTTPStatus::BAD_REQUEST, "Unknown address type");
-        }
-
-        UniValue delta(UniValue::VOBJ);
-        delta.push_back(Pair("address", address));
-        delta.push_back(Pair("txid", it->first.txhash.GetHex()));
-        delta.push_back(Pair("index", (int)it->first.index));
-        delta.push_back(Pair("satoshis", it->second.amount));
-        delta.push_back(Pair("timestamp", it->second.time));
-        if (it->second.amount < 0) {
-            delta.push_back(Pair("prevtxid", it->second.prevhash.GetHex()));
-            delta.push_back(Pair("prevout", (int)it->second.prevout));
-        }
-        result.push_back(delta);
+    if (!GetAddressMempool(req, addrStr, result)) {
+        return false;
     }
 
     SAPI::WriteReply(req, result);
@@ -907,12 +958,6 @@ static bool address_transaction(HTTPRequest* req, const std::map<std::string, st
     if (totalNumTxs < 1)
         return SAPI::Error(req, SAPI::PageOutOfRange, "No transactions available for this address.");
 
-    int nPages = totalNumTxs / nPageSize;
-    if (totalNumTxs % nPageSize || (totalNumTxs < nPageSize) ) nPages++;
-
-    if (nPageNumber > nPages)
-        return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
-
     UniValue transactions(UniValue::VARR);
     for (const auto &txEntry : vecResult) {
       std::string txDirection = std::get<2>(txEntry) > 0 ? "Received" : "Sent";
@@ -926,11 +971,6 @@ static bool address_transaction(HTTPRequest* req, const std::map<std::string, st
       CBlockIndex* pBlockindex = chainActive[std::get<1>(txEntry)];
       if(!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus()))
           return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
-
-      int confirmations = -1;
-      // Only report confirmations if the block is on the main chain
-      if (chainActive.Contains(pBlockindex))
-          confirmations = chainActive.Height() - pBlockindex->nHeight + 1;
 
       UniValue txValue(UniValue::VOBJ);
       txValue.pushKV("address", addrStr);
@@ -949,6 +989,24 @@ static bool address_transaction(HTTPRequest* req, const std::map<std::string, st
 
       transactions.push_back(txValue);
     }
+
+    // Add mempool entries corresponding to the address if any
+    UniValue result(UniValue::VARR);
+    if (!GetAddressMempoolFull(req, addrStr, result)) {
+        return false;
+    }
+
+    totalNumTxs += result.size();
+    for (size_t i = 0; i < result.size(); i++) {
+        transactions.push_back(result[i]);
+    }
+
+    int nPages = totalNumTxs / nPageSize;
+    if (totalNumTxs % nPageSize || (totalNumTxs < nPageSize) ) nPages++;
+
+    if (nPageNumber > nPages)
+        return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
+
 
     UniValue response(UniValue::VOBJ);
     response.pushKV("count", totalNumTxs);
@@ -982,12 +1040,6 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
     if (totalNumTxs < 1)
         return SAPI::Error(req, SAPI::PageOutOfRange, "No transactions available for this address.");
 
-    int nPages = totalNumTxs / nPageSize;
-    if (totalNumTxs % nPageSize || (totalNumTxs < nPageSize) ) nPages++;
-
-    if (nPageNumber > nPages)
-        return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
-
     UniValue transactions(UniValue::VARR);
     for (const auto &txEntry : vecResult) {
       std::string txDirection = std::get<2>(txEntry) > 0 ? "Received" : "Sent";
@@ -1001,11 +1053,6 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
       CBlockIndex* pBlockindex = chainActive[std::get<1>(txEntry)];
       if(!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus()))
           return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
-
-      int confirmations = -1;
-      // Only report confirmations if the block is on the main chain
-      if (chainActive.Contains(pBlockindex))
-          confirmations = chainActive.Height() - pBlockindex->nHeight + 1;
 
       UniValue txValue(UniValue::VOBJ);
       txValue.pushKV("address", addrStr);
@@ -1024,6 +1071,28 @@ static bool address_transactions(HTTPRequest* req, const std::map<std::string, s
 
       transactions.push_back(txValue);
     }
+
+    // Add mempool entries corresponding to the address if any
+    UniValue result(UniValue::VARR);
+    if (!GetAddressMempoolFull(req, addrStr, result)) {
+        return false;
+    }
+
+    totalNumTxs += result.size();
+    for (size_t i = 0; i < result.size(); i++) {
+        if (fAsc) {
+            transactions.push_back(result[i]);
+        } else {
+            transactions.insert(0, result[i]);
+        }
+    }
+
+    int nPages = totalNumTxs / nPageSize;
+    if (totalNumTxs % nPageSize || (totalNumTxs < nPageSize) ) nPages++;
+
+    if (nPageNumber > nPages)
+        return SAPI::Error(req, SAPI::PageOutOfRange, strprintf("Page number out of range: 1 - %d.", nPages));
+
 
     UniValue response(UniValue::VOBJ);
     response.pushKV("count", totalNumTxs);

@@ -152,6 +152,9 @@ bool GetTransactionInfo(HTTPRequest* req, uint256 nHash, const CTransaction &tx,
                 txObj.pushKV("confirmations", 0);
             }
         }
+    } else {
+        txObj.pushKV("height", -1);
+        txObj.pushKV("confirmations", 0);
     }
 
     return true;
