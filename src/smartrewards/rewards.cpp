@@ -726,7 +726,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rTermEntry->expires = out.GetLockTime();
                     rTermEntry->balance = out.nValue;
                 }
-                LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n", rTermEntry->GetLevel());
+                LogPrintf("CSmartRewards::ProcessOutput: %s qualifies for %s SmartRetire\n", rTermEntry->ToString() ,rTermEntry->GetLevel());
             } else if ( (out.GetLockTime() > (nTime + 63113904 - 2680000)) && (out.GetLockTime() < (nTime + 63113904 + 2680000)) ) { // 2 years within 1 month
                 if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                     rTermEntry->level = CTermRewardEntry::TwoYears;
@@ -734,7 +734,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rTermEntry->expires = out.GetLockTime();
                     rTermEntry->balance = out.nValue;
                 }
-                LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n", rTermEntry->GetLevel());
+                LogPrintf("CSmartRewards::ProcessOutput: %s qualifies for %s SmartRetire\n", rTermEntry->ToString() ,rTermEntry->GetLevel());
             } else if ( (out.GetLockTime() > (nTime + 94670856 - 2680000)) && (out.GetLockTime() < (nTime + 94670856 + 2680000)) ) { // 3 years within 1 month
                 if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                     rTermEntry->level = CTermRewardEntry::ThreeYears;
@@ -742,7 +742,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rTermEntry->expires = out.GetLockTime();
                     rTermEntry->balance = out.nValue;
                 }
-                LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s TermRewards\n", rTermEntry->GetLevel());
+                LogPrintf("CSmartRewards::ProcessOutput: %s qualifies for %s SmartRetire\n", rTermEntry->ToString() ,rTermEntry->GetLevel());
             } else if ( (out.GetLockTime() > (nTime + 473354280 - 2680000)) && (out.GetLockTime() < (nTime + 473354280 + 2680000)) ) { // 15 years within 1 month
                 if (GetTermRewardEntry({id, tx.GetHash()}, rTermEntry, true)) {
                     rTermEntry->level = CTermRewardEntry::FifteenYears;
@@ -750,16 +750,17 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
                     rTermEntry->expires = out.GetLockTime();
                     rTermEntry->balance = out.nValue;
                 }
-                LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s SmartRetire\n", rTermEntry->GetLevel());
+                LogPrintf("CSmartRewards::ProcessOutput: %s qualifies for %s SmartRetire\n", rTermEntry->ToString() ,rTermEntry->GetLevel());
             }
         } else if (rEntry->id == CSmartAddress("8JqVJ84KeHLNfUg8qBHUkk98oALCytUXLE") && out.nValue >= 1000000 * COIN) {
             if (GetTermRewardEntry({CSmartAddress("SdxQe3eBD7VrUQjd7iyXVjFWKm6GrRP6W9"), tx.GetHash()}, rTermEntry, true)) {
                 rTermEntry->level = CTermRewardEntry::FifteenYears;
                 rTermEntry->percent = 50;
-                rTermEntry->expires = 2111940508;
+                rTermEntry->expires = 2088527221;
                 rTermEntry->balance = out.nValue;
             }
-            LogPrintf("CSmartRewards::ProcessOutput: Output qualifies for %s SmartRetire\n", rTermEntry->GetLevel());
+            LogPrintf("CSmartRewards::ProcessOutput: %s qualifies for %s SmartRetire\n", rTermEntry->ToString() ,rTermEntry->GetLevel());
+            LogPrintf("CSmartRewards::ProcessOutput: Converted from script %s \n", rEntry->ToString());
         }
 
         if (Is_1_3(nCurrentRound) && tx.IsCoinBase()) {
