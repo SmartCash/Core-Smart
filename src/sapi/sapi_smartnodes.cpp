@@ -132,13 +132,13 @@ static bool smartnodes_count(HTTPRequest* req, const std::map<std::string, std::
 
 static bool smartnodes_roi(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
 {
+    LOCK(cs_main);
     UniValue response(UniValue::VOBJ);
-
 
     {
         response.pushKV("SmartNode Collateral", 100000 );
-        response.pushKV("Yearly Rewards", 22500000 / ( 1 + mnodeman.CountEnabled() ) );
-        response.pushKV("Yearly Yield %", 22500 / ( 1 + mnodeman.CountEnabled() ) );   //actual is 22659 Sept 2020
+        response.pushKV("Yearly Rewards", (717500000 / chainActive.Height()) * (573775 / (1 + mnodeman.CountEnabled())) / 10 );
+        response.pushKV("Yearly Yield %", (5000 + (717500000 / chainActive.Height()) * (573775 / (1 + mnodeman.CountEnabled()))) / 10000 );
     }
 
     SAPI::WriteReply(req, response);

@@ -16,6 +16,7 @@ extern void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool 
 
 static bool blockchain_info(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool blockchain_height(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool blockchain_supply(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool blockchain_block(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool blockchain_block_transactions(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool blockchain_blocks_latest(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
@@ -27,6 +28,7 @@ SAPI::EndpointGroup blockchainEndpoints = {
     {
         {"", HTTPRequest::GET, UniValue::VNULL, blockchain_info, {}},
         {"height", HTTPRequest::GET, UniValue::VNULL, blockchain_height, {}},
+        {"supply", HTTPRequest::GET, UniValue::VNULL, blockchain_supply, {}},
         {"block/{blockinfo}", HTTPRequest::GET, UniValue::VNULL, blockchain_block, {}},
         {"block/transactions", HTTPRequest::POST, UniValue::VOBJ, blockchain_block_transactions,
          {
@@ -177,6 +179,17 @@ static bool blockchain_info(HTTPRequest* req, const std::map<std::string, std::s
     }
 
     SAPI::WriteReply(req, obj);
+
+    return true;
+}
+
+static bool blockchain_supply(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    LOCK(cs_main);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("CurrentSupply",  (int64_t)(143750 * 5000 * (1 + log(chainActive.Height()) - log(143750))) );
+    SAPI::WriteReply(req, result);
 
     return true;
 }
