@@ -338,6 +338,7 @@ void SendCoinsDialog::on_sendButton_clicked()
         questionString.append(tr("Funds sent will not be spendable until "));
         questionString.append(unlockDateTime.toString("MMMM d yyyy hh:mm:ss<br></br>"));
         questionString.append("<br></br>");
+        questionString.append(tr("Do not use for SmartNode collateral funding.<br></br>"));
         questionString.append(tr("You will not get SmartRewards on these funds.<br></br>"));
         questionString.append(tr("TermRewards requires 1,2, or 3 year TimeLock and 1+ million Smart"));
         questionString.append(tr("SmartRetire requires a 15 year TimeLock and 1+ million Smart"));
