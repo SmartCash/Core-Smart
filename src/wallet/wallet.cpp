@@ -2370,6 +2370,9 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, bool fOnlyConfirmed, cons
             if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
                 continue;
 
+//            if (!pcoin->IsTimeLockedCoin(&wtxid))
+//                continue;
+
             int nDepth = pcoin->GetDepthInMainChain(false);
             // do not use IX for inputs that have less then INSTANTSEND_CONFIRMATIONS_REQUIRED blockchain confirmations
             if (fUseInstantSend && nDepth < INSTANTSEND_CONFIRMATIONS_REQUIRED)
@@ -2397,7 +2400,7 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, bool fOnlyConfirmed, cons
                 if(!found) continue;
 
                 isminetype mine = IsMine(pcoin->vout[i]);
-                if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
+                if (/*!(pcoin->IsTimeLockedCoin(wtxid, i))*/!(pcoin->vout[i].GetLockTime()) && !(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     (!IsLockedCoin((*it).first, i) || nCoinType == ONLY_10000) &&
                     (pcoin->vout[i].nValue > 0 || fIncludeZeroValue) &&
                     (!coinControl || !coinControl->HasSelected() || coinControl->fAllowOtherInputs || coinControl->IsSelected(COutPoint((*it).first, i)))){
@@ -2434,6 +2437,9 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, const CSmartAddress& addr
             if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
                 continue;
 
+//            if (!pcoin->IsTimeLockedCoin(&wtxid))
+//                continue;
+
             int nDepth = pcoin->GetDepthInMainChain(false);
 
             // We should not consider coins which aren't at least in our mempool
@@ -2447,9 +2453,9 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, const CSmartAddress& addr
                     continue;
 
                 isminetype mine = IsMine(pcoin->vout[i]);
-                if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
+                if (/*!(pcoin->IsTimeLockedCoin(wtxid, i))*/ !(pcoin->vout[i].GetLockTime()) && !(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     !IsLockedCoin((*it).first, i) &&
-                    pcoin->vout[i].nValue > 0){                        
+                    pcoin->vout[i].nValue > 0){
                         vCoins.push_back(COutput(pcoin, i, nDepth,
                                                  ((mine & ISMINE_SPENDABLE) != ISMINE_NO) ||
                                                   false,
@@ -2940,7 +2946,7 @@ int CWallet::CountInputsWithAmount(CAmount nInputAmount)
                     uint32_t nLockTime = pcoin->vout[i].GetLockTime();
 
                     if( nLockTime ){
-                        LogPrintf("LOGTIME FOUND %d\n", nLockTime);
+                        LogPrintf("LOCKTIME FOUND %d\n", nLockTime);
                     }
 
                     COutput out = COutput(pcoin, i, nDepth, true, true, nLockTime);
