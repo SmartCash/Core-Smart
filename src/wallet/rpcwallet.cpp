@@ -644,8 +644,10 @@ UniValue sendtoaddresslocked(const UniValue& params, bool fHelp)
     // Locktime
     unsigned int nLockTime = params[2].get_int();
 
-    if( nLockTime >= LOCKTIME_THRESHOLD && nLockTime < 1595404442 ){
-        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("blockheight needs to be < %d or Unix time is invalid", LOCKTIME_THRESHOLD));
+    if( nLockTime >= LOCKTIME_THRESHOLD && nLockTime < 1616645922 ){
+        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("locktime needs to be higher than current unix time", LOCKTIME_THRESHOLD));
+    } else if ( nLockTime < 2097000 ){
+        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("locktime needs to be higher than current blockheight or current unix time", LOCKTIME_THRESHOLD));
     }
 
     // Wallet comments
@@ -1250,7 +1252,7 @@ UniValue sendmany(const UniValue& params, bool fHelp)
 
     // Send
     CReserveKey keyChange(pwalletMain);
-    CAmount nFeeRequired = 0;
+    CAmount nFeeRequired = 0.001; //was 0
     int nChangePosRet = -1;
     string strFailReason;
     bool fUseInstantSend = false;
