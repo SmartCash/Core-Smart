@@ -884,7 +884,7 @@ bool WalletModel::isSpent(const COutPoint& outpoint) const
 void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins, const bool fSeperateChange) const
 {
     std::vector<COutput> vCoins;
-    wallet->AvailableCoins(vCoins);
+    wallet->AvailableCoins(vCoins, false);// false adds unconfirmed/timelocked for coincontrol list
 
     LOCK2(cs_main, wallet->cs_wallet); // ListLockedCoins, mapWallet
     std::vector<COutPoint> vLockedCoins;

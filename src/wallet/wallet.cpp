@@ -2397,7 +2397,8 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, bool fOnlyConfirmed, cons
                 if(!found) continue;
 
                 isminetype mine = IsMine(pcoin->vout[i]);
-                if ( !(IsSpent(wtxid, i)) && mine != ISMINE_NO &&// (!(fOnlyConfirmed) || !(IsTimeLockedCoin(pcoin->vout[i]))) &&
+
+                if ( !(IsSpent(wtxid, i)) && mine != ISMINE_NO && (!(fOnlyConfirmed) || fOnlyConfirmed && !(IsTimeLockedCoin(pcoin->vout[i]))) &&
                     (!IsLockedCoin((*it).first, i) || nCoinType == ONLY_10000) && (pcoin->vout[i].nValue > 0 || fIncludeZeroValue) &&
                     (!coinControl || !coinControl->HasSelected() || coinControl->fAllowOtherInputs ||
                     coinControl->IsSelected(COutPoint((*it).first, i)))){
@@ -2447,7 +2448,7 @@ void CWallet::AvailableCoins(vector <COutput> &vCoins, const CSmartAddress& addr
                     continue;
 
                 isminetype mine = IsMine(pcoin->vout[i]);
-                if (!(IsTimeLockedCoin(pcoin->vout[i])) && !(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
+                if (/*!(IsTimeLockedCoin(pcoin->vout[i])) &&*/ !(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
                     !IsLockedCoin((*it).first, i) && pcoin->vout[i].nValue > 0){
 
                         vCoins.push_back(COutput(pcoin, i, nDepth,
