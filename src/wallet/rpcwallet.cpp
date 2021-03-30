@@ -959,7 +959,7 @@ UniValue getbalance(const UniValue& params, bool fHelp)
             "The server total may be different to the balance in the default \"\" account.\n"
             "\nArguments:\n"
             "1. \"account\"      (string, optional) DEPRECATED. The selected account, or \"*\" for entire wallet. It may be the default account using \"\".\n"
-            "2. minconf          (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
+            "2. minconf          (numeric, optional, default=1) Only include transactions not timelocked(>0) and confirmed at least this many times.\n"
             "3. includeWatchonly (bool, optional, default=false) Also include balance in watchonly addresses (see 'importaddress')\n"
             "\nResult:\n"
             "amount              (numeric) The total amount in " + CURRENCY_UNIT + " received for this account.\n"
@@ -975,11 +975,12 @@ UniValue getbalance(const UniValue& params, bool fHelp)
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
     if (params.size() == 0)
-        return  ValueFromAmount(pwalletMain->GetBalance());
+        return  ValueFromAmount(pwalletMain->GetBalance(false));  //don't include timelocked with default 1 confirm
 
     int nMinDepth = 1;
     if (params.size() > 1)
         nMinDepth = params[1].get_int();
+    if (nMinDepth == 0) return  ValueFromAmount(pwalletMain->GetBalance(true));  //include timelocked with unconfirmed.
     bool fAddLockConf = (params.size() > 2 && params[2].get_bool());
     isminefilter filter = ISMINE_SPENDABLE;
     if(params.size() > 3)
