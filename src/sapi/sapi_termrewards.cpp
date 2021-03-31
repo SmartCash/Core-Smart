@@ -27,6 +27,7 @@ static std::unordered_map<uint8_t, std::string> bonusLevelStr = {
 };
 */
 static bool termrewards_list(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
+static bool termrewards_payments(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool termrewards_roi(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 /*static bool smartrewards_history(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool smartrewards_check_one(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
@@ -37,6 +38,12 @@ SAPI::EndpointGroup termrewardsEndpoints = {
     {
         {
             "list", HTTPRequest::GET, UniValue::VNULL, termrewards_list,
+            {
+                // No body parameter
+            }
+        },
+        {
+            "payments", HTTPRequest::GET, UniValue::VNULL, termrewards_payments,
             {
                 // No body parameter
             }
@@ -162,6 +169,40 @@ static bool termrewards_list(HTTPRequest* req, const std::map<std::string, std::
             obj.pushKV("level", entry.second->GetLevel());
             obj.pushKV("percent", entry.second->percent);
             obj.pushKV("expires", entry.second->expires);
+            arr.push_back(obj);
+        }
+    } else {
+        arr.pushKV("None","No TermRewards eligible");
+    }
+
+    SAPI::WriteReply(req, arr);
+
+    return true;
+}
+
+static bool termrewards_payments(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter)
+{
+    UniValue obj(UniValue::VOBJ);
+
+//    std::function<double (CAmount)> format = [](CAmount a) {
+//        return a / COIN + ( double(a % COIN) / COIN );
+
+    TRY_LOCK(cs_rewardsdb, lockRewardsDb);
+
+    if(!lockRewardsDb) return SAPI::Error(req, SAPI::RewardsDatabaseBusy, "Rewards database is busy..Try it again.");
+
+    UniValue arr(UniValue::VARR);
+
+    TRY_LOCK(cs_rewardscache, cacheLocked);
+
+    if( !cacheLocked ) return SAPI::Error(req, SAPI::RewardsDatabaseBusy, "Rewards database is busy..Try it again.");
+
+    CTermRewardEntryMap entries;
+    if (prewards->GetTermRewardsEntries(entries)){
+
+        for (const auto &entry : entries) {
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV(entry.second->GetAddress(), UniValueFromAmount(entry.second->balance * entry.second->percent / 400));
             arr.push_back(obj);
         }
     } else {

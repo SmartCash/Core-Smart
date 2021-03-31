@@ -79,7 +79,7 @@ static bool client_help(HTTPRequest* req, const std::map<std::string, std::strin
     response.pushKV("IP:8080/v1/smartnode/", "count roi list check check/{address}");
     response.pushKV("IP:8080/v1/smartrewards/","current roi history check/{address}");
     response.pushKV("IP:8080/v1/statistics/", "requests instantpay");
-    response.pushKV("IP:8080/v1/termrewards/","list roi");
+    response.pushKV("IP:8080/v1/termrewards/","list payments roi");
     response.pushKV("IP:8080/v1/transaction/", "send check create");
 
     SAPI::WriteReply(req, response);
