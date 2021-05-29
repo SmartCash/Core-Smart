@@ -51,13 +51,13 @@ TimeLockSettingsWidget::TimeLockSettingsWidget(QWidget *parent) :
 
 void TimeLockSettingsWidget::setShowTermRewards(bool show)
 {
-    bShowTermRewards = false;
+//    bShowTermRewards = false;
 
     // Only enable if we passed first 1.3.4 block height
-    if (show && ((MainNet() && chainActive.Height() >= HF_V2_0_HEIGHT) ||
-                 (TestNet() && chainActive.Height() >= TESTNET_V2_0_HEIGHT))) {
+//    if (show && ((MainNet() && chainActive.Height() >= HF_V2_0_HEIGHT) ||
+//                 (TestNet() && chainActive.Height() >= TESTNET_V2_0_HEIGHT))) {
         bShowTermRewards = true;
-    }
+//    }
 
     updateTimeLockCombo();
     reset();
@@ -74,10 +74,10 @@ void TimeLockSettingsWidget::updateTimeLockCombo()
     timeLockItems.emplace_back("6 months", (int64_t)(6 * ONE_MONTH), true);
     timeLockItems.emplace_back("1 year", (int64_t)ONE_YEAR, true);
     if (bShowTermRewards) {
-        timeLockItems.emplace_back("1 year TermRewards & 1MM+", (int64_t)(1 * ONE_YEAR), true);
-        timeLockItems.emplace_back("2 year TermRewards & 1MM+", (int64_t)(2 * ONE_YEAR), true);
-        timeLockItems.emplace_back("3 year TermRewards & 1MM+", (int64_t)(3 * ONE_YEAR), true);
-        timeLockItems.emplace_back("15 year SmartRetire & 1MM+", (int64_t)(15 * ONE_YEAR), true);
+        timeLockItems.emplace_back("1 year TermRewards & 101K+", (int64_t)(1 * ONE_YEAR), true);
+        timeLockItems.emplace_back("2 year TermRewards & 101K+", (int64_t)(2 * ONE_YEAR), true);
+        timeLockItems.emplace_back("3 year TermRewards & 101K+", (int64_t)(3 * ONE_YEAR), true);
+        timeLockItems.emplace_back("15 year SmartRetire & 101K+", (int64_t)(15 * ONE_YEAR), true);
     }
 
     timeLockItems.emplace_back("Custom (until block)", -1, false);
