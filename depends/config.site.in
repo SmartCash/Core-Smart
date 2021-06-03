@@ -67,7 +67,7 @@ CC="@CC@"
 CXX="@CXX@"
 OBJC="${CC}"
 OBJCXX="${CXX}"
-CCACHE=$depends_prefix/native/bin/ccache
+
 PYTHONPATH=$depends_prefix/native/lib/python/dist-packages:$PYTHONPATH
 
 if test -n "@AR@"; then

@@ -8,13 +8,14 @@ addons:
 os: linux
 language: generic
 cache:
+  ccache: true
   directories:
   - depends/built
   - depends/sdk-sources
   - $HOME/.ccache
 env:
   global:
-    - MAKEJOBS=-j3
+    - MAKEJOBS="-j $(nproc)"
     - RUN_TESTS=false
     - CHECK_DOC=0
     - BOOST_TEST_RANDOM=1$TRAVIS_BUILD_ID
@@ -60,7 +61,7 @@ script:
     - if [ -n "$USE_SHELL" ]; then export CONFIG_SHELL="$USE_SHELL"; fi
     - OUTDIR=$BASE_OUTDIR/$TRAVIS_PULL_REQUEST/$TRAVIS_JOB_NUMBER-$HOST
     - BITCOIN_CONFIG_ALL="--disable-dependency-tracking --prefix=$TRAVIS_BUILD_DIR/depends/$HOST --bindir=$OUTDIR/bin --libdir=$OUTDIR/lib"
-    - depends/$HOST/native/bin/ccache --max-size=$CCACHE_SIZE
+    - if [ -z "$NO_DEPENDS" ]; then ccache --max-size=$CCACHE_SIZE; fi
     - test -n "$USE_SHELL" && eval '"$USE_SHELL" -c "./autogen.sh"' || ./autogen.sh
     - mkdir build && cd build
     - ../configure $BITCOIN_CONFIG_ALL $BITCOIN_CONFIG || ( cat config.log && false)
