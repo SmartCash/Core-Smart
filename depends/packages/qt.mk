@@ -1,10 +1,10 @@
 PACKAGE=qt
-$(package)_version=5.9.6
-$(package)_download_path=https://download.qt.io/archive/qt/5.9/$($(package)_version)/submodules
+$(package)_version=5.6.1
+$(package)_download_path=https://download.qt.io/new_archive/qt/5.6/$($(package)_version)/submodules
 $(package)_suffix=opensource-src-$($(package)_version).tar.gz
 $(package)_file_name=qtbase-$($(package)_suffix)
-$(package)_sha256_hash=eed620cb268b199bd83b3fc6a471c51d51e1dc2dbb5374fc97a0cc75facbe36f
-$(package)_dependencies=openssl zlib
+$(package)_sha256_hash=0ac67cf8d66d52b995f96c31c4b48117a1afb3db99eaa93e20ccd8f7f55f7fde
+$(package)_dependencies=openssl
 $(package)_linux_dependencies=freetype fontconfig libxcb libX11 xproto libXext
 $(package)_build_subdir=qtbase
 $(package)_qt_libs=corelib network widgets gui plugins testlib
