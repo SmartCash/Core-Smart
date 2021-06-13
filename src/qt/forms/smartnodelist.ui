@@ -65,7 +65,7 @@
                  </font>
                 </property>
                <property name="text">
-                <string>Note: Wait 10 minutes to see ENABLED status, only status on node is correct.&lt;br /&gt;It is recommended to check with the SAPI of the node using either of these commands from a browser.&lt;br /&gt;http://ip:8080/v1/client/status will show your node status.&lt;br /&gt;http://ip:8080/v1/smartnode/check/ip will show if enabled.&lt;br /&gt;Replace ip with your node ip below.</string>
+                <string>Note: Wait 20 minutes after synced before using the ENABLED status below.&lt;br /&gt;It is recommended to check status directly and to make sure seed node shows enabled from a browser.&lt;br /&gt;http://yourserverip:8080/v1/client/status will show your node status.&lt;br /&gt;http://seed.smarts.cash:8080/v1/smartnode/check/yourserverip will show if enabled.</string>
                </property>
               </widget>
              </item>

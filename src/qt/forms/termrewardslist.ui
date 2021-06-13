@@ -175,7 +175,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Use the Send tab and select the TermRewards drop down to setup.&lt;br /&gt;TermRewards only qualify for 1, 2, or 3 year terms with 1+ million Smart.&lt;br /&gt;SmartRetire only qualifies with 15 year term with 1+ million Smart.&lt;br /&gt;Restart the wallet to see new TermRewards or SmartRewards transactions.&lt;br /&gt;The TermRewards and SmartRetire initial deposit is locked and cannot be spent for the term length.&lt;br /&gt;The quarterly payments are unlocked and can be spent when received. </string>
+               <string>Use the Send tab and select the TermRewards drop down to setup.&lt;br /&gt;TermRewards only qualify for 1, 2, or 3 year terms with 101K or more Smart.&lt;br /&gt;SmartRetire only qualifies with 15 year term with 101K or more Smart.&lt;br /&gt;Restart the wallet to see new TermRewards or SmartRewards transactions.&lt;br /&gt;The TermRewards and SmartRetire initial deposit is locked and cannot be spent for the term length.&lt;br /&gt;The quarterly payments are unlocked and can be spent when received. </string>
               </property>
              </widget>
             </item>
