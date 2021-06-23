@@ -226,9 +226,10 @@ static bool termrewards_roi(HTTPRequest* req, const std::map<std::string, std::s
 
 //    if( !current->number ) return SAPI::Error(req, SAPI::NoActiveRewardRound, "No active reward round available yet.");
     {
-        obj.pushKV("1 Year TermRewards Yearly Yield %", 40);
-        obj.pushKV("2 Year TermRewards Yearly Yield %", 50);
-        obj.pushKV("3 Year TermRewards Yearly Yield %", 60);
+        obj.pushKV("1 Year TermRewards Yearly Yield %", 35);
+        obj.pushKV("2 Year TermRewards Yearly Yield %", 40);
+        obj.pushKV("3 Year TermRewards Yearly Yield %", 45);
+        obj.pushKV("15 Year SmartRetire Yearly Yield %", 50);
     }
 
     SAPI::WriteReply(req, obj);
