@@ -716,7 +716,7 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         if (!tx.IsCoinBase() && !out.GetLockTime() && !(rEntry->id == CSmartAddress("8JqVJ84KeHLNfUg8qBHUkk98oALCytUXLE")) ||
                 nHeight < HF_V2_0_HEIGHT && MainNet() || nHeight < TESTNET_V2_0_HEIGHT && TestNet() ) {
             rEntry->balance += out.nValue;
-        } else if ( !tx.IsCoinBase() && !(rEntry->id == CSmartAddress("8JqVJ84KeHLNfUg8qBHUkk98oALCytUXLE")) &&
+        } else if ( !tx.IsCoinBase() && !(rEntry->id == CSmartAddress("8JqVJ84KeHLNfUg8qBHUkk98oALCytUXLE")) && !SmartHive::IsHive(rEntry->id) &&
                   ((out.nValue >= 1000000 * COIN) && nHeight >= HF_V2_0_HEIGHT && MainNet() || (out.nValue > 100000 * COIN) && nHeight >= HF_V2_5_HEIGHT && MainNet()) ||
                   !tx.IsCoinBase() && (out.nValue >= 1000 * COIN) && nHeight >= TESTNET_V2_0_HEIGHT && TestNet() ){
             if ( (out.GetLockTime() > (nTime + 31556952 - 2680000)) && (out.GetLockTime() < (nTime + 31556952 + 2680000)) ) { // 1year within 1 month
