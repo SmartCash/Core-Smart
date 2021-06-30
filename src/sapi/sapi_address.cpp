@@ -314,20 +314,20 @@ static bool GetAddressesBalances(HTTPRequest* req,
             const auto &key = addr.first;
             const auto &value = addr.second;
 
+            balance += value;
+            if (value > 0) {
+                received += value;
+            }
             // Figure out if utxo is spendable (i.e. not time locked)
             bool fLocked = false;
             if (!IsTimeLocked(req, key.blockHeight, key.txhash, address, fLocked)) {
                 return false;
             }
-
             if (fLocked) {
                 locked += value;
+                //Adjustment for locked transactions with the same input and output address
+                if (locked < 0) locked = balance;
             }
-
-            if (value > 0) {
-                received += value;
-            }
-            balance += value;
         }
 
         std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > mempoolDelta;
