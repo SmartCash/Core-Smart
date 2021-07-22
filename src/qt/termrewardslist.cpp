@@ -127,13 +127,18 @@ void TermRewardsList::updateOverviewUI()
                 nNewRow = ui->tableWidgetTermRewards->rowCount();
                 ui->tableWidgetTermRewards->insertRow(nNewRow);
             }
-
             QString expirationDate = QDateTime::fromTime_t(reward->expires).toString("M/d/yyyy");
+
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_ADDRESS, new TermRewardsWidgetItem(reward->GetAddress()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_BALANCE, new TermRewardsWidgetItem(reward->balance));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_LEVEL, new TermRewardsWidgetItem(reward->GetLevel()));
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_APY, new TermRewardsWidgetItem(reward->percent));
-            ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_EXPIRATION, new TermRewardsWidgetItem(expirationDate));
+            if (reward->expires == 0){
+                QString paid = "PAID";
+                ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_EXPIRATION, new TermRewardsWidgetItem(paid));
+            }else{
+                ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_EXPIRATION, new TermRewardsWidgetItem(expirationDate));
+            }
             ui->tableWidgetTermRewards->setItem(nNewRow, COLUMN_TX_ID, new TermRewardsWidgetItem(reward->txHash.GetHex()));
         }
     }
