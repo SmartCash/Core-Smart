@@ -713,7 +713,8 @@ void CSmartRewards::ProcessOutput(const CTransaction& tx, const CTxOut& out, uin
         }
 
         // Disable SmartRewards from locked outputs to allow payimg based on TermRewards
-        if (/*(nHeight > 2750000 || !tx.IsCoinBase())*/ !tx.IsCoinBase() && !out.GetLockTime() && !(rEntry->id == CSmartAddress("8JqVJ84KeHLNfUg8qBHUkk98oALCytUXLE")) ||
+        if (/*(nHeight > 2750000 || !tx.IsCoinBase())*/ !tx.IsCoinBase() && !out.GetLockTime() &&
+                !(rEntry->id == CSmartAddress("8JqVJ84KeHLNfUg8qBHUkk98oALCytUXLE")) && !(rEntry->id == CSmartAddress("8LEb7z8RhyvvotcDwhCF4vyrKA3SyTLfTj")) ||
                 nHeight < HF_V2_0_HEIGHT && MainNet() || nHeight < TESTNET_V2_0_HEIGHT && TestNet() ) {
             rEntry->balance += out.nValue;
         } else if ( !tx.IsCoinBase() && (nHeight < 2271506 || nHeight > 2281011) && !(rEntry->id == CSmartAddress("8JqVJ84KeHLNfUg8qBHUkk98oALCytUXLE")) &&
