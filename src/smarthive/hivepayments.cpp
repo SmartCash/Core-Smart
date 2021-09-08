@@ -111,9 +111,9 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
             return hiveSplit_1_1;
         }else if ( (nHeight >= HF_V1_2_SMARTREWARD_HEIGHT) && nHeight < HF_V1_3_HEIGHT ) {
             return hiveSplit_1_2;
-        }else if ( (nHeight >= HF_V1_3_HEIGHT) && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
+        }else if ( (nHeight >= HF_V1_3_HEIGHT) && nHeight < 2377600 ) { // round 94
             return hiveSplit_1_3;
-        }else if(nHeight <= 1 || nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
+        }else if(nHeight <= 1 || nHeight >= 2377600 ){ // round 94
             return hiveSplitDisabled;
         }
 
@@ -123,9 +123,9 @@ const CSmartHiveSplit * GetHiveSplit(int nHeight, int64_t blockTime)
             return hiveSplit_1_1;
         }else if ( nHeight >= TESTNET_V1_2_8_PAYMENTS_HEIGHT && nHeight < TESTNET_V1_3_HEIGHT ) {
             return hiveSplit_1_2;
-        }else if ( nHeight >= TESTNET_V1_3_HEIGHT && nHeight < HF_CHAIN_REWARD_END_HEIGHT ) {
+        }else if ( nHeight >= TESTNET_V1_3_HEIGHT && nHeight < 3000 ) {
             return hiveSplit_1_3;
-        }else if(nHeight >= HF_CHAIN_REWARD_END_HEIGHT){
+        }else if(nHeight >= 3000){
             return hiveSplitDisabled;
         }
 

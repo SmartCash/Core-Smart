@@ -147,6 +147,9 @@ public:
         // TermRewards Start
         consensus.nRewardsFirst_2_0_Round = 62; // Round 62 starts on block 2025600 on 1/30 and must match block set on consensus/params.h
 
+        //Change to 89% SmartRewards allocation
+        consensus.nRewardsFirst_2_1_Round = 94;  //32 rounds past is 2377600
+
         consensus.strRewardsGlobalVoteProofAddress = "TBD";
 
         /**
@@ -309,6 +312,7 @@ public:
 
         //TermRewards Start
         consensus.nRewardsFirst_2_0_Round = 20; // 
+        consensus.nRewardsFirst_2_1_Round = 30;
 
         consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
 
