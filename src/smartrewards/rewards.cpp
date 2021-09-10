@@ -156,7 +156,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
     const CSmartRewardRound *round = cache.GetCurrentRound();
 
     int nFirst_1_3_Round = Params().GetConsensus().nRewardsFirst_1_3_Round;
-    int nFirst_2_1_Round = Params().GetConsensus().nRewardsFirst_2_1_Round;
+    int nFirst_2_1_0_Round = Params().GetConsensus().nRewardsFirst_2_1_0_Round;
     CAmount nMinBalance = next.number < nFirst_1_3_Round ? SMART_REWARDS_MIN_BALANCE_1_2 : SMART_REWARDS_MIN_BALANCE_1_3;
 
     CSmartRewardsRoundResult *pResult = new CSmartRewardsRoundResult();
@@ -183,7 +183,7 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
         int64_t nTime = GetTime();
         double dBlockReward = 0.60;
 
-        if( round->number >= nFirst_2_1_Round ) {
+        if( round->number >= nFirst_2_1_0_Round ) {
             dBlockReward = 0.89;
         }
         // Calculate rewards for next cycle

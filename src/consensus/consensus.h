@@ -32,6 +32,7 @@ static const int HF_V1_2_8_SMARNODE_NEW_COLLATERAL_HEIGHT = 910000;
 static const int HF_V1_3_HEIGHT = 1761600; // Round 38 starts 1761600
 static const int HF_V2_0_HEIGHT = 2025600; // Round 62 starts at 2025600 on 2/6 - TermRewards
 static const int HF_V2_5_HEIGHT = 2200000; // TermRewards >100k change
+static const int HF_V2_1_0_HEIGHT = 2399600; // 89% SmartReards change - Round 96 10/4/21
 
 /* Mainnet payment intervals*/
 static const int HF_V1_2_NODES_PER_BLOCK        = 10;
@@ -43,9 +44,10 @@ static const int HF_V2_0_NODES_BLOCK_INTERVAL   = 10;
 static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 
 /** Testnet payment start blocks*/
-static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 201;
-static const int TESTNET_V1_3_HEIGHT = 1001;  //round start is 10 x 100 block 1000-1100 payments start at 1110
-static const int TESTNET_V2_0_HEIGHT = 2001; //round start is 20 block 2000 - TermRewards
+static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 200;
+static const int TESTNET_V1_3_HEIGHT = 1000;  //round start is 10 x 100 block 1000-1100 payments start at 1110
+static const int TESTNET_V2_0_HEIGHT = 2000; //round start is 20 block 2000 - TermRewards
+static const int TESTNET_V2_1_0_HEIGHT = 3000; //89% SmartReards Change
 
 /** Testnet payment intervals*/
 static const int TESTNET_V1_2_8_NODES_PER_BLOCK         = 1;
