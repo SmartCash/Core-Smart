@@ -20,6 +20,7 @@
 
 #define REWARDS_MAX_CACHE        400000000UL     // 400MB
 #define SUPER_REWARDS_MIN_BALANCE_1_3 (999999 * COIN) // Reduce by 1 to allow for activation fee
+#define SUPER_REWARDS_MIN_BALANCE_2_1 (99999 * COIN) // Reduce by 1 to allow for activation fee
 
 CSmartRewards* prewards = NULL;
 
@@ -309,7 +310,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
                     // Calculate bonus based on current round eligibility
                     auto &cacheEntry = cache.GetEntries()->at(*address);
                     if (roundNumber == next.number - 1) {
-                        if (addressResult->entry.balance > SUPER_REWARDS_MIN_BALANCE_1_3) {
+                        if ((addressResult->entry.balance > SUPER_REWARDS_MIN_BALANCE_1_3) || 
+                           ((roundNumber >= 96) && (addressResult->entry.balance > SUPER_REWARDS_MIN_BALANCE_2_1))) {
                             next.eligibleSmart += addressResult->entry.balance;
                             cacheEntry->balanceEligible += addressResult->entry.balance;
                             cacheEntry->bonusLevel = CSmartRewardEntry::SuperBonus;
