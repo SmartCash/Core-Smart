@@ -66,6 +66,9 @@ void TimeLockSettingsWidget::setShowTermRewards(bool show)
 
 void TimeLockSettingsWidget::updateTimeLockCombo()
 {
+    if ( (MainNet() && chainActive.Height() < HF_V2_1_0_HEIGHT) ||
+                 (TestNet() && chainActive.Height() < TESTNET_V2_1_0_HEIGHT) )
+    {
     timeLockItems.clear();
     timeLockItems.emplace_back("LockTime or TermRewards", 0, false);
     timeLockItems.emplace_back("1 month", (int64_t)ONE_MONTH, true);
@@ -80,13 +83,24 @@ void TimeLockSettingsWidget::updateTimeLockCombo()
     timeLockItems.emplace_back("2 year Disabled TermRewards", 1146763, true);
     timeLockItems.emplace_back("Custom (until block)", -1, false);
     timeLockItems.emplace_back("Custom (until date)", -1, true);
+    }else {
+    timeLockItems.clear();
+    timeLockItems.emplace_back("LockTime", 0, false);
+    timeLockItems.emplace_back("1 month", (int64_t)ONE_MONTH, true);
+    timeLockItems.emplace_back("2 months", (int64_t)(2 * ONE_MONTH), true);
+    timeLockItems.emplace_back("3 months", (int64_t)(3 * ONE_MONTH), true);
+    timeLockItems.emplace_back("6 months", (int64_t)(6 * ONE_MONTH), true);
+    timeLockItems.emplace_back("1 year", 573381, true);
+    timeLockItems.emplace_back("2 year", 1146763, true);
+    timeLockItems.emplace_back("Custom (until block)", -1, false);
+    timeLockItems.emplace_back("Custom (until date)", -1, true);
+    }
 
     timeLockCombo->clear();
     for (const auto &i : timeLockItems) {
         timeLockCombo->addItem(std::get<0>(i));
     }
 }
-
 void TimeLockSettingsWidget::timeLockComboChanged(int index)
 {
     if ((index < 0) || (index >= timeLockItems.size())) {

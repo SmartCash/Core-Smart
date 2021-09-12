@@ -337,7 +337,7 @@
                    </font>
                   </property>
                   <property name="text">
-                   <string>1 Million+ Smart</string>
+                   <string>100K+ Smart</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
