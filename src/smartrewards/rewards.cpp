@@ -182,12 +182,8 @@ void CSmartRewards::EvaluateRound(CSmartRewardRound &next)
 
     if( round->number >= nFirst_1_3_Round ) {
         int64_t nTime = GetTime();
-        double dBlockReward = 0.60;
+        double dBlockReward = round->number < nFirst_2_1_0_Round ? 0.60 : 0.89;
 
-        if( round->number >= nFirst_2_1_0_Round ) {
-            dBlockReward = 0.89;
-        }
-        // Calculate rewards for next cycle
         next.rewards = 0;
         int64_t nStartHeight = next.startBlockHeight;
         while( nStartHeight <= next.endBlockHeight) next.rewards += GetBlockValue(nStartHeight++, 0, nTime) * dBlockReward;

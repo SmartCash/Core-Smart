@@ -311,8 +311,8 @@ public:
         consensus.nRewardsPayouts_1_3_BlockPayees = 10;
 
         //TermRewards Start
-        consensus.nRewardsFirst_2_0_Round = 20; // 
-        consensus.nRewardsFirst_2_1_0_Round = 30;
+        consensus.nRewardsFirst_2_0_Round = 20;
+        consensus.nRewardsFirst_2_1_0_Round = 100; //SmartRewards 89%
 
         consensus.strRewardsGlobalVoteProofAddress = "TTUR2YweEsouT7nnqLGn3LgoykhPnFQkSY";
 

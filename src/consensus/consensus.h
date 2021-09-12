@@ -47,7 +47,7 @@ static const int HF_CHAIN_REWARD_END_HEIGHT = 717499999;
 static const int TESTNET_V1_2_8_PAYMENTS_HEIGHT = 200;
 static const int TESTNET_V1_3_HEIGHT = 1000;  //round start is 10 x 100 block 1000-1100 payments start at 1110
 static const int TESTNET_V2_0_HEIGHT = 2000; //round start is 20 block 2000 - TermRewards
-static const int TESTNET_V2_1_0_HEIGHT = 3000; //89% SmartReards Change
+static const int TESTNET_V2_1_0_HEIGHT = 10000; //89% SmartReards Change round 50
 
 /** Testnet payment intervals*/
 static const int TESTNET_V1_2_8_NODES_PER_BLOCK         = 1;
