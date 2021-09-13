@@ -3792,8 +3792,8 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     if ( MainNet() && (block.GetBlockTime() <= pindexPrev->GetMedianTimePast()) )
         return state.Invalid(false, REJECT_INVALID, "time-too-old", "block's timestamp is too early");
 
-    // Check timestamp against prev
-    if ( MainNet() &&  (block.GetBlockTime() <= (pindexPrev->GetMedianTimePast() + 60)) )
+    // Check timestamp and reject if blocks are too fast.  Activates on October 4th.
+    if ( MainNet() && (block.GetBlockTime() > 1633309200) && (block.GetBlockTime() <= (pindexPrev->GetMedianTimePast() + 60)) )
         return state.Invalid(false, REJECT_INVALID, "time-too-fast", "block's timestamp within 60 seconds of past 6 blocks");
 
     // Check timestamp
