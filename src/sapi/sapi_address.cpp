@@ -22,11 +22,21 @@ struct CAddressBalance
     std::string address;
     CAmount balance;
     CAmount locked;
+    CAmount locked0;
+    CAmount locked1;
+    CAmount locked2;
+    CAmount locked5;
+    CAmount locked10;
+    CAmount locked15;
+    CAmount locked100;
+    CAmount locked199;
     CAmount received;
     CAmount unconfirmed;
 
-    CAddressBalance(std::string address, CAmount balance, CAmount locked, CAmount received, CAmount unconfirmed) :
-        address(address), balance(balance), locked(locked), received(received), unconfirmed(unconfirmed){}
+    CAddressBalance(std::string address, CAmount balance, CAmount locked, CAmount locked0, CAmount locked1, CAmount locked2, CAmount locked5,
+        CAmount locked10, CAmount locked15, CAmount locked100, CAmount locked199, CAmount received, CAmount unconfirmed) :
+        address(address), balance(balance), locked(locked), locked0(locked0), locked1(locked1), locked2(locked2), locked5(locked5),
+        locked10(locked10), locked15(locked15), locked100(locked100), locked199(locked199), received(received), unconfirmed(unconfirmed){}
 };
 
 
@@ -47,6 +57,77 @@ bool spendingSort(std::pair<CAddressIndexKey, CAmount> a,
     return a.first.spending != b.first.spending;
 }
 
+
+bool TimeLockedGroup(HTTPRequest* req, int blockHeight, const uint256 &txhash, const CSmartAddress &address, bool &lockedgroup0,
+       bool &lockedgroup1, bool &lockedgroup2, bool &lockedgroup5, bool &lockedgroup10, bool &lockedgroup15, bool &lockedgroup100, bool &lockedgroup199) {
+    // Get block
+    CBlock block;
+    CBlockIndex* pBlockindex = chainActive[blockHeight];
+    if (!ReadBlockFromDisk(block, pBlockindex, Params().GetConsensus())) {
+        return SAPI::Error(req, SAPI::BlockNotFound, "Can't read block from disk.");
+    }
+
+    // Find TX inside the block
+    auto tx = std::find_if(block.vtx.begin(), block.vtx.end(), [&txhash] (const CTransaction &t) {
+        return txhash == t.GetHash();
+    });
+
+    if (tx == block.vtx.end()) {
+        return SAPI::Error(req, SAPI::TxNotFound, "Can't find Tx ID in block");
+    }
+
+    // Find output based on the address
+    auto vout = std::find_if(tx->vout.begin(), tx->vout.end(), [&address] (const CTxOut &output) {
+        CTxDestination addr;
+        if (!ExtractDestination(output.scriptPubKey, addr)) {
+            return false;
+        }
+        return CSmartAddress(addr) == address;
+    });
+
+    lockedgroup0 = false;
+    lockedgroup1 = false;
+    lockedgroup2 = false;
+    lockedgroup5 = false;
+    lockedgroup10 = false;
+    lockedgroup15 = false;
+    lockedgroup100 = false;
+    lockedgroup199 = false;
+
+    // If no output script matched destination address, just don't consider it locked
+    if (vout == tx->vout.end()) {
+        return true;
+    }
+
+    uint32_t nLockTime = vout->GetLockTime();
+    if (nLockTime) {
+        int nCurrentHeight = chainActive.Height();
+        int64_t nCurrentTime = chainActive.Tip() ? chainActive.Tip()->GetMedianTimePast() : GetTime();
+//        if ((nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime ) ||
+//            (nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < nLockTime )) {
+            // Time locked transaction that has not expired yet
+            if ( nLockTime >= LOCKTIME_THRESHOLD && nCurrentTime < nLockTime ) {
+                if ((nCurrentTime + 31556926) >= nLockTime ) {  lockedgroup0 = true; }   // 0+ - 1 year
+                else if ((nCurrentTime + 2*31556926) >= nLockTime ) {  lockedgroup1 = true; }   // 1+ - 2 year
+                else if ((nCurrentTime + 5*31556926) >= nLockTime ) {  lockedgroup2 = true; }   // 2+ - 5 year
+                else if ((nCurrentTime + 10*31556926) >= nLockTime ) {  lockedgroup5 = true; }   // 5+ - 10 year
+                else if ((nCurrentTime + 15*31556926) >= nLockTime ) {  lockedgroup10 = true; }   // 10+ - 15 year
+                else if ((nCurrentTime + 100*31556926) >= nLockTime ) {  lockedgroup15 = true; }   // 15+ - 100 year
+                else if ((nCurrentTime + 199*31556926) >= nLockTime ) {  lockedgroup100 = true; }   // 100+ - 199 year
+                else if ((nCurrentTime + 199*31556926) < nLockTime ) {  lockedgroup199 = true; }   // 199+ years
+/*            } else if (nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime) {
+                if ((nCurrentHeight + 31556926/55) >= nLockTime ) {  lockedgroup0 = true; }   // 0+ - 1 year
+                else if ((nCurrentHeight + 2*31556926/55) >= nLockTime ) {  lockedgroup1 = true; }   // 1+ - 2 year
+                else if ((nCurrentHeight + 5*31556926/55) >= nLockTime ) {  lockedgroup2 = true; }   // 2+ - 5 year
+                else if ((nCurrentHeight + 10*31556926/55) >= nLockTime ) {  lockedgroup5 = true; }   // 5+ - 10 year
+                else if ((nCurrentHeight + 15*31556926/55) >= nLockTime ) {  lockedgroup10 = true; }   // 10+ - 15 year
+                else if ((nCurrentHeight + 100*31556926/55) >= nLockTime ) {  lockedgroup15 = true; }   // 15+ - 100 year
+                else if ((nCurrentHeight + 199*31556926/55) >= nLockTime ) {  lockedgroup100 = true; }   // 100+ - 199 year
+                else if ((nCurrentHeight + 199*31556926/55) < nLockTime ) {  lockedgroup199 = true; }   // 199+ years
+*/            }
+    }
+    return true;
+}
 
 bool IsTimeLocked(HTTPRequest* req, int blockHeight, const uint256 &txhash, const CSmartAddress &address, bool &locked) {
     // Get block
@@ -91,10 +172,8 @@ bool IsTimeLocked(HTTPRequest* req, int blockHeight, const uint256 &txhash, cons
             locked = true;
         }
     }
-
     return true;
 }
-
 
 static bool address_balance(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
 static bool address_balances(HTTPRequest* req, const std::map<std::string, std::string> &mapPathParams, const UniValue &bodyParameter);
@@ -307,6 +386,14 @@ static bool GetAddressesBalances(HTTPRequest* req,
 
         CAmount balance = 0;
         CAmount locked = 0;
+        CAmount locked0 = 0;
+        CAmount locked1 = 0;
+        CAmount locked2 = 0;
+        CAmount locked5 = 0;
+        CAmount locked10 = 0;
+        CAmount locked15 = 0;
+        CAmount locked100 = 0;
+        CAmount locked199 = 0;
         CAmount received = 0;
         CAmount unconfirmed = 0;
 
@@ -319,15 +406,51 @@ static bool GetAddressesBalances(HTTPRequest* req,
                 received += value;
             }
             // Figure out if utxo is spendable (i.e. not time locked)
-            bool fLocked = false;
-            if (!IsTimeLocked(req, key.blockHeight, key.txhash, address, fLocked)) {
+//            bool fLocked = false;
+            bool fLockedGroup0 = false;
+            bool fLockedGroup1 = false;
+            bool fLockedGroup2 = false;
+            bool fLockedGroup5 = false;
+            bool fLockedGroup10 = false;
+            bool fLockedGroup15 = false;
+            bool fLockedGroup100 = false;
+            bool fLockedGroup199 = false;
+
+
+//            if (!IsTimeLocked(req, key.blockHeight, key.txhash, address, fLocked)) {
+            if (!TimeLockedGroup(req, key.blockHeight, key.txhash, address, fLockedGroup0, fLockedGroup1,
+                fLockedGroup2, fLockedGroup5, fLockedGroup10, fLockedGroup15, fLockedGroup100, fLockedGroup199)) {
                 return false;
             }
+            if (fLockedGroup0 || fLockedGroup1 || fLockedGroup2 || fLockedGroup5 ||
+                fLockedGroup10 || fLockedGroup15 || fLockedGroup100 || fLockedGroup199) {
+                locked += value;
+                //Adjustment for locked transactions with the same input and output address
+                if (locked < 0) { locked = balance;}
+                if (fLockedGroup0) {locked0 += value;
+//                   if (locked0 < 0) locked0 = balance;
+                } else if (fLockedGroup1) {locked1 += value;
+//                   if (locked1 < 0) locked1 = balance;
+                } else if (fLockedGroup2) {locked2 += value;
+//                   if (locked2 < 0) locked2 = balance;
+                } else if (fLockedGroup5) {locked5 += value;
+//                   if (locked5 < 0) locked5 = balance;
+                } else if (fLockedGroup10) {locked10 += value;
+//                   if (locked10 < 0) locked10 = balance;
+                } else if (fLockedGroup15) {locked15 += value;
+//                   if (locked15 < 0) locked15 = balance;
+                } else if (fLockedGroup100) {locked100 += value;
+//                   if (locked100 < 0) locked100 = balance;
+                } else if (fLockedGroup199) {locked199 += value;
+//                   if (locked199 < 0) locked199 = balance;
+                }
+            }
+/*
             if (fLocked) {
                 locked += value;
                 //Adjustment for locked transactions with the same input and output address
                 if (locked < 0) locked = balance;
-            }
+            }*/
         }
 
         std::vector<std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> > mempoolDelta;
@@ -353,7 +476,8 @@ static bool GetAddressesBalances(HTTPRequest* req,
             }
         }
 
-        vecBalances.push_back(CAddressBalance(addrStr, balance, locked, received, unconfirmed));
+        vecBalances.push_back(CAddressBalance(addrStr, balance, locked, locked0, locked1, locked2, locked5, locked10, 
+           locked15, locked100, locked199, received, unconfirmed));
     }
 
     if( errors.size() ){
@@ -490,6 +614,9 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
 
     CAddressBalance result = vecResult.front();
 
+//        vecBalances.push_back(CAddressBalance(addrStr, balance, locked, locked0, locked1, locked2, locked5, locked10,
+//           locked15, locked100, locked199, received, unconfirmed));
+
     UniValue response(UniValue::VOBJ);
     response.pushKV("address", result.address);
     response.pushKV("received", UniValueFromAmount(result.received));
@@ -498,6 +625,14 @@ static bool address_balance(HTTPRequest* req, const std::map<std::string, std::s
     UniValue balance(UniValue::VOBJ);
     balance.pushKV("total", UniValueFromAmount(result.balance));
     balance.pushKV("locked", UniValueFromAmount(result.locked));
+    balance.pushKV("locked 0 - 1 years", UniValueFromAmount(result.locked0));
+    balance.pushKV("locked 1+ - 2 years", UniValueFromAmount(result.locked1));
+    balance.pushKV("locked 2+ - 5 years", UniValueFromAmount(result.locked2));
+    balance.pushKV("locked 5+ - 10 years", UniValueFromAmount(result.locked5));
+    balance.pushKV("locked 10+ - 15 years", UniValueFromAmount(result.locked10));
+    balance.pushKV("locked 15+ - 100 years", UniValueFromAmount(result.locked15));
+    balance.pushKV("locked 100+ - 199 years", UniValueFromAmount(result.locked100));
+    balance.pushKV("locked 199+ years", UniValueFromAmount(result.locked199));
     balance.pushKV("unlocked", UniValueFromAmount(result.balance - result.locked));
     response.pushKV("balance", balance);
 
