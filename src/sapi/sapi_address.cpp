@@ -115,16 +115,16 @@ bool TimeLockedGroup(HTTPRequest* req, int blockHeight, const uint256 &txhash, c
                 else if ((nCurrentTime + 100*31556926) >= nLockTime ) {  lockedgroup15 = true; }   // 15+ - 100 year
                 else if ((nCurrentTime + 199*31556926) >= nLockTime ) {  lockedgroup100 = true; }   // 100+ - 199 year
                 else if ((nCurrentTime + 199*31556926) < nLockTime ) {  lockedgroup199 = true; }   // 199+ years
-/*            } else if (nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime) {
-                if ((nCurrentHeight + 31556926/55) >= nLockTime ) {  lockedgroup0 = true; }   // 0+ - 1 year
-                else if ((nCurrentHeight + 2*31556926/55) >= nLockTime ) {  lockedgroup1 = true; }   // 1+ - 2 year
-                else if ((nCurrentHeight + 5*31556926/55) >= nLockTime ) {  lockedgroup2 = true; }   // 2+ - 5 year
-                else if ((nCurrentHeight + 10*31556926/55) >= nLockTime ) {  lockedgroup5 = true; }   // 5+ - 10 year
-                else if ((nCurrentHeight + 15*31556926/55) >= nLockTime ) {  lockedgroup10 = true; }   // 10+ - 15 year
-                else if ((nCurrentHeight + 100*31556926/55) >= nLockTime ) {  lockedgroup15 = true; }   // 15+ - 100 year
-                else if ((nCurrentHeight + 199*31556926/55) >= nLockTime ) {  lockedgroup100 = true; }   // 100+ - 199 year
-                else if ((nCurrentHeight + 199*31556926/55) < nLockTime ) {  lockedgroup199 = true; }   // 199+ years
-*/            }
+            } else if (nLockTime < LOCKTIME_THRESHOLD && nCurrentHeight < nLockTime) {
+                if ((nCurrentHeight + 573762) >= nLockTime ) {  lockedgroup0 = true; }   // 0+ - 1 year
+                else if ((nCurrentHeight + 2*573762) >= nLockTime ) {  lockedgroup1 = true; }   // 1+ - 2 year
+                else if ((nCurrentHeight + 5*573762) >= nLockTime ) {  lockedgroup2 = true; }   // 2+ - 5 year
+                else if ((nCurrentHeight + 10*573762) >= nLockTime ) {  lockedgroup5 = true; }   // 5+ - 10 year
+                else if ((nCurrentHeight + 15*573762) >= nLockTime ) {  lockedgroup10 = true; }   // 10+ - 15 year
+                else if ((nCurrentHeight + 100*573762) >= nLockTime ) {  lockedgroup15 = true; }   // 15+ - 100 year
+                else if ((nCurrentHeight + 199*573762) >= nLockTime ) {  lockedgroup100 = true; }   // 100+ - 199 year
+                else if ((nCurrentHeight + 199*573762) < nLockTime ) {  lockedgroup199 = true; }   // 199+ years
+            }
     }
     return true;
 }
