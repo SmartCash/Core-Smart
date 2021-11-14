@@ -340,8 +340,6 @@ void SendCoinsDialog::on_sendButton_clicked()
         questionString.append("<br></br>");
         questionString.append(tr("Do not use for SmartNode collateral funding.<br></br>"));
         questionString.append(tr("You will not get SmartRewards on these funds.<br></br>"));
-        questionString.append(tr("TermRewards requires 1,2, or 3 year TimeLock and 101K or more Smart.<br></br>"));
-        questionString.append(tr("SmartRetire requires a 15 year TimeLock and 101K or more Smart."));
         questionString.append("</span></br><hr />");
         questionString.append(tr("Are you sure you want to send with a TimeLock?"));
 
