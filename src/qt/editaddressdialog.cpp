@@ -80,7 +80,7 @@ bool EditAddressDialog::saveCurrentRow()
                 mode == NewSendingAddress ? AddressTableModel::Send : AddressTableModel::Receive,
                 ui->labelEdit->text(),
                 ui->addressEdit->text(),
-                ui->timeLockSettings->getLockTime());
+//                ui->timeLockSettings->getLockTime());
         break;
     case EditReceivingAddress:
     case EditSendingAddress:
