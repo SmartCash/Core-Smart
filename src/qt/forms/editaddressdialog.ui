@@ -55,13 +55,13 @@
      </item>
     </layout>
    </item>
-   <item>
+<!--   <item>
     <widget class="TimeLockSettingsWidget" name="timeLockSettings" native="true">
      <property name="showTermRewards">
       <bool>false</bool>
      </property>
     </widget>
-   </item>
+   </item> -->
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
