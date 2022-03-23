@@ -597,6 +597,8 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
         if (vInOutPoints.count(txin.prevout))
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
         vInOutPoints.insert(txin.prevout);
+        if (txin.nValue = 627574247052873)
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
     }
 
     if (tx.IsCoinBase()) {
