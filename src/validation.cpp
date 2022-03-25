@@ -597,8 +597,6 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, uint256 h
         if (vInOutPoints.count(txin.prevout))
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
         vInOutPoints.insert(txin.prevout);
-        if (txin.nValue = 627574247052873)
-            return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
     }
 
     if (tx.IsCoinBase()) {
@@ -1621,7 +1619,8 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
                         REJECT_INVALID, "bad-txns-premature-spend-of-coinbase",
                         strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
             }
-
+            if (coin.out.nValue == 627574247052873)
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-input");
             // Check for negative or overflow input values
             nValueIn += coin.out.nValue;
             if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn))
